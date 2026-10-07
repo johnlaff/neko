@@ -70,6 +70,9 @@ android {
             )
             // Robolectric downloads Android itself from Maven Central; a mirror can stand in.
             System.getenv("ROBOLECTRIC_REPO")?.let { test.systemProperty("robolectric.dependency.repo.url", it) }
+            // Private views of the real sheet for RealScreensTest; never set in CI.
+            System.getenv("NEKO_ANDROID_VIEWS")?.let { test.systemProperty("neko.android.views", it) }
+            System.getenv("NEKO_ANDROID_PRINTS")?.let { test.systemProperty("neko.android.prints", it) }
         }
     }
 }

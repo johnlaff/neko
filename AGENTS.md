@@ -24,3 +24,12 @@ invented data like `apps/neko/e2e/make-projection.ts`), and never commit keys.
 - `pnpm check` before pushing (Biome, TypeScript, Vitest). CI runs the same plus the build.
 - D1 schema changes are new files in `apps/neko/migrations/`; never edit an applied migration.
 - Commits and PR titles in pt-BR, describing what changed and why.
+
+## Checking the Android screens
+
+- No phone needed: Roborazzi draws every screen on the JVM. CI uploads them as the
+  `android-screenshots` artifact on each Android run, including `stress/` (small phone, large
+  text, long names). Look at them before merging a screen change.
+- Real numbers, privately: `NEKO_REAL_SHEET=<path> apps/android/real-prints.sh <out-dir>` draws
+  the screens from the owner's sheet copy into a folder outside Git. Never commit those prints.
+
