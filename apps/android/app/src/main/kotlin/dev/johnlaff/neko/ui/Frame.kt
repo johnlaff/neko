@@ -177,10 +177,9 @@ fun ListRow(
             Spacer(Modifier.width(12.dp))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                chips()
-            }
+            Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // Chips get their own line: beside the name they squeezed it out on narrow phones.
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { chips() }
             meta?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
             below()
         }

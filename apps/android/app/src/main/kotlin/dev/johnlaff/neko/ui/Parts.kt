@@ -72,6 +72,8 @@ fun Chip(text: String, tone: ChipTone) {
         text,
         style = MaterialTheme.typography.labelMedium,
         color = color,
+        maxLines = 1,
+        softWrap = false,
         modifier = Modifier
             .background(color.copy(alpha = 0.12f), shape)
             .padding(horizontal = 10.dp, vertical = 3.dp),
