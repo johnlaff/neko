@@ -89,7 +89,12 @@ fun LoginScreen(onSignedIn: () -> Unit) {
             modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = l.accent, contentColor = l.bg),
         ) {
-            Text(if (busy) "Aguardando o aparelho…" else "Entrar com passkey", style = MaterialTheme.typography.labelLarge)
+            // The theme's text styles carry a color, which would win over the button's content color.
+            Text(
+                if (busy) "Aguardando o aparelho…" else "Entrar com passkey",
+                color = l.bg,
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
         error?.let {
             Spacer(Modifier.height(12.dp))
