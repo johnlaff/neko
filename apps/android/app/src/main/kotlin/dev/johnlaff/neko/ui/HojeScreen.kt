@@ -214,7 +214,7 @@ private fun Day(d: UpcomingDay, today: String) {
                 Text(
                     u.description.ifBlank { "Sem descrição" },
                     modifier = Modifier.weight(1f),
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(signed(u.amount, if (income) '+' else '−'), color = if (income) l.pos else l.text)

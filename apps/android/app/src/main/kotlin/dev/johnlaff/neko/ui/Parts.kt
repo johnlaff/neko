@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -50,19 +52,19 @@ fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
     )
 }
 
-/** Title on the left, a chip or a count on the right. */
+/** Title on the left, a chip or a count on the right; the chip drops below when both don't fit. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PanelHead(title: String, trailing: @Composable () -> Unit = {}) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        // The title gives way first, so the chip beside it always shows whole.
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        Spacer(Modifier.width(8.dp))
+    // A wide chip ("R$ 1.023,02 abaixo da média") used to squeeze the title to "His…" on a small
+    // phone; wrapping keeps both whole.
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(end = 8.dp))
         trailing()
     }
 }
