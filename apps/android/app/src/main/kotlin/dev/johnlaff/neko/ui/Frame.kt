@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -152,7 +154,8 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** One list line: an avatar, the name with its detail below, and the value on the right. */
+/** One list line: an avatar, the name with the value on its right, and the detail below. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ListRow(
     name: String,
@@ -166,7 +169,7 @@ fun ListRow(
     below: @Composable () -> Unit = {},
 ) {
     val l = LocalLedger.current
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         avatar?.let {
             Box(
                 Modifier.size(36.dp).background(if (accent) l.accent.copy(alpha = 0.16f) else l.surface2, CircleShape),
@@ -176,15 +179,20 @@ fun ListRow(
             }
             Spacer(Modifier.width(12.dp))
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            // Chips get their own line: beside the name they squeezed it out on narrow phones.
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { chips() }
+        // The value shares only the name's line; chips and bars below get the full width, so they
+        // don't clip on a small phone with large text.
+        Column(Modifier.weight(1f).padding(top = if (avatar != null) 6.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(12.dp))
+                Text(value, color = valueColor, textAlign = TextAlign.End)
+            }
+            // Chips get their own line: beside the name they squeezed it out on narrow phones,
+            // and they wrap instead of clipping when two don't fit.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { chips() }
             meta?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
             below()
         }
-        Spacer(Modifier.width(12.dp))
-        Text(value, color = valueColor, textAlign = TextAlign.End)
     }
 }
 

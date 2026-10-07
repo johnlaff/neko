@@ -19,6 +19,7 @@ import type {
   DailySource,
   HistoryPoint,
   ProjectionResponse,
+  UserSettings,
 } from "../shared/types.ts";
 import type { Env } from "./env.ts";
 import { accessToken, fileVersion, spreadsheet, tabs } from "./google.ts";
@@ -63,6 +64,35 @@ export const getProjection = async (env: Env, today: LocalDate): Promise<Project
     yearTabRanges(years),
     SHEET_FIELDS,
   )) as ApiSpreadsheet;
+  const response = buildResponse(doc, today, settings, {
+    id: env.SHEET_ID,
+    version,
+    modifiedTime: file.modifiedTime,
+    readAt: new Date().toISOString(),
+    tabs: tabGids,
+  });
+  const { projection } = response;
+  const { month } = parts(today);
+  const monthEnd =
+    projection.months.find((m) => m.year === year && m.month === month)?.endSheet ?? null;
+  await env.DB.prepare(
+    "INSERT INTO snapshot (file_version, today, settings_hash, month_end_projected, projection) VALUES (?, ?, ?, ?, ?)",
+  )
+    .bind(version, today, hash, monthEnd, JSON.stringify(response))
+    .run();
+  return response;
+};
+
+/**
+ * The pure half of the pipeline: the sheet as Sheets returned it, plus settings, to the response
+ * every screen reads. Also used to draw the app's screens from a private copy of the real sheet.
+ */
+export const buildResponse = (
+  doc: ApiSpreadsheet,
+  today: LocalDate,
+  settings: UserSettings,
+  sheet: ProjectionResponse["sheet"],
+): ProjectionResponse => {
   const { ledger, ceiling } = readSpreadsheet(doc);
 
   const cards = mergeCards(inferCards(ledger), settings.cards);
@@ -93,27 +123,7 @@ export const getProjection = async (env: Env, today: LocalDate): Promise<Project
     cards,
     othersCards: settings.othersCards,
   });
-  const response: ProjectionResponse = {
-    projection,
-    daily,
-    cardsKnown: cards,
-    sheet: {
-      id: env.SHEET_ID,
-      version,
-      modifiedTime: file.modifiedTime,
-      readAt: new Date().toISOString(),
-      tabs: tabGids,
-    },
-  };
-  const { month } = parts(today);
-  const monthEnd =
-    projection.months.find((m) => m.year === year && m.month === month)?.endSheet ?? null;
-  await env.DB.prepare(
-    "INSERT INTO snapshot (file_version, today, settings_hash, month_end_projected, projection) VALUES (?, ?, ?, ?, ?)",
-  )
-    .bind(version, today, hash, monthEnd, JSON.stringify(response))
-    .run();
-  return response;
+  return { projection, daily, cardsKnown: cards, sheet };
 };
 
 /** How the current month's projected end moved, one point per sheet version. */
