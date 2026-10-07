@@ -9,6 +9,7 @@ import {
 } from "@simplewebauthn/server";
 import type { Context } from "hono";
 import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
+import { androidOrigins } from "./android.ts";
 import { allowedEmails } from "./auth.ts";
 import type { AppEnv } from "./env.ts";
 import { b64url, fromB64url, hashToken, randomToken } from "./token.ts";
@@ -16,10 +17,13 @@ import { b64url, fromB64url, hashToken, randomToken } from "./token.ts";
 const CHALLENGE_COOKIE = "neko_webauthn";
 const CHALLENGE_SECONDS = 300;
 
-/** The relying party is the host Neko is served from; the origin must match it exactly. */
+/**
+ * The relying party is the host Neko is served from; the origin must match it exactly, or be the
+ * Android app signed with a certificate this site vouches for in assetlinks.json.
+ */
 const relyingParty = (c: Context<AppEnv>) => {
   const url = new URL(c.req.url);
-  return { rpID: url.hostname, origin: url.origin };
+  return { rpID: url.hostname, origin: [url.origin, ...androidOrigins(c.env)] };
 };
 
 /**
