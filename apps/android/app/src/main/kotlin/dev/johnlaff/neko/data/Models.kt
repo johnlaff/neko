@@ -1,0 +1,103 @@
+package dev.johnlaff.neko.data
+
+import kotlinx.serialization.Serializable
+
+/**
+ * What GET /api/today returns (apps/neko/src/shared/today.ts), already grouped and filtered.
+ * Money is integer cents and dates are `yyyy-MM-dd` strings, exactly as the API sends them.
+ */
+@Serializable
+data class TodayView(
+    val today: String,
+    val balanceToday: Long? = null,
+    val todayLogged: Boolean = false,
+    val todayUrl: String? = null,
+    val canSpend: CanSpend? = null,
+    val dailyForecast: Long = 0,
+    val dailySource: String = "inferred",
+    val upcoming: List<UpcomingDay> = emptyList(),
+    val upcomingCount: Int = 0,
+    val insights: List<Insight> = emptyList(),
+    val saving: Saving? = null,
+    val issues: List<TodayIssue> = emptyList(),
+    val issuesInWindow: Int = 0,
+    val readAt: String = "",
+)
+
+@Serializable
+data class CanSpend(
+    val card: String,
+    val budget: Long,
+    val budgetSource: String,
+    val accumulated: Long,
+    val daysLeft: Int,
+    val perDay: Long,
+    val closing: String,
+    val due: String,
+    val cycleDays: Int,
+    val paceExpected: Long,
+    val paceGap: Long,
+    val overBy: Long,
+    /** "over", "on-pace" or "ahead". */
+    val pace: String,
+)
+
+@Serializable
+data class UpcomingItem(
+    val date: String,
+    val description: String,
+    val amount: Long,
+    /** "card", "bill" or "income". */
+    val kind: String,
+)
+
+@Serializable
+data class UpcomingDay(val date: String, val items: List<UpcomingItem>, val net: Long)
+
+/** One warning; which fields are set depends on `kind`, as in the engine's Insight union. */
+@Serializable
+data class Insight(
+    val kind: String,
+    val start: String? = null,
+    val deepest: Long? = null,
+    val deepestDate: String? = null,
+    val card: String? = null,
+    val over: Long? = null,
+    val label: String? = null,
+    val amount: Long? = null,
+    val change: Long? = null,
+    val closing: String? = null,
+)
+
+@Serializable
+data class Saving(
+    val date: String,
+    val income: Long,
+    val amount: Long,
+    val until: String,
+    val leftAtLowest: Long,
+)
+
+@Serializable
+data class CellRef(val tab: String, val a1: String)
+
+/** A Conferência point; which fields are set depends on `kind`, as in the engine's HealthIssue. */
+@Serializable
+data class HealthIssue(
+    val kind: String,
+    val date: String,
+    val ref: CellRef,
+    val column: String? = null,
+    val notes: Long? = null,
+    val cell: Long? = null,
+    val sheet: Long? = null,
+    val computed: Long? = null,
+    val card: String? = null,
+    val lines: List<String> = emptyList(),
+)
+
+@Serializable
+data class TodayIssue(val issue: HealthIssue, val url: String)
+
+@Serializable
+data class Me(val email: String? = null)
