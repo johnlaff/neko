@@ -1,5 +1,9 @@
 package dev.johnlaff.neko
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -37,7 +41,10 @@ class ScreenshotTest {
 
     private fun shot(name: String, night: Boolean, content: @androidx.compose.runtime.Composable () -> Unit) {
         org.robolectric.RuntimeEnvironment.setQualifiers(if (night) "+night" else "+notnight")
-        compose.setContent { NekoTheme(content) }
+        // The app's window paints the background; a bare composition here would be transparent.
+        compose.setContent {
+            NekoTheme { Box(Modifier.background(MaterialTheme.colorScheme.background)) { content() } }
+        }
         compose.onRoot().captureRoboImage("screenshots/$name.png")
     }
 }
