@@ -6,6 +6,7 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
+import { ajustesView, invoicesView, monthsView } from "../shared/screens.ts";
 import { todayView } from "../shared/today.ts";
 import { assetLinks } from "./android.ts";
 import {
@@ -110,6 +111,9 @@ app.post("/auth/logout", async (c) => {
 
 app.use("/projection", requireSession);
 app.use("/today", requireSession);
+app.use("/invoices", requireSession);
+app.use("/months", requireSession);
+app.use("/ajustes", requireSession);
 app.use("/history", requireSession);
 app.use("/settings", requireSession);
 app.use("/push/*", requireSession);
@@ -186,6 +190,23 @@ app.get("/today", async (c) => {
     loadSettings(c.env.DB),
   ]);
   return c.json(todayView(data, settings.reviewed));
+});
+
+/** Faturas, Mês and Ajustes ready to draw, for the Android app (see shared/screens.ts). */
+app.get("/invoices", async (c) =>
+  c.json(invoicesView(await getProjection(c.env, todayIn(new Date())))),
+);
+
+app.get("/months", async (c) =>
+  c.json(monthsView(await getProjection(c.env, todayIn(new Date())))),
+);
+
+app.get("/ajustes", async (c) => {
+  const [data, settings] = await Promise.all([
+    getProjection(c.env, todayIn(new Date())),
+    loadSettings(c.env.DB),
+  ]);
+  return c.json(ajustesView(data, settings));
 });
 
 app.get("/history", async (c) => {

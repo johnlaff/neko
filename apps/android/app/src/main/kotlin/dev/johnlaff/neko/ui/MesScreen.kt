@@ -1,0 +1,220 @@
+package dev.johnlaff.neko.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import dev.johnlaff.neko.data.Fixed
+import dev.johnlaff.neko.data.MonthItem
+import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.data.Outflow
+import dev.johnlaff.neko.ui.Format.capitalize
+import dev.johnlaff.neko.ui.Format.money
+import dev.johnlaff.neko.ui.Format.monthName
+import dev.johnlaff.neko.ui.Format.signed
+
+/** Lines shown before "Ver mais", as on the site. */
+private const val OUTFLOWS_SHOWN = 5
+private const val FIXED_SHOWN = 4
+
+/** The site's Mês (web/screens/Mes.tsx): how a month ends, where the money went, what is fixed. */
+@Composable
+fun MesScreen(state: ScreenState<MonthsView>, onRefresh: () -> Unit) {
+    var picked by rememberSaveable { mutableStateOf<String?>(null) }
+    ScreenFrame("Mês", state, { it.readAt }, onRefresh) { v ->
+        val idx = v.months.indexOfFirst { it.key == (picked ?: v.current) }.takeIf { it >= 0 }
+            ?: v.months.indexOfFirst { it.key == v.current }.coerceAtLeast(0)
+        val m = v.months.getOrNull(idx)
+        if (m == null) {
+            item { Panel { Text("A planilha não tem meses para mostrar.", color = LocalLedger.current.muted) } }
+            return@ScreenFrame
+        }
+        item {
+            MonthNav(
+                m,
+                prev = v.months.getOrNull(idx - 1)?.let { p -> { picked = p.key } },
+                next = v.months.getOrNull(idx + 1)?.let { n -> { picked = n.key } },
+            )
+        }
+        item { Hero(m, v.months.filter { it.year == m.year }) { picked = it } }
+        if (m.outflows.isNotEmpty()) item { Outflows(m) }
+        if (m.fixed.isNotEmpty()) item { FixedPanel(m) }
+    }
+}
+
+@Composable
+private fun MonthNav(m: MonthItem, prev: (() -> Unit)?, next: (() -> Unit)?) {
+    val l = LocalLedger.current
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        TextButton(onClick = { prev?.invoke() }, enabled = prev != null, modifier = Modifier.semantics { contentDescription = "Mês anterior" }) {
+            Text("‹", style = MaterialTheme.typography.headlineSmall, color = if (prev != null) l.text else l.border)
+        }
+        Text(
+            "${capitalize(monthName(m.month))} ${m.year}",
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = { next?.invoke() }, enabled = next != null, modifier = Modifier.semantics { contentDescription = "Próximo mês" }) {
+            Text("›", style = MaterialTheme.typography.headlineSmall, color = if (next != null) l.text else l.border)
+        }
+    }
+}
+
+@Composable
+private fun Hero(m: MonthItem, year: List<MonthItem>, onPick: (String) -> Unit) {
+    val l = LocalLedger.current
+    var ledger by remember(m.key) { mutableStateOf(false) }
+    val ends = if (m.past) "Terminou com" else "Termina com"
+    Panel {
+        PanelHead(ends) { Chip(if (m.past) "Fechado" else "Previsão", ChipTone.Plain) }
+        BigMoney(m.endSheet, if (m.endSheet < 0) l.neg else l.text)
+        Columns(
+            items = year.map { x ->
+                Bar(
+                    key = x.key,
+                    label = capitalize(monthName(x.month).take(1)),
+                    value = x.endSheet,
+                    description = "${capitalize(monthName(x.month))}: ${money(x.endSheet)}",
+                    accent = x.key == m.key,
+                    faint = x.future,
+                )
+            },
+            onSelect = onPick,
+        )
+        m.result?.let { r ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("${if (r < 0) "Prejuízo" else "Lucro"} ${if (m.past) "do mês" else "previsto"}", color = l.muted)
+                Text(
+                    money(kotlin.math.abs(r)),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = when {
+                        r > 0 -> l.pos
+                        r < 0 -> l.neg
+                        else -> l.text
+                    },
+                )
+            }
+        }
+        TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger })
+        if (ledger) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LedgerLine("Começou com", money(m.startBalance))
+                LedgerLine("Entradas", signed(m.entrada, '+'), l.pos)
+                LedgerLine("Saídas", signed(m.saida, '−'))
+                // Zero when the diário goes on the card: it is in the bills, under Saídas.
+                if (m.diario != 0L) LedgerLine("Diário", signed(m.diario, '−'))
+                LedgerLine(ends, money(m.endSheet), if (m.endSheet < 0) l.neg else l.text, total = true)
+            }
+            m.result?.let { r ->
+                Text(
+                    "${if (r < 0) "Prejuízo" else "Lucro"} é quanto o saldo ${if (r < 0) "desceu" else "subiu"} no mês. " +
+                        "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer como prejuízo.",
+                    color = l.muted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LedgerLine(label: String, value: String, color: androidx.compose.ui.graphics.Color = LocalLedger.current.text, total: Boolean = false) {
+    val l = LocalLedger.current
+    val style = if (total) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = if (total) l.text else l.muted, style = style)
+        Text(value, color = color, style = style)
+    }
+}
+
+@Composable
+private fun Outflows(m: MonthItem) {
+    val l = LocalLedger.current
+    var all by remember(m.key) { mutableStateOf(false) }
+    val top = m.outflows.first().amount
+    val rest = m.outflows.size - OUTFLOWS_SHOWN
+    Panel {
+        PanelHead("Para onde foi") {
+            Text(
+                if (m.outflows.size == 1) "1 destino" else "${m.outflows.size} destinos",
+                color = l.faint,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+        (if (all) m.outflows else m.outflows.take(OUTFLOWS_SHOWN)).forEach { OutflowRow(it, top) }
+        if (rest > 0) TextAction(if (all) "Ver menos" else "Ver mais $rest", { all = !all })
+        if (m.outflows.any { (it.change ?: 0L) != 0L }) {
+            val before = monthName(if (m.month == 1) 12 else m.month - 1)
+            Text("▲▼ Comparado a $before", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+@Composable
+private fun OutflowRow(o: Outflow, top: Long) {
+    val l = LocalLedger.current
+    val change = o.change ?: 0L
+    ListRow(
+        name = o.label,
+        value = money(o.amount),
+        avatar = if (o.kind == "card") monogram(o.label) else o.label.take(1).uppercase(),
+        chips = { if (o.others) Chip("De outra pessoa", ChipTone.Plain) },
+        below = {
+            // Display only: the line's amount scaled to the month's largest line.
+            Meter(if (top <= 0) 0f else o.amount.toFloat() / top)
+            if (change != 0L) {
+                Text(
+                    "${if (change > 0) "▲" else "▼"} ${money(kotlin.math.abs(change))} ${if (change > 0) "a mais" else "a menos"}",
+                    color = if (change > 0) l.neg else l.faint,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        },
+    )
+}
+
+@Composable
+private fun FixedPanel(m: MonthItem) {
+    val l = LocalLedger.current
+    var all by remember(m.key) { mutableStateOf(false) }
+    val rest = m.fixed.size - FIXED_SHOWN
+    Panel {
+        PanelHead("Fixos do mês") { Text(money(m.fixedTotal), color = l.faint, style = MaterialTheme.typography.labelMedium) }
+        (if (all) m.fixed else m.fixed.take(FIXED_SHOWN)).forEach { FixedRow(it) }
+        if (rest > 0) TextAction(if (all) "Ver menos" else "Ver mais $rest", { all = !all })
+    }
+}
+
+@Composable
+private fun FixedRow(f: Fixed) {
+    val i = f.installment
+    ListRow(
+        name = f.label,
+        value = money(f.amount),
+        avatar = f.label.take(1).uppercase(),
+        meta = i?.let {
+            "${it.paid} de ${it.total}" +
+                if (it.left > 0) " · Faltam ${money(it.left)} até ${monthName(it.ends.month).take(3)} ${it.ends.year}" else ""
+        },
+        below = {
+            // Display only: installments paid out of the total.
+            if (i != null && i.total > 0) Meter(i.paid.toFloat() / i.total)
+        },
+    )
+}
