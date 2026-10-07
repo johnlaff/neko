@@ -5,7 +5,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.johnlaff.neko.NekoApp
 import dev.johnlaff.neko.data.ApiException
+import dev.johnlaff.neko.data.AjustesView
+import dev.johnlaff.neko.data.InvoicesView
+import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.TodayView
+import dev.johnlaff.neko.data.UserSettings
 import dev.johnlaff.neko.widget.WidgetRefresh
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,13 +25,19 @@ sealed interface Session {
 /** Why the last read failed, in the terms the screen speaks to. */
 enum class ReadError { Offline, SheetStructure, Other }
 
-data class TodayState(
-    val view: TodayView? = null,
+/** One screen's last read, whether a new one is on the way and why the last one failed. */
+data class ScreenState<T>(
+    val view: T? = null,
     val loading: Boolean = false,
     val error: ReadError? = null,
     /** The sheet's message when its structure changed. */
     val detail: String? = null,
 )
+
+typealias TodayState = ScreenState<TodayView>
+
+/** How the Ajustes autosave went, for the chip next to the title. */
+enum class SaveState { Idle, Saving, Saved, Failed }
 
 class AppModel(app: Application) : AndroidViewModel(app) {
     private val neko = app as NekoApp
@@ -35,6 +45,14 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     val session: StateFlow<Session> = _session
     private val _today = MutableStateFlow(TodayState(view = neko.today.cached()))
     val today: StateFlow<TodayState> = _today
+    private val _invoices = MutableStateFlow(ScreenState<InvoicesView>())
+    val invoices: StateFlow<ScreenState<InvoicesView>> = _invoices
+    private val _months = MutableStateFlow(ScreenState<MonthsView>())
+    val months: StateFlow<ScreenState<MonthsView>> = _months
+    private val _ajustes = MutableStateFlow(ScreenState<AjustesView>())
+    val ajustes: StateFlow<ScreenState<AjustesView>> = _ajustes
+    private val _save = MutableStateFlow(SaveState.Idle)
+    val save: StateFlow<SaveState> = _save
 
     init {
         viewModelScope.launch {
@@ -51,26 +69,63 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun refresh() {
-        if (_today.value.loading) return
-        _today.update { it.copy(loading = true) }
+    fun refresh() = load(_today, { neko.today.refresh() }) { WidgetRefresh.redraw(getApplication()) }
+
+    /** Reads the screen on show; what was read before stays on screen until the new read lands. */
+    fun refresh(tab: Tab) = when (tab) {
+        Tab.Hoje -> refresh()
+        Tab.Faturas -> load(_invoices, { neko.api.invoices() })
+        Tab.Mes -> load(_months, { neko.api.months() })
+        Tab.Ajustes -> load(_ajustes, { neko.api.ajustes() })
+    }
+
+    private fun <T> load(
+        state: MutableStateFlow<ScreenState<T>>,
+        read: suspend () -> T,
+        done: (T) -> Unit = {},
+    ) {
+        if (state.value.loading) return
+        state.update { it.copy(loading = true) }
         viewModelScope.launch {
-            val result = runCatching { neko.today.refresh() }
+            val result = runCatching { read() }
             result.onSuccess { v ->
-                _today.value = TodayState(view = v)
-                WidgetRefresh.redraw(getApplication())
+                state.value = ScreenState(view = v)
+                done(v)
             }
             result.onFailure { e ->
                 if (e is ApiException && e.status == 401) {
                     signedOut()
                     return@onFailure
                 }
-                val kind = when {
-                    e is ApiException && e.code == "sheet-structure" -> ReadError.SheetStructure
-                    e is ApiException -> ReadError.Other
-                    else -> ReadError.Offline
-                }
-                _today.update { it.copy(loading = false, error = kind, detail = (e as? ApiException)?.message) }
+                state.update { it.copy(loading = false, error = readError(e), detail = (e as? ApiException)?.message) }
+            }
+        }
+    }
+
+    private var saved: UserSettings? = null
+    private var saving: kotlinx.coroutines.Job? = null
+
+    /**
+     * Saves Ajustes whole, as the site does; the same settings twice in a row send nothing. The
+     * latest call wins: a save still on its way is cancelled by a newer one.
+     */
+    fun saveSettings(settings: UserSettings) {
+        if (settings == (saved ?: _ajustes.value.view?.settings)) return
+        saved = settings
+        saving?.cancel()
+        _save.value = SaveState.Saving
+        saving = viewModelScope.launch {
+            val result = runCatching { neko.api.saveSettings(settings) }
+            result.onSuccess { s ->
+                _ajustes.update { st -> st.copy(view = st.view?.copy(settings = s)) }
+                _save.value = SaveState.Saved
+                // Settings change Hoje (pace, diário): read it again so the widget follows.
+                refresh()
+            }
+            result.onFailure { e ->
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                saved = null
+                if (e is ApiException && e.status == 401) signedOut() else _save.value = SaveState.Failed
             }
         }
     }
@@ -91,7 +146,21 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         neko.today.clear()
         neko.cookies.clear()
         _today.value = TodayState()
+        _invoices.value = ScreenState()
+        _months.value = ScreenState()
+        _ajustes.value = ScreenState()
+        _save.value = SaveState.Idle
+        saved = null
         _session.value = Session.SignedOut
         WidgetRefresh.redraw(getApplication())
     }
 }
+
+private fun readError(e: Throwable) = when {
+    e is ApiException && e.code == "sheet-structure" -> ReadError.SheetStructure
+    e is ApiException -> ReadError.Other
+    else -> ReadError.Offline
+}
+
+/** The app's four places, in dock order. */
+enum class Tab(val label: String) { Hoje("Hoje"), Faturas("Faturas"), Mes("Mês"), Ajustes("Ajustes") }

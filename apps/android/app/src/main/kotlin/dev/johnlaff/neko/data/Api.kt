@@ -53,6 +53,17 @@ class Api(
 
     suspend fun today(): TodayView = json.decodeFromString(call("/today"))
 
+    suspend fun invoices(): InvoicesView = json.decodeFromString(call("/invoices"))
+
+    suspend fun months(): MonthsView = json.decodeFromString(call("/months"))
+
+    suspend fun ajustes(): AjustesView = json.decodeFromString(call("/ajustes"))
+
+    suspend fun saveSettings(settings: UserSettings): UserSettings {
+        val body = json.encodeToString(UserSettings.serializer(), settings).toRequestBody(jsonType)
+        return json.decodeFromString(call("/settings", body, "PUT"))
+    }
+
     /** WebAuthn request options, as JSON for Credential Manager. */
     suspend fun passkeyLoginOptions(): String = call("/passkey/login/options", JsonObject(emptyMap()).asBody())
 

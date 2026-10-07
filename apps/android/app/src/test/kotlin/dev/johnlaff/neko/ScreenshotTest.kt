@@ -9,7 +9,15 @@ import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.json
+import dev.johnlaff.neko.data.AjustesView
+import dev.johnlaff.neko.data.InvoicesView
+import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.ui.AjustesScreen
+import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
+import dev.johnlaff.neko.ui.MesScreen
+import dev.johnlaff.neko.ui.SaveState
+import dev.johnlaff.neko.ui.ScreenState
 import dev.johnlaff.neko.ui.LoginScreen
 import dev.johnlaff.neko.ui.NekoTheme
 import dev.johnlaff.neko.ui.TodayState
@@ -36,6 +44,25 @@ class ScreenshotTest {
     @Test fun hojeDark() = shot("hoje-dark", night = true) { HojeScreen(TodayState(view), {}, {}) }
 
     @Test fun hojeLight() = shot("hoje-light", night = false) { HojeScreen(TodayState(view), {}, {}) }
+
+    private fun <T> read(file: String, s: kotlinx.serialization.KSerializer<T>): T =
+        json.decodeFromString(s, File("src/test/resources/$file").readText())
+
+    private val invoices = read("invoices.json", InvoicesView.serializer())
+    private val months = read("months.json", MonthsView.serializer())
+    private val ajustes = read("ajustes.json", AjustesView.serializer())
+
+    @Test fun faturasDark() = shot("faturas-dark", night = true) { FaturasScreen(ScreenState(invoices), {}, {}) }
+
+    @Test fun faturasLight() = shot("faturas-light", night = false) { FaturasScreen(ScreenState(invoices), {}, {}) }
+
+    @Test fun mesDark() = shot("mes-dark", night = true) { MesScreen(ScreenState(months)) {} }
+
+    @Test fun mesLight() = shot("mes-light", night = false) { MesScreen(ScreenState(months)) {} }
+
+    @Test fun ajustesDark() = shot("ajustes-dark", night = true) {
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {})
+    }
 
     @Test fun loginDark() = shot("login-dark", night = true) { LoginScreen {} }
 

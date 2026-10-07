@@ -27,4 +27,16 @@ class FormatTest {
         assertEquals("1 dia", Format.days(1))
         assertEquals("3 dias", Format.days(3))
     }
+
+    @Test fun typedMoney() {
+        assertEquals(17_700L, Format.toCents("177,00"))
+        assertEquals(500_000L, Format.toCents(" 5.000 "))
+        assertEquals(12_35L, Format.toCents("12,345"))
+        assertEquals(null, Format.toCents(""))
+        assertEquals(null, Format.toCents("abc"))
+        assertEquals(null, Format.toCents("-3"))
+        assertEquals("177,00", Format.fromCents(17_700))
+        assertEquals("0,05", Format.fromCents(5))
+        assertEquals("", Format.fromCents(null))
+    }
 }

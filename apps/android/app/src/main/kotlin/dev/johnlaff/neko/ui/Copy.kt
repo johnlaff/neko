@@ -26,7 +26,7 @@ object Copy {
         )
         "closing-estimated" -> Line(
             "Qual dia fecha o ${i.card}?",
-            "Estimado em ${shortDate(i.closing ?: return null)}. Confirme em Ajustes, no site",
+            "Estimado em ${shortDate(i.closing ?: return null)}. Confirme em Ajustes",
         )
         else -> null
     }

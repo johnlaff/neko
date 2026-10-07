@@ -1,0 +1,2499 @@
+{
+  "today": "2026-10-05",
+  "readAt": "2026-10-05T11:00:00.000Z",
+  "current": "2026-10",
+  "months": [
+    {
+      "key": "2025-01",
+      "year": 2025,
+      "month": 1,
+      "past": true,
+      "future": false,
+      "startBalance": 850000,
+      "entrada": 807314,
+      "saida": 636096,
+      "diario": 43142,
+      "endSheet": 978076,
+      "result": 128076,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 260274,
+          "count": 1,
+          "kind": "card",
+          "change": null,
+          "countBefore": null,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": null,
+          "countBefore": null,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": null,
+          "countBefore": null,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 38874,
+          "count": 1,
+          "kind": "card",
+          "change": null,
+          "countBefore": null,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": null,
+          "countBefore": null,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 22948,
+          "count": 1,
+          "kind": "bill",
+          "change": null,
+          "countBefore": null,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": null,
+          "countBefore": null,
+          "others": false
+        }
+      ],
+      "fixed": [],
+      "fixedTotal": 0
+    },
+    {
+      "key": "2025-02",
+      "year": 2025,
+      "month": 2,
+      "past": true,
+      "future": false,
+      "startBalance": 978076,
+      "entrada": 788153,
+      "saida": 681243,
+      "diario": 50331,
+      "endSheet": 1034655,
+      "result": 56579,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 311807,
+          "count": 1,
+          "kind": "card",
+          "change": 51533,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 30069,
+          "count": 1,
+          "kind": "card",
+          "change": -8805,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Luz",
+          "amount": 25367,
+          "count": 1,
+          "kind": "bill",
+          "change": 2419,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [],
+      "fixedTotal": 0
+    },
+    {
+      "key": "2025-03",
+      "year": 2025,
+      "month": 3,
+      "past": true,
+      "future": false,
+      "startBalance": 1034655,
+      "entrada": 816746,
+      "saida": 726451,
+      "diario": 47317,
+      "endSheet": 1077633,
+      "result": 42978,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 347094,
+          "count": 1,
+          "kind": "card",
+          "change": 35287,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 42047,
+          "count": 1,
+          "kind": "card",
+          "change": 11978,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 23310,
+          "count": 1,
+          "kind": "bill",
+          "change": -2057,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 23310,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 337310
+    },
+    {
+      "key": "2025-04",
+      "year": 2025,
+      "month": 4,
+      "past": true,
+      "future": false,
+      "startBalance": 1077633,
+      "entrada": 818665,
+      "saida": 736696,
+      "diario": 59194,
+      "endSheet": 1100408,
+      "result": 22775,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 367154,
+          "count": 1,
+          "kind": "card",
+          "change": 20060,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 37293,
+          "count": 1,
+          "kind": "card",
+          "change": -4754,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 18249,
+          "count": 1,
+          "kind": "bill",
+          "change": -5061,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 18249,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 332249
+    },
+    {
+      "key": "2025-05",
+      "year": 2025,
+      "month": 5,
+      "past": true,
+      "future": false,
+      "startBalance": 1100408,
+      "entrada": 803048,
+      "saida": 741442,
+      "diario": 53001,
+      "endSheet": 1109013,
+      "result": 8605,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 344718,
+          "count": 1,
+          "kind": "card",
+          "change": -22436,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 60709,
+          "count": 1,
+          "kind": "card",
+          "change": 23416,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 22015,
+          "count": 1,
+          "kind": "bill",
+          "change": 3766,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 22015,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 336015
+    },
+    {
+      "key": "2025-06",
+      "year": 2025,
+      "month": 6,
+      "past": true,
+      "future": false,
+      "startBalance": 1109013,
+      "entrada": 817923,
+      "saida": 700061,
+      "diario": 56181,
+      "endSheet": 1170694,
+      "result": 61681,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 322652,
+          "count": 1,
+          "kind": "card",
+          "change": -22066,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 41529,
+          "count": 1,
+          "kind": "card",
+          "change": -19180,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 21880,
+          "count": 1,
+          "kind": "bill",
+          "change": -135,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 21880,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 335880
+    },
+    {
+      "key": "2025-07",
+      "year": 2025,
+      "month": 7,
+      "past": true,
+      "future": false,
+      "startBalance": 1170694,
+      "entrada": 781023,
+      "saida": 770225,
+      "diario": 55353,
+      "endSheet": 1126139,
+      "result": -44555,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 369621,
+          "count": 1,
+          "kind": "card",
+          "change": 46969,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 61678,
+          "count": 1,
+          "kind": "card",
+          "change": 20149,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 24926,
+          "count": 1,
+          "kind": "bill",
+          "change": 3046,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 24926,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 338926
+    },
+    {
+      "key": "2025-08",
+      "year": 2025,
+      "month": 8,
+      "past": true,
+      "future": false,
+      "startBalance": 1126139,
+      "entrada": 813687,
+      "saida": 718109,
+      "diario": 56339,
+      "endSheet": 1165378,
+      "result": 39239,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 315612,
+          "count": 1,
+          "kind": "card",
+          "change": -54009,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 69718,
+          "count": 1,
+          "kind": "card",
+          "change": 8040,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 18779,
+          "count": 1,
+          "kind": "bill",
+          "change": -6147,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 18779,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 332779
+    },
+    {
+      "key": "2025-09",
+      "year": 2025,
+      "month": 9,
+      "past": true,
+      "future": false,
+      "startBalance": 1165378,
+      "entrada": 789122,
+      "saida": 705766,
+      "diario": 39776,
+      "endSheet": 1208958,
+      "result": 43580,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 330610,
+          "count": 1,
+          "kind": "card",
+          "change": 14998,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 38136,
+          "count": 1,
+          "kind": "card",
+          "change": -31582,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 23020,
+          "count": 1,
+          "kind": "bill",
+          "change": 4241,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 23020,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 337020
+    },
+    {
+      "key": "2025-10",
+      "year": 2025,
+      "month": 10,
+      "past": true,
+      "future": false,
+      "startBalance": 1208958,
+      "entrada": 799008,
+      "saida": 681612,
+      "diario": 57552,
+      "endSheet": 1268802,
+      "result": 59844,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 303656,
+          "count": 1,
+          "kind": "card",
+          "change": -26954,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 39963,
+          "count": 1,
+          "kind": "card",
+          "change": 1827,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 23993,
+          "count": 1,
+          "kind": "bill",
+          "change": 973,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 23993,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 337993
+    },
+    {
+      "key": "2025-11",
+      "year": 2025,
+      "month": 11,
+      "past": true,
+      "future": false,
+      "startBalance": 1268802,
+      "entrada": 791214,
+      "saida": 738665,
+      "diario": 45874,
+      "endSheet": 1275477,
+      "result": 6675,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 370625,
+          "count": 1,
+          "kind": "card",
+          "change": 66969,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 33519,
+          "count": 1,
+          "kind": "card",
+          "change": -6444,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 20521,
+          "count": 1,
+          "kind": "bill",
+          "change": -3472,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 20521,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 334521
+    },
+    {
+      "key": "2025-12",
+      "year": 2025,
+      "month": 12,
+      "past": true,
+      "future": false,
+      "startBalance": 1275477,
+      "entrada": 785356,
+      "saida": 737757,
+      "diario": 44576,
+      "endSheet": 1278500,
+      "result": 3023,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 342640,
+          "count": 1,
+          "kind": "card",
+          "change": -27985,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 59877,
+          "count": 1,
+          "kind": "card",
+          "change": 26358,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 21240,
+          "count": 1,
+          "kind": "bill",
+          "change": 719,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 21240,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 335240
+    },
+    {
+      "key": "2026-01",
+      "year": 2026,
+      "month": 1,
+      "past": true,
+      "future": false,
+      "startBalance": 1278500,
+      "entrada": 807692,
+      "saida": 664552,
+      "diario": 53427,
+      "endSheet": 1368213,
+      "result": 89713,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 273652,
+          "count": 1,
+          "kind": "card",
+          "change": -68988,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 57152,
+          "count": 1,
+          "kind": "card",
+          "change": -2725,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 19748,
+          "count": 1,
+          "kind": "bill",
+          "change": -1492,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 19748,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 333748
+    },
+    {
+      "key": "2026-02",
+      "year": 2026,
+      "month": 2,
+      "past": true,
+      "future": false,
+      "startBalance": 1368213,
+      "entrada": 818481,
+      "saida": 693618,
+      "diario": 43754,
+      "endSheet": 1449322,
+      "result": 81109,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 311306,
+          "count": 1,
+          "kind": "card",
+          "change": 37654,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 42384,
+          "count": 1,
+          "kind": "card",
+          "change": -14768,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 25928,
+          "count": 1,
+          "kind": "bill",
+          "change": 6180,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 25928,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 339928
+    },
+    {
+      "key": "2026-03",
+      "year": 2026,
+      "month": 3,
+      "past": true,
+      "future": false,
+      "startBalance": 1449322,
+      "entrada": 780513,
+      "saida": 629094,
+      "diario": 40125,
+      "endSheet": 1560616,
+      "result": 111294,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 259153,
+          "count": 1,
+          "kind": "card",
+          "change": -52153,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 35203,
+          "count": 1,
+          "kind": "card",
+          "change": -7181,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 20738,
+          "count": 1,
+          "kind": "bill",
+          "change": -5190,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 20738,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 334738
+    },
+    {
+      "key": "2026-04",
+      "year": 2026,
+      "month": 4,
+      "past": true,
+      "future": false,
+      "startBalance": 1560616,
+      "entrada": 802127,
+      "saida": 693601,
+      "diario": 52853,
+      "endSheet": 1616289,
+      "result": 55673,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 307021,
+          "count": 1,
+          "kind": "card",
+          "change": 47868,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 51883,
+          "count": 1,
+          "kind": "card",
+          "change": 16680,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 20697,
+          "count": 1,
+          "kind": "bill",
+          "change": -41,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 20697,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 334697
+    },
+    {
+      "key": "2026-05",
+      "year": 2026,
+      "month": 5,
+      "past": true,
+      "future": false,
+      "startBalance": 1616289,
+      "entrada": 807809,
+      "saida": 661637,
+      "diario": 55747,
+      "endSheet": 1706714,
+      "result": 90425,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 265412,
+          "count": 1,
+          "kind": "card",
+          "change": -41609,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 58336,
+          "count": 1,
+          "kind": "card",
+          "change": 6453,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 23889,
+          "count": 1,
+          "kind": "bill",
+          "change": 3192,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 23889,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 337889
+    },
+    {
+      "key": "2026-06",
+      "year": 2026,
+      "month": 6,
+      "past": true,
+      "future": false,
+      "startBalance": 1706714,
+      "entrada": 780593,
+      "saida": 741600,
+      "diario": 63243,
+      "endSheet": 1682464,
+      "result": -24250,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 341194,
+          "count": 1,
+          "kind": "card",
+          "change": 75782,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 65330,
+          "count": 1,
+          "kind": "card",
+          "change": 6994,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 21076,
+          "count": 1,
+          "kind": "bill",
+          "change": -2813,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 21076,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 335076
+    },
+    {
+      "key": "2026-07",
+      "year": 2026,
+      "month": 7,
+      "past": true,
+      "future": false,
+      "startBalance": 1682464,
+      "entrada": 785347,
+      "saida": 687867,
+      "diario": 61755,
+      "endSheet": 1718189,
+      "result": 35725,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 296051,
+          "count": 1,
+          "kind": "card",
+          "change": -45143,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 57732,
+          "count": 1,
+          "kind": "card",
+          "change": -7598,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 20084,
+          "count": 1,
+          "kind": "bill",
+          "change": -992,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 20084,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 334084
+    },
+    {
+      "key": "2026-08",
+      "year": 2026,
+      "month": 8,
+      "past": true,
+      "future": false,
+      "startBalance": 1718189,
+      "entrada": 785265,
+      "saida": 646222,
+      "diario": 60611,
+      "endSheet": 1796621,
+      "result": 78432,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 260071,
+          "count": 1,
+          "kind": "card",
+          "change": -35980,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 50021,
+          "count": 1,
+          "kind": "card",
+          "change": -7711,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 22130,
+          "count": 1,
+          "kind": "bill",
+          "change": 2046,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 22130,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 336130
+    },
+    {
+      "key": "2026-09",
+      "year": 2026,
+      "month": 9,
+      "past": true,
+      "future": false,
+      "startBalance": 1796621,
+      "entrada": 817736,
+      "saida": 766766,
+      "diario": 48206,
+      "endSheet": 1799385,
+      "result": 2764,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 361629,
+          "count": 1,
+          "kind": "card",
+          "change": 101558,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 69096,
+          "count": 1,
+          "kind": "card",
+          "change": 19075,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 22041,
+          "count": 1,
+          "kind": "bill",
+          "change": -89,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 22041,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 336041
+    },
+    {
+      "key": "2026-10",
+      "year": 2026,
+      "month": 10,
+      "past": false,
+      "future": false,
+      "startBalance": 1799385,
+      "entrada": 795340,
+      "saida": 745683,
+      "diario": 5638,
+      "endSheet": 1843404,
+      "result": 44019,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 360031,
+          "count": 1,
+          "kind": "card",
+          "change": -1598,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 52770,
+          "count": 1,
+          "kind": "card",
+          "change": -16326,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 18882,
+          "count": 1,
+          "kind": "bill",
+          "change": -3159,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 18882,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 332882
+    },
+    {
+      "key": "2026-11",
+      "year": 2026,
+      "month": 11,
+      "past": false,
+      "future": true,
+      "startBalance": 1843404,
+      "entrada": 803726,
+      "saida": 656754,
+      "diario": 0,
+      "endSheet": 1990376,
+      "result": 146972,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 283807,
+          "count": 1,
+          "kind": "card",
+          "change": -76224,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 36219,
+          "count": 1,
+          "kind": "card",
+          "change": -16551,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 22728,
+          "count": 1,
+          "kind": "bill",
+          "change": 3846,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 22728,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 336728
+    },
+    {
+      "key": "2026-12",
+      "year": 2026,
+      "month": 12,
+      "past": false,
+      "future": true,
+      "startBalance": 1990376,
+      "entrada": 795363,
+      "saida": 769191,
+      "diario": 0,
+      "endSheet": 2016548,
+      "result": 26172,
+      "outflows": [
+        {
+          "label": "Cartão Azul",
+          "amount": 370432,
+          "count": 1,
+          "kind": "card",
+          "change": 86625,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Cartão Verde",
+          "amount": 62738,
+          "count": 1,
+          "kind": "card",
+          "change": 26519,
+          "countBefore": 1,
+          "others": true
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Luz",
+          "amount": 22021,
+          "count": 1,
+          "kind": "bill",
+          "change": -707,
+          "countBefore": 1,
+          "others": false
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "count": 1,
+          "kind": "bill",
+          "change": 0,
+          "countBefore": 1,
+          "others": false
+        }
+      ],
+      "fixed": [
+        {
+          "label": "Aluguel",
+          "amount": 190000,
+          "installment": null
+        },
+        {
+          "label": "Investimento",
+          "amount": 80000,
+          "installment": null
+        },
+        {
+          "label": "Academia e curso",
+          "amount": 32000,
+          "installment": null
+        },
+        {
+          "label": "Luz",
+          "amount": 22021,
+          "installment": null
+        },
+        {
+          "label": "Internet",
+          "amount": 12000,
+          "installment": null
+        }
+      ],
+      "fixedTotal": 336021
+    }
+  ]
+}

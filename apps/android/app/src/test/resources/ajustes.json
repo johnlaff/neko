@@ -1,0 +1,27 @@
+{
+  "settings": {
+    "dailyForecast": 15000,
+    "usualCard": null,
+    "cycleBudget": null,
+    "cards": [],
+    "othersCards": [
+      "Cartão Verde"
+    ],
+    "reviewed": []
+  },
+  "cards": [
+    {
+      "name": "Cartão Azul",
+      "dueDay": 12,
+      "closingDay": 5,
+      "closingEstimated": true
+    },
+    {
+      "name": "Cartão Verde",
+      "dueDay": 12,
+      "closingDay": 5,
+      "closingEstimated": true
+    }
+  ],
+  "dailyAuto": 9500
+}

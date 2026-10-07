@@ -6,27 +6,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,12 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import dev.johnlaff.neko.BuildConfig
 import dev.johnlaff.neko.data.CanSpend
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
@@ -51,98 +39,15 @@ import dev.johnlaff.neko.ui.Format.relativeDay
 import dev.johnlaff.neko.ui.Format.shortDate
 import dev.johnlaff.neko.ui.Format.signed
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HojeScreen(state: TodayState, onRefresh: () -> Unit, onLogout: () -> Unit) {
-    val l = LocalLedger.current
-    val v = state.view
-    PullToRefreshBox(
-        isRefreshing = state.loading && v != null,
-        onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize().background(l.bg),
-    ) {
-        LazyColumn(
-            Modifier.fillMaxSize().safeDrawingPadding(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item { TopBar(v, state, onLogout) }
-            when {
-                v == null && state.error != null -> item { ErrorPanel(state, onRefresh) }
-                v == null -> item { Loading() }
-                else -> {
-                    item { Hero(v) }
-                    v.todayUrl?.let { url -> item { LancarButton(url) } }
-                    if (v.insights.isNotEmpty()) item { Insights(v) }
-                    v.saving?.let { s -> item { SaveCard(s, v.today) } }
-                    item { Upcoming(v) }
-                    item { Conference(v) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TopBar(v: TodayView?, state: TodayState, onLogout: () -> Unit) {
-    val l = LocalLedger.current
-    val context = LocalContext.current
-    var menu by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text("Hoje", style = MaterialTheme.typography.displayLarge, modifier = Modifier.semantics { heading() })
-            val read = when {
-                state.error == ReadError.Offline && v != null -> "Sem conexão: mostrando a última leitura"
-                v != null && v.readAt.isNotEmpty() -> "Planilha lida ${readAt(v.readAt)}"
-                else -> null
-            }
-            read?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
-        }
-        Box {
-            TextButton(onClick = { menu = true }) { Text("Mais", color = l.muted) }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(
-                    text = { Text("Faturas, mês e ajustes no site") },
-                    onClick = {
-                        menu = false
-                        context.startActivity(Intent(Intent.ACTION_VIEW, BuildConfig.NEKO_URL.toUri()))
-                    },
-                )
-                DropdownMenuItem(text = { Text("Sair") }, onClick = { menu = false; onLogout() })
-            }
-        }
-    }
-}
-
-/** `2026-10-05T11:00:00Z` → `5 out, 08:00`, in São Paulo time like the site. */
-private fun readAt(iso: String): String = runCatching {
-    val t = java.time.Instant.parse(iso).atZone(java.time.ZoneId.of("America/Sao_Paulo"))
-    "${shortDate(t.toLocalDate().toString())}, ${"%02d:%02d".format(t.hour, t.minute)}"
-}.getOrDefault("")
-
-@Composable
-private fun Loading() {
-    val l = LocalLedger.current
-    Panel { Text("Lendo a planilha…", color = l.muted) }
-}
-
-@Composable
-private fun ErrorPanel(state: TodayState, onRetry: () -> Unit) {
-    val l = LocalLedger.current
-    Panel {
-        val structure = state.error == ReadError.SheetStructure
-        Text(
-            if (structure) "A planilha mudou de formato" else "Não consegui ler a planilha",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            if (structure) "${state.detail ?: ""} O Neko só lê o formato que conhece, então nada foi calculado."
-            else "Pode ser a conexão ou o Google fora do ar. A planilha não foi alterada.",
-            color = l.muted,
-        )
-        TextButton(onClick = onRetry, enabled = !state.loading) {
-            Text(if (state.loading) "Tentando…" else "Tentar de novo", color = l.accent)
-        }
+fun HojeScreen(state: TodayState, onRefresh: () -> Unit, onAjustes: () -> Unit) {
+    ScreenFrame("Hoje", state, { it.readAt }, onRefresh) { v ->
+        item { Hero(v) }
+        v.todayUrl?.let { url -> item { LancarButton(url) } }
+        if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
+        v.saving?.let { s -> item { SaveCard(s, v.today) } }
+        item { Upcoming(v) }
+        item { Conference(v) }
     }
 }
 
@@ -230,11 +135,19 @@ private fun LancarButton(url: String) {
 }
 
 @Composable
-private fun Alert(title: String, detail: String, color: androidx.compose.ui.graphics.Color) {
+private fun Alert(
+    title: String,
+    detail: String,
+    color: androidx.compose.ui.graphics.Color,
+    onClick: (() -> Unit)? = null,
+) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(14.dp)
     Row(
-        Modifier.fillMaxWidth().background(color.copy(alpha = 0.10f), shape).padding(14.dp),
+        Modifier.fillMaxWidth()
+            .background(color.copy(alpha = 0.10f), shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.width(4.dp).height(36.dp).background(color, RoundedCornerShape(2.dp)))
@@ -247,11 +160,14 @@ private fun Alert(title: String, detail: String, color: androidx.compose.ui.grap
 }
 
 @Composable
-private fun Insights(v: TodayView) {
+private fun Insights(v: TodayView, onAjustes: () -> Unit) {
     val l = LocalLedger.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        v.insights.mapNotNull(Copy::insight).forEach { line ->
-            Alert(line.title, line.detail, if (line.tone == Copy.Tone.Bad) l.neg else l.warn)
+        v.insights.forEach { i ->
+            val line = Copy.insight(i) ?: return@forEach
+            // A guessed closing day is fixed in Ajustes, one tap away.
+            val open = if (i.kind == "closing-estimated") onAjustes else null
+            Alert(line.title, line.detail, if (line.tone == Copy.Tone.Bad) l.neg else l.warn, open)
         }
     }
 }
