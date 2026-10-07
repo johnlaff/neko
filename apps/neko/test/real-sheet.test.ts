@@ -1,7 +1,12 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { cents, inferCards, localDate, mergeCards, project } from "@neko/engine";
 import { type ApiSpreadsheet, readSpreadsheet } from "@neko/sheet-reader";
 import { describe, expect, it } from "vitest";
+import { ajustesView, invoicesView, monthsView } from "../src/shared/screens.ts";
+import { todayView } from "../src/shared/today.ts";
+import { UserSettings } from "../src/shared/types.ts";
+import { buildResponse } from "../src/worker/pipeline.ts";
 
 /**
  * The real sheet as Sheets returned it, read as the Worker reads it: Neko must agree with the
@@ -46,5 +51,38 @@ describe.runIf(available)("the real sheet", () => {
   });
   it("knows the cards behind the bills", () => {
     expect(projection.cards.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+/**
+ * Writes what the Android app would receive for the real sheet into NEKO_ANDROID_VIEWS (a private
+ * folder outside the repository), so its screenshot test can draw the real screens: long card
+ * names and many cards show layout problems the invented fixture never has. NEKO_REAL_SETTINGS
+ * may point at the settings JSON to apply.
+ */
+const viewsOut = process.env.NEKO_ANDROID_VIEWS ?? "";
+describe.runIf(available && viewsOut !== "")("android views of the real sheet", () => {
+  it("writes today, invoices, months and ajustes", () => {
+    const doc = JSON.parse(readFileSync(path, "utf8")) as ApiSpreadsheet;
+    const today = localDate(process.env.NEKO_REAL_TODAY ?? "2026-10-05");
+    const settingsPath = process.env.NEKO_REAL_SETTINGS ?? "";
+    const settings = UserSettings.parse(
+      settingsPath ? JSON.parse(readFileSync(settingsPath, "utf8")) : {},
+    );
+    const r = buildResponse(doc, today, settings, {
+      id: "planilha-real",
+      version: "1",
+      modifiedTime: `${today}T11:00:00.000Z`,
+      readAt: `${today}T11:00:00.000Z`,
+      tabs: { "2025": 1, "2026": 2 },
+    });
+    mkdirSync(viewsOut, { recursive: true });
+    const write = (file: string, v: unknown) =>
+      writeFileSync(join(viewsOut, file), `${JSON.stringify(v, null, 2)}\n`);
+    write("today.json", todayView(r, settings.reviewed));
+    write("invoices.json", invoicesView(r));
+    write("months.json", monthsView(r));
+    write("ajustes.json", ajustesView(r, settings));
+    expect(r.projection.cards.length).toBeGreaterThan(0);
   });
 });
