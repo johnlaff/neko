@@ -21,6 +21,9 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
   backup do Android.
 - `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
   agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
+- `GET /api/invoices`, `GET /api/months` e `GET /api/ajustes` (`apps/neko/src/shared/screens.ts`):
+  Faturas, Mês e Ajustes prontos para desenhar, com as mesmas regras das telas do site. Ajustes
+  salva pelo mesmo `PUT /api/settings` do site, inteiro, sem perder os pontos já conferidos.
 - Chave de assinatura (upload key) fora do Git: um repositório público com a chave permitiria
   assinar outro app que o `assetlinks.json` aceitaria, e esse app poderia pedir a passkey do dono.
   O CI só compila e testa; o APK assinado é gerado com a chave guardada nos arquivos do projeto.

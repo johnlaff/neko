@@ -33,6 +33,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       # Unsigned: the upload key never reaches CI (see specs/002-android/spec.md).
       - run: ./gradlew testDebugUnitTest lintDebug assembleRelease
+      # The screens drawn from the contract fixtures, to look at without a phone.
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-screenshots
+          path: apps/android/app/screenshots
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
