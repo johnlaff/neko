@@ -1,0 +1,54 @@
+package dev.johnlaff.neko.data
+
+import java.io.File
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
+
+/**
+ * Keeps the Worker's cookies (the session and the short-lived passkey challenge) in a private
+ * file outside backups, so the app stays signed in like the site does. Expired cookies are
+ * dropped on every write.
+ */
+class CookieStore(private val file: File) : CookieJar {
+    private val lock = Any()
+    private var cookies: List<Cookie> = load()
+
+    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+        synchronized(lock) {
+            val now = System.currentTimeMillis()
+            val replaced = this.cookies.filterNot { old ->
+                cookies.any { it.name == old.name && it.domain == old.domain && it.path == old.path }
+            }
+            this.cookies = (replaced + cookies).filter { it.expiresAt > now }
+            persist()
+        }
+    }
+
+    override fun loadForRequest(url: HttpUrl): List<Cookie> = synchronized(lock) {
+        val now = System.currentTimeMillis()
+        cookies.filter { it.expiresAt > now && it.matches(url) }
+    }
+
+    fun clear() = synchronized(lock) {
+        cookies = emptyList()
+        file.delete()
+    }
+
+    private fun persist() {
+        val lines = cookies.filter { it.persistent }.joinToString("\n") { "${it.domain}\t$it" }
+        file.parentFile?.mkdirs()
+        val tmp = File(file.path + ".tmp")
+        tmp.writeText(lines)
+        tmp.renameTo(file)
+    }
+
+    private fun load(): List<Cookie> {
+        if (!file.exists()) return emptyList()
+        return file.readLines().mapNotNull { line ->
+            val (domain, header) = line.split('\t', limit = 2).takeIf { it.size == 2 } ?: return@mapNotNull null
+            val url = HttpUrl.Builder().scheme("https").host(domain).build()
+            Cookie.parse(url, header)
+        }
+    }
+}

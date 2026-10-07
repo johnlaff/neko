@@ -52,17 +52,19 @@ export const deviceLabel = (ua: string) => {
             : /Linux/.test(ua)
               ? "Linux"
               : null;
-  const browser = /EdgA?\//.test(ua)
-    ? "Edge"
-    : /SamsungBrowser\//.test(ua)
-      ? "Samsung Internet"
-      : /Firefox\/|FxiOS\//.test(ua)
-        ? "Firefox"
-        : /Chrome\/|CriOS\//.test(ua)
-          ? "Chrome"
-          : /Safari\//.test(ua)
-            ? "Safari"
-            : null;
+  const browser = /NekoApp\//.test(ua)
+    ? "App"
+    : /EdgA?\//.test(ua)
+      ? "Edge"
+      : /SamsungBrowser\//.test(ua)
+        ? "Samsung Internet"
+        : /Firefox\/|FxiOS\//.test(ua)
+          ? "Firefox"
+          : /Chrome\/|CriOS\//.test(ua)
+            ? "Chrome"
+            : /Safari\//.test(ua)
+              ? "Safari"
+              : null;
   return [os, browser].filter(Boolean).join(" · ") || "Navegador";
 };
 
