@@ -32,7 +32,8 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
       # Unsigned: the upload key never reaches CI (see specs/002-android/spec.md).
-      - run: ./gradlew testDebugUnitTest lintDebug assembleRelease
+      # Recording redraws app/screenshots in the runner for the artifact below; nothing is compared.
+      - run: ./gradlew testDebugUnitTest -Proborazzi.test.record=true lintDebug assembleRelease
       # The screens drawn from the contract fixtures, to look at without a phone.
       - if: always()
         uses: actions/upload-artifact@v7
