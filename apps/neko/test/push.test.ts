@@ -1,0 +1,94 @@
+import { SheetStructureError } from "@neko/sheet-reader";
+import { describe, expect, it } from "vitest";
+import type { ProjectionResponse } from "../src/shared/types.ts";
+import { eveningMessage, morningMessage, readFailedMessage } from "../src/worker/push.ts";
+
+const response = (over: Partial<ProjectionResponse["projection"]> = {}) =>
+  ({
+    projection: {
+      today: "2026-10-04",
+      todayRef: { tab: "2026", a1: "BB15" },
+      canSpend: {
+        card: "Visa",
+        budget: 3100_00,
+        accumulated: 450_00,
+        daysLeft: 15,
+        perDay: 176_66,
+        closing: "2026-11-03",
+      },
+      ...over,
+    },
+    sheet: { id: "sheet", tabs: { "2026": 42 } },
+  }) as unknown as ProjectionResponse;
+
+describe("reminders", () => {
+  it("morning: today's allowance on the usual card, opening Neko", () => {
+    expect(morningMessage(response())).toEqual({
+      title: "Hoje cabem R$ 176,66 no Visa",
+      body: "Até a fatura fechar em 3 nov. Faltam 15 dias.",
+      url: "/",
+      tag: "morning",
+    });
+  });
+  it("morning: says when the cycle is already over plan", () => {
+    const r = response();
+    const cs = { ...r.projection.canSpend, perDay: -20_00, accumulated: 3400_00 };
+    expect(morningMessage(response({ canSpend: cs } as never)).title).toBe(
+      "O Visa passou R$ 300,00 do plano do ciclo",
+    );
+  });
+  it("evening: nudges to log the day, opening the sheet on today's row", () => {
+    expect(eveningMessage(response())).toEqual({
+      title: "Lançou os gastos de hoje?",
+      body: "Abre a planilha direto no dia 4 out.",
+      url: "https://docs.google.com/spreadsheets/d/sheet/edit#gid=42&range=BB15",
+      tag: "evening",
+    });
+  });
+  it("morning: adds the first red day ahead, and only that kind of warning", () => {
+    const red = {
+      kind: "goes-negative",
+      start: "2026-12-02",
+      deepest: -500_00,
+      deepestDate: "2026-12-10",
+    };
+    const up = { kind: "fixed-up", label: "Luz", amount: 300_00, change: 40_00 };
+    expect(morningMessage(response({ insights: [red, up] } as never))?.body).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias. O saldo fica negativo em 2 dez.",
+    );
+    expect(morningMessage(response({ insights: [up] } as never))?.body).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias.",
+    );
+  });
+  it("morning: on payday, says how much the method lets you set aside", () => {
+    const saving = { date: "2026-10-04", amount: 2_150_00 };
+    expect(morningMessage(response({ saving } as never))?.body).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias. Dia de guardar: dá para separar R$ 2.150,00.",
+    );
+    const later = { date: "2026-10-29", amount: 2_150_00 };
+    expect(morningMessage(response({ saving: later } as never))?.body).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias.",
+    );
+  });
+  it("evening: stays quiet when today's diário is already on the sheet", () => {
+    expect(eveningMessage(response({ todayLogged: true }))).toBeNull();
+  });
+  it("sends nothing when there is no card to talk about", () => {
+    expect(morningMessage(response({ canSpend: null }))).toBeNull();
+  });
+});
+
+describe("read failure alert", () => {
+  it("says the sheet changed shape when the reader refuses its structure", () => {
+    expect(readFailedMessage(new SheetStructureError("x"))).toMatchObject({
+      title: "Não consegui ler a planilha",
+      body: "Alguma aba ou coluna mudou de lugar. Os números do Neko são da última leitura.",
+      tag: "alert",
+    });
+  });
+  it("says it will retry on any other failure", () => {
+    expect(readFailedMessage(new Error("network")).body).toBe(
+      "Tento de novo na próxima atualização. Os números do Neko são da última leitura.",
+    );
+  });
+});

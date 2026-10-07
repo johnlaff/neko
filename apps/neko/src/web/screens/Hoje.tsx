@@ -1,0 +1,440 @@
+import {
+  addDays,
+  groupUpcomingByDay,
+  type HealthIssue,
+  type Insight,
+  type Saving,
+  type UpcomingDay,
+} from "@neko/engine";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { api, type DailySource, type ProjectionResponse } from "../api.ts";
+import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
+import {
+  capitalize,
+  days,
+  money,
+  relativeDay,
+  sheetCellUrl,
+  shortDate,
+  signed,
+} from "../format.ts";
+import {
+  IconAlert,
+  IconCard,
+  IconChevron,
+  IconExternal,
+  IconIncome,
+  IconPlus,
+  IconReceipt,
+  IconToday,
+  IconTrendUp,
+} from "../icons.tsx";
+import { Simulator } from "../Pace.tsx";
+import { WithProjection } from "../useProjection.tsx";
+
+/** Each warning in a few words, with the figure that shows it and where to look next. */
+const insightView = (i: Insight) => {
+  switch (i.kind) {
+    case "goes-negative":
+      return {
+        tone: "bad",
+        to: "/mes",
+        month: i.start.slice(0, 7),
+        title: `Saldo negativo a partir de ${shortDate(i.start)}`,
+        detail: `No pior dia, ${shortDate(i.deepestDate)}, faltam ${money(-i.deepest)}`,
+      } as const;
+    case "bill-above-average":
+      return {
+        tone: "warn",
+        to: "/faturas",
+        title: "Fatura acima do normal",
+        detail: `${i.card}: ${money(i.over)} acima da média`,
+      } as const;
+    case "fixed-up":
+      return {
+        tone: "warn",
+        to: "/mes",
+        title: `${capitalize(i.label)} subiu`,
+        detail: `${money(i.amount)} este mês, ${money(i.change)} a mais`,
+      } as const;
+    case "closing-estimated":
+      return {
+        tone: "warn",
+        to: "/ajustes",
+        title: `Qual dia fecha o ${i.card}?`,
+        detail: `Estimado em ${shortDate(i.closing)}. Toque para confirmar`,
+      } as const;
+    default:
+      // A copy cached by an older version can carry a kind this one no longer knows.
+      return null;
+  }
+};
+
+/** Only problems worth acting on; nothing at all when everything is calm. */
+const Insights = ({ items }: { items: readonly Insight[] }) => (
+  <ul className="alerts" aria-label="Avisos">
+    {items.map((i) => {
+      const v = insightView(i);
+      if (!v) return null;
+      return (
+        <li key={i.kind}>
+          <Link to={v.to} search={"month" in v ? { m: v.month } : {}} className={`alert ${v.tone}`}>
+            <span className="alert-icon" aria-hidden="true">
+              {v.tone === "bad" ? (
+                <IconAlert />
+              ) : i.kind === "closing-estimated" ? (
+                <IconToday />
+              ) : (
+                <IconTrendUp />
+              )}
+            </span>
+            <span className="alert-text">
+              <strong>{v.title}</strong>
+              <span>{v.detail}</span>
+            </span>
+            <IconChevron />
+          </Link>
+        </li>
+      );
+    })}
+  </ul>
+);
+
+/** Days before the payday the saving shows on Hoje: time to plan the transfer, not to forget it. */
+const SAVE_LEAD = 3;
+
+/**
+ * The payday nudge as an active choice (pay yourself first): the amount, the day, and the proof
+ * that the account still holds. Neko never moves money, so it only says how much fits.
+ */
+const SaveCard = ({ save, today }: { save: Saving; today: string }) => {
+  const isToday = save.date === today;
+  return (
+    <ul className="alerts" aria-label="Dia de guardar">
+      <li>
+        <Link to="/mes" search={{ m: save.date.slice(0, 7) }} className="alert good">
+          <span className="alert-icon" aria-hidden="true">
+            <IconIncome />
+          </span>
+          <span className="alert-text">
+            <strong>
+              {isToday
+                ? `Dia de guardar ${money(save.amount)}`
+                : `${relativeDay(save.date, today)}: guardar ${money(save.amount)}`}
+            </strong>
+            <span>
+              {isToday ? "Entram" : "Vão entrar"} {money(save.income)}. Guardando, o menor saldo até{" "}
+              {shortDate(save.until)} fica em {money(save.leftAtLowest)}
+            </span>
+          </span>
+          <IconChevron />
+        </Link>
+      </li>
+    </ul>
+  );
+};
+
+const COLUMN = { entrada: "Entrada", saida: "Saída", diario: "Diário" } as const;
+
+/** What is off, in a few words, and the figures that show it. */
+const issueText = (i: HealthIssue): { title: string; detail: string } => {
+  switch (i.kind) {
+    case "missing-date":
+      return { title: "Data vazia", detail: "A linha não tem data na planilha" };
+    case "note-mismatch":
+      return {
+        title: `${COLUMN[i.column]} não bate com a nota`,
+        detail: `Nota ${money(i.notes)} · Célula ${money(i.cell)}`,
+      };
+    case "balance-mismatch":
+      return {
+        title: "Saldo não bate",
+        detail: `Planilha ${money(i.sheet)} · Pela soma ${money(i.computed)}`,
+      };
+    case "missing-bill":
+      return {
+        title: `Fatura ${i.card} não lançada`,
+        detail: "Venceu e não tem linha na nota de Saída",
+      };
+    case "unparsed-note":
+      return { title: `${COLUMN[i.column]}: nota não entendida`, detail: `"${i.lines[0] ?? ""}"` };
+  }
+};
+
+const HEALTH_DAYS = 60;
+
+const dailySourceText = (source: DailySource) =>
+  source === "settings"
+    ? "seu ajuste"
+    : source === "sheet-note"
+      ? "da nota na planilha"
+      : "média dos últimos 3 meses";
+
+const IssueList = ({
+  items,
+  sheet,
+}: {
+  items: readonly HealthIssue[];
+  sheet: ProjectionResponse["sheet"];
+}) => (
+  <ul className="rows">
+    {items.map((i) => {
+      const t = issueText(i);
+      return (
+        <li key={`${i.kind}-${i.ref.tab}-${i.ref.a1}`}>
+          <a
+            className="row-link"
+            href={sheetCellUrl(sheet.id, sheet.tabs[i.ref.tab], i.ref.a1)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span className="name">{t.title}</span>
+            <span className="value muted">
+              {shortDate(i.date)}
+              <IconExternal />
+              <span className="sr-only">, abre a célula {i.ref.a1} na planilha</span>
+            </span>
+            <span className="meta">{t.detail}</span>
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+);
+
+/** Stable name of a Conferência point, kept in settings once checked. */
+const issueKey = (i: HealthIssue) => `${i.kind}|${i.date}|${i.ref.tab}!${i.ref.a1}`;
+
+/**
+ * Sheet points the method says should hold but do not. Ones already checked can be set aside, so
+ * an old difference nobody will fix does not keep the panel yellow; a new one shows up again.
+ */
+const Conference = ({
+  issues,
+  sheet,
+}: {
+  issues: readonly HealthIssue[];
+  sheet: ProjectionResponse["sheet"];
+}) => {
+  const queryClient = useQueryClient();
+  const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
+  const review = useMutation({
+    mutationFn: api.saveSettings,
+    onSuccess: (saved) => queryClient.setQueryData(["settings"], saved),
+  });
+  const seen = new Set(settings.data?.reviewed ?? []);
+  const open = issues.filter((i) => !seen.has(issueKey(i)));
+  return (
+    <section className="panel half">
+      <div className="panel-head">
+        <h2>Conferência</h2>
+        <span className={`chip ${open.length === 0 ? "ok" : "warn"}`}>
+          {open.length === 0
+            ? "Tudo certo"
+            : open.length === 1
+              ? "1 ponto"
+              : `${open.length} pontos`}
+        </span>
+      </div>
+      {open.length === 0 ? (
+        <p className="hint">
+          {issues.length === 0
+            ? "A planilha confere nos últimos 60 dias."
+            : "Nada novo. Os pontos que você já conferiu ficam escondidos."}
+        </p>
+      ) : (
+        <>
+          <IssueList items={open} sheet={sheet} />
+          {settings.data && (
+            <button
+              type="button"
+              className="text-link"
+              disabled={review.isPending}
+              onClick={() => {
+                const s = settings.data;
+                const reviewed = [...s.reviewed, ...open.map(issueKey)].slice(-300);
+                review.mutate({ ...s, reviewed });
+              }}
+            >
+              Já conferi, esconder
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+};
+
+/** Days shown before "Ver mais": whole days only, until about this many items. */
+const UPCOMING_SHOWN = 4;
+
+const KIND_ICON = { card: IconCard, bill: IconReceipt, income: IconIncome } as const;
+
+const Days = ({ days, today }: { days: readonly UpcomingDay[]; today: string }) => (
+  <div className="days">
+    {days.map((d) => (
+      <section key={d.date} className="day" aria-label={relativeDay(d.date, today)}>
+        <header className="day-head">
+          <h3>{relativeDay(d.date, today)}</h3>
+          <span className={d.net > 0 ? "pos" : undefined}>
+            {signed(Math.abs(d.net), d.net > 0 ? "+" : "−")}
+          </span>
+        </header>
+        <ul className="rows lead">
+          {d.items.map((u) => {
+            const Icon = KIND_ICON[u.kind];
+            return (
+              <li key={`${u.kind}-${u.description}-${u.amount}`}>
+                <span className={`avatar${u.kind === "income" ? " pos" : ""}`}>
+                  <Icon />
+                </span>
+                <span className="name">
+                  <ItemName text={u.description || "Sem descrição"} />
+                </span>
+                <span className={`value${u.kind === "income" ? " pos" : ""}`}>
+                  {signed(u.amount, u.kind === "income" ? "+" : "−")}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))}
+  </div>
+);
+
+/** Whole days up to about UPCOMING_SHOWN items, and the rest. */
+const splitDays = (days: readonly UpcomingDay[]) => {
+  let count = 0;
+  let cut = 0;
+  while (
+    cut < days.length &&
+    (cut === 0 || count + (days[cut]?.items.length ?? 0) <= UPCOMING_SHOWN)
+  ) {
+    count += days[cut]?.items.length ?? 0;
+    cut += 1;
+  }
+  return [days.slice(0, cut), days.slice(cut)] as const;
+};
+
+export const Hoje = () => (
+  <WithProjection>
+    {({ projection: p, sheet, daily }) => {
+      const cs = p.canSpend;
+      const todayUrl = p.todayRef
+        ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
+        : null;
+      // Same window the copy promises: the last 60 days and anything ahead.
+      const since = addDays(p.today, -HEALTH_DAYS);
+      const issues = p.health.filter((i) => i.date >= since).reverse();
+      const over = cs !== null && cs.perDay < 0;
+      const [shown, rest] = splitDays(groupUpcomingByDay(p.upcoming));
+      return (
+        <>
+          <h1 className="sr-only">Hoje</h1>
+          {cs ? (
+            <section className="panel hero today">
+              <div className="panel-head">
+                <h2>{cs.card}</h2>
+                <span className={`chip ${over ? "bad" : cs.paceGap >= 0 ? "ok" : "warn"}`}>
+                  {over ? "Acima do plano" : cs.paceGap >= 0 ? "No ritmo" : "Acima do ritmo"}
+                </span>
+              </div>
+              <div className="dial">
+                <Gauge
+                  value={cs.accumulated}
+                  total={cs.budget}
+                  mark={cs.paceExpected}
+                  over={over || cs.paceGap < 0}
+                />
+                <p className="dial-label">
+                  <span className="caption">{over ? "Passou do plano" : "Hoje cabem"}</span>
+                  <BigMoney cents={over ? cs.overBy : cs.perDay} tone={over ? "neg" : undefined} />
+                  <span className="caption">
+                    {over
+                      ? "no ciclo"
+                      : cs.daysLeft === 1
+                        ? "até a fatura fechar, hoje"
+                        : "por dia"}
+                  </span>
+                </p>
+              </div>
+              {cs.daysLeft > 1 && (
+                <div className="chips">
+                  <span className="chip plain">
+                    Fecha {shortDate(cs.closing)} · {days(cs.daysLeft)}
+                  </span>
+                </div>
+              )}
+              <details className="formula">
+                <summary>
+                  <IconChevron />
+                  Como calculei
+                </summary>
+                <p>
+                  {money(cs.budget)}{" "}
+                  {cs.budgetSource === "diario"
+                    ? `de diário no ciclo (${money(p.dailyForecast)} por dia, ${dailySourceText(daily.source)})`
+                    : "planejados para o ciclo"}{" "}
+                  menos {money(cs.accumulated)} na fatura, dividido por {days(cs.daysLeft)}.
+                </p>
+                <p>
+                  O ponto no arco é o ritmo de hoje: a fatura está {money(Math.abs(cs.paceGap))}{" "}
+                  {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
+                </p>
+              </details>
+            </section>
+          ) : (
+            <section className="page-head">
+              <h2>Nenhum cartão na planilha</h2>
+              <p className="muted">
+                O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.
+              </p>
+            </section>
+          )}
+
+          <div className="quick">
+            {todayUrl && (
+              <a className="button" href={todayUrl} target="_blank" rel="noreferrer">
+                <IconPlus />
+                Lançar
+              </a>
+            )}
+            {cs && <Simulator cs={cs} months={p.months} />}
+          </div>
+
+          {(p.insights ?? []).length > 0 && <Insights items={p.insights} />}
+          {p.saving && p.saving.date >= p.today && p.saving.date <= addDays(p.today, SAVE_LEAD) && (
+            <SaveCard save={p.saving} today={p.today} />
+          )}
+
+          <section className="panel half">
+            <div className="panel-head">
+              <h2>Próximos 7 dias</h2>
+              {p.upcoming.length > 0 && <span className="meta">{p.upcoming.length} itens</span>}
+            </div>
+            {p.upcoming.length === 0 ? (
+              <p className="muted">Nada lançado para esta semana.</p>
+            ) : (
+              <>
+                <Days days={shown} today={p.today} />
+                {rest.length > 0 && (
+                  <details className="formula">
+                    <summary>
+                      <IconChevron />
+                      Ver mais {rest.length === 1 ? "1 dia" : `${rest.length} dias`}
+                    </summary>
+                    <Days days={rest} today={p.today} />
+                  </details>
+                )}
+              </>
+            )}
+          </section>
+
+          <Conference issues={issues} sheet={sheet} />
+        </>
+      );
+    }}
+  </WithProjection>
+);

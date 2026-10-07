@@ -1,0 +1,15 @@
+{
+  "name": "@neko/sheet-reader",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@neko/engine": "workspace:*"
+  }
+}

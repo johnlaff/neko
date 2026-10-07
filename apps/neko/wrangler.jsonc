@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "neko",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Only the live version answers: older versions stay unreachable at their own preview URLs,
+  // which would otherwise reach the same database and secrets.
+  "preview_urls": false,
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "neko",
+      "database_id": "3f66c7e5-4161-4de1-aea1-7ae5590fc1f1",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Sign-in routes: 10 requests a minute per address (see authLimit in the Worker).
+  "ratelimits": [
+    { "name": "AUTH_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+  ],
+  "triggers": { "crons": ["0 11 * * *", "0 0 * * *"] },
+  "observability": { "enabled": true },
+  "vars": {
+    "GOOGLE_CLIENT_ID": "",
+    // Public Sentry key; empty keeps error reporting off.
+    "SENTRY_DSN": "https://4a6a562830187aa449c63d48ecd297a6@o4511712248397824.ingest.us.sentry.io/4512204873793536",
+    "VAPID_PUBLIC_KEY": "BJaSC8SH0uXvqyMd8Vetghn_jSOCSmmbpU1TC0jtS1asQxVavHqTsKhAp-ni8-lMajoSLvKhniKwcn0sgMWr0gM"
+  }
+  // Secrets (wrangler secret put): GOOGLE_SERVICE_ACCOUNT_JSON, SESSION_SECRET, VAPID_PRIVATE_KEY,
+  // and the two that would identify the owner in a public repository: SHEET_ID, ALLOWED_EMAILS.
+}
