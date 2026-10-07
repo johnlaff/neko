@@ -1,0 +1,15 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/.wrangler",
+      "!**/worker-configuration.d.ts",
+      "!**/routeTree.gen.ts"
+    ]
+  },
+  "formatter": { "indentStyle": "space", "lineWidth": 100 },
+  "linter": { "rules": { "recommended": true } },
+  "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always" } }
+}

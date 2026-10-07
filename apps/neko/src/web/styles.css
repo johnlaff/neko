@@ -1,0 +1,1970 @@
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource-variable/faustina/wght.css";
+
+/* Warm Ledger: a warm near-black page, hairline-bordered panels, a book serif for the sentence
+   that answers the screen's question and Geist for everything you scan. Sage green is spent
+   only on the answer and the current place; status colors never follow it. Dark by default
+   (checked at night, after dinner), warm paper when the phone asks for light. */
+:root {
+  color-scheme: dark;
+  --bg: #0f0e0d;
+  --surface: #161514;
+  --surface-2: #201e1c;
+  --border: #2a2826;
+  --border-input: #6b665f;
+  --text: #fafaf9;
+  --muted: #bab5ad;
+  --faint: #938e86;
+  --accent: #86d19f;
+  --accent-tint: color-mix(in oklch, var(--accent) 14%, transparent);
+  --pos: #86d19f;
+  --warn: #e7b765;
+  --neg: #f08f78;
+  --skeleton: #1d1b19;
+  --pill-active: color-mix(in oklch, var(--text) 13%, transparent);
+  --sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --serif: "Faustina Variable", ui-serif, Georgia, serif;
+  --radius: 18px;
+  --gutter: 16px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f6f5f1;
+    --surface: #fffefc;
+    --surface-2: #eeece7;
+    --border: #e2dfd8;
+    --border-input: #8a857d;
+    --text: #1c1a17;
+    --muted: #57534e;
+    --faint: #6d6861;
+    --accent: #2c7a4b;
+    --pos: #2c7a4b;
+    --warn: #96580b;
+    --neg: #b0412b;
+    --skeleton: #e9e6e0;
+    --pill-active: color-mix(in oklch, var(--text) 9%, transparent);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  scrollbar-color: var(--border) transparent;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 0.9375rem / 1.5 var(--sans);
+  font-feature-settings: "tnum" 1;
+  caret-color: var(--accent);
+  -webkit-font-smoothing: antialiased;
+}
+::selection {
+  background: var(--accent-tint);
+  color: var(--text);
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+h1 {
+  font: 400 1.875rem / 1.15 var(--serif);
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+h3 {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--faint);
+}
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+a {
+  color: inherit;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border-input);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Shell: one reading column, a floating pill dock under the thumb */
+.page {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 24px) var(--gutter)
+    calc(env(safe-area-inset-bottom) + 112px);
+  display: grid;
+  /* One track that may shrink: a long chip wraps instead of widening the page */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
+  translate: -50% 0;
+  z-index: 1;
+  width: min(calc(100% - 2 * var(--gutter)), 26rem);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--surface) 82%, transparent);
+  backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 10px 30px -12px rgb(0 0 0 / 0.5);
+}
+.dock a {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 7px 0 6px;
+  min-height: 52px;
+  border-radius: 999px;
+  color: var(--faint);
+  text-decoration: none;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  transition:
+    color 160ms ease-out,
+    background-color 160ms ease-out;
+}
+.dock svg,
+button.icon svg {
+  width: 22px;
+  height: 22px;
+}
+.dock a:hover {
+  color: var(--text);
+}
+.dock a[aria-current="page"] {
+  --icon: var(--accent);
+  color: var(--text);
+  background: var(--pill-active);
+}
+.dock a > svg {
+  color: var(--icon, inherit);
+}
+
+/* Panels: hairline border on a slightly lifted warm surface, never nested */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-content: start;
+}
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 12px;
+  min-height: 24px;
+}
+.panel-head .meta {
+  color: var(--faint);
+  font-size: 0.8125rem;
+  text-align: right;
+}
+.panel > .divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 -18px;
+}
+.page-head {
+  display: grid;
+  gap: 6px;
+  padding: 8px 2px 4px;
+}
+
+/* Chips: small pills; a dot says the state without a second color for the text */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--faint);
+}
+.chip.ok::before {
+  background: var(--pos);
+}
+.chip.warn::before {
+  background: var(--warn);
+}
+.chip.bad::before {
+  background: var(--neg);
+}
+.chip.plain::before {
+  display: none;
+}
+
+/* Figures: label over value, in a row, like a scoreboard */
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+.figures div {
+  display: grid;
+  gap: 2px;
+}
+.figures dt {
+  color: var(--faint);
+  font-size: 0.8125rem;
+}
+.figures dd {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.figures .end {
+  text-align: right;
+}
+
+.muted {
+  color: var(--muted);
+}
+.hint {
+  color: var(--faint);
+  font-size: 0.8125rem;
+}
+.pos {
+  color: var(--pos);
+}
+.neg {
+  color: var(--neg);
+}
+.warn {
+  color: var(--warn);
+}
+.muted strong,
+.hint strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+.stack-tight {
+  display: grid;
+  gap: 6px;
+}
+
+a.button > svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+/* "Como calculei": the formula, one tap away */
+details.formula summary {
+  cursor: pointer;
+  color: var(--faint);
+  font-size: 0.8125rem;
+  list-style: none;
+  min-height: 44px;
+  margin: -10px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+details.formula summary::-webkit-details-marker {
+  display: none;
+}
+details.formula[open] summary {
+  margin-bottom: 0;
+}
+.formula summary svg {
+  width: 16px;
+  height: 16px;
+  transition: rotate 180ms ease-out;
+}
+details[open] > summary > svg {
+  rotate: 90deg;
+}
+/* Disclosures open and close by height where the browser can animate to auto (Chrome 131+);
+   elsewhere they just snap, as before. */
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+  details::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+    transition:
+      block-size 240ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      opacity 200ms ease-out,
+      content-visibility 240ms allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+details.formula p {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+details.formula p + p {
+  margin-top: 8px;
+}
+details.formula dl + p {
+  margin-top: 12px;
+}
+
+/* Ledger: the month, line by line, closing on the same number as the sentence */
+.ledger {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0;
+}
+.ledger dt,
+.ledger dd {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ledger dt {
+  color: var(--muted);
+}
+.ledger dd {
+  margin: 0;
+  padding-left: 16px;
+  text-align: right;
+  font-weight: 500;
+}
+.ledger .subtotal {
+  color: var(--text);
+}
+.ledger .total {
+  border-bottom: 0;
+  padding-bottom: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+.ledger .total.neg {
+  color: var(--neg);
+}
+
+/* Rows */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.rows > li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 16px;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+.rows > li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.rows .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rows .meta {
+  grid-column: 1 / -1;
+  color: var(--faint);
+  font-size: 0.8125rem;
+}
+.rows .value {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.rows .value svg {
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  vertical-align: -2px;
+}
+.rows a.row-link {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 16px;
+  text-decoration: none;
+  min-height: 44px;
+}
+.row-link .name {
+  white-space: normal;
+}
+
+/* Bills */
+.bill .name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-weight: 500;
+  white-space: normal;
+}
+.bill .chip {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 0.6875rem;
+}
+
+/* Controls */
+.button,
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--text);
+  color: var(--bg);
+  border: 0;
+  border-radius: 999px;
+  padding: 0 22px;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease-out,
+    opacity 160ms ease-out,
+    scale 120ms ease-out;
+}
+.button:hover,
+button:hover {
+  background: color-mix(in oklch, var(--text) 86%, var(--bg));
+}
+.button:active,
+button:active {
+  scale: 0.98;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button.ghost,
+.button.ghost {
+  background: transparent;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border-input);
+}
+button.ghost:hover,
+.button.ghost:hover {
+  background: var(--pill-active);
+}
+button.icon {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+}
+button.icon:hover {
+  background: var(--pill-active);
+}
+.wide {
+  width: 100%;
+}
+.start {
+  justify-self: start;
+}
+
+.month-nav {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  text-align: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 3px;
+}
+.month-nav h1 {
+  font: 500 0.9375rem / 1.2 var(--sans);
+  letter-spacing: 0;
+}
+.month-nav button.icon {
+  border-radius: 999px;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  font-weight: 500;
+}
+.panel fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.panel legend {
+  float: left;
+  width: 100%;
+  font-weight: 600;
+  padding: 0;
+}
+.check {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+}
+input,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-input);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-height: 46px;
+  width: 100%;
+}
+input::placeholder {
+  color: var(--faint);
+}
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  accent-color: var(--accent);
+}
+input[aria-invalid="true"] {
+  border-color: var(--neg);
+}
+.hint.error {
+  color: var(--neg);
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.caption {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--faint);
+}
+/* Ajustes: a small table. Header once, then one row per card: name and due day, the
+   "Outra pessoa" switch and the closing day, all on the row's center line. */
+.card-head,
+.card-settings li {
+  display: grid;
+  /* Capped by the screen so a large system text size keeps the three columns on it */
+  grid-template-columns: minmax(0, 1fr) min(6rem, 24vw) min(4.5rem, 20vw);
+  gap: 0 8px;
+  align-items: center;
+}
+.card-head {
+  white-space: nowrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--faint);
+  font-size: 0.75rem;
+}
+.card-head > span:not(:first-child) {
+  text-align: center;
+}
+.card-settings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.card-settings li {
+  min-height: 60px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.card-settings li:last-child {
+  border-bottom: 0;
+}
+.card-settings .who {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.card-settings .name {
+  font-weight: 500;
+}
+.card-settings .switch {
+  justify-self: center;
+}
+input.closing {
+  min-height: 44px;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+/* Switch: the platform pattern for an on/off setting */
+input.switch {
+  appearance: none;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-input);
+  cursor: pointer;
+  transition: background-color 160ms ease-out;
+}
+/* The track stays 26px tall; the tap area around it reaches 44px */
+input.switch::before {
+  content: "";
+  position: absolute;
+  inset: -9px -4px;
+}
+input.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition:
+    translate 180ms ease-out,
+    background-color 160ms ease-out;
+}
+input.switch:checked {
+  background: var(--accent);
+  box-shadow: none;
+}
+input.switch:checked::after {
+  translate: 18px 0;
+  background: var(--bg);
+}
+
+/* Upcoming: one block per day, the day's net on its header line */
+.days {
+  display: grid;
+  gap: 20px;
+}
+.day {
+  display: grid;
+}
+.day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 10px;
+  margin: 0 -10px 2px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.day-head h3 {
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--text);
+}
+.days + details .days {
+  margin-top: 20px;
+}
+
+/* States */
+.center {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  text-align: center;
+  padding: var(--gutter);
+  max-width: 26rem;
+  margin: 0 auto;
+}
+.center h1 {
+  font-size: 3.5rem;
+}
+.center button {
+  min-width: 14rem;
+}
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in oklch, var(--warn) 12%, transparent);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+}
+.skeleton {
+  display: grid;
+  gap: 16px;
+}
+.skeleton i {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in oklch, var(--text) 6%, transparent) 50%,
+      transparent 100%
+    )
+    var(--skeleton);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+.skeleton .line {
+  height: 14px;
+}
+.skeleton .line.short {
+  width: 38%;
+}
+.skeleton .arc {
+  width: min(100%, 18rem);
+  aspect-ratio: 2 / 1;
+  margin: 8px auto 0;
+  border: 12px solid var(--skeleton);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+  background: none;
+}
+.skeleton .pill {
+  height: 48px;
+  border-radius: 999px;
+}
+.skeleton .dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.sk-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 10px;
+}
+.sk-item {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Error: a calm card, never a full-screen alarm */
+.panel.state {
+  justify-items: center;
+  text-align: center;
+  padding-block: 32px;
+  gap: 10px;
+}
+.state-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.panel.state h1 {
+  font: 600 1.125rem / 1.3 var(--sans);
+}
+.panel.state p {
+  max-width: 22rem;
+}
+.panel.state button {
+  margin-top: 8px;
+}
+
+/* Masthead: brand, freshness, refresh */
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: -6px 0 2px;
+}
+.brand {
+  font: 500 1.375rem / 1 var(--serif);
+  letter-spacing: -0.01em;
+  margin-right: auto;
+}
+.masthead button.icon svg {
+  width: 20px;
+  height: 20px;
+}
+.masthead button.spinning svg {
+  animation: spin 900ms linear infinite;
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* The figure: small currency, big integer, small cents */
+.big-money {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.12em;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.big-money .cur {
+  font-size: 1.25rem;
+  letter-spacing: 0;
+  color: var(--muted);
+  margin-right: 0.15em;
+}
+.big-money .int {
+  /* Capped by the screen so a large system text size cannot push it past the edge */
+  font-size: min(3.25rem, 14vw);
+}
+.big-money .dec {
+  font-size: 1.5rem;
+  color: var(--muted);
+  letter-spacing: -0.01em;
+}
+.big-money.plain {
+  color: var(--text);
+}
+.big-money.neg {
+  color: var(--neg);
+}
+
+/* Hoje: the allowance inside a half-circle of the cycle budget */
+.dial {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  margin: 4px auto -4px;
+  width: min(100%, 20rem);
+}
+.gauge {
+  width: 100%;
+  overflow: visible;
+}
+.gauge path {
+  fill: none;
+  stroke-linecap: round;
+}
+.gauge .track {
+  stroke: var(--surface-2);
+  stroke-width: 10;
+}
+.gauge .fill {
+  stroke: var(--accent);
+  stroke-width: 10;
+}
+.gauge .fill.over {
+  stroke: var(--warn);
+}
+.gauge .tick {
+  fill: var(--text);
+  stroke: var(--surface);
+  stroke-width: 3;
+}
+.dial-label {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  font: inherit;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.hero > .chips:last-child {
+  justify-content: start;
+}
+/* Quick actions under the hero; the simulator opens below them */
+.quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.quick > * {
+  min-width: 0;
+  text-align: center;
+}
+.quick .sim {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Columns: values from a zero line; tap one to read it */
+/* fieldset.columns outranks the generic ".panel fieldset" gap */
+fieldset.columns {
+  --plot: 112px;
+  --label: 22px;
+  position: relative;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  /* No gap: each column's tap area runs up to its neighbour's */
+  gap: 0;
+}
+.columns .col {
+  display: grid;
+  grid-template-rows: var(--plot) var(--label);
+  min-height: 0;
+  padding: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
+  font-weight: 400;
+}
+.columns button.col:hover {
+  background: transparent;
+}
+.columns .plot {
+  position: relative;
+  display: block;
+  height: 100%;
+}
+.columns .bar {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  width: 10px;
+  min-height: 2px;
+  border-radius: 999px;
+  background: var(--border-input);
+}
+.columns .bar.faint {
+  background: var(--border);
+}
+.columns .bar.accent {
+  background: var(--accent);
+}
+.columns .tick-label {
+  align-self: end;
+  font-size: 0.6875rem;
+  line-height: 1;
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+}
+.columns [aria-pressed="true"] .tick-label,
+.columns .picked .tick-label {
+  color: var(--text);
+  font-weight: 600;
+}
+.columns button.col:hover .tick-label {
+  color: var(--text);
+}
+.columns .guide {
+  position: absolute;
+  inset-inline: 0;
+  border-top: 1px dashed var(--muted);
+  pointer-events: none;
+}
+.figure-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.figure-line strong {
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* A short legend mark, e.g. the dashed average line on Faturas */
+.key {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: 0;
+}
+.key.dashed {
+  width: 14px;
+  height: 0;
+  border-top: 1px dashed var(--muted);
+  border-radius: 0;
+  background: none;
+  vertical-align: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton i {
+    animation: none;
+  }
+  .dock a,
+  .button,
+  button,
+  .formula summary svg {
+    transition: none;
+  }
+}
+
+/* Wide screens: the dock becomes a pill bar at the top, panels pair up */
+@media (min-width: 48rem) {
+  .page {
+    max-width: 60rem;
+    padding: 96px 32px 64px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+  .page > * {
+    grid-column: 1 / -1;
+  }
+  .page > .half {
+    grid-column: auto;
+  }
+  .dock {
+    top: 20px;
+    bottom: auto;
+    width: auto;
+    grid-template-columns: repeat(4, auto);
+  }
+  .dock a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 0.875rem;
+  }
+  .dock svg {
+    width: 18px;
+    height: 18px;
+  }
+  .big-money .int {
+    font-size: 4rem;
+  }
+}
+fieldset.panel {
+  margin: 0;
+  min-width: 0;
+}
+fieldset.panel > legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .masthead button.spinning svg {
+    animation: none;
+  }
+}
+
+/* Lists with a leading icon: what kind of item, before reading its name */
+.rows.lead > li {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+}
+.rows.lead .meta {
+  grid-column: 2 / -1;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.rows span.avatar > svg {
+  width: 16px;
+  height: 16px;
+}
+.avatar.pos {
+  color: var(--pos);
+}
+.avatar.mono {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.bill > .avatar {
+  grid-row: span 2;
+}
+
+/* Month figure with its movement underneath, the way banking apps show a balance change */
+.figure-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+.delta {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* Ajustes: grouped list, titled above and footnoted below, each row a label and its control */
+.page-head.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+.group {
+  display: grid;
+  gap: 8px;
+}
+.group > h2 {
+  padding: 0 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--faint);
+}
+.footnote {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 0.8125rem;
+  color: var(--faint);
+}
+.panel.list {
+  gap: 0;
+  padding-block: 0;
+}
+.setting {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.setting:last-child {
+  border-bottom: 0;
+}
+.setting .label {
+  display: grid;
+  gap: 2px;
+  font-weight: 500;
+}
+.setting .sub {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--faint);
+}
+.setting .sub.error {
+  color: var(--neg);
+}
+.setting > select {
+  width: auto;
+  max-width: 11rem;
+  min-height: 44px;
+  padding: 6px 10px;
+}
+.affix {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  color: var(--faint);
+  font-size: 0.875rem;
+}
+.affix > input {
+  width: 7.5rem;
+  min-height: 44px;
+  padding: 6px 10px;
+  text-align: right;
+}
+button.setting.danger {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 56px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--neg);
+  font-weight: 500;
+}
+button.setting.danger:hover {
+  background: transparent;
+  opacity: 0.8;
+}
+.chip:empty {
+  display: none;
+}
+.text-link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+.text-link:hover {
+  text-decoration: underline;
+}
+button.text-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.rows.lead > li.bill {
+  align-items: start;
+}
+
+/* Desktop: brand and freshness share the row with the top pill bar; the Hoje hero reads as
+   the dial on the left and its figures on the right. */
+@media (min-width: 48rem) {
+  .page {
+    padding-top: 20px;
+  }
+  .masthead {
+    min-height: 50px;
+    margin: 0 0 12px;
+  }
+  .hero.today {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "head head"
+      "dial figures"
+      "chips formula";
+    column-gap: 40px;
+  }
+  .hero.today > .panel-head {
+    grid-area: head;
+  }
+  .hero.today > .dial {
+    grid-area: dial;
+  }
+  .hero.today > .chips {
+    grid-area: chips;
+  }
+  .hero.today > .figures {
+    grid-area: figures;
+    grid-template-columns: 1fr;
+    align-self: center;
+    gap: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .hero.today > .figures > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .hero.today > .figures > div:last-child {
+    border-bottom: 0;
+  }
+  .hero.today > .figures dd {
+    font-size: 1.125rem;
+  }
+  .hero.today > .formula {
+    grid-area: formula;
+    align-self: start;
+  }
+}
+@media (min-width: 48rem) {
+  .form,
+  .form ~ .group {
+    width: 100%;
+    max-width: 40rem;
+    justify-self: center;
+  }
+}
+
+/* Login: the dial is the brand mark */
+.login .dial {
+  width: min(100%, 16rem);
+  margin-bottom: 4px;
+}
+.login .dial-label {
+  font: 500 3rem / 1 var(--serif);
+  letter-spacing: -0.01em;
+}
+.login .footnote {
+  margin-top: 12px;
+}
+
+/* Motion: figures arrive once, quickly, and stay still after */
+.gauge .fill {
+  animation: draw 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.gauge .tick {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: appear 300ms ease-out 600ms both;
+}
+.columns .bar {
+  transform-origin: bottom;
+  animation: grow 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--n, 0) * 35ms);
+}
+.columns .bar.below {
+  transform-origin: top;
+}
+@keyframes draw {
+  from {
+    stroke-dasharray: 0 100;
+  }
+}
+@keyframes appear {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+@keyframes grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gauge .fill,
+  .gauge .tick,
+  .columns .bar,
+  .skeleton i {
+    animation: none;
+  }
+}
+
+/* Simulator: a big amount field and one-tap sizes */
+.affix.big {
+  font-size: 1.25rem;
+}
+.affix.big > input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  min-height: 56px;
+  font-size: 1.5rem;
+  font-weight: 500;
+  text-align: left;
+}
+.affix.big:has(> input) {
+  display: flex;
+}
+.presets {
+  display: flex;
+  gap: 8px;
+}
+button.chip-button {
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+.presets > button.chip-button::before {
+  content: "R$";
+  color: var(--faint);
+  font-size: 0.75rem;
+}
+button.chip-button:hover {
+  background: var(--pill-active);
+}
+button.chip-button[aria-pressed="true"] {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Parcel count for the simulator: same chips, no currency mark; "À vista" takes what it needs */
+.parcels {
+  display: grid;
+  grid-template-columns: auto repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.parcels > button.chip-button {
+  padding: 0 10px;
+}
+.sim-outlook {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.sim-outlook > .bad {
+  color: var(--neg);
+}
+
+/* Bill dates: closing then due, as two steps on a line */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: 19px;
+  left: 5px;
+  right: 50%;
+  height: 2px;
+  background: var(--border-input);
+}
+.timeline > li.step {
+  display: grid;
+  gap: 2px;
+  padding-top: 18px;
+  position: relative;
+}
+.timeline > li.step::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--border-input);
+}
+.timeline > li.step.now::before {
+  background: var(--warn);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--warn) 22%, transparent);
+}
+.timeline .label {
+  font-size: 0.75rem;
+  color: var(--faint);
+}
+.timeline .date {
+  font-weight: 600;
+}
+.timeline .sub {
+  font-size: 0.75rem;
+  color: var(--faint);
+}
+
+/* Para onde foi: each line carries a thin bar against the month's largest line */
+.outflows .name {
+  display: grid;
+  gap: 6px;
+}
+.outflows .name > .chip {
+  justify-self: start;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 0.6875rem;
+}
+/* A shared value column keeps every bar's track the same length; the change against last
+   month sits under the value */
+.outflows > li > .value {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  min-width: 11ch;
+  text-align: right;
+}
+.outflows > li > .value > small {
+  font-size: 0.75rem;
+  color: var(--faint);
+}
+.outflows > li > .value > small.neg {
+  color: var(--neg);
+}
+.meter {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--faint);
+  transform-origin: left;
+  animation: grow-x 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.fixed .meter {
+  grid-column: 2 / -1;
+  margin-top: 6px;
+}
+.outflows > li:first-child .meter > span {
+  background: var(--accent);
+}
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meter > span {
+    animation: none;
+  }
+}
+
+/* Avisos: tinted rows for the few things worth acting on, status colors only */
+.alerts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.alert {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  color: var(--text);
+  text-decoration: none;
+  background: color-mix(in oklch, var(--tone) 11%, var(--surface));
+  border: 1px solid color-mix(in oklch, var(--tone) 28%, transparent);
+  animation: appear 320ms ease-out both;
+}
+.alert.bad {
+  --tone: var(--neg);
+}
+.alert.warn {
+  --tone: var(--warn);
+}
+.alert.good {
+  --tone: var(--pos);
+}
+.alert-icon {
+  display: grid;
+  place-items: center;
+  color: var(--tone);
+}
+.alerts .alert .alert-icon > svg {
+  width: 20px;
+  height: 20px;
+}
+.alert-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.alert-text > strong {
+  font-weight: 550;
+}
+.alerts > li > .alert .alert-text > span {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.alerts > li > .alert.alert > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--faint);
+}
+@media (hover: hover) {
+  .alert:hover {
+    border-color: color-mix(in oklch, var(--tone) 50%, transparent);
+  }
+}
+
+/* Odometer wheels for the big figure: the face holds the width and baseline, the strip of
+   0–9 slides under a clip. Only `translate` moves (compositor-only). */
+.wheel {
+  position: relative;
+  display: inline-block;
+  clip-path: inset(0 -0.05em);
+}
+.wheel-face {
+  visibility: hidden;
+}
+.wheel-strip {
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  transition: translate 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.big-money .int .wheel .wheel-strip > span {
+  height: 1em;
+  line-height: 1;
+}
+@starting-style {
+  .wheel-strip {
+    translate: 0 0;
+  }
+}
+.wheel:nth-last-child(2) .wheel-strip {
+  transition-delay: 40ms;
+}
+.wheel:nth-last-child(3) .wheel-strip {
+  transition-delay: 80ms;
+}
+
+/* Tab changes: the screen slides a little toward the tab's side of the dock while the
+   masthead and the dock stay put. Exit shorter than entry. */
+.masthead {
+  view-transition-name: masthead;
+}
+.dock {
+  view-transition-name: dock;
+}
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: vt-out 160ms ease-in both;
+  }
+  ::view-transition-new(root) {
+    animation: vt-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  html[data-nav="back"]::view-transition-old(root) {
+    animation-name: vt-out-back;
+  }
+  html[data-nav="back"]::view-transition-new(root) {
+    animation-name: vt-in-back;
+  }
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    translate: -16px 0;
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+@keyframes vt-out-back {
+  to {
+    opacity: 0;
+    translate: 16px 0;
+  }
+}
+@keyframes vt-in-back {
+  from {
+    opacity: 0;
+    translate: -24px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wheel-strip {
+    transition: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}
+
+/* Signed-in devices in Ajustes: icon, name with when it was last used, and a quiet way out. */
+.devices {
+  margin: 0;
+  list-style: none;
+}
+.devices > li.setting {
+  justify-content: flex-start;
+}
+.devices .label {
+  flex: 1;
+}
+.device-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--pill-active);
+  color: var(--muted);
+}
+.devices > li.setting > .device-icon > svg {
+  width: 20px;
+  height: 20px;
+}
+.setting .sub.here {
+  color: var(--accent);
+}
+button.ghost.small {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 0.875rem;
+}
+
+/* Comprar hoje: the card that pays latest leads, marked by its avatar */
+.rows.lead > li.bill.best > .avatar {
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+/* Termômetro: one neutral tile per day, the sheet's band as a stroke under the number. Forecast
+   days are outlined, today is ringed. */
+.thermo .negative,
+.thermo-legend .negative {
+  --tone: var(--neg);
+}
+.thermo .attention,
+.thermo-legend .attention {
+  --tone: var(--warn);
+}
+.thermo .healthy,
+.thermo-legend .healthy {
+  --tone: color-mix(in oklch, var(--accent) 55%, var(--warn));
+}
+.thermo .surplus,
+.thermo-legend .surplus {
+  --tone: var(--accent);
+}
+.thermo-grid {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.thermo-grid > .weekday {
+  font-size: 0.6875rem;
+  text-align: center;
+  color: var(--faint);
+}
+.thermo-grid > button.day {
+  position: relative;
+  aspect-ratio: 5 / 4;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 0 4px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--text) 5%, var(--surface));
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+/* The band is a short stroke under the number: the grid stays calm, the color still reads */
+.thermo-grid > button.day::before {
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  width: 14px;
+  height: 3px;
+  margin-left: -7px;
+  border-radius: 2px;
+  background: var(--tone);
+}
+.thermo-grid > button.day.future {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted);
+}
+.thermo-grid > button.day.future::before {
+  opacity: 0.55;
+}
+.thermo-grid > button.day.today {
+  box-shadow: 0 0 0 2px var(--text);
+}
+.thermo-grid > button.day[aria-pressed="true"] {
+  outline: 2px solid var(--muted);
+  outline-offset: 2px;
+}
+.thermo-grid > button.day:hover {
+  background: color-mix(in oklch, var(--text) 10%, var(--surface));
+}
+.thermo-grid > button.day.payday::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+/* A month's days settle in reading order, quick enough to never hold up a tap */
+@media (prefers-reduced-motion: no-preference) {
+  .thermo-grid > button.day {
+    animation: day-in 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--n, 0) * 7ms);
+  }
+  .thermo-moves,
+  .thermo-quiet {
+    animation: rise-in 200ms ease-out both;
+  }
+}
+@keyframes day-in {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+.thermo-quiet {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.thermo-save {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+.thermo-save strong {
+  font-variant-numeric: tabular-nums;
+}
+.band-text {
+  color: var(--tone);
+  font-weight: 600;
+}
+.thermo-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--faint);
+}
+.thermo .thermo-legend > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.thermo .thermo-legend > li > .swatch {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--tone);
+}
+.thermo .thermo-legend > li > .swatch.dot {
+  width: 4px;
+  height: 4px;
+  margin: 0 3px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+/* A long name wraps instead of hiding its end; an installment count rides along as a chip */
+.rows .name > .item-name {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.item-name > .part {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 1px;
+}
+
+/* A label and its date stay on one line; the line breaks between pairs. */
+.keep {
+  white-space: nowrap;
+}
+
+/* Mês: the method's performance under the year's columns */
+.figure-line.performance {
+  margin: 8px 0 0;
+}
