@@ -1,0 +1,87 @@
+{
+  "today": "2026-10-05",
+  "balanceToday": 2353747,
+  "todayLogged": false,
+  "todayUrl": "https://docs.google.com/spreadsheets/d/planilha-de-exemplo/edit#gid=2&range=A9",
+  "canSpend": {
+    "card": "Cartão Azul",
+    "budget": 285000,
+    "budgetSource": "diario",
+    "accumulated": 360031,
+    "daysLeft": 1,
+    "perDay": -75031,
+    "closing": "2026-10-05",
+    "due": "2026-10-12",
+    "cycleDays": 30,
+    "paceExpected": 285000,
+    "paceGap": -75031,
+    "overBy": 75031,
+    "pace": "over"
+  },
+  "dailyForecast": 9500,
+  "dailySource": "inferred",
+  "upcoming": [
+    {
+      "date": "2026-10-05",
+      "items": [
+        {
+          "date": "2026-10-05",
+          "description": "Salário",
+          "amount": 560000,
+          "kind": "income"
+        }
+      ],
+      "net": 560000
+    },
+    {
+      "date": "2026-10-10",
+      "items": [
+        {
+          "date": "2026-10-10",
+          "description": "Aluguel",
+          "amount": 190000,
+          "kind": "bill"
+        },
+        {
+          "date": "2026-10-10",
+          "description": "Luz",
+          "amount": 18882,
+          "kind": "bill"
+        },
+        {
+          "date": "2026-10-10",
+          "description": "Internet",
+          "amount": 12000,
+          "kind": "bill"
+        }
+      ],
+      "net": -220882
+    }
+  ],
+  "upcomingCount": 4,
+  "insights": [
+    {
+      "kind": "bill-above-average",
+      "card": "Cartão Azul",
+      "over": 54801,
+      "average": 305230
+    },
+    {
+      "kind": "closing-estimated",
+      "card": "Cartão Azul",
+      "closing": "2026-10-05"
+    }
+  ],
+  "saving": {
+    "date": "2026-10-05",
+    "income": 560000,
+    "amount": 1680000,
+    "lowest": 1733404,
+    "lowestDate": "2026-10-15",
+    "leftAtLowest": 53404,
+    "until": "2026-12-31"
+  },
+  "issues": [],
+  "issuesInWindow": 0,
+  "readAt": "2026-10-05T11:00:00.000Z"
+}

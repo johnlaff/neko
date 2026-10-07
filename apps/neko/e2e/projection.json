@@ -1,7 +1,7 @@
 {
   "projection": {
     "today": "2026-10-05",
-    "balanceToday": 7763747,
+    "balanceToday": 2353747,
     "todayRef": {
       "tab": "2026",
       "a1": "A9"
@@ -70,302 +70,302 @@
     "series": [
       {
         "date": "2026-10-05",
-        "sheet": 7763747,
+        "sheet": 2353747,
         "canSpend": -75031
       },
       {
         "date": "2026-10-06",
-        "sheet": 7763747,
+        "sheet": 2353747,
         "canSpend": 9500
       },
       {
         "date": "2026-10-07",
-        "sheet": 7763747,
+        "sheet": 2353747,
         "canSpend": 9500
       },
       {
         "date": "2026-10-08",
-        "sheet": 7763747,
+        "sheet": 2353747,
         "canSpend": 9500
       },
       {
         "date": "2026-10-09",
-        "sheet": 7763747,
+        "sheet": 2353747,
         "canSpend": 9500
       },
       {
         "date": "2026-10-10",
-        "sheet": 7542865,
+        "sheet": 2132865,
         "canSpend": 9500
       },
       {
         "date": "2026-10-11",
-        "sheet": 7542865,
+        "sheet": 2132865,
         "canSpend": 9500
       },
       {
         "date": "2026-10-12",
-        "sheet": 7175404,
+        "sheet": 1765404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-13",
-        "sheet": 7175404,
+        "sheet": 1765404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-14",
-        "sheet": 7175404,
+        "sheet": 1765404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-15",
-        "sheet": 7143404,
+        "sheet": 1733404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-16",
-        "sheet": 7143404,
+        "sheet": 1733404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-17",
-        "sheet": 7143404,
+        "sheet": 1733404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-18",
-        "sheet": 7143404,
+        "sheet": 1733404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-19",
-        "sheet": 7143404,
+        "sheet": 1733404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-20",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-21",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-22",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-23",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-24",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-25",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-26",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-27",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-28",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-29",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-30",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-10-31",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-01",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-02",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-03",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-04",
-        "sheet": 7343404,
+        "sheet": 1843404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-05",
-        "sheet": 8063404,
+        "sheet": 2403404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-06",
-        "sheet": 8063404,
+        "sheet": 2403404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-07",
-        "sheet": 8063404,
+        "sheet": 2403404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-08",
-        "sheet": 8063404,
+        "sheet": 2403404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-09",
-        "sheet": 8063404,
+        "sheet": 2403404,
         "canSpend": 9500
       },
       {
         "date": "2026-11-10",
-        "sheet": 7838676,
+        "sheet": 2178676,
         "canSpend": 9500
       },
       {
         "date": "2026-11-11",
-        "sheet": 7838676,
+        "sheet": 2178676,
         "canSpend": 9500
       },
       {
         "date": "2026-11-12",
-        "sheet": 7572376,
+        "sheet": 1912376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-13",
-        "sheet": 7572376,
+        "sheet": 1912376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-14",
-        "sheet": 7572376,
+        "sheet": 1912376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-15",
-        "sheet": 7540376,
+        "sheet": 1880376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-16",
-        "sheet": 7540376,
+        "sheet": 1880376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-17",
-        "sheet": 7540376,
+        "sheet": 1880376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-18",
-        "sheet": 7540376,
+        "sheet": 1880376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-19",
-        "sheet": 7540376,
+        "sheet": 1880376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-20",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-21",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-22",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-23",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-24",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-25",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-26",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-27",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-28",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-29",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-11-30",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-12-01",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-12-02",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       },
       {
         "date": "2026-12-03",
-        "sheet": 7740376,
+        "sheet": 1990376,
         "canSpend": 9500
       }
     ],
@@ -373,13 +373,13 @@
       {
         "year": 2025,
         "month": 1,
-        "entrada": 1057314,
+        "entrada": 807314,
         "saida": 636096,
         "diario": 43142,
-        "sobra": 378076,
+        "sobra": 128076,
         "startBalance": 850000,
-        "endSheet": 1228076,
-        "result": 378076,
+        "endSheet": 978076,
+        "result": 128076,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -484,20 +484,20 @@
           },
           {
             "day": 5,
-            "balance": 1565084,
+            "balance": 1405084,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 1561270,
+            "balance": 1401270,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -510,21 +510,21 @@
           },
           {
             "day": 7,
-            "balance": 1561270,
+            "balance": 1401270,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 1561270,
+            "balance": 1401270,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 1554811,
+            "balance": 1394811,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -537,7 +537,7 @@
           },
           {
             "day": 10,
-            "balance": 1329863,
+            "balance": 1169863,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -560,14 +560,14 @@
           },
           {
             "day": 11,
-            "balance": 1329863,
+            "balance": 1169863,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 1080518,
+            "balance": 920518,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -595,21 +595,21 @@
           },
           {
             "day": 13,
-            "balance": 1080518,
+            "balance": 920518,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 1080518,
+            "balance": 920518,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 1044817,
+            "balance": 884817,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -627,21 +627,21 @@
           },
           {
             "day": 16,
-            "balance": 1044817,
+            "balance": 884817,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 1044817,
+            "balance": 884817,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 1042997,
+            "balance": 882997,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -654,21 +654,21 @@
           },
           {
             "day": 19,
-            "balance": 1042997,
+            "balance": 882997,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 1242997,
+            "balance": 992997,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -679,7 +679,7 @@
           },
           {
             "day": 21,
-            "balance": 1240998,
+            "balance": 990998,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -692,21 +692,21 @@
           },
           {
             "day": 22,
-            "balance": 1240998,
+            "balance": 990998,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 1240998,
+            "balance": 990998,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 1234851,
+            "balance": 984851,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -719,21 +719,21 @@
           },
           {
             "day": 25,
-            "balance": 1234851,
+            "balance": 984851,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 1234851,
+            "balance": 984851,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 1230435,
+            "balance": 980435,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -746,21 +746,21 @@
           },
           {
             "day": 28,
-            "balance": 1230435,
+            "balance": 980435,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 1230435,
+            "balance": 980435,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 1228076,
+            "balance": 978076,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -773,7 +773,7 @@
           },
           {
             "day": 31,
-            "balance": 1228076,
+            "balance": 978076,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -783,13 +783,13 @@
       {
         "year": 2025,
         "month": 2,
-        "entrada": 1038153,
+        "entrada": 788153,
         "saida": 681243,
         "diario": 50331,
-        "sobra": 306579,
-        "startBalance": 1228076,
-        "endSheet": 1534655,
-        "result": 306579,
+        "sobra": 56579,
+        "startBalance": 978076,
+        "endSheet": 1034655,
+        "result": 56579,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -860,21 +860,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 1228076,
+            "balance": 978076,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 1228076,
+            "balance": 978076,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 1225230,
+            "balance": 975230,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -887,27 +887,27 @@
           },
           {
             "day": 4,
-            "balance": 1225230,
+            "balance": 975230,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 1945230,
+            "balance": 1535230,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 1941247,
+            "balance": 1531247,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -920,21 +920,21 @@
           },
           {
             "day": 7,
-            "balance": 1941247,
+            "balance": 1531247,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 1941247,
+            "balance": 1531247,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 1936697,
+            "balance": 1526697,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -947,7 +947,7 @@
           },
           {
             "day": 10,
-            "balance": 1709330,
+            "balance": 1299330,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -970,14 +970,14 @@
           },
           {
             "day": 11,
-            "balance": 1709330,
+            "balance": 1299330,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 1402036,
+            "balance": 992036,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1005,21 +1005,21 @@
           },
           {
             "day": 13,
-            "balance": 1402036,
+            "balance": 992036,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 1402036,
+            "balance": 992036,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 1362701,
+            "balance": 952701,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1037,21 +1037,21 @@
           },
           {
             "day": 16,
-            "balance": 1362701,
+            "balance": 952701,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 1362701,
+            "balance": 952701,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 1354050,
+            "balance": 944050,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1064,21 +1064,21 @@
           },
           {
             "day": 19,
-            "balance": 1354050,
+            "balance": 944050,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 1554050,
+            "balance": 1054050,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -1089,7 +1089,7 @@
           },
           {
             "day": 21,
-            "balance": 1545483,
+            "balance": 1045483,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1102,21 +1102,21 @@
           },
           {
             "day": 22,
-            "balance": 1545483,
+            "balance": 1045483,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 1545483,
+            "balance": 1045483,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 1538244,
+            "balance": 1038244,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1129,21 +1129,21 @@
           },
           {
             "day": 25,
-            "balance": 1538244,
+            "balance": 1038244,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 1538244,
+            "balance": 1038244,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 1534655,
+            "balance": 1034655,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1156,7 +1156,7 @@
           },
           {
             "day": 28,
-            "balance": 1534655,
+            "balance": 1034655,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -1166,13 +1166,13 @@
       {
         "year": 2025,
         "month": 3,
-        "entrada": 1066746,
+        "entrada": 816746,
         "saida": 726451,
         "diario": 47317,
-        "sobra": 292978,
-        "startBalance": 1534655,
-        "endSheet": 1827633,
-        "result": 292978,
+        "sobra": 42978,
+        "startBalance": 1034655,
+        "endSheet": 1077633,
+        "result": 42978,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -1269,21 +1269,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 1534655,
+            "balance": 1034655,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 1534655,
+            "balance": 1034655,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 1531099,
+            "balance": 1031099,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1296,27 +1296,27 @@
           },
           {
             "day": 4,
-            "balance": 1531099,
+            "balance": 1031099,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 2251099,
+            "balance": 1591099,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 2246494,
+            "balance": 1586494,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1329,21 +1329,21 @@
           },
           {
             "day": 7,
-            "balance": 2246494,
+            "balance": 1586494,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 2246494,
+            "balance": 1586494,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 2242844,
+            "balance": 1582844,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1356,7 +1356,7 @@
           },
           {
             "day": 10,
-            "balance": 2017534,
+            "balance": 1357534,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1379,14 +1379,14 @@
           },
           {
             "day": 11,
-            "balance": 2017534,
+            "balance": 1357534,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 1693036,
+            "balance": 1033036,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1414,21 +1414,21 @@
           },
           {
             "day": 13,
-            "balance": 1693036,
+            "balance": 1033036,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 1693036,
+            "balance": 1033036,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 1659230,
+            "balance": 999230,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1446,21 +1446,21 @@
           },
           {
             "day": 16,
-            "balance": 1659230,
+            "balance": 999230,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 1659230,
+            "balance": 999230,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 1655215,
+            "balance": 995215,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1473,21 +1473,21 @@
           },
           {
             "day": 19,
-            "balance": 1655215,
+            "balance": 995215,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 1855215,
+            "balance": 1105215,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -1498,7 +1498,7 @@
           },
           {
             "day": 21,
-            "balance": 1847915,
+            "balance": 1097915,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1511,21 +1511,21 @@
           },
           {
             "day": 22,
-            "balance": 1847915,
+            "balance": 1097915,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 1847915,
+            "balance": 1097915,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 1840850,
+            "balance": 1090850,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1538,21 +1538,21 @@
           },
           {
             "day": 25,
-            "balance": 1840850,
+            "balance": 1090850,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 1840850,
+            "balance": 1090850,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 1836388,
+            "balance": 1086388,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1565,21 +1565,21 @@
           },
           {
             "day": 28,
-            "balance": 1836388,
+            "balance": 1086388,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 1836388,
+            "balance": 1086388,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 1827633,
+            "balance": 1077633,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1592,7 +1592,7 @@
           },
           {
             "day": 31,
-            "balance": 1827633,
+            "balance": 1077633,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -1602,13 +1602,13 @@
       {
         "year": 2025,
         "month": 4,
-        "entrada": 1068665,
+        "entrada": 818665,
         "saida": 736696,
         "diario": 59194,
-        "sobra": 272775,
-        "startBalance": 1827633,
-        "endSheet": 2100408,
-        "result": 272775,
+        "sobra": 22775,
+        "startBalance": 1077633,
+        "endSheet": 1100408,
+        "result": 22775,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -1705,21 +1705,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 1827633,
+            "balance": 1077633,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 1827633,
+            "balance": 1077633,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 1821059,
+            "balance": 1071059,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1732,27 +1732,27 @@
           },
           {
             "day": 4,
-            "balance": 1821059,
+            "balance": 1071059,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 2541059,
+            "balance": 1631059,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 2534840,
+            "balance": 1624840,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1765,21 +1765,21 @@
           },
           {
             "day": 7,
-            "balance": 2534840,
+            "balance": 1624840,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 2534840,
+            "balance": 1624840,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 2530602,
+            "balance": 1620602,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1792,7 +1792,7 @@
           },
           {
             "day": 10,
-            "balance": 2310353,
+            "balance": 1400353,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1815,14 +1815,14 @@
           },
           {
             "day": 11,
-            "balance": 2310353,
+            "balance": 1400353,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 1966839,
+            "balance": 1056839,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1850,21 +1850,21 @@
           },
           {
             "day": 13,
-            "balance": 1966839,
+            "balance": 1056839,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 1966839,
+            "balance": 1056839,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 1931281,
+            "balance": 1021281,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1882,21 +1882,21 @@
           },
           {
             "day": 16,
-            "balance": 1931281,
+            "balance": 1021281,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 1931281,
+            "balance": 1021281,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 1926086,
+            "balance": 1016086,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1909,21 +1909,21 @@
           },
           {
             "day": 19,
-            "balance": 1926086,
+            "balance": 1016086,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 2126086,
+            "balance": 1126086,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -1934,7 +1934,7 @@
           },
           {
             "day": 21,
-            "balance": 2123255,
+            "balance": 1123255,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1947,21 +1947,21 @@
           },
           {
             "day": 22,
-            "balance": 2123255,
+            "balance": 1123255,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 2123255,
+            "balance": 1123255,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 2114433,
+            "balance": 1114433,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -1974,21 +1974,21 @@
           },
           {
             "day": 25,
-            "balance": 2114433,
+            "balance": 1114433,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 2114433,
+            "balance": 1114433,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 2108431,
+            "balance": 1108431,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2001,21 +2001,21 @@
           },
           {
             "day": 28,
-            "balance": 2108431,
+            "balance": 1108431,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 2108431,
+            "balance": 1108431,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 2100408,
+            "balance": 1100408,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2031,13 +2031,13 @@
       {
         "year": 2025,
         "month": 5,
-        "entrada": 1053048,
+        "entrada": 803048,
         "saida": 741442,
         "diario": 53001,
-        "sobra": 258605,
-        "startBalance": 2100408,
-        "endSheet": 2359013,
-        "result": 258605,
+        "sobra": 8605,
+        "startBalance": 1100408,
+        "endSheet": 1109013,
+        "result": 8605,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -2134,21 +2134,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 2100408,
+            "balance": 1100408,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 2100408,
+            "balance": 1100408,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 2093150,
+            "balance": 1093150,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2161,27 +2161,27 @@
           },
           {
             "day": 4,
-            "balance": 2093150,
+            "balance": 1093150,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 2813150,
+            "balance": 1653150,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 2807156,
+            "balance": 1647156,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2194,21 +2194,21 @@
           },
           {
             "day": 7,
-            "balance": 2807156,
+            "balance": 1647156,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 2807156,
+            "balance": 1647156,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 2802193,
+            "balance": 1642193,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2221,7 +2221,7 @@
           },
           {
             "day": 10,
-            "balance": 2578178,
+            "balance": 1418178,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2244,14 +2244,14 @@
           },
           {
             "day": 11,
-            "balance": 2578178,
+            "balance": 1418178,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 2219250,
+            "balance": 1059250,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2279,21 +2279,21 @@
           },
           {
             "day": 13,
-            "balance": 2219250,
+            "balance": 1059250,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 2219250,
+            "balance": 1059250,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 2178489,
+            "balance": 1018489,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2311,21 +2311,21 @@
           },
           {
             "day": 16,
-            "balance": 2178489,
+            "balance": 1018489,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 2178489,
+            "balance": 1018489,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 2174188,
+            "balance": 1014188,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2338,21 +2338,21 @@
           },
           {
             "day": 19,
-            "balance": 2174188,
+            "balance": 1014188,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 2374188,
+            "balance": 1124188,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -2363,7 +2363,7 @@
           },
           {
             "day": 21,
-            "balance": 2372590,
+            "balance": 1122590,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2376,21 +2376,21 @@
           },
           {
             "day": 22,
-            "balance": 2372590,
+            "balance": 1122590,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 2372590,
+            "balance": 1122590,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 2369750,
+            "balance": 1119750,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2403,21 +2403,21 @@
           },
           {
             "day": 25,
-            "balance": 2369750,
+            "balance": 1119750,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 2369750,
+            "balance": 1119750,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 2367651,
+            "balance": 1117651,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2430,21 +2430,21 @@
           },
           {
             "day": 28,
-            "balance": 2367651,
+            "balance": 1117651,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 2367651,
+            "balance": 1117651,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 2359013,
+            "balance": 1109013,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2457,7 +2457,7 @@
           },
           {
             "day": 31,
-            "balance": 2359013,
+            "balance": 1109013,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -2467,13 +2467,13 @@
       {
         "year": 2025,
         "month": 6,
-        "entrada": 1067923,
+        "entrada": 817923,
         "saida": 700061,
         "diario": 56181,
-        "sobra": 311681,
-        "startBalance": 2359013,
-        "endSheet": 2670694,
-        "result": 311681,
+        "sobra": 61681,
+        "startBalance": 1109013,
+        "endSheet": 1170694,
+        "result": 61681,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -2570,21 +2570,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 2359013,
+            "balance": 1109013,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 2359013,
+            "balance": 1109013,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 2350561,
+            "balance": 1100561,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2597,27 +2597,27 @@
           },
           {
             "day": 4,
-            "balance": 2350561,
+            "balance": 1100561,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 3070561,
+            "balance": 1660561,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 3067759,
+            "balance": 1657759,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2630,21 +2630,21 @@
           },
           {
             "day": 7,
-            "balance": 3067759,
+            "balance": 1657759,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 3067759,
+            "balance": 1657759,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 3064981,
+            "balance": 1654981,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2657,7 +2657,7 @@
           },
           {
             "day": 10,
-            "balance": 2841101,
+            "balance": 1431101,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2680,14 +2680,14 @@
           },
           {
             "day": 11,
-            "balance": 2841101,
+            "balance": 1431101,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 2536600,
+            "balance": 1126600,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2715,21 +2715,21 @@
           },
           {
             "day": 13,
-            "balance": 2536600,
+            "balance": 1126600,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 2536600,
+            "balance": 1126600,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 2502981,
+            "balance": 1092981,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2747,21 +2747,21 @@
           },
           {
             "day": 16,
-            "balance": 2502981,
+            "balance": 1092981,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 2502981,
+            "balance": 1092981,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 2494217,
+            "balance": 1084217,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2774,21 +2774,21 @@
           },
           {
             "day": 19,
-            "balance": 2494217,
+            "balance": 1084217,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 2694217,
+            "balance": 1194217,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -2799,7 +2799,7 @@
           },
           {
             "day": 21,
-            "balance": 2688072,
+            "balance": 1188072,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2812,21 +2812,21 @@
           },
           {
             "day": 22,
-            "balance": 2688072,
+            "balance": 1188072,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 2688072,
+            "balance": 1188072,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 2679935,
+            "balance": 1179935,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2839,21 +2839,21 @@
           },
           {
             "day": 25,
-            "balance": 2679935,
+            "balance": 1179935,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 2679935,
+            "balance": 1179935,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 2676680,
+            "balance": 1176680,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2866,21 +2866,21 @@
           },
           {
             "day": 28,
-            "balance": 2676680,
+            "balance": 1176680,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 2676680,
+            "balance": 1176680,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 2670694,
+            "balance": 1170694,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -2896,13 +2896,13 @@
       {
         "year": 2025,
         "month": 7,
-        "entrada": 1031023,
+        "entrada": 781023,
         "saida": 770225,
         "diario": 55353,
-        "sobra": 205445,
-        "startBalance": 2670694,
-        "endSheet": 2876139,
-        "result": 205445,
+        "sobra": -44555,
+        "startBalance": 1170694,
+        "endSheet": 1126139,
+        "result": -44555,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -2999,21 +2999,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 2670694,
+            "balance": 1170694,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 2670694,
+            "balance": 1170694,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 2665055,
+            "balance": 1165055,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3026,27 +3026,27 @@
           },
           {
             "day": 4,
-            "balance": 2665055,
+            "balance": 1165055,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 3385055,
+            "balance": 1725055,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 3383408,
+            "balance": 1723408,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3059,21 +3059,21 @@
           },
           {
             "day": 7,
-            "balance": 3383408,
+            "balance": 1723408,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 3383408,
+            "balance": 1723408,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 3375075,
+            "balance": 1715075,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3086,7 +3086,7 @@
           },
           {
             "day": 10,
-            "balance": 3148149,
+            "balance": 1488149,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3109,14 +3109,14 @@
           },
           {
             "day": 11,
-            "balance": 3148149,
+            "balance": 1488149,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 2739224,
+            "balance": 1079224,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3144,21 +3144,21 @@
           },
           {
             "day": 13,
-            "balance": 2739224,
+            "balance": 1079224,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 2739224,
+            "balance": 1079224,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 2698705,
+            "balance": 1038705,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3176,21 +3176,21 @@
           },
           {
             "day": 16,
-            "balance": 2698705,
+            "balance": 1038705,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 2698705,
+            "balance": 1038705,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 2693637,
+            "balance": 1033637,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3203,21 +3203,21 @@
           },
           {
             "day": 19,
-            "balance": 2693637,
+            "balance": 1033637,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 2893637,
+            "balance": 1143637,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -3228,7 +3228,7 @@
           },
           {
             "day": 21,
-            "balance": 2888677,
+            "balance": 1138677,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3241,21 +3241,21 @@
           },
           {
             "day": 22,
-            "balance": 2888677,
+            "balance": 1138677,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 2888677,
+            "balance": 1138677,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 2887170,
+            "balance": 1137170,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3268,21 +3268,21 @@
           },
           {
             "day": 25,
-            "balance": 2887170,
+            "balance": 1137170,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 2887170,
+            "balance": 1137170,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 2883850,
+            "balance": 1133850,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3295,21 +3295,21 @@
           },
           {
             "day": 28,
-            "balance": 2883850,
+            "balance": 1133850,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 2883850,
+            "balance": 1133850,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 2876139,
+            "balance": 1126139,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3322,7 +3322,7 @@
           },
           {
             "day": 31,
-            "balance": 2876139,
+            "balance": 1126139,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -3332,13 +3332,13 @@
       {
         "year": 2025,
         "month": 8,
-        "entrada": 1063687,
+        "entrada": 813687,
         "saida": 718109,
         "diario": 56339,
-        "sobra": 289239,
-        "startBalance": 2876139,
-        "endSheet": 3165378,
-        "result": 289239,
+        "sobra": 39239,
+        "startBalance": 1126139,
+        "endSheet": 1165378,
+        "result": 39239,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -3435,21 +3435,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 2876139,
+            "balance": 1126139,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 2876139,
+            "balance": 1126139,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 2867773,
+            "balance": 1117773,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3462,27 +3462,27 @@
           },
           {
             "day": 4,
-            "balance": 2867773,
+            "balance": 1117773,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 3587773,
+            "balance": 1677773,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 3582096,
+            "balance": 1672096,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3495,21 +3495,21 @@
           },
           {
             "day": 7,
-            "balance": 3582096,
+            "balance": 1672096,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 3582096,
+            "balance": 1672096,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 3579151,
+            "balance": 1669151,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3522,7 +3522,7 @@
           },
           {
             "day": 10,
-            "balance": 3358372,
+            "balance": 1448372,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3545,14 +3545,14 @@
           },
           {
             "day": 11,
-            "balance": 3358372,
+            "balance": 1448372,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 3033544,
+            "balance": 1123544,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3580,21 +3580,21 @@
           },
           {
             "day": 13,
-            "balance": 3033544,
+            "balance": 1123544,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 3033544,
+            "balance": 1123544,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 2997631,
+            "balance": 1087631,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3612,21 +3612,21 @@
           },
           {
             "day": 16,
-            "balance": 2997631,
+            "balance": 1087631,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 2997631,
+            "balance": 1087631,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 2990798,
+            "balance": 1080798,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3639,21 +3639,21 @@
           },
           {
             "day": 19,
-            "balance": 2990798,
+            "balance": 1080798,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 3190798,
+            "balance": 1190798,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -3664,7 +3664,7 @@
           },
           {
             "day": 21,
-            "balance": 3182879,
+            "balance": 1182879,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3677,21 +3677,21 @@
           },
           {
             "day": 22,
-            "balance": 3182879,
+            "balance": 1182879,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 3182879,
+            "balance": 1182879,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 3179922,
+            "balance": 1179922,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3704,21 +3704,21 @@
           },
           {
             "day": 25,
-            "balance": 3179922,
+            "balance": 1179922,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 3179922,
+            "balance": 1179922,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 3173906,
+            "balance": 1173906,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3731,21 +3731,21 @@
           },
           {
             "day": 28,
-            "balance": 3173906,
+            "balance": 1173906,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 3173906,
+            "balance": 1173906,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 3165378,
+            "balance": 1165378,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3758,7 +3758,7 @@
           },
           {
             "day": 31,
-            "balance": 3165378,
+            "balance": 1165378,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -3768,13 +3768,13 @@
       {
         "year": 2025,
         "month": 9,
-        "entrada": 1039122,
+        "entrada": 789122,
         "saida": 705766,
         "diario": 39776,
-        "sobra": 293580,
-        "startBalance": 3165378,
-        "endSheet": 3458958,
-        "result": 293580,
+        "sobra": 43580,
+        "startBalance": 1165378,
+        "endSheet": 1208958,
+        "result": 43580,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -3871,21 +3871,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 3165378,
+            "balance": 1165378,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 3165378,
+            "balance": 1165378,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 3163511,
+            "balance": 1163511,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3898,27 +3898,27 @@
           },
           {
             "day": 4,
-            "balance": 3163511,
+            "balance": 1163511,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 3883511,
+            "balance": 1723511,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 3877872,
+            "balance": 1717872,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3931,21 +3931,21 @@
           },
           {
             "day": 7,
-            "balance": 3877872,
+            "balance": 1717872,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 3877872,
+            "balance": 1717872,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 3875390,
+            "balance": 1715390,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3958,7 +3958,7 @@
           },
           {
             "day": 10,
-            "balance": 3650370,
+            "balance": 1490370,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -3981,14 +3981,14 @@
           },
           {
             "day": 11,
-            "balance": 3650370,
+            "balance": 1490370,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 3316842,
+            "balance": 1156842,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4016,21 +4016,21 @@
           },
           {
             "day": 13,
-            "balance": 3316842,
+            "balance": 1156842,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 3316842,
+            "balance": 1156842,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 3282120,
+            "balance": 1122120,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4048,21 +4048,21 @@
           },
           {
             "day": 16,
-            "balance": 3282120,
+            "balance": 1122120,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 3282120,
+            "balance": 1122120,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 3273864,
+            "balance": 1113864,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4075,21 +4075,21 @@
           },
           {
             "day": 19,
-            "balance": 3273864,
+            "balance": 1113864,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 3473864,
+            "balance": 1223864,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -4100,7 +4100,7 @@
           },
           {
             "day": 21,
-            "balance": 3469622,
+            "balance": 1219622,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4113,21 +4113,21 @@
           },
           {
             "day": 22,
-            "balance": 3469622,
+            "balance": 1219622,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 3469622,
+            "balance": 1219622,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 3467684,
+            "balance": 1217684,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4140,21 +4140,21 @@
           },
           {
             "day": 25,
-            "balance": 3467684,
+            "balance": 1217684,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 3467684,
+            "balance": 1217684,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 3463190,
+            "balance": 1213190,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4167,21 +4167,21 @@
           },
           {
             "day": 28,
-            "balance": 3463190,
+            "balance": 1213190,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 3463190,
+            "balance": 1213190,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 3458958,
+            "balance": 1208958,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4197,13 +4197,13 @@
       {
         "year": 2025,
         "month": 10,
-        "entrada": 1049008,
+        "entrada": 799008,
         "saida": 681612,
         "diario": 57552,
-        "sobra": 309844,
-        "startBalance": 3458958,
-        "endSheet": 3768802,
-        "result": 309844,
+        "sobra": 59844,
+        "startBalance": 1208958,
+        "endSheet": 1268802,
+        "result": 59844,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -4300,21 +4300,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 3458958,
+            "balance": 1208958,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 3458958,
+            "balance": 1208958,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 3450610,
+            "balance": 1200610,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4327,27 +4327,27 @@
           },
           {
             "day": 4,
-            "balance": 3450610,
+            "balance": 1200610,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 4170610,
+            "balance": 1760610,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 4162831,
+            "balance": 1752831,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4360,21 +4360,21 @@
           },
           {
             "day": 7,
-            "balance": 4162831,
+            "balance": 1752831,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 4162831,
+            "balance": 1752831,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 4156532,
+            "balance": 1746532,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4387,7 +4387,7 @@
           },
           {
             "day": 10,
-            "balance": 3930539,
+            "balance": 1520539,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4410,14 +4410,14 @@
           },
           {
             "day": 11,
-            "balance": 3930539,
+            "balance": 1520539,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 3632714,
+            "balance": 1222714,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4445,21 +4445,21 @@
           },
           {
             "day": 13,
-            "balance": 3632714,
+            "balance": 1222714,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 3632714,
+            "balance": 1222714,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 3598801,
+            "balance": 1188801,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4477,21 +4477,21 @@
           },
           {
             "day": 16,
-            "balance": 3598801,
+            "balance": 1188801,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 3598801,
+            "balance": 1188801,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 3596525,
+            "balance": 1186525,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4504,21 +4504,21 @@
           },
           {
             "day": 19,
-            "balance": 3596525,
+            "balance": 1186525,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 3796525,
+            "balance": 1296525,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -4529,7 +4529,7 @@
           },
           {
             "day": 21,
-            "balance": 3787836,
+            "balance": 1287836,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4542,21 +4542,21 @@
           },
           {
             "day": 22,
-            "balance": 3787836,
+            "balance": 1287836,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 3787836,
+            "balance": 1287836,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 3785298,
+            "balance": 1285298,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4569,21 +4569,21 @@
           },
           {
             "day": 25,
-            "balance": 3785298,
+            "balance": 1285298,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 3785298,
+            "balance": 1285298,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 3777685,
+            "balance": 1277685,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4596,21 +4596,21 @@
           },
           {
             "day": 28,
-            "balance": 3777685,
+            "balance": 1277685,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 3777685,
+            "balance": 1277685,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 3768802,
+            "balance": 1268802,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4623,7 +4623,7 @@
           },
           {
             "day": 31,
-            "balance": 3768802,
+            "balance": 1268802,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -4633,13 +4633,13 @@
       {
         "year": 2025,
         "month": 11,
-        "entrada": 1041214,
+        "entrada": 791214,
         "saida": 738665,
         "diario": 45874,
-        "sobra": 256675,
-        "startBalance": 3768802,
-        "endSheet": 4025477,
-        "result": 256675,
+        "sobra": 6675,
+        "startBalance": 1268802,
+        "endSheet": 1275477,
+        "result": 6675,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -4736,21 +4736,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 3768802,
+            "balance": 1268802,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 3768802,
+            "balance": 1268802,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 3766485,
+            "balance": 1266485,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4763,27 +4763,27 @@
           },
           {
             "day": 4,
-            "balance": 3766485,
+            "balance": 1266485,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 4486485,
+            "balance": 1826485,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 4483733,
+            "balance": 1823733,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4796,21 +4796,21 @@
           },
           {
             "day": 7,
-            "balance": 4483733,
+            "balance": 1823733,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 4483733,
+            "balance": 1823733,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 4480869,
+            "balance": 1820869,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4823,7 +4823,7 @@
           },
           {
             "day": 10,
-            "balance": 4258348,
+            "balance": 1598348,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4846,14 +4846,14 @@
           },
           {
             "day": 11,
-            "balance": 4258348,
+            "balance": 1598348,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 3893618,
+            "balance": 1233618,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4881,21 +4881,21 @@
           },
           {
             "day": 13,
-            "balance": 3893618,
+            "balance": 1233618,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 3893618,
+            "balance": 1233618,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 3855690,
+            "balance": 1195690,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4913,21 +4913,21 @@
           },
           {
             "day": 16,
-            "balance": 3855690,
+            "balance": 1195690,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 3855690,
+            "balance": 1195690,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 3849853,
+            "balance": 1189853,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4940,21 +4940,21 @@
           },
           {
             "day": 19,
-            "balance": 3849853,
+            "balance": 1189853,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 4049853,
+            "balance": 1299853,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -4965,7 +4965,7 @@
           },
           {
             "day": 21,
-            "balance": 4040910,
+            "balance": 1290910,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -4978,21 +4978,21 @@
           },
           {
             "day": 22,
-            "balance": 4040910,
+            "balance": 1290910,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 4040910,
+            "balance": 1290910,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 4036688,
+            "balance": 1286688,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5005,21 +5005,21 @@
           },
           {
             "day": 25,
-            "balance": 4036688,
+            "balance": 1286688,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 4036688,
+            "balance": 1286688,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 4031334,
+            "balance": 1281334,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5032,21 +5032,21 @@
           },
           {
             "day": 28,
-            "balance": 4031334,
+            "balance": 1281334,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 4031334,
+            "balance": 1281334,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 4025477,
+            "balance": 1275477,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5062,13 +5062,13 @@
       {
         "year": 2025,
         "month": 12,
-        "entrada": 1035356,
+        "entrada": 785356,
         "saida": 737757,
         "diario": 44576,
-        "sobra": 253023,
-        "startBalance": 4025477,
-        "endSheet": 4278500,
-        "result": 253023,
+        "sobra": 3023,
+        "startBalance": 1275477,
+        "endSheet": 1278500,
+        "result": 3023,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -5165,21 +5165,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 4025477,
+            "balance": 1275477,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 4025477,
+            "balance": 1275477,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 4018965,
+            "balance": 1268965,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5192,27 +5192,27 @@
           },
           {
             "day": 4,
-            "balance": 4018965,
+            "balance": 1268965,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 4738965,
+            "balance": 1828965,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 4730900,
+            "balance": 1820900,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5225,21 +5225,21 @@
           },
           {
             "day": 7,
-            "balance": 4730900,
+            "balance": 1820900,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 4730900,
+            "balance": 1820900,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 4725593,
+            "balance": 1815593,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5252,7 +5252,7 @@
           },
           {
             "day": 10,
-            "balance": 4502353,
+            "balance": 1592353,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5275,14 +5275,14 @@
           },
           {
             "day": 11,
-            "balance": 4502353,
+            "balance": 1592353,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 4131170,
+            "balance": 1221170,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5310,21 +5310,21 @@
           },
           {
             "day": 13,
-            "balance": 4131170,
+            "balance": 1221170,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 4131170,
+            "balance": 1221170,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 4094497,
+            "balance": 1184497,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5342,21 +5342,21 @@
           },
           {
             "day": 16,
-            "balance": 4094497,
+            "balance": 1184497,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 4094497,
+            "balance": 1184497,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 4089811,
+            "balance": 1179811,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5369,21 +5369,21 @@
           },
           {
             "day": 19,
-            "balance": 4089811,
+            "balance": 1179811,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 4289811,
+            "balance": 1289811,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -5394,7 +5394,7 @@
           },
           {
             "day": 21,
-            "balance": 4287383,
+            "balance": 1287383,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5407,21 +5407,21 @@
           },
           {
             "day": 22,
-            "balance": 4287383,
+            "balance": 1287383,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 4287383,
+            "balance": 1287383,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 4284619,
+            "balance": 1284619,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5434,21 +5434,21 @@
           },
           {
             "day": 25,
-            "balance": 4284619,
+            "balance": 1284619,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 4284619,
+            "balance": 1284619,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 4280528,
+            "balance": 1280528,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5461,21 +5461,21 @@
           },
           {
             "day": 28,
-            "balance": 4280528,
+            "balance": 1280528,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 4280528,
+            "balance": 1280528,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 4278500,
+            "balance": 1278500,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5488,7 +5488,7 @@
           },
           {
             "day": 31,
-            "balance": 4278500,
+            "balance": 1278500,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -5498,13 +5498,13 @@
       {
         "year": 2026,
         "month": 1,
-        "entrada": 1057692,
+        "entrada": 807692,
         "saida": 664552,
         "diario": 53427,
-        "sobra": 339713,
-        "startBalance": 4278500,
-        "endSheet": 4618213,
-        "result": 339713,
+        "sobra": 89713,
+        "startBalance": 1278500,
+        "endSheet": 1368213,
+        "result": 89713,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -5601,21 +5601,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 4278500,
+            "balance": 1278500,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 4278500,
+            "balance": 1278500,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 4273637,
+            "balance": 1273637,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5628,27 +5628,27 @@
           },
           {
             "day": 4,
-            "balance": 4273637,
+            "balance": 1273637,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 4993637,
+            "balance": 1833637,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 4988685,
+            "balance": 1828685,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5661,21 +5661,21 @@
           },
           {
             "day": 7,
-            "balance": 4988685,
+            "balance": 1828685,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 4988685,
+            "balance": 1828685,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 4985903,
+            "balance": 1825903,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5688,7 +5688,7 @@
           },
           {
             "day": 10,
-            "balance": 4764155,
+            "balance": 1604155,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5711,14 +5711,14 @@
           },
           {
             "day": 11,
-            "balance": 4764155,
+            "balance": 1604155,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 4487184,
+            "balance": 1327184,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5746,21 +5746,21 @@
           },
           {
             "day": 13,
-            "balance": 4487184,
+            "balance": 1327184,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 4487184,
+            "balance": 1327184,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 4452876,
+            "balance": 1292876,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5778,21 +5778,21 @@
           },
           {
             "day": 16,
-            "balance": 4452876,
+            "balance": 1292876,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 4452876,
+            "balance": 1292876,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 4449739,
+            "balance": 1289739,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5805,21 +5805,21 @@
           },
           {
             "day": 19,
-            "balance": 4449739,
+            "balance": 1289739,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 4649739,
+            "balance": 1399739,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -5830,7 +5830,7 @@
           },
           {
             "day": 21,
-            "balance": 4641698,
+            "balance": 1391698,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5843,21 +5843,21 @@
           },
           {
             "day": 22,
-            "balance": 4641698,
+            "balance": 1391698,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 4641698,
+            "balance": 1391698,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 4633180,
+            "balance": 1383180,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5870,21 +5870,21 @@
           },
           {
             "day": 25,
-            "balance": 4633180,
+            "balance": 1383180,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 4633180,
+            "balance": 1383180,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 4625033,
+            "balance": 1375033,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5897,21 +5897,21 @@
           },
           {
             "day": 28,
-            "balance": 4625033,
+            "balance": 1375033,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 4625033,
+            "balance": 1375033,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 4618213,
+            "balance": 1368213,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -5924,7 +5924,7 @@
           },
           {
             "day": 31,
-            "balance": 4618213,
+            "balance": 1368213,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -5934,13 +5934,13 @@
       {
         "year": 2026,
         "month": 2,
-        "entrada": 1068481,
+        "entrada": 818481,
         "saida": 693618,
         "diario": 43754,
-        "sobra": 331109,
-        "startBalance": 4618213,
-        "endSheet": 4949322,
-        "result": 331109,
+        "sobra": 81109,
+        "startBalance": 1368213,
+        "endSheet": 1449322,
+        "result": 81109,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -6037,21 +6037,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 4618213,
+            "balance": 1368213,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 4618213,
+            "balance": 1368213,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 4615441,
+            "balance": 1365441,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6064,27 +6064,27 @@
           },
           {
             "day": 4,
-            "balance": 4615441,
+            "balance": 1365441,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 5335441,
+            "balance": 1925441,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 5331771,
+            "balance": 1921771,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6097,21 +6097,21 @@
           },
           {
             "day": 7,
-            "balance": 5331771,
+            "balance": 1921771,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 5331771,
+            "balance": 1921771,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 5327312,
+            "balance": 1917312,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6124,7 +6124,7 @@
           },
           {
             "day": 10,
-            "balance": 5099384,
+            "balance": 1689384,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6147,14 +6147,14 @@
           },
           {
             "day": 11,
-            "balance": 5099384,
+            "balance": 1689384,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 4808995,
+            "balance": 1398995,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6182,21 +6182,21 @@
           },
           {
             "day": 13,
-            "balance": 4808995,
+            "balance": 1398995,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 4808995,
+            "balance": 1398995,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 4772263,
+            "balance": 1362263,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6214,21 +6214,21 @@
           },
           {
             "day": 16,
-            "balance": 4772263,
+            "balance": 1362263,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 4772263,
+            "balance": 1362263,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 4766861,
+            "balance": 1356861,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6241,21 +6241,21 @@
           },
           {
             "day": 19,
-            "balance": 4766861,
+            "balance": 1356861,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 4966861,
+            "balance": 1466861,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -6266,7 +6266,7 @@
           },
           {
             "day": 21,
-            "balance": 4959462,
+            "balance": 1459462,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6279,21 +6279,21 @@
           },
           {
             "day": 22,
-            "balance": 4959462,
+            "balance": 1459462,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 4959462,
+            "balance": 1459462,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 4952275,
+            "balance": 1452275,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6306,21 +6306,21 @@
           },
           {
             "day": 25,
-            "balance": 4952275,
+            "balance": 1452275,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 4952275,
+            "balance": 1452275,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 4949322,
+            "balance": 1449322,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6333,7 +6333,7 @@
           },
           {
             "day": 28,
-            "balance": 4949322,
+            "balance": 1449322,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -6343,13 +6343,13 @@
       {
         "year": 2026,
         "month": 3,
-        "entrada": 1030513,
+        "entrada": 780513,
         "saida": 629094,
         "diario": 40125,
-        "sobra": 361294,
-        "startBalance": 4949322,
-        "endSheet": 5310616,
-        "result": 361294,
+        "sobra": 111294,
+        "startBalance": 1449322,
+        "endSheet": 1560616,
+        "result": 111294,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -6446,21 +6446,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 4949322,
+            "balance": 1449322,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 4949322,
+            "balance": 1449322,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 4940520,
+            "balance": 1440520,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6473,27 +6473,27 @@
           },
           {
             "day": 4,
-            "balance": 4940520,
+            "balance": 1440520,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 5660520,
+            "balance": 2000520,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 5657901,
+            "balance": 1997901,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6506,21 +6506,21 @@
           },
           {
             "day": 7,
-            "balance": 5657901,
+            "balance": 1997901,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 5657901,
+            "balance": 1997901,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 5655661,
+            "balance": 1995661,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6533,7 +6533,7 @@
           },
           {
             "day": 10,
-            "balance": 5432923,
+            "balance": 1772923,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6556,14 +6556,14 @@
           },
           {
             "day": 11,
-            "balance": 5432923,
+            "balance": 1772923,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 5165268,
+            "balance": 1505268,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6591,21 +6591,21 @@
           },
           {
             "day": 13,
-            "balance": 5165268,
+            "balance": 1505268,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 5165268,
+            "balance": 1505268,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 5131676,
+            "balance": 1471676,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6623,21 +6623,21 @@
           },
           {
             "day": 16,
-            "balance": 5131676,
+            "balance": 1471676,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 5131676,
+            "balance": 1471676,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 5125101,
+            "balance": 1465101,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6650,21 +6650,21 @@
           },
           {
             "day": 19,
-            "balance": 5125101,
+            "balance": 1465101,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 5325101,
+            "balance": 1575101,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -6675,7 +6675,7 @@
           },
           {
             "day": 21,
-            "balance": 5320432,
+            "balance": 1570432,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6688,21 +6688,21 @@
           },
           {
             "day": 22,
-            "balance": 5320432,
+            "balance": 1570432,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 5320432,
+            "balance": 1570432,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 5318490,
+            "balance": 1568490,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6715,21 +6715,21 @@
           },
           {
             "day": 25,
-            "balance": 5318490,
+            "balance": 1568490,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 5318490,
+            "balance": 1568490,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 5312569,
+            "balance": 1562569,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6742,21 +6742,21 @@
           },
           {
             "day": 28,
-            "balance": 5312569,
+            "balance": 1562569,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 5312569,
+            "balance": 1562569,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 5310616,
+            "balance": 1560616,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6769,7 +6769,7 @@
           },
           {
             "day": 31,
-            "balance": 5310616,
+            "balance": 1560616,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -6779,13 +6779,13 @@
       {
         "year": 2026,
         "month": 4,
-        "entrada": 1052127,
+        "entrada": 802127,
         "saida": 693601,
         "diario": 52853,
-        "sobra": 305673,
-        "startBalance": 5310616,
-        "endSheet": 5616289,
-        "result": 305673,
+        "sobra": 55673,
+        "startBalance": 1560616,
+        "endSheet": 1616289,
+        "result": 55673,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -6882,21 +6882,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 5310616,
+            "balance": 1560616,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 5310616,
+            "balance": 1560616,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 5306271,
+            "balance": 1556271,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6909,27 +6909,27 @@
           },
           {
             "day": 4,
-            "balance": 5306271,
+            "balance": 1556271,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 6026271,
+            "balance": 2116271,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 6024161,
+            "balance": 2114161,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6942,21 +6942,21 @@
           },
           {
             "day": 7,
-            "balance": 6024161,
+            "balance": 2114161,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 6024161,
+            "balance": 2114161,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 6019596,
+            "balance": 2109596,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6969,7 +6969,7 @@
           },
           {
             "day": 10,
-            "balance": 5796899,
+            "balance": 1886899,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -6992,14 +6992,14 @@
           },
           {
             "day": 11,
-            "balance": 5796899,
+            "balance": 1886899,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 5482216,
+            "balance": 1572216,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7027,21 +7027,21 @@
           },
           {
             "day": 13,
-            "balance": 5482216,
+            "balance": 1572216,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 5482216,
+            "balance": 1572216,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 5445761,
+            "balance": 1535761,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7059,21 +7059,21 @@
           },
           {
             "day": 16,
-            "balance": 5445761,
+            "balance": 1535761,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 5445761,
+            "balance": 1535761,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 5440952,
+            "balance": 1530952,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7086,21 +7086,21 @@
           },
           {
             "day": 19,
-            "balance": 5440952,
+            "balance": 1530952,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 5640952,
+            "balance": 1640952,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -7111,7 +7111,7 @@
           },
           {
             "day": 21,
-            "balance": 5638438,
+            "balance": 1638438,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7124,21 +7124,21 @@
           },
           {
             "day": 22,
-            "balance": 5638438,
+            "balance": 1638438,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 5638438,
+            "balance": 1638438,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 5631334,
+            "balance": 1631334,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7151,21 +7151,21 @@
           },
           {
             "day": 25,
-            "balance": 5631334,
+            "balance": 1631334,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 5631334,
+            "balance": 1631334,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 5623859,
+            "balance": 1623859,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7178,21 +7178,21 @@
           },
           {
             "day": 28,
-            "balance": 5623859,
+            "balance": 1623859,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 5623859,
+            "balance": 1623859,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 5616289,
+            "balance": 1616289,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7208,13 +7208,13 @@
       {
         "year": 2026,
         "month": 5,
-        "entrada": 1057809,
+        "entrada": 807809,
         "saida": 661637,
         "diario": 55747,
-        "sobra": 340425,
-        "startBalance": 5616289,
-        "endSheet": 5956714,
-        "result": 340425,
+        "sobra": 90425,
+        "startBalance": 1616289,
+        "endSheet": 1706714,
+        "result": 90425,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -7311,21 +7311,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 5616289,
+            "balance": 1616289,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 5616289,
+            "balance": 1616289,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 5609999,
+            "balance": 1609999,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7338,27 +7338,27 @@
           },
           {
             "day": 4,
-            "balance": 5609999,
+            "balance": 1609999,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 6329999,
+            "balance": 2169999,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 6326138,
+            "balance": 2166138,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7371,21 +7371,21 @@
           },
           {
             "day": 7,
-            "balance": 6326138,
+            "balance": 2166138,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 6326138,
+            "balance": 2166138,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 6319089,
+            "balance": 2159089,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7398,7 +7398,7 @@
           },
           {
             "day": 10,
-            "balance": 6093200,
+            "balance": 1933200,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7421,14 +7421,14 @@
           },
           {
             "day": 11,
-            "balance": 6093200,
+            "balance": 1933200,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 5821982,
+            "balance": 1661982,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7456,21 +7456,21 @@
           },
           {
             "day": 13,
-            "balance": 5821982,
+            "balance": 1661982,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 5821982,
+            "balance": 1661982,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 5787546,
+            "balance": 1627546,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7488,21 +7488,21 @@
           },
           {
             "day": 16,
-            "balance": 5787546,
+            "balance": 1627546,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 5787546,
+            "balance": 1627546,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 5778656,
+            "balance": 1618656,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7515,21 +7515,21 @@
           },
           {
             "day": 19,
-            "balance": 5778656,
+            "balance": 1618656,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 5978656,
+            "balance": 1728656,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -7540,7 +7540,7 @@
           },
           {
             "day": 21,
-            "balance": 5973355,
+            "balance": 1723355,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7553,21 +7553,21 @@
           },
           {
             "day": 22,
-            "balance": 5973355,
+            "balance": 1723355,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 5973355,
+            "balance": 1723355,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 5968046,
+            "balance": 1718046,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7580,21 +7580,21 @@
           },
           {
             "day": 25,
-            "balance": 5968046,
+            "balance": 1718046,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 5968046,
+            "balance": 1718046,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 5962630,
+            "balance": 1712630,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7607,21 +7607,21 @@
           },
           {
             "day": 28,
-            "balance": 5962630,
+            "balance": 1712630,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 5962630,
+            "balance": 1712630,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 5956714,
+            "balance": 1706714,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7634,7 +7634,7 @@
           },
           {
             "day": 31,
-            "balance": 5956714,
+            "balance": 1706714,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -7644,13 +7644,13 @@
       {
         "year": 2026,
         "month": 6,
-        "entrada": 1030593,
+        "entrada": 780593,
         "saida": 741600,
         "diario": 63243,
-        "sobra": 225750,
-        "startBalance": 5956714,
-        "endSheet": 6182464,
-        "result": 225750,
+        "sobra": -24250,
+        "startBalance": 1706714,
+        "endSheet": 1682464,
+        "result": -24250,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -7747,21 +7747,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 5956714,
+            "balance": 1706714,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 5956714,
+            "balance": 1706714,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 5949872,
+            "balance": 1699872,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7774,27 +7774,27 @@
           },
           {
             "day": 4,
-            "balance": 5949872,
+            "balance": 1699872,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 6669872,
+            "balance": 2259872,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 6661248,
+            "balance": 2251248,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7807,21 +7807,21 @@
           },
           {
             "day": 7,
-            "balance": 6661248,
+            "balance": 2251248,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 6661248,
+            "balance": 2251248,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 6656807,
+            "balance": 2246807,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7834,7 +7834,7 @@
           },
           {
             "day": 10,
-            "balance": 6433731,
+            "balance": 2023731,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7857,14 +7857,14 @@
           },
           {
             "day": 11,
-            "balance": 6433731,
+            "balance": 2023731,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 6048804,
+            "balance": 1638804,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7892,21 +7892,21 @@
           },
           {
             "day": 13,
-            "balance": 6048804,
+            "balance": 1638804,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 6048804,
+            "balance": 1638804,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 6011195,
+            "balance": 1601195,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7924,21 +7924,21 @@
           },
           {
             "day": 16,
-            "balance": 6011195,
+            "balance": 1601195,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 6011195,
+            "balance": 1601195,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 6008421,
+            "balance": 1598421,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7951,21 +7951,21 @@
           },
           {
             "day": 19,
-            "balance": 6008421,
+            "balance": 1598421,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 6208421,
+            "balance": 1708421,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -7976,7 +7976,7 @@
           },
           {
             "day": 21,
-            "balance": 6204575,
+            "balance": 1704575,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -7989,21 +7989,21 @@
           },
           {
             "day": 22,
-            "balance": 6204575,
+            "balance": 1704575,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 6204575,
+            "balance": 1704575,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 6196079,
+            "balance": 1696079,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8016,21 +8016,21 @@
           },
           {
             "day": 25,
-            "balance": 6196079,
+            "balance": 1696079,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 6196079,
+            "balance": 1696079,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 6190221,
+            "balance": 1690221,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8043,21 +8043,21 @@
           },
           {
             "day": 28,
-            "balance": 6190221,
+            "balance": 1690221,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 6190221,
+            "balance": 1690221,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 6182464,
+            "balance": 1682464,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8073,13 +8073,13 @@
       {
         "year": 2026,
         "month": 7,
-        "entrada": 1035347,
+        "entrada": 785347,
         "saida": 687867,
         "diario": 61755,
-        "sobra": 285725,
-        "startBalance": 6182464,
-        "endSheet": 6468189,
-        "result": 285725,
+        "sobra": 35725,
+        "startBalance": 1682464,
+        "endSheet": 1718189,
+        "result": 35725,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -8176,21 +8176,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 6182464,
+            "balance": 1682464,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 6182464,
+            "balance": 1682464,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 6174298,
+            "balance": 1674298,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8203,27 +8203,27 @@
           },
           {
             "day": 4,
-            "balance": 6174298,
+            "balance": 1674298,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 6894298,
+            "balance": 2234298,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 6885695,
+            "balance": 2225695,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8236,21 +8236,21 @@
           },
           {
             "day": 7,
-            "balance": 6885695,
+            "balance": 2225695,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 6885695,
+            "balance": 2225695,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 6877313,
+            "balance": 2217313,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8263,7 +8263,7 @@
           },
           {
             "day": 10,
-            "balance": 6655229,
+            "balance": 1995229,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8286,14 +8286,14 @@
           },
           {
             "day": 11,
-            "balance": 6655229,
+            "balance": 1995229,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 6332672,
+            "balance": 1672672,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8321,21 +8321,21 @@
           },
           {
             "day": 13,
-            "balance": 6332672,
+            "balance": 1672672,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 6332672,
+            "balance": 1672672,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 6294143,
+            "balance": 1634143,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8353,21 +8353,21 @@
           },
           {
             "day": 16,
-            "balance": 6294143,
+            "balance": 1634143,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 6294143,
+            "balance": 1634143,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 6289468,
+            "balance": 1629468,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8380,21 +8380,21 @@
           },
           {
             "day": 19,
-            "balance": 6289468,
+            "balance": 1629468,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 6489468,
+            "balance": 1739468,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -8405,7 +8405,7 @@
           },
           {
             "day": 21,
-            "balance": 6481652,
+            "balance": 1731652,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8418,21 +8418,21 @@
           },
           {
             "day": 22,
-            "balance": 6481652,
+            "balance": 1731652,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 6481652,
+            "balance": 1731652,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 6477662,
+            "balance": 1727662,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8445,21 +8445,21 @@
           },
           {
             "day": 25,
-            "balance": 6477662,
+            "balance": 1727662,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 6477662,
+            "balance": 1727662,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 6474798,
+            "balance": 1724798,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8472,21 +8472,21 @@
           },
           {
             "day": 28,
-            "balance": 6474798,
+            "balance": 1724798,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 6474798,
+            "balance": 1724798,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 6468189,
+            "balance": 1718189,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8499,7 +8499,7 @@
           },
           {
             "day": 31,
-            "balance": 6468189,
+            "balance": 1718189,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -8509,13 +8509,13 @@
       {
         "year": 2026,
         "month": 8,
-        "entrada": 1035265,
+        "entrada": 785265,
         "saida": 646222,
         "diario": 60611,
-        "sobra": 328432,
-        "startBalance": 6468189,
-        "endSheet": 6796621,
-        "result": 328432,
+        "sobra": 78432,
+        "startBalance": 1718189,
+        "endSheet": 1796621,
+        "result": 78432,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -8612,21 +8612,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 6468189,
+            "balance": 1718189,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 6468189,
+            "balance": 1718189,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 6460215,
+            "balance": 1710215,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8639,27 +8639,27 @@
           },
           {
             "day": 4,
-            "balance": 6460215,
+            "balance": 1710215,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 7180215,
+            "balance": 2270215,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 7172927,
+            "balance": 2262927,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8672,21 +8672,21 @@
           },
           {
             "day": 7,
-            "balance": 7172927,
+            "balance": 2262927,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 7172927,
+            "balance": 2262927,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 7169681,
+            "balance": 2259681,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8699,7 +8699,7 @@
           },
           {
             "day": 10,
-            "balance": 6945551,
+            "balance": 2035551,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8722,14 +8722,14 @@
           },
           {
             "day": 11,
-            "balance": 6945551,
+            "balance": 2035551,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 6663136,
+            "balance": 1753136,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8757,21 +8757,21 @@
           },
           {
             "day": 13,
-            "balance": 6663136,
+            "balance": 1753136,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 6663136,
+            "balance": 1753136,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 6625590,
+            "balance": 1715590,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8789,21 +8789,21 @@
           },
           {
             "day": 16,
-            "balance": 6625590,
+            "balance": 1715590,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 6625590,
+            "balance": 1715590,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 6619353,
+            "balance": 1709353,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8816,21 +8816,21 @@
           },
           {
             "day": 19,
-            "balance": 6619353,
+            "balance": 1709353,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 6819353,
+            "balance": 1819353,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -8841,7 +8841,7 @@
           },
           {
             "day": 21,
-            "balance": 6814044,
+            "balance": 1814044,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8854,21 +8854,21 @@
           },
           {
             "day": 22,
-            "balance": 6814044,
+            "balance": 1814044,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 6814044,
+            "balance": 1814044,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 6805405,
+            "balance": 1805405,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8881,21 +8881,21 @@
           },
           {
             "day": 25,
-            "balance": 6805405,
+            "balance": 1805405,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 6805405,
+            "balance": 1805405,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 6801253,
+            "balance": 1801253,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8908,21 +8908,21 @@
           },
           {
             "day": 28,
-            "balance": 6801253,
+            "balance": 1801253,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 6801253,
+            "balance": 1801253,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 6796621,
+            "balance": 1796621,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -8935,7 +8935,7 @@
           },
           {
             "day": 31,
-            "balance": 6796621,
+            "balance": 1796621,
             "band": "surplus",
             "future": false,
             "moves": []
@@ -8945,13 +8945,13 @@
       {
         "year": 2026,
         "month": 9,
-        "entrada": 1067736,
+        "entrada": 817736,
         "saida": 766766,
         "diario": 48206,
-        "sobra": 252764,
-        "startBalance": 6796621,
-        "endSheet": 7049385,
-        "result": 252764,
+        "sobra": 2764,
+        "startBalance": 1796621,
+        "endSheet": 1799385,
+        "result": 2764,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -9048,21 +9048,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 6796621,
+            "balance": 1796621,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 6796621,
+            "balance": 1796621,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 6787881,
+            "balance": 1787881,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9075,27 +9075,27 @@
           },
           {
             "day": 4,
-            "balance": 6787881,
+            "balance": 1787881,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 7507881,
+            "balance": 2347881,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 7499365,
+            "balance": 2339365,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9108,21 +9108,21 @@
           },
           {
             "day": 7,
-            "balance": 7499365,
+            "balance": 2339365,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 7499365,
+            "balance": 2339365,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 7491163,
+            "balance": 2331163,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9135,7 +9135,7 @@
           },
           {
             "day": 10,
-            "balance": 7267122,
+            "balance": 2107122,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9158,14 +9158,14 @@
           },
           {
             "day": 11,
-            "balance": 7267122,
+            "balance": 2107122,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 6902392,
+            "balance": 1742392,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9193,21 +9193,21 @@
           },
           {
             "day": 13,
-            "balance": 6902392,
+            "balance": 1742392,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 6902392,
+            "balance": 1742392,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 6867738,
+            "balance": 1707738,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9225,21 +9225,21 @@
           },
           {
             "day": 16,
-            "balance": 6867738,
+            "balance": 1707738,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 6867738,
+            "balance": 1707738,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 6862039,
+            "balance": 1702039,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9252,21 +9252,21 @@
           },
           {
             "day": 19,
-            "balance": 6862039,
+            "balance": 1702039,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 7062039,
+            "balance": 1812039,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -9277,7 +9277,7 @@
           },
           {
             "day": 21,
-            "balance": 7058879,
+            "balance": 1808879,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9290,21 +9290,21 @@
           },
           {
             "day": 22,
-            "balance": 7058879,
+            "balance": 1808879,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 7058879,
+            "balance": 1808879,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 7056551,
+            "balance": 1806551,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9317,21 +9317,21 @@
           },
           {
             "day": 25,
-            "balance": 7056551,
+            "balance": 1806551,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 7056551,
+            "balance": 1806551,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 7051784,
+            "balance": 1801784,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9344,21 +9344,21 @@
           },
           {
             "day": 28,
-            "balance": 7051784,
+            "balance": 1801784,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 7051784,
+            "balance": 1801784,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 7049385,
+            "balance": 1799385,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9374,13 +9374,13 @@
       {
         "year": 2026,
         "month": 10,
-        "entrada": 1045340,
+        "entrada": 795340,
         "saida": 745683,
         "diario": 5638,
-        "sobra": 294019,
-        "startBalance": 7049385,
-        "endSheet": 7343404,
-        "result": 294019,
+        "sobra": 44019,
+        "startBalance": 1799385,
+        "endSheet": 1843404,
+        "result": 44019,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -9477,21 +9477,21 @@
         "days": [
           {
             "day": 1,
-            "balance": 7049385,
+            "balance": 1799385,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 7049385,
+            "balance": 1799385,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 7043747,
+            "balance": 1793747,
             "band": "surplus",
             "future": false,
             "moves": [
@@ -9504,55 +9504,55 @@
           },
           {
             "day": 4,
-            "balance": 7043747,
+            "balance": 1793747,
             "band": "surplus",
             "future": false,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 7763747,
+            "balance": 2353747,
             "band": "surplus",
             "future": false,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 7763747,
+            "balance": 2353747,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 7,
-            "balance": 7763747,
+            "balance": 2353747,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 7763747,
+            "balance": 2353747,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 7763747,
+            "balance": 2353747,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 10,
-            "balance": 7542865,
+            "balance": 2132865,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -9575,14 +9575,14 @@
           },
           {
             "day": 11,
-            "balance": 7542865,
+            "balance": 2132865,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 7175404,
+            "balance": 1765404,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -9605,21 +9605,21 @@
           },
           {
             "day": 13,
-            "balance": 7175404,
+            "balance": 1765404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 7175404,
+            "balance": 1765404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 7143404,
+            "balance": 1733404,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -9632,42 +9632,42 @@
           },
           {
             "day": 16,
-            "balance": 7143404,
+            "balance": 1733404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 7143404,
+            "balance": 1733404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 7143404,
+            "balance": 1733404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 19,
-            "balance": 7143404,
+            "balance": 1733404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -9678,77 +9678,77 @@
           },
           {
             "day": 21,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 22,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 25,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 28,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 31,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
@@ -9758,13 +9758,13 @@
       {
         "year": 2026,
         "month": 11,
-        "entrada": 1053726,
+        "entrada": 803726,
         "saida": 656754,
         "diario": 0,
-        "sobra": 396972,
-        "startBalance": 7343404,
-        "endSheet": 7740376,
-        "result": 396972,
+        "sobra": 146972,
+        "startBalance": 1843404,
+        "endSheet": 1990376,
+        "result": 146972,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -9861,76 +9861,76 @@
         "days": [
           {
             "day": 1,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 4,
-            "balance": 7343404,
+            "balance": 1843404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 8063404,
+            "balance": 2403404,
             "band": "surplus",
             "future": true,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 8063404,
+            "balance": 2403404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 7,
-            "balance": 8063404,
+            "balance": 2403404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 8063404,
+            "balance": 2403404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 8063404,
+            "balance": 2403404,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 10,
-            "balance": 7838676,
+            "balance": 2178676,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -9953,14 +9953,14 @@
           },
           {
             "day": 11,
-            "balance": 7838676,
+            "balance": 2178676,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 7572376,
+            "balance": 1912376,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -9983,21 +9983,21 @@
           },
           {
             "day": 13,
-            "balance": 7572376,
+            "balance": 1912376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 7572376,
+            "balance": 1912376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 7540376,
+            "balance": 1880376,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -10010,42 +10010,42 @@
           },
           {
             "day": 16,
-            "balance": 7540376,
+            "balance": 1880376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 7540376,
+            "balance": 1880376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 7540376,
+            "balance": 1880376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 19,
-            "balance": 7540376,
+            "balance": 1880376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -10056,70 +10056,70 @@
           },
           {
             "day": 21,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 22,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 25,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 28,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
@@ -10129,13 +10129,13 @@
       {
         "year": 2026,
         "month": 12,
-        "entrada": 1045363,
+        "entrada": 795363,
         "saida": 769191,
         "diario": 0,
-        "sobra": 276172,
-        "startBalance": 7740376,
-        "endSheet": 8016548,
-        "result": 276172,
+        "sobra": 26172,
+        "startBalance": 1990376,
+        "endSheet": 2016548,
+        "result": 26172,
         "outflows": [
           {
             "label": "Cartão Azul",
@@ -10232,76 +10232,76 @@
         "days": [
           {
             "day": 1,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 2,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 3,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 4,
-            "balance": 7740376,
+            "balance": 1990376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 5,
-            "balance": 8460376,
+            "balance": 2550376,
             "band": "surplus",
             "future": true,
             "moves": [
               {
                 "kind": "income",
                 "description": "Salário",
-                "amount": 720000
+                "amount": 560000
               }
             ]
           },
           {
             "day": 6,
-            "balance": 8460376,
+            "balance": 2550376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 7,
-            "balance": 8460376,
+            "balance": 2550376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 8,
-            "balance": 8460376,
+            "balance": 2550376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 9,
-            "balance": 8460376,
+            "balance": 2550376,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 10,
-            "balance": 8236355,
+            "balance": 2326355,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -10324,14 +10324,14 @@
           },
           {
             "day": 11,
-            "balance": 8236355,
+            "balance": 2326355,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 12,
-            "balance": 7848548,
+            "balance": 1938548,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -10354,21 +10354,21 @@
           },
           {
             "day": 13,
-            "balance": 7848548,
+            "balance": 1938548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 14,
-            "balance": 7848548,
+            "balance": 1938548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 15,
-            "balance": 7816548,
+            "balance": 1906548,
             "band": "surplus",
             "future": true,
             "moves": [
@@ -10381,42 +10381,42 @@
           },
           {
             "day": 16,
-            "balance": 7816548,
+            "balance": 1906548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 17,
-            "balance": 7816548,
+            "balance": 1906548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 18,
-            "balance": 7816548,
+            "balance": 1906548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 19,
-            "balance": 7816548,
+            "balance": 1906548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 20,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": [
               {
                 "kind": "income",
                 "description": "Adiantamento",
-                "amount": 280000
+                "amount": 190000
               },
               {
                 "kind": "bill",
@@ -10427,77 +10427,77 @@
           },
           {
             "day": 21,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 22,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 23,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 24,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 25,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 26,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 27,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 28,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 29,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 30,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
           },
           {
             "day": 31,
-            "balance": 8016548,
+            "balance": 2016548,
             "band": "surplus",
             "future": true,
             "moves": []
@@ -10509,7 +10509,7 @@
       {
         "date": "2026-10-05",
         "description": "Salário",
-        "amount": 720000,
+        "amount": 560000,
         "kind": "income"
       },
       {
@@ -10636,9 +10636,9 @@
     "health": [],
     "saving": {
       "date": "2026-10-05",
-      "income": 720000,
-      "amount": 7090000,
-      "lowest": 7143404,
+      "income": 560000,
+      "amount": 1680000,
+      "lowest": 1733404,
       "lowestDate": "2026-10-15",
       "leftAtLowest": 53404,
       "until": "2026-12-31"

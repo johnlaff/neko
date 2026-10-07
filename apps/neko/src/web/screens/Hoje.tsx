@@ -8,6 +8,7 @@ import {
 } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { HEALTH_DAYS, issueKey, SAVE_LEAD } from "../../shared/today.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
@@ -101,9 +102,6 @@ const Insights = ({ items }: { items: readonly Insight[] }) => (
   </ul>
 );
 
-/** Days before the payday the saving shows on Hoje: time to plan the transfer, not to forget it. */
-const SAVE_LEAD = 3;
-
 /**
  * The payday nudge as an active choice (pay yourself first): the amount, the day, and the proof
  * that the account still holds. Neko never moves money, so it only says how much fits.
@@ -162,8 +160,6 @@ const issueText = (i: HealthIssue): { title: string; detail: string } => {
   }
 };
 
-const HEALTH_DAYS = 60;
-
 const dailySourceText = (source: DailySource) =>
   source === "settings"
     ? "seu ajuste"
@@ -202,9 +198,6 @@ const IssueList = ({
     })}
   </ul>
 );
-
-/** Stable name of a Conferência point, kept in settings once checked. */
-const issueKey = (i: HealthIssue) => `${i.kind}|${i.date}|${i.ref.tab}!${i.ref.a1}`;
 
 /**
  * Sheet points the method says should hold but do not. Ones already checked can be set aside, so

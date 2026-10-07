@@ -6,6 +6,8 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
+import { todayView } from "../shared/today.ts";
+import { assetLinks } from "./android.ts";
 import {
   endSession,
   pruneSessions,
@@ -107,6 +109,7 @@ app.post("/auth/logout", async (c) => {
 });
 
 app.use("/projection", requireSession);
+app.use("/today", requireSession);
 app.use("/history", requireSession);
 app.use("/settings", requireSession);
 app.use("/push/*", requireSession);
@@ -176,6 +179,15 @@ app.delete("/sessions/:id", async (c) => {
 
 app.get("/projection", async (c) => c.json(await getProjection(c.env, todayIn(new Date()))));
 
+/** Hoje already grouped and filtered, for the Android app and its widget. */
+app.get("/today", async (c) => {
+  const [data, settings] = await Promise.all([
+    getProjection(c.env, todayIn(new Date())),
+    loadSettings(c.env.DB),
+  ]);
+  return c.json(todayView(data, settings.reviewed));
+});
+
 app.get("/history", async (c) => {
   const points = await monthEndHistory(c.env.DB, todayIn(new Date()));
   return c.json({ points, delta: historyDelta(points) });
@@ -226,8 +238,16 @@ const sentry = (env: Env) => ({
   tracesSampleRate: 0,
 });
 
+/** The API plus the one file Android reads from the site's root. */
+const site = new Hono<AppEnv>();
+site.get("/.well-known/assetlinks.json", (c) => {
+  c.header("Cache-Control", "public, max-age=3600");
+  return c.json(assetLinks(c.env));
+});
+site.route("/", app);
+
 export default Sentry.withSentry(sentry, {
-  fetch: app.fetch,
+  fetch: site.fetch,
   /**
    * 08:00 in São Paulo: refresh the projection, record the day's point in the forecast history
    * and send "hoje cabem". 21:00: remind to log the day in the sheet, unless it already is.

@@ -1,0 +1,40 @@
+# Fase 2: app Android
+
+## Objetivo
+
+Levar o Neko para um app nativo no celular do dono, com o que o site não faz bem: um widget na
+tela inicial com "hoje cabem", lembretes que chegam mesmo com o navegador fechado e instalação
+pela Play Store (teste interno).
+
+Critério de aceite: o app entra com a mesma passkey do site, mostra os mesmos números do site
+para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
+
+## Decisões
+
+- Kotlin, Jetpack Compose e Glance (widget), como cliente fino do mesmo Worker. Nenhuma regra de
+  finanças no app: tudo o que ele mostra vem pronto da API. Quando uma tela precisa de um valor
+  derivado (agrupar, somar, filtrar), a API passa a entregá-lo, com teste do lado TypeScript.
+- Login com passkey pelo Credential Manager. A passkey é a mesma do site (mesmo `rpID`, sincronizada
+  pelo Gerenciador de Senhas do Google). O Worker publica `/.well-known/assetlinks.json` com o
+  certificado do app e aceita a origem `android:apk-key-hash:…` desse certificado.
+- Sessão: o mesmo cookie `__Host-` do site, guardado no armazenamento privado do app e fora do
+  backup do Android.
+- `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
+  agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
+- Chave de assinatura (upload key) fora do Git: um repositório público com a chave permitiria
+  assinar outro app que o `assetlinks.json` aceitaria, e esse app poderia pedir a passkey do dono.
+  O CI só compila e testa; o APK assinado é gerado com a chave guardada nos arquivos do projeto.
+- `minSdk` 28 (Credential Manager com passkeys), `compileSdk`/`targetSdk` na versão estável mais nova.
+- Build do Android em workflow próprio, só quando `apps/android/` ou a API mudam.
+
+## Fatias
+
+1. Fundação: `assetlinks`, origem Android nas passkeys, `/api/today`, projeto Android com login,
+   Hoje e widget, workflow de CI.
+2. Faturas, Mês e Ajustes no app.
+3. Lembretes locais (manhã e noite) com WorkManager.
+4. Assinatura de release e envio ao teste interno da Play (depende da verificação da conta do dono).
+
+## Fora da fase 2
+
+Mia, leitura de notificações do banco, qualquer escrita na planilha.

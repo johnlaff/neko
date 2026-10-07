@@ -9,7 +9,7 @@
   "preview_urls": false,
   "assets": {
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/.well-known/assetlinks.json"]
   },
   "d1_databases": [
     {
@@ -27,6 +27,10 @@
   "observability": { "enabled": true },
   "vars": {
     "GOOGLE_CLIENT_ID": "",
+    // The Android app and the certificate it is signed with (upload key; add Play's app signing
+    // key once the app is on the Play Console).
+    "ANDROID_PACKAGE": "dev.johnlaff.neko",
+    "ANDROID_CERT_SHA256": "8C:49:14:31:6D:EE:64:6A:62:90:CD:8D:34:39:14:A1:EC:46:AD:CF:EE:A2:F0:22:1B:E8:8E:91:92:0E:D9:C5",
     // Public Sentry key; empty keeps error reporting off.
     "SENTRY_DSN": "https://4a6a562830187aa449c63d48ecd297a6@o4511712248397824.ingest.us.sentry.io/4512204873793536",
     "VAPID_PUBLIC_KEY": "BJaSC8SH0uXvqyMd8Vetghn_jSOCSmmbpU1TC0jtS1asQxVavHqTsKhAp-ni8-lMajoSLvKhniKwcn0sgMWr0gM"

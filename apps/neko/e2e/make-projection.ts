@@ -55,8 +55,8 @@ for (let i = 0, d = START; i < DAYS; i++, d = addDays(d, 1)) {
   const { day, month } = parts(d);
   const entrada: NoteItem[] = [];
   const saida: NoteItem[] = [];
-  if (day === 5) entrada.push(item(7_200_00, "Salário", null));
-  if (day === 20) entrada.push(item(2_800_00, "Adiantamento", null));
+  if (day === 5) entrada.push(item(5_600_00, "Salário", null));
+  if (day === 20) entrada.push(item(1_900_00, "Adiantamento", null));
   if (day === 10) {
     saida.push(item(1_900_00, "Aluguel", "contas"));
     saida.push(item(between(180_00, 260_00), "Luz", "contas"));

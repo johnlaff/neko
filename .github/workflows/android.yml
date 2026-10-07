@@ -1,0 +1,40 @@
+name: Android
+
+# Only when the app, or the API contract it reads, changes: the build takes a few minutes.
+on:
+  pull_request:
+    paths:
+      - "apps/android/**"
+      - "apps/neko/src/shared/**"
+      - ".github/workflows/android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/android/**"
+      - "apps/neko/src/shared/**"
+      - ".github/workflows/android.yml"
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      # Unsigned: the upload key never reaches CI (see specs/002-android/spec.md).
+      - run: ./gradlew testDebugUnitTest lintDebug assembleRelease
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-reports
+          path: apps/android/app/build/reports

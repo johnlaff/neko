@@ -6,7 +6,8 @@
       "!**/dist",
       "!**/.wrangler",
       "!**/worker-configuration.d.ts",
-      "!**/routeTree.gen.ts"
+      "!**/routeTree.gen.ts",
+      "!apps/android"
     ]
   },
   "formatter": { "indentStyle": "space", "lineWidth": 100 },

@@ -151,6 +151,7 @@ describe("sessions", () => {
         "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Mobile Safari/537.36",
       ),
     ).toBe("Android · Chrome");
+    expect(deviceLabel("NekoApp/0.1.0 (Linux; Android 16; Pixel 9)")).toBe("Android · App");
     expect(deviceLabel("")).toBe("Navegador");
   });
 });
