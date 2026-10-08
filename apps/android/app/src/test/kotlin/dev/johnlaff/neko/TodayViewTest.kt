@@ -35,6 +35,16 @@ class TodayViewTest {
         assertEquals(true, t.alarm)
     }
 
+    @Test fun widerWidgetsAddTheBillAndTheNextDays() {
+        val t = widgetText(view)
+        val cs = view.canSpend!!
+        assertEquals(dev.johnlaff.neko.ui.Format.money(cs.accumulated), t.bill)
+        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} do plano", t.billDetail)
+        assertEquals(view.upcoming.size.coerceAtMost(3), t.days.size)
+        assertEquals("Hoje", t.days.first().label)
+        assertEquals(true, t.days.first().income)
+    }
+
     @Test fun widgetAsksToSignInWithoutData() {
         assertEquals("Entrar", widgetText(null).figure)
     }
