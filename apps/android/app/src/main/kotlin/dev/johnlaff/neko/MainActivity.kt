@@ -24,6 +24,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import androidx.compose.animation.AnimatedContent
+import dev.johnlaff.neko.ui.tabChange
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -100,30 +104,35 @@ class MainActivity : ComponentActivity() {
                             LockScreen(::unlock)
                         }
                         Session.SignedIn -> {
-                            when (tab) {
-                                Tab.Hoje -> {
-                                    val today by model.today.collectAsStateWithLifecycle()
-                                    HojeScreen(today, model::refresh, { go(Tab.Ajustes) }, model::simulate, simulateAsk = simulateAsk)
-                                }
-                                Tab.Faturas -> {
-                                    val invoices by model.invoices.collectAsStateWithLifecycle()
-                                    FaturasScreen(invoices, { model.refresh(Tab.Faturas) }) { go(Tab.Ajustes) }
-                                }
-                                Tab.Mes -> {
-                                    val months by model.months.collectAsStateWithLifecycle()
-                                    val history by model.history.collectAsStateWithLifecycle()
-                                    MesScreen(months, history) { model.refresh(Tab.Mes) }
-                                }
-                                Tab.Ajustes -> {
-                                    val ajustes by model.ajustes.collectAsStateWithLifecycle()
-                                    val save by model.save.collectAsStateWithLifecycle()
-                                    val devices by model.devices.collectAsStateWithLifecycle()
-                                    AjustesScreen(
-                                        ajustes, save, { model.refresh(Tab.Ajustes) }, model::saveSettings, model::logout,
-                                        remindersSwitch(),
-                                        DevicesList(devices, model::endSession, model::endOtherSessions),
-                                        lockSwitch(),
-                                    )
+                            // The screen slides a little toward the tab's side of the dock, as on the
+                            // site; the dock stays put.
+                            val shift = with(LocalDensity.current) { 24.dp.roundToPx() }
+                            AnimatedContent(tab, transitionSpec = { tabChange(initialState, targetState, shift) }, label = "tab") { t ->
+                                when (t) {
+                                    Tab.Hoje -> {
+                                        val today by model.today.collectAsStateWithLifecycle()
+                                        HojeScreen(today, model::refresh, { go(Tab.Ajustes) }, model::simulate, simulateAsk = simulateAsk)
+                                    }
+                                    Tab.Faturas -> {
+                                        val invoices by model.invoices.collectAsStateWithLifecycle()
+                                        FaturasScreen(invoices, { model.refresh(Tab.Faturas) }) { go(Tab.Ajustes) }
+                                    }
+                                    Tab.Mes -> {
+                                        val months by model.months.collectAsStateWithLifecycle()
+                                        val history by model.history.collectAsStateWithLifecycle()
+                                        MesScreen(months, history) { model.refresh(Tab.Mes) }
+                                    }
+                                    Tab.Ajustes -> {
+                                        val ajustes by model.ajustes.collectAsStateWithLifecycle()
+                                        val save by model.save.collectAsStateWithLifecycle()
+                                        val devices by model.devices.collectAsStateWithLifecycle()
+                                        AjustesScreen(
+                                            ajustes, save, { model.refresh(Tab.Ajustes) }, model::saveSettings, model::logout,
+                                            remindersSwitch(),
+                                            DevicesList(devices, model::endSession, model::endOtherSessions),
+                                            lockSwitch(),
+                                        )
+                                    }
                                 }
                             }
                             Dock(tab, go, Modifier.align(Alignment.BottomCenter))

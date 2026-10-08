@@ -26,6 +26,10 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
   (Simular, Faturas, Mês e "Lançar", que abre a linha de hoje e muda todo dia); prévia gerada do
   widget no seletor (Android 15+, com números inventados); toques hápticos do sistema no dock, nos
   interruptores e ao puxar para atualizar.
+- Movimento igual ao do site (`styles.css`, "Motion"): o arco e as colunas desenham uma vez, o número
+  grande roda como odômetro, avisos aparecem, "Como calculei" e o extrato abrem pela altura, a troca
+  de aba desliza para o lado da aba, e o carregamento é um esqueleto com brilho. "Remover animações"
+  do Android zera tudo.
 - `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
   agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
 - `GET /api/invoices`, `GET /api/months` e `GET /api/ajustes` (`apps/neko/src/shared/screens.ts`):

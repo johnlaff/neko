@@ -116,7 +116,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             }
         }
         TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger })
-        if (ledger) {
+        Reveal(ledger) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 LedgerLine("Começou com", money(m.startBalance))
                 LedgerLine("Entradas", signed(m.entrada, '+'), l.pos)
