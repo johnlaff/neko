@@ -38,6 +38,9 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
   rede; Faturas e Mês são lidos em segundo plano depois do primeiro Hoje; nada de disco, Keystore ou
   rede na thread principal ao abrir (StrictMode nas builds de debug); o código do app é compilado
   na instalação por um baseline profile.
+- Widget responsivo em três formas, como a tela inicial o dimensiona: só o número; o número com a
+  fatura aberta e o plano ao lado; e, mais alto, os próximos dias com algo na planilha. A prévia do
+  seletor usa números inventados.
 - `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
   agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
 - `GET /api/invoices`, `GET /api/months` e `GET /api/ajustes` (`apps/neko/src/shared/screens.ts`):
