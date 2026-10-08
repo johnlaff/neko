@@ -1,0 +1,121 @@
+import { billOnSheet, type CardConfig, cycleForDueMonth, normalizeName } from "./cards.ts";
+import { diffDays, type LocalDate } from "./date.ts";
+import type { Ledger, NoteItem } from "./ledger.ts";
+import { add, type Cents, sub, ZERO } from "./money.ts";
+
+/**
+ * Open Finance, read-only (specs/003-open-finance). The bank never changes a balance or a bill:
+ * these functions only say where the sheet and the bank disagree.
+ */
+
+/** A card charge as the bank reports it, already tied to the sheet's card name. */
+export interface BankCardLine {
+  readonly card: string;
+  /** Positive for a charge, negative for a refund or a payment. */
+  readonly amount: Cents;
+  /** Month of the bill it lands on, `YYYY-MM`. */
+  readonly billMonth: string;
+  readonly description: string;
+  readonly installment: number | null;
+  readonly installments: number | null;
+}
+
+/** One future bill: what the bank already has on it and what the sheet expects. */
+export interface BillCheck {
+  readonly card: string;
+  readonly due: LocalDate;
+  /** Charges the bank already put on this bill, refunds subtracted. */
+  readonly bank: Cents;
+  /** Of those, the parcels of earlier purchases. */
+  readonly parcels: Cents;
+  readonly sheet: Cents | null;
+  /** bank − sheet: positive means the sheet expects less than is already committed. */
+  readonly gap: Cents;
+}
+
+/** A card account also shows the payment of the previous bill; that is not a charge. */
+const PAYMENT = /\bpagamento|\bpagto|\bpgto/i;
+
+/**
+ * Each bill still to come, per card the sheet knows: the bank's sum against the sheet's line on
+ * the due day. A bill already due is history and stays out.
+ */
+export const billChecks = (
+  ledger: Ledger,
+  cards: readonly CardConfig[],
+  lines: readonly BankCardLine[],
+  today: LocalDate,
+): BillCheck[] => {
+  const byCard = new Map(cards.map((c) => [normalizeName(c.name), c]));
+  const groups = new Map<string, { card: CardConfig; month: string; lines: BankCardLine[] }>();
+  for (const l of lines) {
+    const card = byCard.get(normalizeName(l.card));
+    if (!card || (l.amount < 0 && PAYMENT.test(l.description))) continue;
+    const key = `${normalizeName(card.name)}|${l.billMonth}`;
+    const g = groups.get(key) ?? { card, month: l.billMonth, lines: [] };
+    g.lines.push(l);
+    groups.set(key, g);
+  }
+  const out: BillCheck[] = [];
+  for (const { card, month, lines: ls } of groups.values()) {
+    const [y, m] = month.split("-").map(Number);
+    if (!y || !m) continue;
+    const { due } = cycleForDueMonth(card, y, m);
+    if (diffDays(today, due) <= 0) continue;
+    const bank = add(ZERO, ...ls.map((l) => l.amount));
+    const parcels = add(ZERO, ...ls.filter((l) => (l.installments ?? 1) > 1).map((l) => l.amount));
+    const sheet = billOnSheet(ledger, card, due);
+    out.push({ card: card.name, due, bank, parcels, sheet, gap: sub(bank, sheet ?? ZERO) });
+  }
+  return out.sort((a, b) => a.due.localeCompare(b.due) || a.card.localeCompare(b.card));
+};
+
+/** A checking-account movement: positive comes in, negative goes out. */
+export interface BankMovement {
+  readonly date: LocalDate;
+  readonly amount: Cents;
+  readonly description: string;
+}
+
+/** How far apart the bank's date and the sheet's day may be, as in Actual Budget's matching. */
+export const MATCH_DAYS = 7;
+
+/** The sheet's lines of one column; a cell without a note counts as one line of its total. */
+const sheetLines = (cell: { amount: Cents; items: readonly NoteItem[] }): Cents[] =>
+  cell.items.length > 0 ? cell.items.map((i) => i.amount) : cell.amount === 0 ? [] : [cell.amount];
+
+/**
+ * Movements up to today with no sheet line of the same amount, same direction, within
+ * MATCH_DAYS. Each sheet line answers for one movement only, the closest in date first.
+ */
+export const unmatchedMovements = (
+  ledger: Ledger,
+  movements: readonly BankMovement[],
+  today: LocalDate,
+): BankMovement[] => {
+  const pool = ledger.flatMap((r) => [
+    ...sheetLines(r.entrada).map((amount) => ({ date: r.date, amount, used: false })),
+    ...sheetLines(r.saida).map((amount) => ({
+      date: r.date,
+      amount: sub(ZERO, amount),
+      used: false,
+    })),
+  ]);
+  const candidates = movements
+    .filter((m) => diffDays(m.date, today) >= 0 && m.amount !== 0)
+    .flatMap((m) =>
+      pool
+        .filter((p) => p.amount === m.amount && Math.abs(diffDays(p.date, m.date)) <= MATCH_DAYS)
+        .map((p) => ({ m, p, distance: Math.abs(diffDays(p.date, m.date)) })),
+    )
+    .sort((a, b) => a.distance - b.distance);
+  const matched = new Set<BankMovement>();
+  for (const { m, p } of candidates) {
+    if (matched.has(m) || p.used) continue;
+    p.used = true;
+    matched.add(m);
+  }
+  return movements
+    .filter((m) => diffDays(m.date, today) >= 0 && m.amount !== 0 && !matched.has(m))
+    .sort((a, b) => a.date.localeCompare(b.date));
+};

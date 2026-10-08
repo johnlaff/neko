@@ -1,4 +1,5 @@
 export * from "./balance.ts";
+export * from "./bank.ts";
 export * from "./breakdown.ts";
 export * from "./cards.ts";
 export * from "./date.ts";
