@@ -30,7 +30,8 @@
               "month": 1,
               "amount": 260274
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -46,7 +47,8 @@
               "month": 1,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Poupança",
@@ -62,7 +64,8 @@
               "month": 1,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Cartão Verde",
@@ -78,7 +81,8 @@
               "month": 1,
               "amount": 38874
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -94,7 +98,8 @@
               "month": 1,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Luz",
@@ -110,7 +115,8 @@
               "month": 1,
               "amount": 22948
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Internet",
@@ -126,7 +132,8 @@
               "month": 1,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": null
         }
       ],
       "fixed": [],
@@ -505,7 +512,8 @@
               "month": 2,
               "amount": 311807
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -526,7 +534,8 @@
               "month": 2,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Poupança",
@@ -547,7 +556,8 @@
               "month": 2,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -568,7 +578,8 @@
               "month": 2,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Cartão Verde",
@@ -589,7 +600,8 @@
               "month": 2,
               "amount": 30069
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Luz",
@@ -610,7 +622,8 @@
               "month": 2,
               "amount": 25367
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Internet",
@@ -631,7 +644,8 @@
               "month": 2,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": null
         }
       ],
       "fixed": [],
@@ -988,7 +1002,8 @@
               "month": 3,
               "amount": 347094
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -1014,7 +1029,12 @@
               "month": 3,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -1040,7 +1060,12 @@
               "month": 3,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -1066,7 +1091,8 @@
               "month": 3,
               "amount": 42047
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -1092,7 +1118,12 @@
               "month": 3,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -1118,7 +1149,12 @@
               "month": 3,
               "amount": 23310
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 23310,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -1144,7 +1180,12 @@
               "month": 3,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -1559,7 +1600,8 @@
               "month": 4,
               "amount": 367154
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -1590,7 +1632,12 @@
               "month": 4,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -1621,7 +1668,12 @@
               "month": 4,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -1652,7 +1704,8 @@
               "month": 4,
               "amount": 37293
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -1683,7 +1736,12 @@
               "month": 4,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -1714,7 +1772,12 @@
               "month": 4,
               "amount": 18249
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 18249,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -1745,7 +1808,12 @@
               "month": 4,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -2158,7 +2226,8 @@
               "month": 5,
               "amount": 344718
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -2194,7 +2263,12 @@
               "month": 5,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -2230,7 +2304,12 @@
               "month": 5,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -2266,7 +2345,8 @@
               "month": 5,
               "amount": 60709
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -2302,7 +2382,12 @@
               "month": 5,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -2338,7 +2423,12 @@
               "month": 5,
               "amount": 22015
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 22015,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -2374,7 +2464,12 @@
               "month": 5,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -2802,7 +2897,8 @@
               "month": 6,
               "amount": 322652
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -2843,7 +2939,12 @@
               "month": 6,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -2884,7 +2985,12 @@
               "month": 6,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -2925,7 +3031,8 @@
               "month": 6,
               "amount": 41529
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -2966,7 +3073,12 @@
               "month": 6,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -3007,7 +3119,12 @@
               "month": 6,
               "amount": 21880
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 21880,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -3048,7 +3165,12 @@
               "month": 6,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -3469,7 +3591,8 @@
               "month": 7,
               "amount": 369621
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -3510,7 +3633,12 @@
               "month": 7,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -3551,7 +3679,12 @@
               "month": 7,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -3592,7 +3725,8 @@
               "month": 7,
               "amount": 61678
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -3633,7 +3767,12 @@
               "month": 7,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -3674,7 +3813,12 @@
               "month": 7,
               "amount": 24926
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 24926,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -3715,7 +3859,12 @@
               "month": 7,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -4135,7 +4284,8 @@
               "month": 8,
               "amount": 315612
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -4176,7 +4326,12 @@
               "month": 8,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -4217,7 +4372,12 @@
               "month": 8,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -4258,7 +4418,8 @@
               "month": 8,
               "amount": 69718
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -4299,7 +4460,12 @@
               "month": 8,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -4340,7 +4506,12 @@
               "month": 8,
               "amount": 18779
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 18779,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -4381,7 +4552,12 @@
               "month": 8,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -4809,7 +4985,8 @@
               "month": 9,
               "amount": 330610
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -4850,7 +5027,12 @@
               "month": 9,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -4891,7 +5073,12 @@
               "month": 9,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -4932,7 +5119,8 @@
               "month": 9,
               "amount": 38136
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -4973,7 +5161,12 @@
               "month": 9,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -5014,7 +5207,12 @@
               "month": 9,
               "amount": 23020
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 23020,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -5055,7 +5253,12 @@
               "month": 9,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -5477,7 +5680,8 @@
               "month": 10,
               "amount": 303656
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -5518,7 +5722,12 @@
               "month": 10,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -5559,7 +5768,12 @@
               "month": 10,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -5600,7 +5814,8 @@
               "month": 10,
               "amount": 39963
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -5641,7 +5856,12 @@
               "month": 10,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -5682,7 +5902,12 @@
               "month": 10,
               "amount": 23993
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 23993,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -5723,7 +5948,12 @@
               "month": 10,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -6151,7 +6381,8 @@
               "month": 11,
               "amount": 370625
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -6192,7 +6423,12 @@
               "month": 11,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -6233,7 +6469,12 @@
               "month": 11,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -6274,7 +6515,8 @@
               "month": 11,
               "amount": 33519
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -6315,7 +6557,12 @@
               "month": 11,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -6356,7 +6603,12 @@
               "month": 11,
               "amount": 20521
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 20521,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -6397,7 +6649,12 @@
               "month": 11,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -6815,7 +7072,8 @@
               "month": 12,
               "amount": 342640
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -6856,7 +7114,12 @@
               "month": 12,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -6897,7 +7160,12 @@
               "month": 12,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -6938,7 +7206,8 @@
               "month": 12,
               "amount": 59877
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -6979,7 +7248,12 @@
               "month": 12,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -7020,7 +7294,12 @@
               "month": 12,
               "amount": 21240
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 21240,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -7061,7 +7340,12 @@
               "month": 12,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -7489,7 +7773,8 @@
               "month": 1,
               "amount": 273652
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -7530,7 +7815,12 @@
               "month": 1,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -7571,7 +7861,12 @@
               "month": 1,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -7612,7 +7907,8 @@
               "month": 1,
               "amount": 57152
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -7653,7 +7949,12 @@
               "month": 1,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -7694,7 +7995,12 @@
               "month": 1,
               "amount": 19748
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 19748,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -7735,7 +8041,12 @@
               "month": 1,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -8163,7 +8474,8 @@
               "month": 2,
               "amount": 311306
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -8204,7 +8516,12 @@
               "month": 2,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -8245,7 +8562,12 @@
               "month": 2,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -8286,7 +8608,8 @@
               "month": 2,
               "amount": 42384
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -8327,7 +8650,12 @@
               "month": 2,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -8368,7 +8696,12 @@
               "month": 2,
               "amount": 25928
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 25928,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -8409,7 +8742,12 @@
               "month": 2,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -8807,7 +9145,8 @@
               "month": 3,
               "amount": 259153
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -8848,7 +9187,12 @@
               "month": 3,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -8889,7 +9233,12 @@
               "month": 3,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -8930,7 +9279,8 @@
               "month": 3,
               "amount": 35203
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -8971,7 +9321,12 @@
               "month": 3,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -9012,7 +9367,12 @@
               "month": 3,
               "amount": 20738
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 20738,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -9053,7 +9413,12 @@
               "month": 3,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -9481,7 +9846,8 @@
               "month": 4,
               "amount": 307021
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -9522,7 +9888,12 @@
               "month": 4,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -9563,7 +9934,12 @@
               "month": 4,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -9604,7 +9980,8 @@
               "month": 4,
               "amount": 51883
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -9645,7 +10022,12 @@
               "month": 4,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -9686,7 +10068,12 @@
               "month": 4,
               "amount": 20697
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 20697,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -9727,7 +10114,12 @@
               "month": 4,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -10145,7 +10537,8 @@
               "month": 5,
               "amount": 265412
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -10186,7 +10579,12 @@
               "month": 5,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -10227,7 +10625,12 @@
               "month": 5,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -10268,7 +10671,8 @@
               "month": 5,
               "amount": 58336
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -10309,7 +10713,12 @@
               "month": 5,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -10350,7 +10759,12 @@
               "month": 5,
               "amount": 23889
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 23889,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -10391,7 +10805,12 @@
               "month": 5,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -10819,7 +11238,8 @@
               "month": 6,
               "amount": 341194
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -10860,7 +11280,12 @@
               "month": 6,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -10901,7 +11326,12 @@
               "month": 6,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -10942,7 +11372,8 @@
               "month": 6,
               "amount": 65330
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -10983,7 +11414,12 @@
               "month": 6,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -11024,7 +11460,12 @@
               "month": 6,
               "amount": 21076
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 21076,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -11065,7 +11506,12 @@
               "month": 6,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -11478,7 +11924,8 @@
               "month": 7,
               "amount": 296051
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -11519,7 +11966,12 @@
               "month": 7,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -11560,7 +12012,12 @@
               "month": 7,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -11601,7 +12058,8 @@
               "month": 7,
               "amount": 57732
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -11642,7 +12100,12 @@
               "month": 7,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -11683,7 +12146,12 @@
               "month": 7,
               "amount": 20084
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 20084,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -11724,7 +12192,12 @@
               "month": 7,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -12152,7 +12625,8 @@
               "month": 8,
               "amount": 260071
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -12193,7 +12667,12 @@
               "month": 8,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -12234,7 +12713,12 @@
               "month": 8,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -12275,7 +12759,8 @@
               "month": 8,
               "amount": 50021
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -12316,7 +12801,12 @@
               "month": 8,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -12357,7 +12847,12 @@
               "month": 8,
               "amount": 22130
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 22130,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -12398,7 +12893,12 @@
               "month": 8,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -12826,7 +13326,8 @@
               "month": 9,
               "amount": 361629
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -12867,7 +13368,12 @@
               "month": 9,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -12908,7 +13414,12 @@
               "month": 9,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -12949,7 +13460,8 @@
               "month": 9,
               "amount": 69096
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -12990,7 +13502,12 @@
               "month": 9,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -13031,7 +13548,12 @@
               "month": 9,
               "amount": 22041
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 22041,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -13072,7 +13594,12 @@
               "month": 9,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -13490,7 +14017,8 @@
               "month": 10,
               "amount": 360031
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -13531,7 +14059,12 @@
               "month": 10,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -13572,7 +14105,12 @@
               "month": 10,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -13613,7 +14151,8 @@
               "month": 10,
               "amount": 52770
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -13654,7 +14193,12 @@
               "month": 10,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -13695,7 +14239,12 @@
               "month": 10,
               "amount": 18882
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 18882,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -13736,7 +14285,12 @@
               "month": 10,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -14104,7 +14658,8 @@
               "month": 11,
               "amount": 283807
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -14145,7 +14700,12 @@
               "month": 11,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -14186,7 +14746,12 @@
               "month": 11,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -14227,7 +14792,8 @@
               "month": 11,
               "amount": 36219
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -14268,7 +14834,12 @@
               "month": 11,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -14309,7 +14880,12 @@
               "month": 11,
               "amount": 22728
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 22728,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -14350,7 +14926,12 @@
               "month": 11,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
@@ -14705,7 +15286,8 @@
               "month": 12,
               "amount": 370432
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Aluguel",
@@ -14746,7 +15328,12 @@
               "month": 12,
               "amount": 190000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Aluguel",
+            "amount": 190000,
+            "installment": null
+          }
         },
         {
           "label": "Poupança",
@@ -14787,7 +15374,12 @@
               "month": 12,
               "amount": 80000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Poupança",
+            "amount": 80000,
+            "installment": null
+          }
         },
         {
           "label": "Cartão Verde",
@@ -14828,7 +15420,8 @@
               "month": 12,
               "amount": 62738
             }
-          ]
+          ],
+          "fixed": null
         },
         {
           "label": "Academia e curso",
@@ -14869,7 +15462,12 @@
               "month": 12,
               "amount": 32000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Academia e curso",
+            "amount": 32000,
+            "installment": null
+          }
         },
         {
           "label": "Luz",
@@ -14910,7 +15508,12 @@
               "month": 12,
               "amount": 22021
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Luz",
+            "amount": 22021,
+            "installment": null
+          }
         },
         {
           "label": "Internet",
@@ -14951,7 +15554,12 @@
               "month": 12,
               "amount": 12000
             }
-          ]
+          ],
+          "fixed": {
+            "label": "Internet",
+            "amount": 12000,
+            "installment": null
+          }
         }
       ],
       "fixed": [
