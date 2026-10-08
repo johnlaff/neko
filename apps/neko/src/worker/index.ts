@@ -8,7 +8,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
 import { ajustesView, invoicesView, monthsView, simulateView } from "../shared/screens.ts";
 import { todayView } from "../shared/today.ts";
-import type { BanksResponse } from "../shared/types.ts";
+import type { BanksResponse, MiaStatus } from "../shared/types.ts";
 import { assetLinks } from "./android.ts";
 import {
   endSession,
@@ -19,6 +19,14 @@ import {
   verifyGoogleCredential,
 } from "./auth.ts";
 import type { AppEnv, Env } from "./env.ts";
+import {
+  askMia,
+  CAP_MICRO_USD,
+  MiaRequest,
+  MiaSpendLimit,
+  recordUsage,
+  spentThisMonth,
+} from "./mia.ts";
 import {
   authenticationOptions,
   registrationOptions,
@@ -142,6 +150,7 @@ app.use("/sessions/*", requireSession);
 app.use("/client-error", requireSession);
 app.use("/banks", requireSession);
 app.use("/banks/*", requireSession);
+app.use("/mia", requireSession);
 
 const ClientError = z.object({
   message: z.string().max(500),
@@ -354,6 +363,45 @@ const bankSync = async (env: Env) => {
   const failed = await syncAll(env.DB, api, todayIn(new Date()));
   if (failed > 0) Sentry.captureMessage(`bank sync: ${failed} bank(s) failed`);
 };
+
+/** First day of the next month, when a paused Mia comes back. */
+const nextMonthStart = (today: string) => {
+  const [y = 0, m = 1] = today.split("-").map(Number);
+  return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+};
+
+/** Whether Mia is on, and how much of the month's cap is spent (specs/004-mia). */
+app.get("/mia", async (c) => {
+  const today = todayIn(new Date());
+  if (!c.env.ANTHROPIC_API_KEY) return c.json(miaStatus(false, 0, today));
+  return c.json(miaStatus(true, await spentThisMonth(c.env.DB, today), today));
+});
+
+const miaStatus = (on: boolean, spent: number, today: string): MiaStatus => ({
+  ligada: on,
+  usadoPct: Math.min(100, Math.floor((spent / CAP_MICRO_USD) * 100)),
+  pausadaAte: spent >= CAP_MICRO_USD ? nextMonthStart(today) : null,
+});
+
+app.post("/mia", async (c) => {
+  const key = c.env.ANTHROPIC_API_KEY;
+  if (!key) throw new HTTPException(404);
+  const parsed = MiaRequest.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw new HTTPException(400);
+  const now = new Date();
+  const today = todayIn(now);
+  const spent = await spentThisMonth(c.env.DB, today);
+  const paused = () => c.json({ pausadaAte: nextMonthStart(today) }, 429);
+  if (spent >= CAP_MICRO_USD) return paused();
+  const { projection } = await getProjection(c.env, today);
+  try {
+    const deps = { fetch, key, spentMicroUsd: spent, record: recordUsage(c.env.DB, today, now) };
+    return c.json(await askMia(deps, projection, today, parsed.data));
+  } catch (e) {
+    if (e instanceof MiaSpendLimit) return paused();
+    throw e;
+  }
+});
 
 app.get("/projection", async (c) => c.json(await getProjection(c.env, todayIn(new Date()))));
 
