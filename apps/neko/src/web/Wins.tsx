@@ -1,12 +1,10 @@
 import type { Win } from "@neko/engine";
 import { useState } from "react";
 import { winShareText, winText } from "../shared/wins.ts";
-import nekoComemorando from "./assets/mascots/neko-comemorando.webp";
 import { capitalize, monthName } from "./format.ts";
-import { Mascot } from "./Mascot.tsx";
 
 /**
- * A closed month's wins with the celebrating Neko, and a share button that turns them into a
+ * A closed month's wins and a share button that turns them into a
  * picture (4:5, the size feeds and chats crop to). The picture carries the wins only, never an
  * amount: what is shared is the achievement, not the finances.
  */
@@ -14,20 +12,17 @@ export function Wins({
   wins,
   year,
   month,
-  cat,
   className,
 }: {
   wins: readonly Win[];
   year: number;
   month: number;
-  cat: number;
   className?: string | undefined;
 }) {
   if (wins.length === 0) return null;
   const title = `${capitalize(monthName(month))} de ${year}`;
   return (
     <div className={className ? `recap-wins ${className}` : "recap-wins"}>
-      <Mascot pose="celebrating" height={cat} className="milestone-cat" />
       <ul aria-label="Conquistas do mês">
         {wins.map((w) => (
           <li key={w.kind}>{winText(w)}</li>
@@ -94,10 +89,27 @@ const wrap = (ctx: CanvasRenderingContext2D, text: string, width: number) => {
   return out;
 };
 
+/** The brand mark (BrandMark.tsx) in its 80×52 box, drawn at `x, y` with the given width. */
+const drawMark = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number) => {
+  const k = width / 80;
+  ctx.save();
+  ctx.translate(x - 14 * k, y - 31 * k);
+  ctx.scale(k, k);
+  ctx.strokeStyle = "#1c1a17";
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.stroke(new Path2D("M18 78H30L35 37L48 50H58L71 37L76 66H90"));
+  ctx.fillStyle = "#2a7548";
+  for (const cx of [46.5, 59.5]) {
+    ctx.beginPath();
+    ctx.ellipse(cx, 61.5, 2.4, 5.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+};
+
 const drawCard = async (title: string, lines: readonly string[]) => {
-  const img = new Image();
-  img.src = nekoComemorando;
-  await img.decode();
   await document.fonts.ready;
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -109,20 +121,21 @@ const drawCard = async (title: string, lines: readonly string[]) => {
   ctx.fillStyle = "#f6f5f1";
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = "center";
-  ctx.font = `650 56px ${font}`;
+  ctx.font = `600 56px ${font}`;
   const rows = lines.flatMap((l, i) => [...(i > 0 ? [""] : []), ...wrap(ctx, l, W - 160)]);
   const rowsH = rows.reduce((h, r) => h + (r ? 68 : 28), 0);
-  // Title, cat and wins as one block above the footer; the cat gives way when the wins are many.
-  const catH = Math.max(280, Math.min(560, H - 140 - 120 - (44 + 40 + 90 + rowsH)));
-  let y = Math.max(60, (H - 140 - (44 + 40 + catH + 90 + rowsH)) / 2) + 44;
+  // Mark, title and wins as one block above the footer.
+  const markW = 200;
+  const markH = (markW * 52) / 80;
+  let y = Math.max(60, (H - 140 - (markH + 80 + 44 + 90 + rowsH)) / 2);
+  drawMark(ctx, (W - markW) / 2, y, markW);
+  y += markH + 80 + 44;
   ctx.fillStyle = "#57534e";
   ctx.font = `500 44px ${font}`;
   ctx.fillText(title, W / 2, y);
-  const catW = (img.naturalWidth / img.naturalHeight) * catH;
-  ctx.drawImage(img, (W - catW) / 2, y + 40, catW, catH);
-  y += 40 + catH + 90;
-  ctx.font = `650 56px ${font}`;
-  ctx.fillStyle = "#2a7548";
+  y += 90;
+  ctx.font = `600 56px ${font}`;
+  ctx.fillStyle = "#1c1a17";
   for (const r of rows) {
     if (r) ctx.fillText(r, W / 2, y);
     y += r ? 68 : 28;
@@ -136,8 +149,8 @@ const drawCard = async (title: string, lines: readonly string[]) => {
 };
 
 /**
- * Shares a picture of an achievement where the browser can (phones), else downloads it: a
- * heading, the celebrating Neko and the lines, never an amount.
+ * Shares a picture of an achievement where the browser can (phones), else downloads it:
+ * the brand mark, a heading and the lines, never an amount.
  */
 export const shareCard = async (title: string, lines: readonly string[]) => {
   const blob = await drawCard(title, lines);

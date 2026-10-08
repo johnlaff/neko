@@ -681,9 +681,9 @@ private fun ConfirmAction(action: String, question: String, detail: String, onCo
 private fun HowItWorks() {
     val l = LocalLedger.current
     val context = LocalContext.current
-    // Mia is the one who gives the tips, so the full list opens with her, book in paw.
+    // Mia is the one who gives the tips, so the full list opens with her mark.
     Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Mascot(Pose.MiaTeaching, Modifier.height(72.dp))
+        MiaMark(48.dp)
         Text(Learn.INTRO, color = l.muted, style = MaterialTheme.typography.bodyMedium)
     }
     Learn.IDEAS.forEach { idea ->
