@@ -8,6 +8,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.draw.clip
@@ -456,12 +460,26 @@ fun Columns(
 
 /** A small text action, like the site's text links. */
 @Composable
-fun TextAction(text: String, onClick: () -> Unit, color: Color = LocalLedger.current.muted) {
-    Text(
-        text,
-        color = color,
-        style = MaterialTheme.typography.labelLarge,
-        // A finger-sized target around a short line of text.
-        modifier = Modifier.clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(),
-    )
+fun TextAction(text: String, onClick: () -> Unit, color: Color = LocalLedger.current.muted, open: Boolean? = null) {
+    // A finger-sized target around a short line of text.
+    Row(
+        Modifier.clickable(onClick = onClick).heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(text, color = color, style = MaterialTheme.typography.labelLarge)
+        // A disclosure points down when closed and turns up as it opens, as on the site.
+        if (open != null) {
+            val turn by animateFloatAsState(if (open) 180f else 0f, tween(180, easing = Motion.Settle), label = "chevron")
+            Canvas(Modifier.size(12.dp).graphicsLayer { rotationZ = turn }) {
+                val w = size.width
+                val path = Path().apply {
+                    moveTo(w * 0.2f, w * 0.38f)
+                    lineTo(w * 0.5f, w * 0.66f)
+                    lineTo(w * 0.8f, w * 0.38f)
+                }
+                drawPath(path, color, style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
+        }
+    }
 }

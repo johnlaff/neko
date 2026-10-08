@@ -924,6 +924,9 @@ input.switch:checked::after {
 .gauge .fill.over {
   stroke: var(--warn);
 }
+.gauge .fill.bad {
+  stroke: var(--neg);
+}
 .gauge .tick {
   fill: var(--text);
   stroke: var(--surface);
