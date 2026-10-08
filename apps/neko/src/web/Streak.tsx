@@ -33,8 +33,10 @@ export const Streak = ({ habit }: { habit: Habit }) => (
       </ol>
       <span className="streak-text">
         <strong>{streakLabel(habit.streak)}</strong>
-        {/* A new best run is a word on this line, not a card of its own. */}
-        {habit.record != null ? (
+        {/* A mark or a new best run is a word on this line, not a card of its own. */}
+        {habit.milestone != null ? (
+          <span>{milestoneText(habit.milestone)}</span>
+        ) : habit.record != null ? (
           <span>Novo recorde</span>
         ) : (
           habit.editedToday && <span>Hoje já lançado</span>
@@ -52,5 +54,5 @@ export const Streak = ({ habit }: { habit: Habit }) => (
   </details>
 );
 
-/** A run that just reached a mark gets one card, the day it happens and the day after. */
+/** What a mark means, on the habit line the day it lands and the day after. */
 export const milestoneText = (m: number) => HABIT.milestones[m] ?? `${m} dias de planilha em dia.`;

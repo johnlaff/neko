@@ -39,9 +39,9 @@ import {
 import { HINTS } from "../learn.ts";
 import { Mia } from "../Mia.tsx";
 import { Simulator } from "../Pace.tsx";
-import { milestoneText, Streak } from "../Streak.tsx";
+import { Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
-import { ShareButton, Wins } from "../Wins.tsx";
+import { Wins } from "../Wins.tsx";
 
 /** Each warning in a few words, with the figure that shows it and where to look next. */
 const insightView = (i: Insight) => {
@@ -433,20 +433,6 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
  * The day the run reaches a mark or passes its best before, and the day after: one card, then
  * it leaves on its own. A mark wins when both land on the same day.
  */
-const MilestoneCard = ({ title, text }: { title: string; text: string }) => (
-  <ul className="alerts" aria-label="Sequência">
-    <li>
-      <div className="alert good milestone">
-        <span className="alert-text" role="status">
-          <strong>{title}</strong>
-          <span>{text}</span>
-        </span>
-        <ShareButton title={title} lines={[text]} label={`Compartilhar: ${title}`} />
-      </div>
-    </li>
-  </ul>
-);
-
 export const Hoje = () => (
   <WithProjection>
     {({ projection: p, sheet, daily, habit, bank }) => {
@@ -524,7 +510,7 @@ export const Hoje = () => (
               <BrandMark width={64} className="quiet-mark" />
               <h2>Nenhum cartão na planilha</h2>
               <p className="muted">
-                O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.
+                As faturas vêm das notas de Saída, debaixo de uma linha CARTÕES.
               </p>
             </section>
           )}
@@ -540,13 +526,6 @@ export const Hoje = () => (
             <Mia />
           </div>
           {habit && <Streak habit={habit} />}
-
-          {habit?.milestone != null && (
-            <MilestoneCard
-              title={`Marca de ${habit.milestone} dias`}
-              text={milestoneText(habit.milestone)}
-            />
-          )}
 
           {(p.insights ?? []).length > 0 && <Insights items={p.insights} />}
           {p.saving && p.saving.date >= p.today && p.saving.date <= addDays(p.today, SAVE_LEAD) && (
