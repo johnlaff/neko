@@ -67,25 +67,32 @@ export const billOnSheet = (ledger: Ledger, card: CardConfig, due: LocalDate): C
   return lines.length === 0 ? ZERO : add(...lines.map((i) => i.amount));
 };
 
+const RECENT_BILLS = 3;
+
 /**
- * Cards found in the notes, with the due day they appear on most often. The closing day is a
+ * Cards found in the notes, with the due day their latest bills sit on most often. The closing day is a
  * guess (7 days before due) until configured.
  */
 export const inferCards = (ledger: Ledger): CardConfig[] => {
-  const seen = new Map<string, { name: string; days: Map<number, number> }>();
+  const seen = new Map<string, { name: string; days: number[] }>();
   for (const row of ledger) {
     for (const item of row.saida.items) {
       if (!isCardItem(item)) continue;
       const key = normalizeName(item.description);
-      const entry = seen.get(key) ?? { name: displayName(item.description), days: new Map() };
-      const day = parts(row.date).day;
-      entry.days.set(day, (entry.days.get(day) ?? 0) + 1);
+      const entry = seen.get(key) ?? { name: displayName(item.description), days: [] };
+      entry.days.push(parts(row.date).day);
       seen.set(key, entry);
     }
   }
   return [...seen.values()]
     .map(({ name, days }) => {
-      const dueDay = [...days.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? 1;
+      // Due days move (a new card, a changed date): only the last three bills vote, and on a tie
+      // the latest wins.
+      const recent = days.slice(-RECENT_BILLS);
+      const votes = (d: number) => recent.filter((x) => x === d).length;
+      const dueDay = [...recent]
+        .reverse()
+        .reduce((best, d) => (votes(d) > votes(best) ? d : best), recent.at(-1) ?? 1);
       const closingDay = parts(addDays(clampedDay(2026, 1, dueDay), -7)).day;
       return { name, dueDay, closingDay, closingEstimated: true };
     })
