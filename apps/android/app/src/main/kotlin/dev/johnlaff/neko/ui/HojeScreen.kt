@@ -520,7 +520,7 @@ private fun BankMissing(items: List<MissingMovement>) {
                     .padding(vertical = 4.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(m.description, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(Format.bankText(m.description), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         signed(m.amount, if (m.amount > 0) '+' else '−'),
                         color = if (m.amount > 0) l.pos else l.text,

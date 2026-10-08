@@ -16,6 +16,7 @@ import { api, type DailySource, type ProjectionResponse } from "../api.ts";
 import { RowAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
+  bankText,
   capitalize,
   days,
   money,
@@ -313,7 +314,7 @@ const BankMissing = ({ bank }: { bank: BankView }) => {
                 )
               }
             >
-              <span className="name">{m.description}</span>
+              <span className="name">{bankText(m.description)}</span>
               <span className={`value ${m.amount > 0 ? "pos" : ""}`}>
                 {m.amount > 0 ? "+" : "−"}
                 {money(Math.abs(m.amount))}
