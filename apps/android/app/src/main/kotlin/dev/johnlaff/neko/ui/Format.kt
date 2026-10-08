@@ -35,6 +35,25 @@ object Format {
 
     fun days(n: Int): String = if (n == 1) "1 dia" else "$n dias"
 
+    private val smallWords = setOf("a", "as", "o", "os", "e", "de", "da", "das", "do", "dos", "em", "na", "no", "para")
+
+    /**
+     * A bank's description as people write it: banks send "PIX FEIRA DO BAIRRO" in capitals, read as
+     * "Pix Feira do Bairro". Text that already has lowercase, and words with digits, stay as sent.
+     */
+    fun bankText(text: String): String {
+        if (text.any { it.isLowerCase() }) return text
+        val br = java.util.Locale.forLanguageTag("pt-BR")
+        return text.split(" ").mapIndexed { i, word ->
+            val lower = word.lowercase(br)
+            when {
+                word.any { it.isDigit() } -> word
+                i > 0 && lower in smallWords -> lower
+                else -> lower.replaceFirstChar { it.titlecase(br) }
+            }
+        }.joinToString(" ")
+    }
+
     /**
      * The usual card's closing, from the API's `closesInDays`, which counts today: 1 is today,
      * 2 tomorrow.

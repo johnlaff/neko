@@ -35,6 +35,14 @@ class FormatTest {
         assertEquals("Fecha em 3 dias", Format.closesIn(4))
     }
 
+    @Test fun bankText() {
+        // A bank's capitals read as a name, keeping small words and codes; lowercase stays as sent.
+        assertEquals("Pix Feira do Bairro", Format.bankText("PIX FEIRA DO BAIRRO"))
+        assertEquals("Pix Recebido Ana", Format.bankText("PIX RECEBIDO ANA"))
+        assertEquals("Pag*loja 123 São Paulo", Format.bankText("PAG*LOJA 123 SÃO PAULO"))
+        assertEquals("Uber *Trip", Format.bankText("Uber *Trip"))
+    }
+
     @Test fun typedMoney() {
         assertEquals(17_700L, Format.toCents("177,00"))
         assertEquals(500_000L, Format.toCents(" 5.000 "))
