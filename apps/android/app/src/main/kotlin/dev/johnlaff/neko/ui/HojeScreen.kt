@@ -16,6 +16,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
+import dev.johnlaff.neko.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -224,19 +230,27 @@ private fun Alert(
         Modifier.fillMaxWidth()
             .appear()
             .semantics(mergeDescendants = true) {}
-            .background(color.copy(alpha = 0.10f), shape)
+            // Calm rows: only the dot carries the status color. A celebration (with its cat) keeps
+            // a light wash of green, the one alert that is good news rather than a task.
+            .then(
+                if (lead != null) Modifier.background(color.copy(alpha = 0.10f), shape)
+                else Modifier.background(l.surface, shape).border(1.dp, l.border, shape),
+            )
+            .clip(shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (lead != null) lead()
-        else Box(Modifier.width(4.dp).height(36.dp).background(color, RoundedCornerShape(2.dp)))
+        else Box(Modifier.size(8.dp).background(color, CircleShape))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(detail, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
         action?.invoke()
+        if (onClick != null && action == null)
+            Icon(painterResource(R.drawable.ic_chevron_right), null, tint = l.faint, modifier = Modifier.size(16.dp))
     }
 }
 
