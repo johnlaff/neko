@@ -199,3 +199,13 @@ export const monthFixed = (
   }
   return fixed.sort((a, b) => b.amount - a.amount || a.label.localeCompare(b.label, "pt-BR"));
 };
+
+/**
+ * The fixed line behind one of the month's destinations, matched the way the two group lines
+ * ("Aluguel" and "aluguel ", "Carro 13/36" and "Carro"). Card bills are never fixed.
+ */
+export const fixedOf = (o: Outflow, fixed: readonly Fixed[]): Fixed | null => {
+  if (o.kind === "card") return null;
+  const key = outflowKey(o.label);
+  return fixed.find((f) => outflowKey(f.label) === key) ?? null;
+};
