@@ -8,6 +8,9 @@ export const HINTS = {
   mes: "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista.",
 } as const;
 
+/** Opens Ajustes › Como funciona, next to Mia. */
+export const LEARN_INTRO = "Tudo o que a Mia ensina nas dicas, num lugar só.";
+
 export const IDEAS: readonly { readonly title: string; readonly body: string }[] = [
   {
     title: "De onde vêm os números",

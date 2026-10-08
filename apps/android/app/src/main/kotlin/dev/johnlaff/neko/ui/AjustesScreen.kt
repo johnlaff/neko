@@ -50,6 +50,7 @@ import dev.johnlaff.neko.data.UserSettings
 import dev.johnlaff.neko.ui.Format.fromCents
 import dev.johnlaff.neko.ui.Format.toCents
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
@@ -515,6 +516,11 @@ private fun ConfirmAction(action: String, question: String, detail: String, onCo
 private fun HowItWorks() {
     val l = LocalLedger.current
     val context = LocalContext.current
+    // Mia is the one who gives the tips, so the full list opens with her, book in paw.
+    Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Mascot(Pose.MiaTeaching, Modifier.height(72.dp))
+        Text(Learn.INTRO, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+    }
     Learn.IDEAS.forEach { idea ->
         var open by rememberSaveable(idea.title) { mutableStateOf(false) }
         Column {
