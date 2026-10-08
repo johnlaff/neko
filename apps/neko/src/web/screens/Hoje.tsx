@@ -541,18 +541,11 @@ export const Hoje = () => (
           </div>
           {habit && <Streak habit={habit} />}
 
-          {habit?.milestone != null ? (
+          {habit?.milestone != null && (
             <MilestoneCard
               title={`Marca de ${habit.milestone} dias`}
               text={milestoneText(habit.milestone)}
             />
-          ) : (
-            habit?.record != null && (
-              <MilestoneCard
-                title="Novo recorde"
-                text={`${habit.record + 1} dias seguidos. O anterior era ${habit.record}.`}
-              />
-            )
           )}
 
           {(p.insights ?? []).length > 0 && <Insights items={p.insights} />}

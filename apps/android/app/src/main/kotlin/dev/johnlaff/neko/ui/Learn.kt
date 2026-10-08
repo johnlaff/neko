@@ -48,8 +48,8 @@ object Learn {
 
     fun streakLabel(streak: Int) = when (streak) {
         0 -> "Comece hoje"
-        1 -> "1 dia em dia"
-        else -> "$streak dias em dia"
+        1 -> "Planilha em dia · 1 dia"
+        else -> "Planilha em dia · $streak dias"
     }
 
     /** Mês's reserve panel, word for word with the site (web/learn.ts RESERVE). */

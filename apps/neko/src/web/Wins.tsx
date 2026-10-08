@@ -100,7 +100,7 @@ const drawMark = (ctx: CanvasRenderingContext2D, x: number, y: number, width: nu
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.stroke(new Path2D("M18 78H30L35 37L48 50H58L71 37L76 66H90"));
-  ctx.fillStyle = "#2a7548";
+  ctx.fillStyle = "#2a6b47";
   for (const cx of [46.5, 59.5]) {
     ctx.beginPath();
     ctx.ellipse(cx, 61.5, 2.4, 5.5, 0, 0, Math.PI * 2);
