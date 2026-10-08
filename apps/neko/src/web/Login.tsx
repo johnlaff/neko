@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, api } from "./api.ts";
 import blinking from "./assets/mascots/neko-piscando.webp";
 import still from "./assets/mascots/neko-piscando-parado.webp";
+import { LivingCat } from "./Mascot.tsx";
 
 interface Gis {
   accounts: {
@@ -75,12 +76,9 @@ const GoogleButton = ({
   return <div ref={button} />;
 };
 
-/** Neko sits and blinks slowly, the cat way of saying "you are safe here"; still under reduced motion. */
+/** Neko sits and blinks slowly, the cat way of saying "you are safe here". */
 const LoginCat = () => (
-  <picture>
-    <source srcSet={still} media="(prefers-reduced-motion: reduce)" />
-    <img className="mascot login-cat" src={blinking} width={152} height={240} alt="" />
-  </picture>
+  <LivingCat still={still} alive={blinking} width={152} height={240} className="login-cat" />
 );
 
 export const Login = () => {

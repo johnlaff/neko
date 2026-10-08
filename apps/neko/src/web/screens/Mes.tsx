@@ -384,7 +384,8 @@ export const Mes = () => {
                     </dl>
                     <p>
                       Custo de vida é o que saiu sem contar o que foi guardado. A reserva de
-                      emergência do método cobre de 6 a 12 meses desse custo.
+                      emergência do método cobre de 6 a 12 meses desse custo. Para guardar, o método
+                      sugere de 20% a 30% das entradas.
                     </p>
                   </>
                 )}
