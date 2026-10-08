@@ -93,6 +93,10 @@ class StressScreensTest {
         MesScreen(ScreenState(months), Fakes.history) {}
     }
 
+    @Test fun mesTablet() = compose.shot(path("mes-tablet"), night = false, Device.Tablet, Tab.Mes) {
+        MesScreen(ScreenState(months), Fakes.history) {}
+    }
+
     @Test fun ajustes() = compose.shot(path("ajustes"), night = false, Device.SmallLargeText, Tab.Ajustes) {
         AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices)
     }

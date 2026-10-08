@@ -134,7 +134,8 @@ fun Thermo(m: MonthItem, today: String, saving: Saving?) {
         }
         if (picked != null && shown != null) Moves(shown.moves)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            BANDS.forEach { (band, label) ->
+            // Only the colors this month uses: the legend explains what is on screen, nothing more.
+            BANDS.filter { (band, _) -> m.days.any { it.band == band } }.forEach { (band, label) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.width(12.dp).height(3.dp).background(bandColor(band), RoundedCornerShape(2.dp)))
                     Spacer(Modifier.width(6.dp))

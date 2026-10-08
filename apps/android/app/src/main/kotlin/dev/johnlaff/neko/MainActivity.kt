@@ -13,6 +13,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.runtime.CompositionLocalProvider
+import dev.johnlaff.neko.ui.LocalRail
+import dev.johnlaff.neko.ui.RAIL_FROM
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -95,7 +99,8 @@ class MainActivity : ComponentActivity() {
                 }
                 // Back from another place returns to Hoje before leaving the app.
                 BackHandler(enabled = session == Session.SignedIn && tab != Tab.Hoje) { go(Tab.Hoje) }
-                Box(Modifier.fillMaxSize().background(LocalLedger.current.bg)) {
+                BoxWithConstraints(Modifier.fillMaxSize().background(LocalLedger.current.bg)) {
+                    val rail = maxWidth >= RAIL_FROM
                     when (session) {
                         Session.Checking -> Unit
                         Session.SignedOut -> LoginScreen(onSignedIn = model::signedIn)
@@ -104,7 +109,7 @@ class MainActivity : ComponentActivity() {
                             LaunchedEffect(Unit) { unlock() }
                             LockScreen(::unlock)
                         }
-                        Session.SignedIn -> {
+                        Session.SignedIn -> CompositionLocalProvider(LocalRail provides rail) {
                             // The screen slides a little toward the tab's side of the dock, as on the
                             // site; the dock stays put.
                             val shift = with(LocalDensity.current) { 24.dp.roundToPx() }
@@ -140,7 +145,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 }
                             }
-                            Dock(tab, go, Modifier.align(Alignment.BottomCenter))
+                            Dock(tab, go, Modifier.align(if (rail) Alignment.CenterStart else Alignment.BottomCenter))
                         }
                     }
                 }
