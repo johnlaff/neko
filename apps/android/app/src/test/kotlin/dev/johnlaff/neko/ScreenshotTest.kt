@@ -120,6 +120,10 @@ class ScreenshotTest {
         AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true))
     }
 
+    @Test fun proximosDark() = shot("proximos-dark", night = true, scrollTo = "Próximos 7 dias") {
+        HojeScreen(TodayState(view), {}, {})
+    }
+
     // The bank's parts sit at the end of each screen: scrolled there, as the owner would.
     @Test fun bancoHojeLight() = shot("banco-hoje-light", night = false, scrollTo = "Fora da planilha") {
         HojeScreen(TodayState(view), {}, {})
