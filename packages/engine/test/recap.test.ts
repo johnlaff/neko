@@ -93,6 +93,34 @@ describe("monthRecap", () => {
       expect(winsOn(ms)).toEqual([{ kind: "reserve", months: 3 }]);
       expect(winsOn(ms.slice(0, 2), "2026-09-02")).toEqual([]);
     });
+
+    it("marks a record share kept, once there are three months before it to beat", () => {
+      const ms = [
+        at(2026, 5, { savedShare: 12 }),
+        at(2026, 6, { savedShare: 18 }),
+        at(2026, 7, { savedShare: 9 }),
+        at(2026, 8, { savedShare: 19, result: cents(-1) }),
+        at(2026, 9, { savedShare: 15 }),
+      ];
+      expect(winsOn(ms, "2026-09-02")).toEqual([{ kind: "record", share: 19 }]);
+      expect(winsOn(ms)).not.toContainEqual(expect.objectContaining({ kind: "record" }));
+      // Too few months before it: the first months would all be records.
+      expect(winsOn(ms.slice(1, 4), "2026-09-02")).toEqual([]);
+      // A record says the share, so it takes the place of the 20% goal.
+      expect(
+        winsOn(
+          [...ms.slice(0, 3), at(2026, 8, { savedShare: 25, result: cents(-1) })],
+          "2026-09-02",
+        ),
+      ).toEqual([{ kind: "record", share: 25 }]);
+      // A tie is not a record, and nothing kept is never one.
+      expect(
+        winsOn(
+          [...ms.slice(0, 3), at(2026, 8, { savedShare: 18, result: cents(-1) })],
+          "2026-09-02",
+        ),
+      ).toEqual([]);
+    });
   });
 
   describe("monthWins: a closed month keeps its wins after the recap leaves Hoje", () => {
