@@ -12,6 +12,8 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.createBitmap
 import dev.johnlaff.neko.R
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * A closed month's wins as a picture to share, as on the site (web/Wins.tsx): 1080×1350, the
@@ -55,7 +57,8 @@ object WinCard {
         val foot = paint(36f, 500, MUTED)
         val rows = wins.flatMapIndexed { i, w -> (if (i > 0) listOf("") else emptyList()) + wrap(w, W - 160f, win::measureText) }
         val rowsH = rows.sumOf { if (it.isEmpty()) 28 else 68 }
-        val catH = 560
+        // The cat gives way when the wins are many, so the last one never meets the footer.
+        val catH = (H - 140 - 120 - (44 + 40 + 90 + rowsH)).coerceIn(280, 560)
         val bmp = createBitmap(W, H)
         val c = Canvas(bmp)
         c.drawColor(BG)
@@ -78,12 +81,22 @@ object WinCard {
         return bmp
     }
 
-    /** Opens the share sheet with the picture, kept in the app's cache (never in the gallery). */
-    fun share(context: Context, title: String, wins: List<String>) {
-        val dir = File(context.cacheDir, "share").apply { mkdirs() }
-        val file = File(dir, "neko-conquista.png")
-        file.outputStream().use { draw(context, title, wins).compress(Bitmap.CompressFormat.PNG, 100, it) }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.share", file)
+    /**
+     * Opens the share sheet with the picture, kept in the app's cache (never in the gallery). The
+     * drawing and the PNG run off the main thread.
+     */
+    suspend fun share(context: Context, title: String, wins: List<String>) {
+        val uri = withContext(Dispatchers.Default) {
+            val dir = File(context.cacheDir, "share").apply { mkdirs() }
+            val file = File(dir, "neko-conquista.png")
+            val bmp = draw(context, title, wins)
+            try {
+                file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            } finally {
+                bmp.recycle()
+            }
+            FileProvider.getUriForFile(context, "${context.packageName}.share", file)
+        }
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "image/png"
             putExtra(Intent.EXTRA_STREAM, uri)

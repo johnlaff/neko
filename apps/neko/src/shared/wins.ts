@@ -9,3 +9,10 @@ export const winText = (w: Win) => {
   if (w.kind === "record") return `Recorde: guardou ${w.share}% das entradas, o maior até aqui`;
   return `A reserva já cobre ${w.months === 1 ? "1 mês" : `${w.months} meses`} de custo de vida`;
 };
+
+/**
+ * A win as the shared picture says it: the same words, minus the share of the income kept,
+ * since what is shared is the achievement, not the finances (Android: Copy.winShare).
+ */
+export const winShareText = (w: Win) =>
+  w.kind === "record" ? "Recorde: o mês que mais guardou até aqui" : winText(w);

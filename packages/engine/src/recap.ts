@@ -79,7 +79,9 @@ const wins = (months: readonly MonthView[], closed: MonthView): Win[] => {
   else if (share !== null && share >= KEPT_GOAL) out.push({ kind: "kept", share });
   const cardsPaid = (m: MonthView) =>
     add(ZERO, ...m.outflows.filter((o) => o.kind === "card" && !o.others).map((o) => o.amount));
-  const before = upTo.at(-2);
+  // The calendar month before, as the copy says; a month without lines in between compares nothing.
+  const prevKey = closed.month === 1 ? (closed.year - 1) * 100 + 12 : key(closed) - 1;
+  const before = upTo.find((m) => key(m) === prevKey);
   if (before) {
     const was = cardsPaid(before);
     if (was > 0 && cardsPaid(closed) <= was * (1 - CARDS_DOWN_SHARE))
