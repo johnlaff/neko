@@ -66,6 +66,33 @@ export const fileVersion = async (
       ),
     );
 
+/** When each kept revision of the file was saved, oldest first. */
+export const revisionTimes = async (sheetId: string, token: string): Promise<string[]> => {
+  const out: string[] = [];
+  let page: string | undefined;
+  do {
+    const qs = new URLSearchParams({
+      fields: "nextPageToken,revisions(modifiedTime)",
+      pageSize: "1000",
+    });
+    if (page) qs.set("pageToken", page);
+    const body = z
+      .object({
+        nextPageToken: z.string().optional(),
+        revisions: z.array(z.object({ modifiedTime: z.string() })).default([]),
+      })
+      .parse(
+        await getJson(
+          `https://www.googleapis.com/drive/v3/files/${sheetId}/revisions?${qs}`,
+          token,
+        ),
+      );
+    out.push(...body.revisions.map((r) => r.modifiedTime));
+    page = body.nextPageToken;
+  } while (page && out.length < 10_000);
+  return out;
+};
+
 /** Tab title → gid, used to pick year tabs and to deep-link a cell. */
 export const tabs = async (sheetId: string, token: string): Promise<Record<string, number>> => {
   const body = z

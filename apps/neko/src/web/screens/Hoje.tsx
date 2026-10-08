@@ -30,11 +30,13 @@ import {
   IconIncome,
   IconPlus,
   IconReceipt,
+  IconSpark,
   IconToday,
   IconTrendUp,
 } from "../icons.tsx";
-import { HINTS } from "../learn.ts";
+import { HINTS, streakLabel } from "../learn.ts";
 import { Simulator } from "../Pace.tsx";
+import { milestoneText, Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
 
 /** Each warning in a few words, with the figure that shows it and where to look next. */
@@ -327,9 +329,26 @@ const splitDays = (days: readonly UpcomingDay[]) => {
   return [days.slice(0, cut), days.slice(cut)] as const;
 };
 
+/** The day the run reaches a mark, and the day after: one card, then it leaves on its own. */
+const MilestoneCard = ({ milestone }: { milestone: number }) => (
+  <ul className="alerts" aria-label="Sequência">
+    <li>
+      <div className="alert good milestone" role="status">
+        <span className="alert-icon" aria-hidden="true">
+          <IconSpark />
+        </span>
+        <span className="alert-text">
+          <strong>Marca de {milestone} dias</strong>
+          <span>{milestoneText(milestone)}</span>
+        </span>
+      </div>
+    </li>
+  </ul>
+);
+
 export const Hoje = () => (
   <WithProjection>
-    {({ projection: p, sheet, daily }) => {
+    {({ projection: p, sheet, daily, habit }) => {
       const cs = p.canSpend;
       const todayUrl = p.todayRef
         ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
@@ -413,6 +432,9 @@ export const Hoje = () => (
             )}
             {cs && <Simulator cs={cs} months={p.months} />}
           </div>
+          {habit && <Streak habit={habit} />}
+
+          {habit?.milestone != null && <MilestoneCard milestone={habit.milestone} />}
 
           {(p.insights ?? []).length > 0 && <Insights items={p.insights} />}
           {p.saving && p.saving.date >= p.today && p.saving.date <= addDays(p.today, SAVE_LEAD) && (

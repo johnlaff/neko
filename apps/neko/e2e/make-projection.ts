@@ -9,6 +9,7 @@ import {
   type CellValue,
   cents,
   type DayRow,
+  habit,
   inferCards,
   type LocalDate,
   localDate,
@@ -111,6 +112,11 @@ const response: ProjectionResponse = {
     readAt: "2026-10-05T11:00:00.000Z",
     tabs: { "2025": 1, "2026": 2 },
   },
+  // Twelve days in a row, with one rest day: today is still open.
+  habit: habit(
+    Array.from({ length: 13 }, (_, i) => addDays(TODAY, i - 13)).filter((d) => d !== "2026-09-30"),
+    TODAY,
+  ),
 };
 
 writeFileSync(

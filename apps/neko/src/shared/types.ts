@@ -1,4 +1,4 @@
-import type { CardConfig, Cents, Projection } from "@neko/engine";
+import type { CardConfig, Cents, Habit, Projection } from "@neko/engine";
 import { z } from "zod";
 
 /** Shared by the Worker and the web app; no runtime-specific types here. */
@@ -30,6 +30,11 @@ export interface ProjectionResponse {
     /** Tab title → gid, for links straight to a cell. */
     readonly tabs: Record<string, number>;
   };
+  /**
+   * Days the sheet changed, as a streak. Attached fresh on every read, never cached with the
+   * projection; absent from copies saved before it existed.
+   */
+  readonly habit?: Habit;
 }
 
 export interface HistoryPoint {

@@ -57,13 +57,20 @@ export const morningMessage = ({ projection: p }: ProjectionResponse): Reminder 
   };
 };
 
+/** The run as a fact, not a threat: a missed day is a rest day, so nothing is "lost" tonight. */
+const streakLine = (streak: number) => (streak >= 2 ? ` Você está há ${streak} dias em dia.` : "");
+
 /** 21:00: the habit nudge, straight to today's row in the sheet; silent once the day is logged. */
-export const eveningMessage = ({ projection: p, sheet }: ProjectionResponse): Reminder | null =>
-  p.todayLogged
+export const eveningMessage = ({
+  projection: p,
+  sheet,
+  habit,
+}: ProjectionResponse): Reminder | null =>
+  p.todayLogged || habit?.editedToday
     ? null
     : {
         title: "Lançou os gastos de hoje?",
-        body: `Abre a planilha direto no dia ${shortDate(p.today)}.`,
+        body: `Abre a planilha direto no dia ${shortDate(p.today)}.${streakLine(habit?.streak ?? 0)}`,
         url: p.todayRef ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1) : "/",
         tag: "evening",
       };
