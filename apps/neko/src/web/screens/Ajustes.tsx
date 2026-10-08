@@ -283,7 +283,7 @@ export const Ajustes = () => {
       <HowItWorks reviewed={settings.data} />
       <section className="group" aria-label="Sessão">
         <div className="panel list">
-          <a className="setting link" href="/privacidade.html" target="_blank" rel="noreferrer">
+          <a className="setting link" href="/privacidade" target="_blank" rel="noreferrer">
             Política de privacidade
             <IconChevron />
           </a>

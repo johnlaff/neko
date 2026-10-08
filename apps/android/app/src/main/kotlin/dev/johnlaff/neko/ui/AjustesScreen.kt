@@ -679,7 +679,7 @@ private fun Privacy() {
     }
 }
 
-private val PRIVACY_URL = "${dev.johnlaff.neko.BuildConfig.NEKO_URL}/privacidade.html"
+private val PRIVACY_URL = "${dev.johnlaff.neko.BuildConfig.NEKO_URL}/privacidade"
 
 /** A sign-out text action that asks first: undoing it means signing in again on that phone. */
 @Composable
