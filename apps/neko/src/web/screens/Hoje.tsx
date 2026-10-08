@@ -39,7 +39,7 @@ import { Mascot } from "../Mascot.tsx";
 import { Simulator } from "../Pace.tsx";
 import { milestoneText, Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
-import { Wins } from "../Wins.tsx";
+import { shareCard, Wins } from "../Wins.tsx";
 
 /** Each warning in a few words, with the figure that shows it and where to look next. */
 const insightView = (i: Insight) => {
@@ -414,6 +414,13 @@ const MilestoneCard = ({ milestone }: { milestone: number }) => (
           <strong>Marca de {milestone} dias</strong>
           <span>{milestoneText(milestone)}</span>
         </span>
+        <button
+          type="button"
+          className="ghost small win-share"
+          onClick={() => shareCard(`Marca de ${milestone} dias`, [milestoneText(milestone)])}
+        >
+          Compartilhar
+        </button>
       </div>
     </li>
   </ul>
