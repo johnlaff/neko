@@ -7,6 +7,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -37,6 +39,7 @@ import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.ui.DarkLedger
 import dev.johnlaff.neko.ui.Format
 import dev.johnlaff.neko.ui.LightLedger
+import dev.johnlaff.neko.ui.Pose
 
 /** One upcoming day on the tall widget: "Amanhã", "−R$ 1.900,00". */
 data class WidgetDay(val label: String, val net: String, val income: Boolean)
@@ -55,6 +58,8 @@ data class WidgetText(
     /** "12 dias em dia" and this week as seven marks, for the tall widget; null without a streak. */
     val streak: String? = null,
     val week: List<String> = emptyList(),
+    /** Neko on the tall widget: asleep until signed in, content once today is on the sheet. */
+    val pose: Pose = Pose.Sitting,
 )
 
 fun widgetText(v: TodayView?): WidgetText {
@@ -80,7 +85,15 @@ fun widgetText(v: TodayView?): WidgetText {
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week)
+    }.copy(
+        streak = streak,
+        week = week,
+        pose = when {
+            v == null -> Pose.Sleeping
+            h?.editedToday == true -> Pose.Content
+            else -> Pose.Sitting
+        },
+    )
 }
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
@@ -90,6 +103,7 @@ val PREVIEW = WidgetText(
     listOf(WidgetDay("Amanhã", "−R$ 120,00", false), WidgetDay("Sexta, 10 out", "+R$ 5.600,00", true)),
     "5 dias em dia",
     listOf("edited", "edited", "rest", "edited", "edited", "today", "future"),
+    Pose.Content,
 )
 
 private val SMALL = DpSize(110.dp, 50.dp)
@@ -155,26 +169,36 @@ class TodayWidget : GlanceAppWidget() {
                     }
                 }
             }
-            if (tall && t.streak != null) {
+            if (tall) {
                 Spacer(GlanceModifier.defaultWeight())
-                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    t.week.forEach { s ->
-                        // Filled when the sheet changed, hollow otherwise, ringed in jade for today.
-                        Text(
-                            if (s == "edited") "●" else "○",
-                            style = TextStyle(
-                                color = when (s) {
-                                    "edited" -> pair { it.text }
-                                    "today" -> pair { it.accent }
-                                    else -> pair { it.faint }
-                                },
-                                fontSize = 11.sp,
-                            ),
-                            modifier = GlanceModifier.padding(end = 3.dp),
-                        )
+                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                    Row(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
+                        t.week.forEach { s ->
+                            // Filled when the sheet changed, hollow otherwise, ringed in jade for today.
+                            Text(
+                                if (s == "edited") "●" else "○",
+                                style = TextStyle(
+                                    color = when (s) {
+                                        "edited" -> pair { it.text }
+                                        "today" -> pair { it.accent }
+                                        else -> pair { it.faint }
+                                    },
+                                    fontSize = 11.sp,
+                                ),
+                                modifier = GlanceModifier.padding(end = 3.dp),
+                            )
+                        }
+                        if (t.streak != null) {
+                            Spacer(GlanceModifier.width(8.dp))
+                            Text(t.streak, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp), maxLines = 1)
+                        }
                     }
-                    Spacer(GlanceModifier.width(8.dp))
-                    Text(t.streak, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp), maxLines = 1)
+                    // Neko keeps the habit company, as on Hoje. Decorative: the words say the same.
+                    Image(
+                        ImageProvider(t.pose.res),
+                        contentDescription = null,
+                        modifier = GlanceModifier.height(36.dp).width((36 * t.pose.ratio).dp),
+                    )
                 }
             }
         }
