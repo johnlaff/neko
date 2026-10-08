@@ -281,9 +281,15 @@ private fun Outflows(m: MonthItem) {
     val top = m.outflows.first().amount
     val rest = m.outflows.size - OUTFLOWS_SHOWN
     Panel {
+        // The arrows' legend lives in the head, not in a line of its own under the list.
+        val compared = m.outflows.any { (it.change ?: 0L) != 0L }
         PanelHead("Para onde foi") {
             Text(
-                if (m.outflows.size == 1) "1 destino" else "${m.outflows.size} destinos",
+                when {
+                    compared -> "▲▼ Comparado a ${monthName(if (m.month == 1) 12 else m.month - 1)}"
+                    m.outflows.size == 1 -> "1 destino"
+                    else -> "${m.outflows.size} destinos"
+                },
                 color = l.faint,
                 style = MaterialTheme.typography.labelMedium,
             )
@@ -295,10 +301,6 @@ private fun Outflows(m: MonthItem) {
                 androidx.compose.material3.Icon(painterResource(R.drawable.ic_repeat), contentDescription = null, tint = l.faint, modifier = Modifier.size(14.dp))
                 Text("Fixos somam ${money(m.fixedTotal)} no mês", color = l.faint, style = MaterialTheme.typography.labelMedium)
             }
-        }
-        if (m.outflows.any { (it.change ?: 0L) != 0L }) {
-            val before = monthName(if (m.month == 1) 12 else m.month - 1)
-            Text("▲▼ Comparado a $before", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
     }
 }
