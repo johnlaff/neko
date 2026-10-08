@@ -2,6 +2,7 @@ package dev.johnlaff.neko
 
 import android.Manifest
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,11 +27,14 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.johnlaff.neko.ui.AjustesScreen
 import dev.johnlaff.neko.reminders.Reminders
+import dev.johnlaff.neko.security.AppLock
 import dev.johnlaff.neko.ui.AppModel
 import dev.johnlaff.neko.ui.Dock
 import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
 import dev.johnlaff.neko.ui.LocalLedger
+import dev.johnlaff.neko.ui.LockScreen
+import dev.johnlaff.neko.ui.LockSwitch
 import dev.johnlaff.neko.ui.LoginScreen
 import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.NekoTheme
@@ -41,10 +45,16 @@ import dev.johnlaff.neko.ui.Tab
 
 class MainActivity : ComponentActivity() {
     private val model: AppModel by viewModels()
+    private val clock get() = (application as NekoApp).lock
+    /** The app lock is waiting: nothing but the lock screen is drawn. */
+    private var locked by mutableStateOf(false)
+    private var lockOn by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        lockOn = AppLock.enabled(this)
+        AppLock.guardWindow(this, lockOn)
         setContent {
             NekoTheme {
                 val session by model.session.collectAsStateWithLifecycle()
@@ -65,6 +75,11 @@ class MainActivity : ComponentActivity() {
                     when (session) {
                         Session.Checking -> Unit
                         Session.SignedOut -> LoginScreen(onSignedIn = model::signedIn)
+                        Session.SignedIn if locked -> {
+                            // Asks as soon as the lock shows; cancelling leaves the button to try again.
+                            LaunchedEffect(Unit) { unlock() }
+                            LockScreen(::unlock)
+                        }
                         Session.SignedIn -> {
                             when (tab) {
                                 Tab.Hoje -> {
@@ -88,6 +103,7 @@ class MainActivity : ComponentActivity() {
                                         ajustes, save, { model.refresh(Tab.Ajustes) }, model::saveSettings, model::logout,
                                         remindersSwitch(),
                                         DevicesList(devices, model::endSession, model::endOtherSessions),
+                                        lockSwitch(),
                                     )
                                 }
                             }
@@ -97,6 +113,45 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        locked = clock.locked(SystemClock.elapsedRealtime(), lockOn)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) clock.left(SystemClock.elapsedRealtime())
+    }
+
+    private fun unlock() {
+        AppLock.prompt(this, "Desbloquear o Neko") { ok ->
+            if (ok) {
+                clock.unlock()
+                locked = false
+            }
+        }
+    }
+
+    /** Ajustes' lock switch: turning it on asks first, so nobody locks themselves out. */
+    private fun lockSwitch() = LockSwitch(lockOn, AppLock.unavailable(this)) { want ->
+        if (!want) {
+            setLock(false)
+        } else {
+            AppLock.prompt(this, "Bloquear o Neko") { ok ->
+                if (ok) {
+                    clock.unlock()
+                    setLock(true)
+                }
+            }
+        }
+    }
+
+    private fun setLock(on: Boolean) {
+        lockOn = on
+        AppLock.setEnabled(this, on)
+        AppLock.guardWindow(this, on)
     }
 
     /** Ajustes' reminders switch: asks Android for notifications the first time it is turned on. */
