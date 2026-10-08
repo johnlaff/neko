@@ -13,6 +13,12 @@ const STATE_LABEL: Record<HabitDayState, string> = {
   future: "ainda não chegou",
 };
 
+const LEGEND = [
+  ["edited", "Lançado"],
+  ["rest", "Folga"],
+  ["missed", "Sem lançar"],
+] as const;
+
 /**
  * The habit the method asks for, in one quiet line under Lançar: this week as seven marks and
  * the run in words. The rule and the best run sit behind a tap.
@@ -22,7 +28,11 @@ export const Streak = ({ habit }: { habit: Habit }) => (
     <summary>
       <ol className="week" aria-label="Esta semana">
         {habit.week.map((d, i) => (
-          <li key={d.date} className={d.state}>
+          <li
+            key={d.date}
+            className={d.state}
+            title={`${WEEKDAY_NAMES[i]}: ${STATE_LABEL[d.state]}`}
+          >
             <span className="mark" aria-hidden="true" />
             <span aria-hidden="true">{WEEKDAYS[i]}</span>
             <span className="sr-only">
@@ -45,6 +55,15 @@ export const Streak = ({ habit }: { habit: Habit }) => (
       <IconChevron />
     </summary>
     <p>{HABIT.rule}</p>
+    {/* The marks explained once, in the marks themselves, so the row needs no memory. */}
+    <ul className="week-legend" aria-hidden="true">
+      {LEGEND.map(([state, label]) => (
+        <li key={state} className={state}>
+          <span className="mark" />
+          {label}
+        </li>
+      ))}
+    </ul>
     <p className="meta">
       {/* Missing on projections cached before it existed. */}
       {habit.lastWeek != null ? `Semana passada: ${habit.lastWeek} de 7 dias lançados. ` : ""}

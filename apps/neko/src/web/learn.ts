@@ -3,7 +3,7 @@
  * full list in Ajustes › Como funciona. The Android app (ui/Learn.kt) says the same, word for word.
  */
 export const HINTS = {
-  hoje: "O arco é a fatura aberta perto do plano do ciclo. Ele muda quando você lança na planilha.",
+  hoje: "O arco é a fatura aberta perto do plano do ciclo.",
   faturas: "Compra no cartão entra na planilha uma vez só: na fatura, no dia em que ela vence.",
   mes: "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista.",
 } as const;

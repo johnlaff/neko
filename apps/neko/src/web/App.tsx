@@ -7,6 +7,7 @@ import {
   lazyRouteComponent,
   Outlet,
   RouterProvider,
+  useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
 import { Fragment, lazy, Suspense, useEffect } from "react";
@@ -56,18 +57,41 @@ const TITLES: Record<string, string> = {
  * The screen's name, when the sheet was read and a way to read it again: the same head as the
  * Android app, on every screen. The brand lives in the icon and the tab, not over every screen.
  */
+/** Keys 1 to 4 switch screens and R reads the sheet again, never while typing in a field. */
+const SHORTCUT_PATHS = ["/", "/faturas", "/mes", "/ajustes"] as const;
+const isTyping = (t: EventTarget | null) =>
+  t instanceof HTMLElement &&
+  (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
+
 const Masthead = () => {
   const q = useProjection();
   const hidden = useValuesHidden();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { refetch, isFetching } = q;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || isTyping(e.target)) return;
+      if (document.querySelector("dialog[open]")) return;
+      const to = SHORTCUT_PATHS[Number(e.key) - 1];
+      if (to) navigate({ to });
+      else if (e.key.toLowerCase() === "r" && !isFetching) refetch();
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navigate, refetch, isFetching]);
   return (
     <header className="masthead">
       <div className="masthead-title">
         <h1>{TITLES[path] ?? "Neko"}</h1>
         {q.data && (
           <p className={q.data.offline ? "read warn" : "read"} role="status">
-            {q.data.offline ? "Sem conexão · Lida" : "Planilha lida"}{" "}
-            {readAtLabel(q.data.sheet.readAt)}
+            {q.data.offline && <span className="read-dot" aria-hidden="true" />}
+            {q.isFetching
+              ? "Lendo a planilha…"
+              : `${q.data.offline ? "Sem conexão · Lida" : "Planilha lida"} ${readAtLabel(q.data.sheet.readAt)}`}
           </p>
         )}
       </div>
@@ -86,6 +110,8 @@ const Masthead = () => {
         onClick={() => q.refetch()}
         disabled={q.isFetching}
         aria-label={q.isFetching ? "Lendo a planilha" : "Ler a planilha de novo"}
+        aria-keyshortcuts="R"
+        title="Ler a planilha de novo (R)"
       >
         <IconRefresh />
       </button>
@@ -107,19 +133,19 @@ const Shell = () => {
         </Fragment>
       </main>
       <nav className="dock" aria-label="Telas">
-        <Link to="/" activeOptions={{ exact: true }}>
+        <Link to="/" activeOptions={{ exact: true }} aria-keyshortcuts="1">
           <IconToday />
           Hoje
         </Link>
-        <Link to="/faturas">
+        <Link to="/faturas" aria-keyshortcuts="2">
           <IconCard />
           Faturas
         </Link>
-        <Link to="/mes">
+        <Link to="/mes" aria-keyshortcuts="3">
           <IconMonth />
           Mês
         </Link>
-        <Link to="/ajustes">
+        <Link to="/ajustes" aria-keyshortcuts="4">
           <IconSettings />
           Ajustes
         </Link>

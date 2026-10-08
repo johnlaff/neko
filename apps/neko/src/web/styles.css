@@ -876,7 +876,19 @@ input.switch:checked::after {
   color: var(--muted);
 }
 .masthead .read.warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--warn);
+  font-weight: 600;
+}
+/* Offline is the one state the head must not let you miss: a solid dot before the words. */
+.masthead .read-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
 }
 .masthead button.icon svg {
   width: 20px;
@@ -1300,6 +1312,17 @@ fieldset.panel > legend {
   padding: 6px 10px;
   text-align: right;
 }
+a.setting.link {
+  min-height: 56px;
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+}
+a.setting.link > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--faint);
+}
 button.setting.danger {
   width: 100%;
   justify-content: flex-start;
@@ -1341,8 +1364,8 @@ button.text-link {
   align-items: start;
 }
 
-/* Desktop: brand and freshness share the row with the top pill bar; the Hoje hero reads as
-   the dial on the left and its figures on the right. */
+/* Desktop: the masthead keeps its row; on Hoje the dial takes the left half and what to do now
+   sits beside it, so the gauge never floats in an empty full-width card. */
 @media (min-width: 48rem) {
   .page {
     padding-top: 20px;
@@ -1350,58 +1373,6 @@ button.text-link {
   .masthead {
     min-height: 50px;
     margin: 0 0 12px;
-  }
-  .hero.today {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      "head head"
-      "dial figures"
-      "chips formula";
-    column-gap: 40px;
-  }
-  .hero.today > .panel-head {
-    grid-area: head;
-  }
-  .hero.today > .dial {
-    grid-area: dial;
-  }
-  .hero.today > .chips {
-    grid-area: chips;
-  }
-  .hero.today > .figures {
-    grid-area: figures;
-    grid-template-columns: 1fr;
-    align-self: center;
-    gap: 0;
-    padding-top: 0;
-    border-top: 0;
-  }
-  .hero.today > .figures > div {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--border);
-    text-align: left;
-  }
-  .hero.today > .figures > div:last-child {
-    border-bottom: 0;
-  }
-  .hero.today > .figures dd {
-    font-size: 1.125rem;
-  }
-  .hero.today > .formula {
-    grid-area: formula;
-    align-self: start;
-  }
-  /* Over the plan there are no figures beside the dial: one column, nothing floating. */
-  .hero.today:not(:has(> .figures)) {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "head"
-      "dial"
-      "chips"
-      "formula";
   }
 }
 @media (min-width: 48rem) {
@@ -2225,17 +2196,35 @@ button.setting.quiet:hover {
   font-size: 0.6875rem;
   color: var(--faint);
 }
-.week .mark {
+.week-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.week-legend > li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.week .mark,
+.week-legend .mark {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   border: 1.5px solid var(--border-input);
 }
-.week .edited .mark {
+.week .edited .mark,
+.week-legend .edited .mark {
   background: var(--text);
   border-color: var(--text);
 }
-.week .rest .mark {
+.week .rest .mark,
+.week-legend .rest .mark {
   border-style: dashed;
 }
 .week .today .mark {
