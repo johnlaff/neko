@@ -2428,3 +2428,17 @@ form.mia-form {
 .quick > button.alert.mia-ask[aria-expanded="true"] > svg {
   transform: rotate(90deg);
 }
+/* Reserva: what is kept leads; the method's numbers follow in a short ledger. */
+.panel.reserve > p.reserve-kept {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.panel.reserve > p.reserve-kept > strong {
+  color: var(--text);
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  margin-right: 4px;
+}
