@@ -77,7 +77,14 @@ fun HojeScreen(
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
         v.habit?.let { h -> item { Streak(h) } }
-        v.habit?.milestone?.let { m -> item { MilestoneCard(m) } }
+        v.habit?.let { h ->
+            when {
+                h.milestone != null -> item { MilestoneCard("Marca de ${h.milestone} dias", Learn.milestone(h.milestone), h.milestone) }
+                h.record != null -> item {
+                    MilestoneCard("Novo recorde", "${h.record + 1} dias seguidos. O anterior era ${h.record}.", h.record + 1)
+                }
+            }
+        }
         if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) } }
@@ -234,17 +241,18 @@ private fun Alert(
     }
 }
 
+/** A mark or a new best run, the day it lands and the day after (as on the site). */
 @Composable
-private fun MilestoneCard(m: Int) {
+private fun MilestoneCard(title: String, text: String, days: Int) {
     val l = LocalLedger.current
-    MilestoneHaptic(m)
+    MilestoneHaptic(days)
     val context = LocalContext.current
     Alert(
-        "Marca de $m dias",
-        Learn.milestone(m),
+        title,
+        text,
         l.pos,
         lead = { CelebratingCat(Modifier.height(56.dp).hop()) },
-        action = { ShareButton { dev.johnlaff.neko.share.WinCard.share(context, "Marca de $m dias", listOf(Learn.milestone(m))) } },
+        action = { ShareButton { dev.johnlaff.neko.share.WinCard.share(context, title, listOf(text)) } },
     )
 }
 
