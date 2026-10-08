@@ -2346,11 +2346,6 @@ form.setting.bank-add > input {
   gap: 12px;
   text-align: left;
 }
-.mia-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 p.mia-lead {
   margin: 0;
 }
@@ -2410,4 +2405,26 @@ form.mia-form {
 .rows span.avatar.brand > svg {
   width: 20px;
   height: 20px;
+}
+
+/* "Perguntar à Mia": an alert-like row under the quick buttons; the chevron turns when open. */
+.quick > button.alert.mia-ask {
+  width: 100%;
+  min-height: 64px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.quick > button.alert.mia-ask > .alert-text > span {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.quick > button.alert.mia-ask > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--faint);
+  transition: transform 160ms ease;
+}
+.quick > button.alert.mia-ask[aria-expanded="true"] > svg {
+  transform: rotate(90deg);
 }

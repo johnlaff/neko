@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Fragment, useId, useState } from "react";
 import { ApiError, api, type MiaReply } from "./api.ts";
 import { money, shortDate } from "./format.ts";
+import { IconChevron } from "./icons.tsx";
 import { Mascot } from "./Mascot.tsx";
 
 /** Questions Mia answers well, one tap each (specs/004-mia). */
@@ -90,25 +91,26 @@ export const Mia = () => {
 
   return (
     <>
+      {/* A quiet row, not a third big button: Hoje already has Lançar and Simular. */}
       <button
         type="button"
-        className="ghost mia-ask"
+        className="alert mia-ask"
         aria-expanded={open}
         aria-controls={`${id}-panel`}
         onClick={() => setOpen(!open)}
       >
-        Perguntar à Mia
+        <Mascot pose="miaTeaching" height={40} />
+        <span className="alert-text">
+          <strong>Perguntar à Mia</strong>
+          <span>Respostas com os números da sua planilha</span>
+        </span>
+        <IconChevron />
       </button>
       {open && (
         <section id={`${id}-panel`} className="panel mia" aria-label="Conversa com a Mia">
-          <div className="mia-head">
-            <Mascot pose="miaTeaching" height={56} />
-            <p className="muted mia-lead">
-              {s.pausadaAte
-                ? `A Mia descansa até ${shortDate(s.pausadaAte)}.`
-                : "Pergunte sobre a sua planilha. Os valores vêm do Neko."}
-            </p>
-          </div>
+          {s.pausadaAte && (
+            <p className="muted mia-lead">A Mia descansa até {shortDate(s.pausadaAte)}.</p>
+          )}
           {talk.length > 0 && (
             <ol className="mia-talk">
               {talk.map((x) => (
