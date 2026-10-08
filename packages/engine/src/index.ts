@@ -8,6 +8,7 @@ export * from "./health.ts";
 export * from "./insights.ts";
 export * from "./installments.ts";
 export * from "./ledger.ts";
+export * from "./mia.ts";
 export * from "./money.ts";
 export * from "./projection.ts";
 export * from "./recap.ts";
