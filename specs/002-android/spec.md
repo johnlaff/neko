@@ -18,7 +18,10 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
   pelo Gerenciador de Senhas do Google). O Worker publica `/.well-known/assetlinks.json` com o
   certificado do app e aceita a origem `android:apk-key-hash:…` desse certificado.
 - Sessão: o mesmo cookie `__Host-` do site, guardado no armazenamento privado do app e fora do
-  backup do Android.
+  backup do Android, cifrado com AES-GCM por uma chave do Android Keystore (o cache do Hoje também).
+- Bloqueio opcional (Ajustes › Neste celular): digital forte ou a senha do celular ao abrir o app e
+  ao voltar depois de 5 minutos fora. Ligado, a prévia em Recentes some. Os lembretes mostram só o
+  título na tela bloqueada.
 - `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
   agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
 - `GET /api/invoices`, `GET /api/months` e `GET /api/ajustes` (`apps/neko/src/shared/screens.ts`):

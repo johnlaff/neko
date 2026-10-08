@@ -110,6 +110,15 @@ object Reminders {
             .setStyle(NotificationCompat.BigTextStyle().bigText(r.body))
             .setContentIntent(tap)
             .setAutoCancel(true)
+            // The lock screen says only that a reminder came; the amounts show once unlocked.
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(
+                NotificationCompat.Builder(context, CHANNEL)
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle("Neko")
+                    .setContentText(if (slot == Slot.Morning) "Quanto cabe hoje" else "Hora de lançar o dia")
+                    .build(),
+            )
             .build()
         // One per slot: tomorrow's morning replaces today's instead of stacking.
         try {

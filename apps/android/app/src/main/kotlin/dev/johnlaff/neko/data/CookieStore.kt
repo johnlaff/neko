@@ -1,16 +1,15 @@
 package dev.johnlaff.neko.data
 
-import java.io.File
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
 
 /**
- * Keeps the Worker's cookies (the session and the short-lived passkey challenge) in a private
- * file outside backups, so the app stays signed in like the site does. Expired cookies are
+ * Keeps the Worker's cookies (the session and the short-lived passkey challenge) in a sealed
+ * private file outside backups, so the app stays signed in like the site does. Expired cookies are
  * dropped on every write.
  */
-class CookieStore(private val file: File) : CookieJar {
+class CookieStore(private val file: SealedFile) : CookieJar {
     private val lock = Any()
     private var cookies: List<Cookie> = load()
 
@@ -37,15 +36,12 @@ class CookieStore(private val file: File) : CookieJar {
 
     private fun persist() {
         val lines = cookies.filter { it.persistent }.joinToString("\n") { "${it.domain}\t$it" }
-        file.parentFile?.mkdirs()
-        val tmp = File(file.path + ".tmp")
-        tmp.writeText(lines)
-        tmp.renameTo(file)
+        file.write(lines)
     }
 
     private fun load(): List<Cookie> {
-        if (!file.exists()) return emptyList()
-        return file.readLines().mapNotNull { line ->
+        val text = file.read() ?: return emptyList()
+        return text.lines().mapNotNull { line ->
             val (domain, header) = line.split('\t', limit = 2).takeIf { it.size == 2 } ?: return@mapNotNull null
             val url = HttpUrl.Builder().scheme("https").host(domain).build()
             Cookie.parse(url, header)

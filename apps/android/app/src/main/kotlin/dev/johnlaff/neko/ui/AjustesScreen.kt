@@ -97,6 +97,7 @@ fun AjustesScreen(
     onLogout: () -> Unit,
     reminders: RemindersSwitch = RemindersSwitch(),
     devices: DevicesList = DevicesList(),
+    lock: LockSwitch = LockSwitch(),
 ) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
@@ -130,7 +131,12 @@ fun AjustesScreen(
         val f = form ?: return@ScreenFrame
         item { Group("Ritmo") { Pace(f, view.dailyAuto) } }
         if (f.cards.isNotEmpty()) item { Group("Cartões") { Cards(f) } }
-        item { Group("Lembretes") { Reminders(reminders) } }
+        item {
+            Group("Neste celular") {
+                Reminders(reminders)
+                Lock(lock)
+            }
+        }
         devices.list?.takeIf { it.isNotEmpty() }?.let { item { Group("Aparelhos conectados") { Devices(devices) } } }
         item {
             Panel {
@@ -152,7 +158,7 @@ data class RemindersSwitch(
 private fun Reminders(r: RemindersSwitch) {
     val l = LocalLedger.current
     Setting(
-        "Neste celular",
+        "Lembretes",
         when {
             r.blocked -> "Permita as notificações do Neko no Android"
             // The site's browser push sends the same two reminders; both on would arrive twice.
@@ -166,6 +172,35 @@ private fun Reminders(r: RemindersSwitch) {
             onCheckedChange = r.onChange,
             colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
             modifier = Modifier.semantics { contentDescription = "Lembretes neste celular" },
+        )
+    }
+}
+
+/** The phone's app lock, also a setting of this device only. */
+data class LockSwitch(
+    val on: Boolean = false,
+    /** Why it can't be turned on here (no screen lock, old Android), or null. */
+    val unavailable: String? = null,
+    val onChange: (Boolean) -> Unit = {},
+)
+
+@Composable
+private fun Lock(s: LockSwitch) {
+    val l = LocalLedger.current
+    Setting(
+        "Bloqueio",
+        when {
+            s.on -> "Pede a digital ao abrir e após 5 min fora"
+            s.unavailable != null -> s.unavailable
+            else -> "Digital ou senha do celular para abrir"
+        },
+    ) {
+        Switch(
+            checked = s.on,
+            onCheckedChange = s.onChange,
+            enabled = s.on || s.unavailable == null,
+            colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
+            modifier = Modifier.semantics { contentDescription = "Bloqueio com digital ou senha" },
         )
     }
 }

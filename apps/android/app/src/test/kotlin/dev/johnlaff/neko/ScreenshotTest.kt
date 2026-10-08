@@ -14,6 +14,8 @@ import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.ui.AjustesScreen
 import dev.johnlaff.neko.ui.RemindersSwitch
+import dev.johnlaff.neko.ui.LockScreen
+import dev.johnlaff.neko.ui.LockSwitch
 import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
 import dev.johnlaff.neko.ui.MesScreen
@@ -71,8 +73,10 @@ class ScreenshotTest {
     }
 
     @Test fun ajustesDark() = shot("ajustes-dark", night = true) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices)
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true))
     }
+
+    @Test fun lockLight() = shot("lock-light", night = false) { LockScreen {} }
 
     @Test fun loginDark() = shot("login-dark", night = true) { LoginScreen {} }
 
