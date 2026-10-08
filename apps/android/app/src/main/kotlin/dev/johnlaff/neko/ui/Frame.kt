@@ -127,7 +127,7 @@ fun <T> ScreenFrame(
                     Column(Modifier.weight(1f)) {
                         Text(title, style = MaterialTheme.typography.displayLarge, modifier = Modifier.semantics { heading() })
                         val read = when {
-                            state.error == ReadError.Offline && v != null -> "Sem conexão: mostrando a última leitura"
+                            state.error == ReadError.Offline && v != null -> "Sem conexão. Esta é a última leitura"
                             v != null && readAt(v).isNotEmpty() -> "Planilha lida ${readAtText(readAt(v))}"
                             else -> null
                         }
