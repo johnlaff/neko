@@ -281,7 +281,7 @@ const Conference = ({
                 review.mutate({ ...s, reviewed }, { onSuccess: () => setJustHid(keys) });
               }}
             >
-              Já conferi, esconder
+              {review.isPending && !justHid ? "Escondendo…" : "Já conferi, esconder"}
             </button>
           )}
         </>
@@ -302,8 +302,13 @@ const Conference = ({
               );
             }}
           >
-            Desfazer
+            {review.isPending ? "Desfazendo…" : "Desfazer"}
           </button>
+        </p>
+      )}
+      {review.isError && (
+        <p className="setting-error" role="status">
+          Não salvou. Tente de novo.
         </p>
       )}
     </section>
@@ -542,7 +547,14 @@ export const Hoje = () => (
           <div className={cs ? "half stack" : "stack"}>
             <div className="quick">
               {todayUrl && (
-                <a className="button" href={todayUrl} target="_blank" rel="noreferrer">
+                <a
+                  className="button"
+                  href={todayUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-keyshortcuts="L"
+                  title="Lançar na planilha (L)"
+                >
                   <IconPlus />
                   Lançar
                 </a>

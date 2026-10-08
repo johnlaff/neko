@@ -184,20 +184,10 @@ export const Thermo = ({
         {save && (
           <li>
             <i className="swatch dot" />
-            Dia de guardar
+            Dia de guardar · {money(save.amount)}
           </li>
         )}
       </ul>
-      {save && (
-        <p className="thermo-save">
-          <span>
-            Dá para guardar <strong>{money(save.amount)}</strong> no dia {payday}.
-          </span>
-          <span className="muted">
-            Menor saldo até {shortDate(save.until)}: {money(save.leftAtLowest)}
-          </span>
-        </p>
-      )}
       <Hint id="mes">{HINTS.mes}</Hint>
     </section>
   );

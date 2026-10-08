@@ -336,6 +336,7 @@ export const Mes = () => {
                 onClick={() => setPicked(keys[idx - 1] ?? null)}
                 disabled={idx === 0}
                 aria-label="Mês anterior"
+                aria-keyshortcuts="ArrowLeft"
               >
                 <IconChevronLeft />
               </button>
@@ -348,6 +349,7 @@ export const Mes = () => {
                 onClick={() => setPicked(keys[idx + 1] ?? null)}
                 disabled={idx === p.months.length - 1}
                 aria-label="Próximo mês"
+                aria-keyshortcuts="ArrowRight"
               >
                 <IconChevron />
               </button>
