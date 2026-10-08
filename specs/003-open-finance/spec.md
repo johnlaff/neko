@@ -7,8 +7,9 @@ não dá:
 
 1. **Conferir:** mostrar onde a planilha e o banco não batem, como saldo do dia, fatura fechada ou
    uma saída que está no banco e não está na planilha.
-2. **Copiar:** listar as compras novas no cartão desde a última vez que a planilha foi preenchida,
-   prontas para colar na nota do dia.
+2. **Copiar:** listar o que entrou ou saiu da conta e ainda não está na planilha, pronto para colar
+   na nota do dia. As compras no cartão não entram aqui, porque a planilha registra o cartão pela
+   fatura, não compra por compra: elas aparecem somadas na conferência das faturas (item 3).
 3. **Parcelas:** saber, sem precisar mandar faturas, quanto de cada fatura futura já está comprometido
    com parcelas e avisar quando isso difere do que a planilha prevê.
 
@@ -51,10 +52,14 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   O upsert é idempotente pelo id do provedor. A Pluggy pode apagar uma transação e recriá-la com
   outro id, então o sync remove o que o banco já não devolve na janela lida. Do payload só se guarda
   o que alguma tela usa.
-- **Casamento banco × planilha (engine):** uma saída do banco casa com uma linha da planilha quando
-  o valor é igual e a data fica a até 7 dias, como no Actual Budget. Compras do cartão casam com as
-  linhas da nota do dia. Faturas casam pelo cartão e pelo vencimento. O que sobra vira "não está na
-  planilha".
+- **Casamento banco × planilha (engine, `bank.ts`):** um movimento da conta casa com uma linha da
+  planilha quando o valor e a direção são iguais e a data fica a até 7 dias, como no Actual Budget.
+  Cada linha da planilha responde por um movimento só, o mais próximo primeiro. O que sobra vira
+  "não está na planilha" (`unmatchedMovements`).
+- **Faturas (engine, `billChecks`):** para cada fatura futura de um cartão que a planilha conhece,
+  soma o que o banco já pôs nela (compras e parcelas, com estornos descontados e sem o pagamento da
+  fatura anterior) e compara com a linha da planilha no vencimento. Cada cartão do banco é ligado ao
+  nome dele na planilha em Ajustes, inclusive o adicional, que vem no mesmo cartão com outro número.
 - **Parcelas futuras (engine):** a soma por cartão e por fatura usa `installmentNumber`,
   `totalInstallments` e `billForecastDate`. O Open Finance não liga as parcelas de uma mesma compra,
   então a compra é reconhecida por descrição, valor da parcela e total de parcelas. Nada disso
