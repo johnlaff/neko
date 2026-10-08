@@ -1,5 +1,6 @@
 import {
   type Fixed,
+  fixedOf,
   type MonthView,
   monthWins,
   type Outflow,
@@ -78,12 +79,22 @@ const Trend = ({ points, label }: { points: readonly TrendPoint[]; label: string
   );
 };
 
+/** "13 de 36 · Faltam R$ 1.006,00 até set 2028", under an installment's name. */
+const installmentLine = (i: NonNullable<Fixed["installment"]>) =>
+  `${i.paid} de ${i.total}` +
+  (i.left > 0
+    ? ` · Faltam ${money(i.left)} até ${monthName(i.ends.month).slice(0, 3)} ${i.ends.year}`
+    : "");
+
 const OutflowRow = ({
   o,
+  fixed,
   top,
   trend,
 }: {
   o: Outflow;
+  /** The line's fixed bill or installment, when it has one. */
+  fixed: Fixed | null;
   top: number;
   trend: () => readonly TrendPoint[];
 }) => {
@@ -99,11 +110,13 @@ const OutflowRow = ({
         onClick={() => setOpen(!open)}
       />
       <RowAvatar card={o.kind === "card" ? o.label : null}>
-        {o.kind === "card" ? <IconCard /> : <IconReceipt />}
+        {o.kind === "card" ? <IconCard /> : fixed ? <IconRepeat /> : <IconReceipt />}
       </RowAvatar>
       <span className="name">
         <ItemName text={o.label} />
+        {fixed && <span className="sr-only">, fixo</span>}
         {o.others && <span className="chip">De outra pessoa</span>}
+        {fixed?.installment && <small className="meta">{installmentLine(fixed.installment)}</small>}
         {/* Display only: the bar is the line's amount scaled to the month's largest line. */}
         <span className="meter" aria-hidden="true">
           <span style={{ width: `${top <= 0 ? 0 : (o.amount / top) * 100}%` }} />
@@ -128,16 +141,24 @@ const OutflowRow = ({
 
 const OutflowRows = ({
   items,
+  fixed,
   top,
   trend,
 }: {
   items: readonly Outflow[];
+  fixed: readonly Fixed[];
   top: number;
   trend: (label: string) => readonly TrendPoint[];
 }) => (
   <ul className="rows lead outflows">
     {items.map((o) => (
-      <OutflowRow key={o.label} o={o} top={top} trend={() => trend(o.label)} />
+      <OutflowRow
+        key={o.label}
+        o={o}
+        fixed={fixedOf(o, fixed)}
+        top={top}
+        trend={() => trend(o.label)}
+      />
     ))}
   </ul>
 );
@@ -145,11 +166,16 @@ const OutflowRows = ({
 /** Where the month's Saída went, by description: the engine groups, the screen lists. */
 const Outflows = ({
   items,
+  fixed,
+  fixedTotal,
   before,
   half,
   trend,
 }: {
   items: readonly Outflow[];
+  /** Bills that come back every month and installments: marked on their lines, summed below. */
+  fixed: readonly Fixed[];
+  fixedTotal: number;
   before: string;
   half: boolean;
   trend: (label: string) => readonly TrendPoint[];
@@ -165,86 +191,27 @@ const Outflows = ({
           {items.length === 1 ? "1 destino" : `${items.length} destinos`}
         </span>
       </div>
-      <OutflowRows items={shown} top={top} trend={trend} />
+      <OutflowRows items={shown} fixed={fixed} top={top} trend={trend} />
       {rest.length > 0 && (
         <details className="formula">
           <summary>
             <IconChevron />
             Ver mais {rest.length}
           </summary>
-          <OutflowRows items={rest} top={top} trend={trend} />
+          <OutflowRows items={rest} fixed={fixed} top={top} trend={trend} />
         </details>
+      )}
+      {fixed.length > 0 && (
+        <p className="hint fixed-sum">
+          <IconRepeat />
+          Fixos somam {money(fixedTotal)} no mês
+        </p>
       )}
       {items.some((o) => o.change != null && o.change !== 0) && (
         <p className="hint">
           <span aria-hidden="true">▲▼ </span>
           Comparado a {before}
         </p>
-      )}
-    </section>
-  );
-};
-
-/** Fixed bills shown before "Ver mais". */
-const FIXED_SHOWN = 4;
-
-const FixedRows = ({ items }: { items: readonly Fixed[] }) => (
-  <ul className="rows lead fixed">
-    {items.map((f) => {
-      const i = f.installment;
-      return (
-        <li key={f.label}>
-          <span className="avatar" aria-hidden="true">
-            {i ? <IconCard /> : <IconRepeat />}
-          </span>
-          <span className="name">{f.label}</span>
-          <span className="value">{money(f.amount)}</span>
-          {i && (
-            <>
-              {/* Display only: the bar is installments paid out of the total. */}
-              <span className="meter" aria-hidden="true">
-                <span style={{ width: `${(i.paid / i.total) * 100}%` }} />
-              </span>
-              <span className="meta">
-                {i.paid} de {i.total}
-                {i.left > 0 &&
-                  ` · Faltam ${money(i.left)} até ${monthName(i.ends.month).slice(0, 3)} ${i.ends.year}`}
-              </span>
-            </>
-          )}
-        </li>
-      );
-    })}
-  </ul>
-);
-
-/** Bills that come back every month and installments, with how far each installment has gone. */
-const FixedPanel = ({
-  items,
-  total,
-  half,
-}: {
-  items: readonly Fixed[];
-  total: number;
-  /** Side by side with "Para onde foi" on wide screens, so neither leaves a hole next to it. */
-  half: boolean;
-}) => {
-  const rest = items.slice(FIXED_SHOWN);
-  return (
-    <section className={`panel${half ? " half" : ""}`}>
-      <div className="panel-head">
-        <h2>Fixos do mês</h2>
-        <span className="meta">{money(total)}</span>
-      </div>
-      <FixedRows items={items.slice(0, FIXED_SHOWN)} />
-      {rest.length > 0 && (
-        <details className="formula">
-          <summary>
-            <IconChevron />
-            Ver mais {rest.length}
-          </summary>
-          <FixedRows items={rest} />
-        </details>
       )}
     </section>
   );
@@ -341,7 +308,6 @@ export const Mes = () => {
         const panels = [
           (m.days ?? []).length > 0 && "thermo",
           outflows.length > 0 && "outflows",
-          fixed.length > 0 && "fixed",
           p.reserve && "reserve",
         ].filter((x): x is string => typeof x === "string");
         const last = panels.length % 2 === 1 && panels.length > 1 ? panels.at(-1) : undefined;
@@ -490,14 +456,12 @@ export const Mes = () => {
             {outflows.length > 0 && (
               <Outflows
                 items={outflows}
+                fixed={fixed}
+                fixedTotal={m.fixedTotal ?? 0}
                 half={halves.has("outflows")}
                 before={monthName(m.month === 1 ? 12 : m.month - 1)}
                 trend={(label) => outflowTrend(p.months, m.year, m.month, label)}
               />
-            )}
-
-            {fixed.length > 0 && (
-              <FixedPanel items={fixed} total={m.fixedTotal ?? 0} half={halves.has("fixed")} />
             )}
 
             {/* Missing on projections cached before it existed. */}

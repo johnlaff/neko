@@ -3,6 +3,7 @@ import {
   type CardConfig,
   type Cents,
   type Fixed,
+  fixedOf,
   type InstallmentSimulation,
   monthWins,
   type Outflow,
@@ -157,8 +158,14 @@ export interface MonthItem {
   readonly endSheet: number;
   /** The method's performance; null on a month the sheet has no lines for. */
   readonly result: number | null;
-  /** Each destination with its last months, opened by a tap on its line. */
-  readonly outflows: readonly (Outflow & { readonly trend: readonly TrendPoint[] })[];
+  /**
+   * Each destination with its last months, opened by a tap on its line, and its fixed line when it
+   * comes back every month or is an installment.
+   */
+  readonly outflows: readonly (Outflow & {
+    readonly trend: readonly TrendPoint[];
+    readonly fixed: Fixed | null;
+  })[];
   readonly fixed: readonly Fixed[];
   readonly fixedTotal: number;
   /** The termômetro: each day's balance and band, with what moved it. */
@@ -209,6 +216,7 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
       outflows: m.outflows.map((o) => ({
         ...o,
         trend: outflowTrend(p.months, m.year, m.month, o.label),
+        fixed: fixedOf(o, m.fixed),
       })),
       fixed: m.fixed,
       fixedTotal: m.fixedTotal,

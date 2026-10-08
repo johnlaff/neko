@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { monthFixed, monthOutflows } from "../src/index.ts";
+import { cents, type Fixed, fixedOf, monthFixed, monthOutflows } from "../src/index.ts";
 import { cell, item, ledger } from "./builders.ts";
 
 describe("monthFixed", () => {
@@ -50,6 +50,27 @@ describe("monthFixed", () => {
         installment: { paid: 1, total: 2, ends: { year: 2026, month: 11 }, left: 175_00 },
       },
     ]);
+  });
+
+  it("finds each destination's fixed line, whatever the case or installment count", () => {
+    const fixed = monthFixed(rows, 2026, 10);
+    const byLabel = Object.fromEntries(
+      monthOutflows(rows, 2026, 10).map((o) => [o.label, fixedOf(o, fixed)?.label ?? null]),
+    );
+    expect(byLabel).toEqual({
+      "Cartão Azul": null,
+      "Financiamento Carro 13/36": "Financiamento Carro",
+      aluguel: "Aluguel",
+      Uniube: null,
+      "Aluguel Terno 1/2": "Aluguel Terno",
+      Presente: null,
+    });
+  });
+
+  it("never marks a card bill as fixed, even one named like a fixed line", () => {
+    const fixed: Fixed[] = [{ label: "Cartão Azul", amount: cents(3_000_00), installment: null }];
+    const card = monthOutflows(rows, 2026, 10).find((o) => o.label === "Cartão Azul");
+    expect(card && fixedOf(card, fixed)).toBe(null);
   });
 
   it("leaves out cards, one-off lines and bills seen only once before", () => {

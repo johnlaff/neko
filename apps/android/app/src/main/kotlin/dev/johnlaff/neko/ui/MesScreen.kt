@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +24,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -31,7 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.johnlaff.neko.R
-import dev.johnlaff.neko.data.Fixed
+import dev.johnlaff.neko.data.Installment
 import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.MonthItem
 import dev.johnlaff.neko.data.MonthsView
@@ -47,7 +49,6 @@ import dev.johnlaff.neko.ui.Format.signed
 
 /** Lines shown before "Ver mais", as on the site. */
 private const val OUTFLOWS_SHOWN = 5
-private const val FIXED_SHOWN = 4
 
 /** The site's Mês (web/screens/Mes.tsx): how a month ends, where the money went, what is fixed. */
 @Composable
@@ -76,7 +77,6 @@ fun MesScreen(state: ScreenState<MonthsView>, history: HistoryView? = null, onRe
         item { Hero(m, v.months.filter { it.year == m.year }, history.takeIf { m.key == v.current }) { picked = it } }
         if (m.days.isNotEmpty()) item { Thermo(m, v.today, v.saving) }
         if (m.outflows.isNotEmpty()) item { Outflows(m) }
-        if (m.fixed.isNotEmpty()) item { FixedPanel(m) }
         v.reserve?.let { r -> item { ReservePanel(r, v.years.firstOrNull { it.year == m.year }) } }
     }
 }
@@ -290,6 +290,12 @@ private fun Outflows(m: MonthItem) {
         }
         (if (all) m.outflows else m.outflows.take(OUTFLOWS_SHOWN)).forEach { OutflowRow(it, top) }
         if (rest > 0) TextAction(if (all) "Ver menos" else "Ver mais $rest", { all = !all })
+        if (m.fixed.isNotEmpty()) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                androidx.compose.material3.Icon(painterResource(R.drawable.ic_repeat), contentDescription = null, tint = l.faint, modifier = Modifier.size(14.dp))
+                Text("Fixos somam ${money(m.fixedTotal)} no mês", color = l.faint, style = MaterialTheme.typography.labelMedium)
+            }
+        }
         if (m.outflows.any { (it.change ?: 0L) != 0L }) {
             val before = monthName(if (m.month == 1) 12 else m.month - 1)
             Text("▲▼ Comparado a $before", color = l.faint, style = MaterialTheme.typography.labelMedium)
@@ -309,7 +315,9 @@ private fun OutflowRow(o: Outflow, top: Long) {
             // The whole line opens the destination's last months, as on the site.
             modifier = Modifier.clickable(onClickLabel = "ver os últimos meses") { open = !open },
             avatar = if (o.kind == "card") monogram(o.label) else o.label.take(1).uppercase(),
+            avatarIcon = R.drawable.ic_repeat.takeIf { o.kind != "card" && o.fixed != null },
             card = o.label.takeIf { o.kind == "card" },
+            meta = o.fixed?.installment?.let(::installmentLine),
             chips = { if (o.others) Chip("De outra pessoa", ChipTone.Plain) },
             below = {
                 // Display only: the line's amount scaled to the month's largest line.
@@ -358,32 +366,7 @@ internal fun Trend(points: List<TrendPoint>) {
     }
 }
 
-@Composable
-private fun FixedPanel(m: MonthItem) {
-    val l = LocalLedger.current
-    var all by remember(m.key) { mutableStateOf(false) }
-    val rest = m.fixed.size - FIXED_SHOWN
-    Panel {
-        PanelHead("Fixos do mês") { Text(money(m.fixedTotal), color = l.faint, style = MaterialTheme.typography.labelMedium) }
-        (if (all) m.fixed else m.fixed.take(FIXED_SHOWN)).forEach { FixedRow(it) }
-        if (rest > 0) TextAction(if (all) "Ver menos" else "Ver mais $rest", { all = !all })
-    }
-}
-
-@Composable
-private fun FixedRow(f: Fixed) {
-    val i = f.installment
-    ListRow(
-        name = f.label,
-        value = money(f.amount),
-        avatar = f.label.take(1).uppercase(),
-        meta = i?.let {
-            "${it.paid} de ${it.total}" +
-                if (it.left > 0) " · Faltam ${money(it.left)} até ${monthName(it.ends.month).take(3)} ${it.ends.year}" else ""
-        },
-        below = {
-            // Display only: installments paid out of the total.
-            if (i != null && i.total > 0) Meter(i.paid.toFloat() / i.total)
-        },
-    )
-}
+/** "13 de 36 · Faltam R$ 1.006,00 até set 2028", under an installment's name. */
+private fun installmentLine(i: Installment) =
+    "${i.paid} de ${i.total}" +
+        if (i.left > 0) " · Faltam ${money(i.left)} até ${monthName(i.ends.month).take(3)} ${i.ends.year}" else ""
