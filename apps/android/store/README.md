@@ -3,6 +3,9 @@
 Imagens prontas para a ficha do app (Play Console › Presença na loja › Ficha principal).
 Todas usam dados inventados das capturas do Roborazzi; nenhuma tem números reais.
 
+As capturas do telefone saem de `app/screenshots/` (Roborazzi), com o título em Faustina por
+cima e a tela recortada num cartão; refaça-as quando uma dessas telas mudar.
+
 | Arquivo | Uso | Tamanho |
 |---|---|---|
 | `icon-512.png` | Ícone do app | 512×512 |
