@@ -2210,3 +2210,14 @@ button.setting.quiet:hover {
     }
   }
 }
+
+/* Hoje: two warnings in view, the rest behind one quiet line */
+.more-alerts > summary {
+  padding: 4px 2px;
+  font-size: 0.875rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.more-alerts[open] > summary {
+  margin-bottom: 8px;
+}

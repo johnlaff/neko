@@ -242,9 +242,12 @@ private fun MilestoneCard(m: Int) {
 @Composable
 private fun Insights(v: TodayView, onAjustes: () -> Unit) {
     val l = LocalLedger.current
+    // Two warnings in view, the rest behind one quiet line, most important first (as on the site).
+    val known = v.insights.mapNotNull { i -> Copy.insight(i)?.let { i to it } }
+    var more by rememberSaveable { mutableStateOf(false) }
+    val rest = known.size - ShownAlerts
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        v.insights.forEach { i ->
-            val line = Copy.insight(i) ?: return@forEach
+        (if (more) known else known.take(ShownAlerts)).forEach { (i, line) ->
             // A guessed closing day is fixed in Ajustes, one tap away.
             val open = if (i.kind == "closing-estimated") onAjustes else null
             // A setup question, not a warning: color stays for real deviations, as on the site.
@@ -255,8 +258,16 @@ private fun Insights(v: TodayView, onAjustes: () -> Unit) {
             }
             Alert(line.title, line.detail, tone, open)
         }
+        if (rest > 0) {
+            TextAction(
+                if (more) "Mostrar menos" else if (rest == 1) "Mais 1 aviso" else "Mais $rest avisos",
+                { more = !more },
+            )
+        }
     }
 }
+
+private const val ShownAlerts = 2
 
 /**
  * The month that just closed, as on the site: how it ended, what it kept, what it cost to live
