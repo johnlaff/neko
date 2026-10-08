@@ -3,6 +3,7 @@ package dev.johnlaff.neko
 import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.InstallmentSimulation
 import dev.johnlaff.neko.data.InvoicesView
+import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.json
 import java.io.File
@@ -44,6 +45,21 @@ class ScreensContractTest {
         assertEquals((r.kept * 10 / r.cost).toInt(), r.coveredTenths)
         // The year counts only what is dated up to today: the fixture's deposit on the 20th is still ahead.
         assertEquals(v.months.filter { it.year == 2026 && it.past }.sumOf { it.saved }, v.years.single { it.year == 2026 }.saved)
+    }
+
+    /** A Mia reply (apps/neko/test/mia.test.ts): a total, a difference and a percent. */
+    @Test fun mia() {
+        val v = json.decodeFromString<MiaReply>(text("mia.json"))
+        assertEquals(setOf("v2", "v3", "v4"), v.valores.keys)
+        assertEquals("diferenca", v.valores.getValue("v3").tipo)
+        assertEquals(4, v.valores.getValue("v4").pct)
+        assertEquals("mes", v.valores.getValue("v2").tela)
+        assertEquals("4%", dev.johnlaff.neko.ui.miaShown(v.valores.getValue("v4")))
+        // A difference shows its size; the words around it say which way.
+        assertEquals(
+            dev.johnlaff.neko.ui.miaShown(v.valores.getValue("v3").copy(cents = -32_471)),
+            dev.johnlaff.neko.ui.miaShown(v.valores.getValue("v3")),
+        )
     }
 
     @Test fun simulate() {

@@ -57,6 +57,7 @@ import dev.johnlaff.neko.data.MissingMovement
 import dev.johnlaff.neko.data.MonthRecap
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
+import dev.johnlaff.neko.data.MiaStatus
 import dev.johnlaff.neko.data.UpcomingDay
 import dev.johnlaff.neko.ui.Format.days
 import dev.johnlaff.neko.ui.Format.money
@@ -73,8 +74,15 @@ fun HojeScreen(
     simulatorOpen: Boolean = false,
     /** Grows each time the "Simular" shortcut is used: opens the simulator again. */
     simulateAsk: Int = 0,
+    mia: MiaStatus? = null,
+    askMia: AskMia? = null,
+    /** Opens the screen a value of Mia's came from: "hoje", "faturas" or "mes". */
+    onScreen: (String) -> Unit = {},
+    miaOpen: Boolean = false,
+    miaTalk: List<MiaExchange> = emptyList(),
 ) {
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
+    var asking by rememberSaveable { mutableStateOf(miaOpen) }
     LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh) { v ->
         item { Hero(v) }
@@ -88,6 +96,10 @@ fun HojeScreen(
             }
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
+        if (mia?.ligada == true && askMia != null) {
+            item { MiaButton(asking) { asking = !asking } }
+            if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk) }
+        }
         v.habit?.let { h -> item { Streak(h) } }
         v.habit?.let { h ->
             when {

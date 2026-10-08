@@ -121,7 +121,16 @@ class MainActivity : ComponentActivity() {
                                 when (t) {
                                     Tab.Hoje -> {
                                         val today by model.today.collectAsStateWithLifecycle()
-                                        HojeScreen(today, model::refresh, { go(Tab.Ajustes) }, model::simulate, simulateAsk = simulateAsk)
+                                        val mia by model.mia.collectAsStateWithLifecycle()
+                                        HojeScreen(
+                                            today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
+                                            simulateAsk = simulateAsk,
+                                            mia = mia,
+                                            askMia = model::askMia,
+                                            onScreen = { tela ->
+                                                go(when (tela) { "faturas" -> Tab.Faturas; "mes" -> Tab.Mes; else -> Tab.Hoje })
+                                            },
+                                        )
                                     }
                                     Tab.Faturas -> {
                                         val invoices by model.invoices.collectAsStateWithLifecycle()

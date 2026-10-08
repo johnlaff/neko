@@ -25,6 +25,18 @@ object Fakes {
         ),
     )
 
+    /** The same invented reply as the site's smoke test (e2e/smoke.spec.ts). */
+    val miaExchange = dev.johnlaff.neko.ui.MiaExchange(
+        "Quanto saiu no mês passado?",
+        dev.johnlaff.neko.data.MiaReply(
+            "Em setembro saíram {{v1}}, e as saídas caíram {{v2}} desde agosto.",
+            mapOf(
+                "v1" to dev.johnlaff.neko.data.MiaValue("total", "Saídas de 2026-09", "mes", "2026-09", cents = 512_340),
+                "v2" to dev.johnlaff.neko.data.MiaValue("diferenca", "Saídas: 2026-09 menos 2026-08", "mes", cents = -20_000),
+            ),
+        ),
+    )
+
     /** An invented bank, the same one the site's smoke test uses (e2e/smoke.spec.ts). */
     val banks = BanksList(
         BanksView(
