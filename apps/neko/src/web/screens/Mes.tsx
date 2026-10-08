@@ -11,7 +11,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { winText } from "../../shared/wins.ts";
 import { api } from "../api.ts";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
@@ -20,6 +19,7 @@ import { costLabel, coveredLabel, RESERVE } from "../learn.ts";
 import { Mascot } from "../Mascot.tsx";
 import { Thermo } from "../Thermo.tsx";
 import { WithProjection } from "../useProjection.tsx";
+import { Wins } from "../Wins.tsx";
 
 const key = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
 
@@ -429,16 +429,7 @@ export const Mes = () => {
                   <strong>{money(saved)}</strong>
                 </p>
               )}
-              {wins.length > 0 && (
-                <div className="recap-wins month-wins">
-                  <Mascot pose="celebrating" height={48} className="milestone-cat" />
-                  <ul aria-label="Conquistas do mês">
-                    {wins.map((w) => (
-                      <li key={w.kind}>{winText(w)}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <Wins wins={wins} year={m.year} month={m.month} cat={48} className="month-wins" />
               <details className="formula">
                 <summary>
                   <IconChevron />
