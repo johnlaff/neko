@@ -33,6 +33,18 @@ class TodayViewTest {
         assertEquals(21, h.next)
     }
 
+    @Test fun widgetAndTileCarryTheStreak() {
+        val t = widgetText(view)
+        assertEquals("12 dias em dia", t.streak)
+        assertEquals(7, t.week.size)
+        val tile = dev.johnlaff.neko.tile.tileText(view)
+        assertEquals("12 dias em dia", tile.subtitle)
+        assertEquals(true, tile.active)
+        val logged = view.copy(habit = view.habit!!.copy(editedToday = true))
+        assertEquals(false, dev.johnlaff.neko.tile.tileText(logged).active)
+        assertEquals("Hoje já lançado", dev.johnlaff.neko.tile.tileText(logged).subtitle)
+    }
+
     @Test fun everyWarningHasText() {
         view.insights.forEach { assertNotNull(it.kind, Copy.insight(it)) }
     }

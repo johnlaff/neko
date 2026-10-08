@@ -234,6 +234,7 @@ val AppModelFactory = viewModelFactory {
         AppModel(app.neko) { view ->
             WidgetRefresh.redraw(app)
             Shortcuts.lancar(app, view?.todayUrl)
+            dev.johnlaff.neko.tile.LancarTile.refresh(app)
         }
     }
 }
