@@ -54,7 +54,7 @@ import kotlin.math.sin
 @Composable
 fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val l = LocalLedger.current
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(12.dp)
     Column(
         modifier
             .fillMaxWidth()
@@ -199,17 +199,19 @@ fun Gauge(value: Long, total: Long, mark: Long, over: Boolean, modifier: Modifie
     val share = fill.value
     val tickIn = arrival(240, delay = 300)
     Canvas(modifier) {
-        val stroke = size.width * 0.06f
-        val r = (size.width - stroke) / 2
+        // A thin ink arc: the status color is spent only on the pace dot and the words under it.
+        val dot = size.width * 0.03f
+        val stroke = size.width * 0.02f
+        val r = (size.width - dot * 2) / 2
         val box = Size(r * 2, r * 2)
-        val topLeft = Offset(stroke / 2, stroke / 2)
+        val topLeft = Offset(dot, dot)
         val style = Stroke(width = stroke, cap = StrokeCap.Round)
         drawArc(l.border, 180f, 180f, false, topLeft, box, style = style)
-        if (share > 0f) drawArc(if (bad) l.neg else if (over) l.warn else l.accent, 180f, 180f * share, false, topLeft, box, style = style)
+        if (share > 0f) drawArc(l.text, 180f, 180f * share, false, topLeft, box, style = style)
         val angle = Math.PI * (1 - at)
-        val c = Offset(size.width / 2, stroke / 2 + r)
+        val c = Offset(size.width / 2, dot + r)
         val tick = Offset(c.x + r * cos(angle).toFloat(), c.y - r * sin(angle).toFloat())
-        drawCircle(l.bg, radius = stroke * 0.75f * (0.4f + 0.6f * tickIn), center = tick, alpha = tickIn)
-        drawCircle(l.text, radius = stroke * 0.5f * (0.4f + 0.6f * tickIn), center = tick, alpha = tickIn)
+        drawCircle(l.bg, radius = dot * 1.5f * (0.4f + 0.6f * tickIn), center = tick, alpha = tickIn)
+        drawCircle(if (bad) l.neg else if (over) l.warn else l.pos, radius = dot * (0.4f + 0.6f * tickIn), center = tick, alpha = tickIn)
     }
 }

@@ -102,14 +102,7 @@ fun HojeScreen(
             if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk) }
         }
         v.habit?.let { h -> item { Streak(h) } }
-        v.habit?.let { h ->
-            when {
-                h.milestone != null -> item { MilestoneCard("Marca de ${h.milestone} dias", Learn.milestone(h.milestone), h.milestone) }
-                h.record != null -> item {
-                    MilestoneCard("Novo recorde", "${h.record + 1} dias seguidos. O anterior era ${h.record}.", h.record + 1)
-                }
-            }
-        }
+        v.habit?.milestone?.let { m -> item { MilestoneCard("Marca de $m dias", Learn.milestone(m), m) } }
         if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
@@ -208,7 +201,7 @@ private fun LancarButton(url: String, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth().height(48.dp),
         // The one filled button on the screen, as on the site: logging is the method's daily act.
         colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(10.dp),
         contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
     ) {
         androidx.compose.material3.Icon(
@@ -229,7 +222,7 @@ private fun SimulateButton(open: Boolean, modifier: Modifier, onClick: () -> Uni
         modifier = modifier.fillMaxWidth().height(48.dp).semantics { stateDescription = if (open) "Aberto" else "Fechado" },
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = androidx.compose.foundation.BorderStroke(1.dp, if (open) l.muted else l.border),
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(10.dp),
     ) { Text("Simular compra", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
 }
 
@@ -243,7 +236,7 @@ private fun Alert(
     action: (@Composable () -> Unit)? = null,
 ) {
     val l = LocalLedger.current
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(12.dp)
     Row(
         Modifier.fillMaxWidth()
             .appear()
@@ -324,7 +317,7 @@ internal fun WinsBox(all: List<dev.johnlaff.neko.data.Win>, title: String) {
     val l = LocalLedger.current
     Column(
         Modifier.fillMaxWidth()
-            .background(l.pos.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+            .background(l.pos.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
             .padding(horizontal = 14.dp, vertical = 6.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(top = 8.dp).semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
