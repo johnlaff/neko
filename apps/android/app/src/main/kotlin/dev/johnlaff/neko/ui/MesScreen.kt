@@ -296,6 +296,7 @@ private fun OutflowRow(o: Outflow, top: Long) {
             // The whole line opens the destination's last months, as on the site.
             modifier = Modifier.clickable(onClickLabel = "ver os últimos meses") { open = !open },
             avatar = if (o.kind == "card") monogram(o.label) else o.label.take(1).uppercase(),
+            card = o.label.takeIf { o.kind == "card" },
             chips = { if (o.others) Chip("De outra pessoa", ChipTone.Plain) },
             below = {
                 // Display only: the line's amount scaled to the month's largest line.

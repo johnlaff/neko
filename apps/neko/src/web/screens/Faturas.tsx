@@ -1,20 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { BankView } from "../../shared/types.ts";
+import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { capitalize, days, money, monthName, shortDate } from "../format.ts";
 import { Hint } from "../Hint.tsx";
 import { HINTS } from "../learn.ts";
 import { Mascot } from "../Mascot.tsx";
 import { WithProjection } from "../useProjection.tsx";
-
-/** Two letters for a card's avatar: "Mercado Pago" → "MP", "Amazon" → "AM". */
-const monogram = (name: string) => {
-  const words = name.split(/\s+/).filter(Boolean);
-  const letters =
-    words.length > 1 ? `${words[0]?.[0] ?? ""}${words[1]?.[0] ?? ""}` : name.slice(0, 2);
-  return letters.toUpperCase();
-};
 
 const shortMonth = (iso: string) => capitalize(monthName(Number(iso.slice(5, 7))).slice(0, 3));
 
@@ -159,9 +152,7 @@ export const Faturas = () => {
                   {buyGroups.map((g, i) => (
                     // The first group waits longest; every card in it is as good as the others.
                     <li key={g.key} className={`bill${i === 0 ? " best" : ""}`}>
-                      <span className="avatar mono" aria-hidden="true">
-                        {monogram(g.cards[0]?.card.name ?? "")}
-                      </span>
+                      <CardAvatar name={g.cards[0]?.card.name ?? ""} />
                       <span className="name">{g.cards.map((c) => c.card.name).join(", ")}</span>
                       <span className="value">{days(g.payInDays)}</span>
                       <span className="meta">
@@ -186,9 +177,7 @@ export const Faturas = () => {
                 <ul className="rows lead">
                   {others.map((c) => (
                     <li key={c.card.name} className="bill">
-                      <span className="avatar mono" aria-hidden="true">
-                        {monogram(c.card.name)}
-                      </span>
+                      <CardAvatar name={c.card.name} />
                       <span className="name">
                         {c.card.name}
                         {c.others && <span className="chip">De outra pessoa</span>}
@@ -233,9 +222,7 @@ const BankBills = ({ bank }: { bank: BankView }) => (
       <ul className="rows lead">
         {bank.checks.map((c) => (
           <li key={`${c.card}-${c.due}`} className="bill">
-            <span className="avatar mono" aria-hidden="true">
-              {monogram(c.card)}
-            </span>
+            <CardAvatar name={c.card} />
             <span className="name">
               {c.card} · {shortMonth(c.due)}
               {c.gap > 0 && <span className="chip warn">{money(c.gap)} acima da planilha</span>}

@@ -2405,3 +2405,9 @@ form.mia-form {
   min-height: 44px;
   padding: 6px 12px;
 }
+
+/* A card's bank: its official mark on the brand colour, in the same tile as the other avatars. */
+.rows span.avatar.brand > svg {
+  width: 20px;
+  height: 20px;
+}

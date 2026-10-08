@@ -126,6 +126,7 @@ private fun BuyToday(v: InvoicesView, onAjustes: () -> Unit) {
                 name = g.cards.joinToString(", "),
                 value = days(g.payInDays),
                 avatar = monogram(g.cards.first()),
+                card = g.cards.first(),
                 accent = i == 0,
                 meta = "Paga em ${shortDate(g.due)} · Melhor dia ${if (g.estimated) "≈ " else ""}${shortDate(g.bestDate)}",
             )
@@ -144,6 +145,7 @@ private fun Others(v: InvoicesView) {
                 name = c.card,
                 value = money(c.onSheet),
                 avatar = monogram(c.card),
+                card = c.card,
                 meta = "Vence ${shortDate(c.due)}",
                 chips = {
                     if (c.others) Chip("De outra pessoa", ChipTone.Plain)
@@ -177,6 +179,7 @@ private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
                 name = "${c.card} · ${shortMonth(c.due)}",
                 value = money(c.bank),
                 avatar = monogram(c.card),
+                card = c.card,
                 meta = "Planilha ${money(c.sheet)}" + if (c.parcels > 0) " · ${money(c.parcels)} em parcelas" else "",
                 chips = { if (c.gap > 0) Chip("${money(c.gap)} acima da planilha", ChipTone.Warn) },
             )

@@ -7,6 +7,10 @@ import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.json
 import java.io.File
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -45,6 +49,22 @@ class ScreensContractTest {
         assertEquals((r.kept * 10 / r.cost).toInt(), r.coveredTenths)
         // The year counts only what is dated up to today: the fixture's deposit on the 20th is still ahead.
         assertEquals(v.months.filter { it.year == 2026 && it.past }.sumOf { it.saved }, v.years.single { it.year == 2026 }.saved)
+    }
+
+    /** The bank table and the card names the Worker's tests match (test/institutions.test.ts). */
+    @Test fun institutions() {
+        val c = json.parseToJsonElement(text("institutions.json")).jsonObject
+        val table = c.getValue("institutions").jsonArray.map { it.jsonObject }
+        assertEquals(table.map { it.getValue("slug").jsonPrimitive.content }, dev.johnlaff.neko.ui.INSTITUTIONS.map { it.slug })
+        table.zip(dev.johnlaff.neko.ui.INSTITUTIONS).forEach { (t, i) ->
+            assertEquals(t.getValue("words").jsonArray.map { it.jsonPrimitive.content }, i.words)
+            assertEquals(t.getValue("bg").jsonPrimitive.content.drop(1).toLong(16) or 0xFF000000, i.bg)
+            assertEquals(t.getValue("fg").jsonPrimitive.content.drop(1).toLong(16) or 0xFF000000, i.fg)
+        }
+        c.getValue("cases").jsonObject.forEach { (name, slug) ->
+            val want = (slug as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+            assertEquals(name, want, dev.johnlaff.neko.ui.institutionOf(name)?.slug)
+        }
     }
 
     /** A Mia reply (apps/neko/test/mia.test.ts): a total, a difference and a percent. */
