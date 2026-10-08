@@ -26,7 +26,13 @@ class WinCardTest {
         val bmp = WinCard.draw(
             context,
             "Setembro de 2026 fechou",
-            listOf("3 meses seguidos no azul", "Recorde: guardou 34% das entradas, o maior até aqui"),
+            // Four wins, three of them two lines long: the cat gives way, the footer stays clear.
+            listOf(
+                "3 meses seguidos no azul",
+                "Recorde: o mês que mais guardou até aqui",
+                "Faturas do cartão menores que as do mês anterior",
+                "A reserva já cobre 3 meses de custo de vida",
+            ),
         )
         assertEquals(1080, bmp.width)
         assertEquals(1350, bmp.height)

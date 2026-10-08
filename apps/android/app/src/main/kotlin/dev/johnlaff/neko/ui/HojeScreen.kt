@@ -33,6 +33,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.semantics.contentDescription
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -246,13 +249,12 @@ private fun Alert(
 private fun MilestoneCard(title: String, text: String, days: Int) {
     val l = LocalLedger.current
     MilestoneHaptic(days)
-    val context = LocalContext.current
     Alert(
         title,
         text,
         l.pos,
         lead = { CelebratingCat(Modifier.height(56.dp).hop()) },
-        action = { ShareButton { dev.johnlaff.neko.share.WinCard.share(context, title, listOf(text)) } },
+        action = { ShareButton(title, listOf(text), "Compartilhar: $title") },
     )
 }
 
@@ -288,10 +290,11 @@ private const val ShownAlerts = 2
 
 /** A month's wins in words, next to Neko celebrating: the recap on Hoje and a closed Mês. */
 @Composable
-internal fun WinsBox(wins: List<String>, cat: Dp, title: String) {
+internal fun WinsBox(all: List<dev.johnlaff.neko.data.Win>, cat: Dp, title: String) {
+    val wins = all.mapNotNull(Copy::win)
+    val share = all.mapNotNull(Copy::winShare)
     if (wins.isEmpty()) return
     val l = LocalLedger.current
-    val context = LocalContext.current
     Column(
         Modifier.fillMaxWidth()
             .background(l.pos.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
@@ -306,18 +309,31 @@ internal fun WinsBox(wins: List<String>, cat: Dp, title: String) {
         }
         // The picture carries the wins only, never an amount (share/WinCard.kt).
         Box(Modifier.align(Alignment.End).padding(bottom = 6.dp)) {
-            ShareButton { dev.johnlaff.neko.share.WinCard.share(context, "$title fechou", wins) }
+            ShareButton("$title fechou", share, "Compartilhar as conquistas de ${title.lowercase()}")
         }
     }
 }
 
-/** Opens the share sheet with an achievement's picture (share/WinCard.kt). */
+/** Opens the share sheet with an achievement's picture (share/WinCard.kt), one at a time. */
 @Composable
-private fun ShareButton(onClick: () -> Unit) {
+private fun ShareButton(title: String, lines: List<String>, label: String) {
     val l = LocalLedger.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
     OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier.heightIn(min = 40.dp),
+        onClick = {
+            busy = true
+            scope.launch {
+                try {
+                    dev.johnlaff.neko.share.WinCard.share(context, title, lines)
+                } finally {
+                    busy = false
+                }
+            }
+        },
+        enabled = !busy,
+        modifier = Modifier.heightIn(min = 40.dp).semantics { contentDescription = label },
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = androidx.compose.foundation.BorderStroke(1.dp, l.muted),
         contentPadding = PaddingValues(horizontal = 14.dp),
@@ -334,7 +350,7 @@ internal fun RecapPanel(r: MonthRecap) {
     val before = Format.monthName(if (r.month == 1) 12 else r.month - 1)
     Panel {
         PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou")
-        WinsBox(r.wins.mapNotNull(Copy::win), 64.dp, "${Format.capitalize(Format.monthName(r.month))} de ${r.year}")
+        WinsBox(r.wins, 64.dp, "${Format.capitalize(Format.monthName(r.month))} de ${r.year}")
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LedgerLine(
                 if (r.result < 0) "Faltou" else "Sobrou",

@@ -39,7 +39,7 @@ import { Mascot } from "../Mascot.tsx";
 import { Simulator } from "../Pace.tsx";
 import { milestoneText, Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
-import { shareCard, Wins } from "../Wins.tsx";
+import { ShareButton, Wins } from "../Wins.tsx";
 
 /** Each warning in a few words, with the figure that shows it and where to look next. */
 const insightView = (i: Insight) => {
@@ -411,19 +411,13 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
 const MilestoneCard = ({ title, text }: { title: string; text: string }) => (
   <ul className="alerts" aria-label="Sequência">
     <li>
-      <div className="alert good milestone" role="status">
+      <div className="alert good milestone">
         <Mascot pose="celebrating" height={56} className="milestone-cat" />
-        <span className="alert-text">
+        <span className="alert-text" role="status">
           <strong>{title}</strong>
           <span>{text}</span>
         </span>
-        <button
-          type="button"
-          className="ghost small win-share"
-          onClick={() => shareCard(title, [text])}
-        >
-          Compartilhar
-        </button>
+        <ShareButton title={title} lines={[text]} label={`Compartilhar: ${title}`} />
       </div>
     </li>
   </ul>
