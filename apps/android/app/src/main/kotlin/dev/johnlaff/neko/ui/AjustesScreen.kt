@@ -158,6 +158,7 @@ fun AjustesScreen(
             Group("Neste celular") {
                 Reminders(reminders)
                 Lock(lock)
+                if (dev.johnlaff.neko.tile.LancarTile.canAsk) QuickTile()
             }
         }
         devices.list?.takeIf { it.isNotEmpty() }?.let { item { Group("Aparelhos conectados") { Devices(devices) } } }
@@ -204,6 +205,18 @@ private fun Reminders(r: RemindersSwitch) {
             colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
         )
     }
+}
+
+/** Offers "Lançar" in Quick Settings; Android shows its own dialog and says if it is already there. */
+@Composable
+private fun QuickTile() {
+    val l = LocalLedger.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Setting(
+        "Lançar nas configurações rápidas",
+        "Deslize a barra de notificações e abra o dia na planilha",
+        modifier = Modifier.clickable(onClickLabel = "adicionar") { dev.johnlaff.neko.tile.LancarTile.ask(context) },
+    ) { Text("Adicionar", color = l.accent, style = MaterialTheme.typography.labelLarge) }
 }
 
 /** The phone's app lock, also a setting of this device only. */
