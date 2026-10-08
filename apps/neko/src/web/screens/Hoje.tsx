@@ -251,7 +251,7 @@ const Conference = ({
   const seen = new Set(settings.data?.reviewed ?? []);
   const open = issues.filter((i) => !seen.has(issueKey(i)));
   return (
-    <section className="panel half">
+    <section className="panel">
       <div className="panel-head">
         <h2>Conferência</h2>
         <span className={`chip ${open.length === 0 ? "ok" : "warn"}`}>
@@ -294,7 +294,7 @@ const BankMissing = ({ bank }: { bank: BankView }) => {
   const [copied, setCopied] = useState<number | null>(null);
   if (bank.missing.length === 0) return null;
   return (
-    <section className="panel half" aria-labelledby="h-bank-missing">
+    <section className="panel" aria-labelledby="h-bank-missing">
       <div className="panel-head">
         <h2 id="h-bank-missing">Fora da planilha</h2>
         <span className="chip warn">
@@ -587,8 +587,11 @@ export const Hoje = () => (
             )}
           </section>
 
-          <Conference issues={issues} sheet={sheet} />
-          {bank && <BankMissing bank={bank} />}
+          {/* One column beside Próximos on wide screens, so a short Conferência leaves no hole. */}
+          <div className="half stack">
+            <Conference issues={issues} sheet={sheet} />
+            {bank && <BankMissing bank={bank} />}
+          </div>
         </>
       );
     }}

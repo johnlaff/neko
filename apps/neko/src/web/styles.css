@@ -1096,6 +1096,14 @@ fieldset.columns {
   }
 }
 
+/* Panels stacked inside one grid cell keep the page's rhythm */
+.stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-content: start;
+}
+
 /* Wide screens: the dock becomes a pill bar at the top, panels pair up */
 @media (min-width: 48rem) {
   .page {
@@ -1110,6 +1118,9 @@ fieldset.columns {
   }
   .page > .half {
     grid-column: auto;
+  }
+  .stack {
+    gap: 20px;
   }
   .dock {
     top: 20px;
