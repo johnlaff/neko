@@ -463,13 +463,7 @@ private fun Conference(v: TodayView) {
                 if (n == 0) ChipTone.Ok else ChipTone.Warn,
             )
         }
-        if (v.issues.isEmpty()) {
-            Text(
-                if (v.issuesInWindow == 0) "A planilha confere nos últimos 60 dias."
-                else "Nada novo. Os pontos que você já conferiu ficam escondidos.",
-                color = l.muted,
-            )
-        }
+        // All clear is the title and its chip alone: a sentence saying so again only adds height.
         v.issues.forEach { t ->
             val line = Copy.issue(t.issue)
             Column(
