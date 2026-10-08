@@ -13,7 +13,10 @@ import javax.crypto.spec.GCMParameterSpec
  * sealing existed are read once as plain text and sealed on the next write. A file that no longer
  * opens (the key was lost, the bytes were changed) reads as empty: the app signs in again.
  */
-class SealedFile(private val file: File, private val key: SecretKey?) {
+class SealedFile(private val file: File, keyStore: Lazy<SecretKey?>) {
+    /** Opened on the first read or write, off the main thread: Keystore calls can take a while. */
+    private val key by keyStore
+
     fun read(): String? {
         if (!file.exists()) return null
         val bytes = runCatching { file.readBytes() }.getOrNull() ?: return null

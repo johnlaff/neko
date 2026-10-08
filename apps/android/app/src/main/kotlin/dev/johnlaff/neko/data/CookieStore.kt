@@ -11,7 +11,21 @@ import okhttp3.HttpUrl
  */
 class CookieStore(private val file: SealedFile) : CookieJar {
     private val lock = Any()
-    private var cookies: List<Cookie> = load()
+    /** Read on the first request (always on OkHttp's thread), not when the app starts. */
+    private var loaded = false
+    private var cookieList: List<Cookie> = emptyList()
+    private var cookies: List<Cookie>
+        get() {
+            if (!loaded) {
+                cookieList = load()
+                loaded = true
+            }
+            return cookieList
+        }
+        set(value) {
+            cookieList = value
+            loaded = true
+        }
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
         synchronized(lock) {
