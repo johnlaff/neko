@@ -1,4 +1,4 @@
-import type { Fixed, MonthView, Outflow } from "@neko/engine";
+import type { Fixed, MonthView, Outflow, Reserve, YearTotals } from "@neko/engine";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRef } from "react";
@@ -6,6 +6,7 @@ import { api } from "../api.ts";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
 import { IconCard, IconChevron, IconChevronLeft, IconReceipt, IconRepeat } from "../icons.tsx";
+import { costLabel, coveredLabel, RESERVE } from "../learn.ts";
 import { Thermo } from "../Thermo.tsx";
 import { WithProjection } from "../useProjection.tsx";
 
@@ -173,6 +174,45 @@ const FixedPanel = ({
     </section>
   );
 };
+
+/**
+ * The method's emergency reserve: cost of living times 6 to 12 months, against what the sheet
+ * shows as kept, plus the year's Economia (the sheet's tab of the same name).
+ */
+const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined }) => (
+  <section className="panel reserve">
+    <div className="panel-head">
+      <h2>{RESERVE.title}</h2>
+      <span className="meta">
+        {r.kept > 0 ? `${coveredLabel(r.coveredTenths)} de 6` : "Nada guardado ainda"}
+      </span>
+    </div>
+    {/* Display only: kept over the 6-month goal, full past it. */}
+    <span className="meter" aria-hidden="true">
+      <span style={{ width: `${Math.min(100, (r.kept / r.min) * 100)}%` }} />
+    </span>
+    <dl className="ledger">
+      <dt>{costLabel(r.costMonths)}</dt>
+      <dd>{money(r.cost)}</dd>
+      <dt>6 meses</dt>
+      <dd>{money(r.min)}</dd>
+      <dt>12 meses</dt>
+      <dd>{money(r.max)}</dd>
+      <dt className="total">Guardado na planilha</dt>
+      <dd className="total">{money(r.kept)}</dd>
+      {year && year.saved > 0 && (
+        <>
+          <dt>
+            Em {year.year}
+            {year.savedShare !== null && ` · ${year.savedShare}% das entradas`}
+          </dt>
+          <dd>{money(year.saved)}</dd>
+        </>
+      )}
+    </dl>
+    <p className="muted note">{r.kept > 0 ? RESERVE.rule : `${RESERVE.rule} ${RESERVE.empty}`}</p>
+  </section>
+);
 
 export const Mes = () => {
   // The month on screen lives in the URL: a warning can link to it and reload keeps it.
@@ -354,6 +394,11 @@ export const Mes = () => {
 
             {fixed.length > 0 && (
               <FixedPanel items={fixed} total={m.fixedTotal ?? 0} half={outflows.length > 0} />
+            )}
+
+            {/* Missing on projections cached before it existed. */}
+            {p.reserve && (
+              <ReservePanel r={p.reserve} year={p.years?.find((y) => y.year === m.year)} />
             )}
           </>
         );

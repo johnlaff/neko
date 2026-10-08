@@ -48,6 +48,20 @@ object Learn {
         else -> "$streak dias em dia"
     }
 
+    /** Mês's reserve panel, word for word with the site (web/learn.ts RESERVE). */
+    const val RESERVE_TITLE = "Reserva de emergência"
+    const val RESERVE_RULE = "O método pede de 6 a 12 meses do custo de vida, guardados onde dá para sacar na hora."
+    const val RESERVE_EMPTY = "Linhas de Saída sob Investimento contam como guardado."
+
+    /** Tenths of a month as "1,6 mês" or "2 meses". */
+    fun coveredLabel(tenths: Int): String {
+        val n = if (tenths % 10 == 0) "${tenths / 10}" else "${tenths / 10},${tenths % 10}"
+        return "$n ${if (tenths >= 20) "meses" else "mês"}"
+    }
+
+    fun costLabel(months: Int) =
+        if (months == 1) "Custo de vida do último mês" else "Custo de vida, média de $months meses"
+
     data class Idea(val title: String, val body: String)
 
     val IDEAS = listOf(

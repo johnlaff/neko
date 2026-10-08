@@ -34,7 +34,7 @@ import {
   IconToday,
   IconTrendUp,
 } from "../icons.tsx";
-import { HINTS, streakLabel } from "../learn.ts";
+import { HINTS } from "../learn.ts";
 import { Simulator } from "../Pace.tsx";
 import { milestoneText, Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
