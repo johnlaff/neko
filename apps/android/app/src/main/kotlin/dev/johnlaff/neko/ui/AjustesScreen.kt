@@ -49,6 +49,17 @@ import dev.johnlaff.neko.data.Device
 import dev.johnlaff.neko.data.UserSettings
 import dev.johnlaff.neko.ui.Format.fromCents
 import dev.johnlaff.neko.ui.Format.toCents
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.stateDescription
+import dev.johnlaff.neko.R
 import kotlinx.coroutines.delay
 
 /** How long typing must pause before a typed field saves on its own, as on the site. */
@@ -150,6 +161,7 @@ fun AjustesScreen(
             }
         }
         devices.list?.takeIf { it.isNotEmpty() }?.let { item { Group("Aparelhos conectados") { Devices(devices) } } }
+        item { Group("Como funciona") { HowItWorks() } }
         item {
             Panel {
                 ConfirmAction(
@@ -483,4 +495,44 @@ private fun ConfirmAction(action: String, question: String, detail: String, onCo
             containerColor = l.surface,
         )
     }
+}
+
+/** Every idea the tips teach, one tap each, for whoever skipped a tip or wants it again. */
+@Composable
+private fun HowItWorks() {
+    val l = LocalLedger.current
+    val context = LocalContext.current
+    Learn.IDEAS.forEach { idea ->
+        var open by rememberSaveable(idea.title) { mutableStateOf(false) }
+        Column {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClickLabel = if (open) "fechar" else "abrir") { open = !open }
+                    .semantics { stateDescription = if (open) "Aberto" else "Fechado" }
+                    .heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = l.faint,
+                    modifier = Modifier.size(16.dp).rotate(if (open) 90f else 0f),
+                )
+                Text(idea.title)
+            }
+            Reveal(open) {
+                Text(idea.body, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 24.dp, bottom = 8.dp))
+            }
+        }
+    }
+    var reset by remember { mutableStateOf(false) }
+    HorizontalDivider(color = l.border)
+    TextAction(if (reset) "As dicas voltam aos poucos" else "Rever dicas", {
+        if (!reset) {
+            Hints.reset(context)
+            reset = true
+        }
+    })
 }

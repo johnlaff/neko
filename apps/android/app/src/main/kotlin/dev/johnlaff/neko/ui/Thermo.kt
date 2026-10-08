@@ -160,6 +160,7 @@ fun Thermo(m: MonthItem, today: String, saving: Saving?) {
                 )
             }
         }
+        Hint("mes", Learn.MES)
     }
 }
 

@@ -59,6 +59,7 @@ private fun UsualPanel(u: UsualBill) {
             Step("Fecha", shortDate(u.closing), if (u.closingEstimated) "Estimado" else null, now = true, Modifier.weight(1f))
             Step("Vence", shortDate(u.due), "Sai da conta", now = false, Modifier.weight(1f))
         }
+        Hint("faturas", Learn.FATURAS)
     }
 }
 

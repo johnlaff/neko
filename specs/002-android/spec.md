@@ -63,3 +63,7 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
 ## Fora da fase 2
 
 Mia, leitura de notificações do banco, qualquer escrita na planilha.
+- Aprender sem manual: uma dica curta por tela (Hoje, Faturas, Mês) na primeira vez que ela tem
+  dados, no máximo uma por visita, que some de vez com "Entendi". Ajustes › Como funciona guarda as
+  ideias do método nas palavras do Neko, uma por toque, e "Rever dicas" traz as dicas de volta. Site
+  e app dizem o mesmo (web/learn.ts e ui/Learn.kt).

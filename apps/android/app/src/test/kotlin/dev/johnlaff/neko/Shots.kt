@@ -38,6 +38,8 @@ fun ComposeContentTestRule.shot(
     tab: Tab? = null,
     content: @Composable () -> Unit,
 ) {
+    // Each screen shows its own first-time tip, whatever the test before it showed.
+    dev.johnlaff.neko.ui.Hints.reset(org.robolectric.RuntimeEnvironment.getApplication())
     RuntimeEnvironment.setQualifiers("+${device.qualifiers}-${if (night) "night" else "notnight"}")
     RuntimeEnvironment.setFontScale(device.fontScale)
     setContent {

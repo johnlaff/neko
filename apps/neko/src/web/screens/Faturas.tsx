@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { capitalize, days, money, monthName, shortDate } from "../format.ts";
+import { Hint } from "../Hint.tsx";
+import { HINTS } from "../learn.ts";
 import { WithProjection } from "../useProjection.tsx";
 
 /** Two letters for a card's avatar: "Mercado Pago" → "MP", "Amazon" → "AM". */
@@ -100,6 +102,7 @@ export const Faturas = () => {
                     <span className="sub">Sai da conta</span>
                   </li>
                 </ol>
+                <Hint id="faturas">{HINTS.faturas}</Hint>
               </section>
             )}
 
