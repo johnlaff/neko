@@ -74,6 +74,18 @@ class ScreenshotTest {
     private val months = read("months.json", MonthsView.serializer())
     private val ajustes = read("ajustes.json", AjustesView.serializer())
 
+    /** The fixture's invented cards renamed to banks the app knows, to show their marks. */
+    private fun banked(file: String) =
+        File("src/test/resources/$file").readText().replace("Cartão Azul", "Nubank").replace("Cartão Verde", "Itaú")
+
+    @Test fun logosFaturasLight() = shot("logos-faturas-light", night = false, scrollTo = "Outros cartões") {
+        FaturasScreen(ScreenState(json.decodeFromString(InvoicesView.serializer(), banked("invoices.json"))), {}, {})
+    }
+
+    @Test fun logosMesDark() = shot("logos-mes-dark", night = true, scrollTo = "Para onde foi") {
+        MesScreen(ScreenState(json.decodeFromString(MonthsView.serializer(), banked("months.json"))), null) {}
+    }
+
     @Test fun faturasDark() = shot("faturas-dark", night = true) { FaturasScreen(ScreenState(invoices), {}, {}) }
 
     @Test fun faturasLight() = shot("faturas-light", night = false) { FaturasScreen(ScreenState(invoices), {}, {}) }

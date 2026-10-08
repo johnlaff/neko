@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { api } from "../api.ts";
+import { RowAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
 import { IconCard, IconChevron, IconChevronLeft, IconReceipt, IconRepeat } from "../icons.tsx";
@@ -97,9 +98,9 @@ const OutflowRow = ({
         aria-label={`${o.label}: ver os últimos meses`}
         onClick={() => setOpen(!open)}
       />
-      <span className="avatar" aria-hidden="true">
+      <RowAvatar card={o.kind === "card" ? o.label : null}>
         {o.kind === "card" ? <IconCard /> : <IconReceipt />}
-      </span>
+      </RowAvatar>
       <span className="name">
         <ItemName text={o.label} />
         {o.others && <span className="chip">De outra pessoa</span>}

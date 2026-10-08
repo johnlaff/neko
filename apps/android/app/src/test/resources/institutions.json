@@ -1,0 +1,139 @@
+{
+  "institutions": [
+    {
+      "slug": "amazon",
+      "words": [
+        "amazon"
+      ],
+      "bg": "#232F3E",
+      "fg": "#FF9900"
+    },
+    {
+      "slug": "itau",
+      "words": [
+        "itau",
+        "itaucard"
+      ],
+      "bg": "#FF6200",
+      "fg": "#FFFFFF"
+    },
+    {
+      "slug": "bradesco",
+      "words": [
+        "bradesco"
+      ],
+      "bg": "#CC092F",
+      "fg": "#FFFFFF"
+    },
+    {
+      "slug": "inter",
+      "words": [
+        "inter",
+        "banco inter"
+      ],
+      "bg": "#EA7100",
+      "fg": "#FFFFFF"
+    },
+    {
+      "slug": "nubank",
+      "words": [
+        "nubank",
+        "nu"
+      ],
+      "bg": "#820AD1",
+      "fg": "#FFFFFF"
+    },
+    {
+      "slug": "mercadopago",
+      "words": [
+        "mercado pago",
+        "mercadopago"
+      ],
+      "bg": "#00BCFF",
+      "fg": "#0A0080"
+    },
+    {
+      "slug": "bancodobrasil",
+      "words": [
+        "banco do brasil",
+        "bb",
+        "ourocard"
+      ],
+      "bg": "#FCFC30",
+      "fg": "#465EFF"
+    },
+    {
+      "slug": "sicoob",
+      "words": [
+        "sicoob",
+        "sicoobcard"
+      ],
+      "bg": "#003641",
+      "fg": "#C9D200"
+    },
+    {
+      "slug": "santander",
+      "words": [
+        "santander"
+      ],
+      "bg": "#EC0000",
+      "fg": "#FFFFFF"
+    },
+    {
+      "slug": "caixa",
+      "words": [
+        "caixa",
+        "cef"
+      ],
+      "bg": "#005CA9",
+      "fg": "#FFFFFF"
+    },
+    {
+      "slug": "c6bank",
+      "words": [
+        "c6",
+        "c6 bank",
+        "c6bank"
+      ],
+      "bg": "#242424",
+      "fg": "#FFFFFF"
+    },
+    {
+      "slug": "picpay",
+      "words": [
+        "picpay"
+      ],
+      "bg": "#21C25E",
+      "fg": "#FFFFFF"
+    },
+    {
+      "slug": "xp",
+      "words": [
+        "xp",
+        "xp investimentos"
+      ],
+      "bg": "#000000",
+      "fg": "#FFFFFF"
+    }
+  ],
+  "cases": {
+    "Itaú": "itau",
+    "Itaucard Platinum": "itau",
+    "Mercado Pago": "mercadopago",
+    "Nubank": "nubank",
+    "Nu Ultravioleta": "nubank",
+    "Inter": "inter",
+    "Banco Inter": "inter",
+    "Bradesco": "bradesco",
+    "Bradesco Elo": "bradesco",
+    "Amazon Bradescard": "amazon",
+    "Amazon": "amazon",
+    "BB Ourocard": "bancodobrasil",
+    "C6 Carbon": "c6bank",
+    "XP": "xp",
+    "Internet": null,
+    "Nuvem": null,
+    "Cartão Azul": null,
+    "": null
+  }
+}

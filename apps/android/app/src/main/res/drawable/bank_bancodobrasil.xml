@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Official mark, single colour; tinted on screen. Generated, do not edit. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M 18.72,5.28 L 15.92,7.148 L 17.32,8.081 L 18.72,7.148 Z M 12,5.28 L 5.28,9.761 L 8.08,11.627 L 11.44,9.387 L 10.04,8.454 L 11.86,7.241 L 15.78,9.854 L 9.34,14.146 L 10.74,15.08 L 18.72,9.761 Z M 5.28,14.24 L 12,18.72 L 18.72,14.24 L 15.92,12.373 L 12.56,14.613 L 13.96,15.546 L 12.14,16.759 L 8.22,14.146 L 14.66,9.854 L 13.26,8.921 Z M 5.28,16.853 L 5.28,18.72 L 8.08,16.853 L 6.68,15.919 Z" />
+</vector>
