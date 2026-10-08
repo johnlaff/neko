@@ -114,7 +114,19 @@ export interface MonthView {
   readonly fixedTotal: Cents;
   /** Every day of the month on the termômetro, in order. */
   readonly days: readonly ThermoDay[];
+  /**
+   * Saída lines under an `Investimento:` header: money kept, not spent. The method's Economia
+   * (aulas/02 … 03-aula-3-analises-e-cenarios [18:58]).
+   */
+  readonly saved: Cents;
+  /** saved / entrada as a whole percent, rounded; null without income. The method aims at 20–30%. */
+  readonly savedShare: number | null;
+  /** Saída plus diário minus what was saved: what the month cost to live (curso 05, aula 01). */
+  readonly livingCost: Cents;
 }
+
+/** `Investimento:`, `INVESTIMENTOS` and the like, however the owner spells the header. */
+const isSavingItem = (i: NoteItem): boolean => i.section?.startsWith("invest") ?? false;
 
 export interface UpcomingItem {
   readonly date: LocalDate;
@@ -396,12 +408,16 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
         fixed,
         fixedTotal: add(ZERO, ...fixed.map((f) => f.amount)),
         days: [],
+        saved: ZERO,
+        savedShare: null,
+        livingCost: ZERO,
       };
       months.push(m);
     }
     const entrada = add(m.entrada, row.entrada.amount);
     const saida = add(m.saida, row.saida.amount);
     const diario = add(m.diario, row.diario.amount);
+    const saved = add(m.saved, ...row.saida.items.filter(isSavingItem).map((i) => i.amount));
     const balance = sheetBalance(row.date);
     const moves: DayMove[] = [
       ...cellMoves(row.entrada, () => "income"),
@@ -428,6 +444,9 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       sobra: sub(entrada, add(saida, diario)),
       endSheet: balance,
       result: sub(balance, m.startBalance),
+      saved,
+      savedShare: entrada > 0 ? Math.round((saved * 100) / entrada) : null,
+      livingCost: sub(add(saida, diario), saved),
     };
   }
 

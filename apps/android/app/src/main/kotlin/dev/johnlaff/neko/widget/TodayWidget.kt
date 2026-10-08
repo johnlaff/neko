@@ -12,6 +12,7 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.color.ColorProvider
@@ -116,6 +117,8 @@ class TodayWidget : GlanceAppWidget() {
         Column(
             GlanceModifier
                 .fillMaxSize()
+                // Marks the background so the launcher opens the app from the widget's shape.
+                .appWidgetBackground()
                 .background(pair { it.surface })
                 .cornerRadius(20.dp)
                 .padding(horizontal = 14.dp, vertical = 10.dp)
@@ -154,7 +157,8 @@ class TodayWidget : GlanceAppWidget() {
                 t.figure,
                 style = TextStyle(
                     color = if (t.alarm) pair { it.neg } else pair { it.text },
-                    fontSize = 24.sp,
+                    // A one-cell-wide widget has room for "R$ 1.234,56" only a little smaller.
+                    fontSize = if (LocalSize.current.width < WIDE.width) 20.sp else 24.sp,
                     fontWeight = FontWeight.Medium,
                 ),
                 maxLines = 1,

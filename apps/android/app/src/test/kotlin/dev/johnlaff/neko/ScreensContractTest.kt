@@ -33,6 +33,10 @@ class ScreensContractTest {
         assertTrue(v.months.first().past)
         assertTrue(now.days.isNotEmpty())
         assertTrue(now.days.all { it.band in setOf("negative", "attention", "healthy", "surplus") })
+        // What the month kept, and what it cost without that.
+        assertTrue(now.saved > 0)
+        assertEquals(now.saida + now.diario - now.saved, now.livingCost)
+        assertTrue(now.savedShare != null)
     }
 
     @Test fun simulate() {

@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.Fixed
 import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.MonthItem
@@ -64,18 +65,26 @@ fun MesScreen(state: ScreenState<MonthsView>, history: HistoryView? = null, onRe
 private fun MonthNav(m: MonthItem, prev: (() -> Unit)?, next: (() -> Unit)?) {
     val l = LocalLedger.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = { prev?.invoke() }, enabled = prev != null, modifier = Modifier.semantics { contentDescription = "Mês anterior" }) {
-            Text("‹", style = MaterialTheme.typography.headlineSmall, color = if (prev != null) l.text else l.border)
-        }
+        MonthArrow(R.drawable.ic_chevron_left, "Mês anterior", prev)
         Text(
             "${capitalize(monthName(m.month))} ${m.year}",
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = { next?.invoke() }, enabled = next != null, modifier = Modifier.semantics { contentDescription = "Próximo mês" }) {
-            Text("›", style = MaterialTheme.typography.headlineSmall, color = if (next != null) l.text else l.border)
-        }
+        MonthArrow(R.drawable.ic_chevron_right, "Próximo mês", next)
+    }
+}
+
+@Composable
+private fun MonthArrow(icon: Int, label: String, go: (() -> Unit)?) {
+    val l = LocalLedger.current
+    androidx.compose.material3.IconButton(onClick = { go?.invoke() }, enabled = go != null) {
+        androidx.compose.material3.Icon(
+            androidx.compose.ui.res.painterResource(icon),
+            contentDescription = label,
+            tint = if (go != null) l.text else l.border,
+        )
     }
 }
 
@@ -115,6 +124,15 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                 )
             }
         }
+        if (m.saved > 0) {
+            Row(
+                Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Guardado" + (m.savedShare?.let { " · $it% das entradas" } ?: ""), color = l.muted)
+                Text(money(m.saved), style = MaterialTheme.typography.titleMedium)
+            }
+        }
         TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger })
         Reveal(ledger) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -129,6 +147,15 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                 Text(
                     "${if (r < 0) "Prejuízo" else "Lucro"} é quanto o saldo ${if (r < 0) "desceu" else "subiu"} no mês. " +
                         "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer como prejuízo.",
+                    color = l.muted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (m.saved > 0) {
+                LedgerLine("Custo de vida", money(m.livingCost), total = true)
+                Text(
+                    "Custo de vida é o que saiu sem contar o que foi guardado. É a base da reserva de emergência, " +
+                        "que o método pede de 6 a 12 vezes maior.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                 )

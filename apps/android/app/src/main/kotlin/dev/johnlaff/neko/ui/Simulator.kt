@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.background
@@ -182,7 +183,9 @@ private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
         text,
         color = if (on) l.bg else l.text,
         style = MaterialTheme.typography.labelLarge,
+        // The pill stays small; the touch area around it is a finger's.
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .background(if (on) l.text else l.surface2, shape)
             .border(1.dp, if (on) l.text else l.border, shape)
             .selectable(on, role = Role.RadioButton, onClick = onClick)

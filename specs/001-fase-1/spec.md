@@ -29,6 +29,10 @@ viram itens de saúde), e o "pode gastar hoje" faz sentido para o ciclo atual do
 - Saúde: data vazia, nota que não soma com a célula, saldo que não bate, linha de nota ilegível e
   fatura vencida sem linha na nota de Saída (só a última de cada cartão com fatura nos dois meses
   anteriores; vale até 3 dias de folga em torno do vencimento, e R$ 0,00 conta como lançada).
+- Guardado do mês = soma das linhas da nota de Saída sob um cabeçalho que começa com `Invest`
+  (`Investimento:`, `INVESTIMENTOS`). Taxa de economia = guardado ÷ entradas, em % inteiro (sem
+  entradas, não há taxa). Custo de vida = saídas + diário − guardado. Nada é previsto: meses
+  futuros só mostram o que já está na planilha.
 - "Dia passado sem diário" não vira item de saúde: no modo crédito o diário fica vazio de
   propósito, porque o gasto vai para a fatura. O alerta marcaria todos os dias.
 
