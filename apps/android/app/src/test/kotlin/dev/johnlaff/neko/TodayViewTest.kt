@@ -41,6 +41,13 @@ class TodayViewTest {
         assertTrue(r.top != null)
     }
 
+    @Test fun saysTheMonthsWinsAndSkipsUnknownOnes() {
+        val wins = view.recap!!.wins
+        assertEquals(listOf("3 meses seguidos no azul"), wins.mapNotNull(dev.johnlaff.neko.ui.Copy::win))
+        assertEquals(null, dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("novo")))
+        assertEquals("Mês no azul", dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("blue", months = 1)))
+    }
+
     @Test fun widgetAndTileCarryTheStreak() {
         val t = widgetText(view)
         assertEquals("12 dias em dia", t.streak)

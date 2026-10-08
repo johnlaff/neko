@@ -6,6 +6,7 @@ import {
   type MonthRecap,
   type Saving,
   type UpcomingDay,
+  type Win,
 } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -335,6 +336,13 @@ const splitDays = (days: readonly UpcomingDay[]) => {
  * The month that just closed, in the first week of the next: how it ended, what it kept, what it
  * cost to live and where most of it went. A plain panel: it informs, it does not warn.
  */
+const winText = (w: Win) => {
+  if (w.kind === "blue")
+    return w.months === 1 ? "Mês no azul" : `${w.months} meses seguidos no azul`;
+  if (w.kind === "kept") return "Bateu a meta de guardar 20% das entradas";
+  return `A reserva já cobre ${w.months === 1 ? "1 mês" : `${w.months} meses`} de custo de vida`;
+};
+
 const RecapPanel = ({ r }: { r: MonthRecap }) => {
   const name = monthName(r.month);
   const before = monthName(r.month === 1 ? 12 : r.month - 1);
@@ -350,6 +358,16 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
           Ver o mês
         </Link>
       </div>
+      {r.wins.length > 0 && (
+        <div className="recap-wins">
+          <Mascot pose="celebrating" height={64} className="milestone-cat" />
+          <ul aria-label="Conquistas do mês">
+            {r.wins.map((w) => (
+              <li key={w.kind}>{winText(w)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <dl className="ledger">
         <dt>{r.result < 0 ? "Faltou" : "Sobrou"}</dt>
         <dd className={r.result > 0 ? "pos" : r.result < 0 ? "neg" : undefined}>

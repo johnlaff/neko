@@ -37,7 +37,12 @@ data class MonthRecap(
     val livingCost: Long = 0,
     val costChange: Long? = null,
     val top: RecapTop? = null,
+    /** What the month achieved (engine recap.ts `Win`): kind "blue", "kept" or "reserve". */
+    val wins: List<Win> = emptyList(),
 )
+
+@Serializable
+data class Win(val kind: String, val months: Int? = null, val share: Int? = null)
 
 @Serializable
 data class RecapTop(val label: String, val amount: Long)
