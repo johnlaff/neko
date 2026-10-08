@@ -83,7 +83,7 @@ de saldo, fatura e projeção continuam vindo só da planilha.
 
 1. Ingestão: secrets, migração, cliente da Pluggy, webhook e cron, Ajustes › Bancos. Testes do
    cliente com respostas inventadas.
-2. Engine: `matchBankToLedger` e `committedInstallments`, com TDD.
+2. Engine: `unmatchedMovements` e `billChecks` (`bank.ts`), com TDD.
 3. Telas: Faturas e Hoje na web e no Android, capturas regravadas e `PIPELINE_VERSION` incrementada.
 
 ## Passos do dono (uma vez)
