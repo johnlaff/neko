@@ -75,6 +75,8 @@ fun LoginScreen(onSignedIn: () -> Unit) {
         Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
+        BlinkingCat(Modifier.height(200.dp))
+        Spacer(Modifier.height(12.dp))
         Text("Neko", style = MaterialTheme.typography.displayLarge, modifier = Modifier.semantics { heading() })
         Spacer(Modifier.height(8.dp))
         Text("Sua planilha, lida todo dia.", color = l.muted, style = MaterialTheme.typography.bodyLarge)

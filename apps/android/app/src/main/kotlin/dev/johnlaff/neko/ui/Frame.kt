@@ -213,6 +213,7 @@ private fun ErrorPanel(state: ScreenState<*>, onRetry: () -> Unit) {
     val l = LocalLedger.current
     Panel {
         val structure = state.error == ReadError.SheetStructure
+        Mascot(Pose.Sleeping, Modifier.height(84.dp))
         Text(
             if (structure) "A planilha mudou de formato" else "Não consegui ler a planilha",
             style = MaterialTheme.typography.headlineSmall,
