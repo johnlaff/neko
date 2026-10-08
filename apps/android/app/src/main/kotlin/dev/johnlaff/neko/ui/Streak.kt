@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -73,6 +74,11 @@ fun Streak(h: Habit) {
             Column(Modifier.weight(1f)) {
                 Text(Learn.streakLabel(h.streak), style = MaterialTheme.typography.titleMedium)
                 if (h.editedToday) Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            }
+            // The day is on the sheet: Neko purrs, right where the habit is counted.
+            if (h.editedToday) {
+                Mascot(Pose.Content, Modifier.height(40.dp).hop())
+                Spacer(Modifier.width(8.dp))
             }
             Icon(
                 painterResource(R.drawable.ic_chevron_right),
