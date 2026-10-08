@@ -111,7 +111,7 @@ fun HojeScreen(
         }
         if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
-        v.recap?.let { r -> item { RecapPanel(r) } }
+        v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
         item { Conference(v) }
         v.bankMissing?.takeIf { it.isNotEmpty() }?.let { m -> item { BankMissing(m) } }
@@ -372,11 +372,12 @@ private fun ShareButton(title: String, lines: List<String>, label: String) {
  * and where most of it went. A plain panel: it informs, it does not warn.
  */
 @Composable
-internal fun RecapPanel(r: MonthRecap) {
+internal fun RecapPanel(r: MonthRecap, onMonth: () -> Unit = {}) {
     val l = LocalLedger.current
-    val before = Format.monthName(if (r.month == 1) 12 else r.month - 1)
     Panel {
-        PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou")
+        PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou") {
+            TextAction("Ver o mês", onMonth, color = l.accent)
+        }
         WinsBox(r.wins, 64.dp, "${Format.capitalize(Format.monthName(r.month))} de ${r.year}")
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LedgerLine(
@@ -391,17 +392,7 @@ internal fun RecapPanel(r: MonthRecap) {
             if (r.saved > 0) {
                 LedgerLine("Guardado" + (r.savedShare?.let { " · $it% das entradas" } ?: ""), money(r.saved))
             }
-            LedgerLine("Custo de vida", money(r.livingCost))
-            r.costChange?.takeIf { it != 0L }?.let { c ->
-                Text(
-                    "${if (c < 0) "▼" else "▲"} ${money(kotlin.math.abs(c))} sobre $before",
-                    color = if (c < 0) l.pos else l.muted,
-                    style = MaterialTheme.typography.labelMedium,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            r.top?.let { t -> LedgerLine("Maior saída", "${t.label} · ${money(t.amount)}") }
+            // Custo de vida and the largest line are one tap away, on Mês.
         }
     }
 }
