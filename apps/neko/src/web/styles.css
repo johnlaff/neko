@@ -322,13 +322,19 @@ details.formula summary::-webkit-details-marker {
 details.formula[open] summary {
   margin-bottom: 0;
 }
+/* The chevron trails the words and points down, turning up when open, as on Android. */
 .formula summary svg {
+  order: 1;
   width: 16px;
   height: 16px;
+  rotate: 90deg;
   transition: rotate 180ms ease-out;
 }
 details[open] > summary > svg {
-  rotate: 90deg;
+  rotate: var(--open-turn, 90deg);
+}
+details.formula {
+  --open-turn: -90deg;
 }
 /* Disclosures open and close by height where the browser can animate to auto (Chrome 131+);
    elsewhere they just snap, as before. */
@@ -1711,14 +1717,12 @@ button.chip-button[aria-pressed="true"] {
 .alert.ask {
   --tone: var(--muted);
 }
-.alert-icon {
-  display: grid;
-  place-items: center;
-  color: var(--tone);
-}
-.alerts .alert .alert-icon > svg {
-  width: 20px;
-  height: 20px;
+/* Color only where it informs: one small dot carries the tone, as on Android. */
+.alert-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone);
 }
 .alert-text {
   display: grid;
@@ -2074,8 +2078,11 @@ button.ghost.small {
   font-size: 0.875rem;
   color: var(--muted);
 }
-.tip-ok {
+/* The hint is already a box: its button is just the word, as on Android. */
+button.ghost.tip-ok {
   flex: none;
+  box-shadow: none;
+  font-weight: 550;
 }
 /* Como funciona: a short list of ideas, each one tap away */
 .panel.list.learn details.formula {
@@ -2112,7 +2119,7 @@ button.setting.quiet:hover {
   font-size: 0.9375rem;
 }
 .panel.list.learn details.formula p {
-  margin: 4px 0 0 22px;
+  margin: 4px 0 0;
 }
 
 /* Hoje's streak: this week as seven quiet marks, the run in words, the rule behind a tap */

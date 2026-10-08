@@ -24,15 +24,12 @@ import {
 } from "../format.ts";
 import { Hint } from "../Hint.tsx";
 import {
-  IconAlert,
   IconCard,
   IconChevron,
   IconExternal,
   IconIncome,
   IconPlus,
   IconReceipt,
-  IconToday,
-  IconTrendUp,
 } from "../icons.tsx";
 import { HINTS } from "../learn.ts";
 import { Mascot } from "../Mascot.tsx";
@@ -121,15 +118,7 @@ const AlertList = ({ items }: { items: readonly Insight[] }) => (
       return (
         <li key={i.kind}>
           <Link to={v.to} search={"month" in v ? { m: v.month } : {}} className={`alert ${v.tone}`}>
-            <span className="alert-icon" aria-hidden="true">
-              {v.tone === "bad" ? (
-                <IconAlert />
-              ) : i.kind === "closing-estimated" ? (
-                <IconToday />
-              ) : (
-                <IconTrendUp />
-              )}
-            </span>
+            <span className="alert-dot" aria-hidden="true" />
             <span className="alert-text">
               <strong>{v.title}</strong>
               <span>{v.detail}</span>
@@ -152,9 +141,7 @@ const SaveCard = ({ save, today }: { save: Saving; today: string }) => {
     <ul className="alerts" aria-label="Guardar">
       <li>
         <Link to="/mes" search={{ m: save.date.slice(0, 7) }} className="alert good">
-          <span className="alert-icon" aria-hidden="true">
-            <IconIncome />
-          </span>
+          <span className="alert-dot" aria-hidden="true" />
           <span className="alert-text">
             <strong>
               {isToday

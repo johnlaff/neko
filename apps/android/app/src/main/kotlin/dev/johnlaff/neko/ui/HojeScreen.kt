@@ -189,8 +189,9 @@ private fun LancarButton(url: String, modifier: Modifier = Modifier) {
     Button(
         onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
         modifier = modifier.fillMaxWidth().height(48.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = l.surface2, contentColor = l.text),
-        shape = RoundedCornerShape(14.dp),
+        // The one filled button on the screen, as on the site: logging is the method's daily act.
+        colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
+        shape = RoundedCornerShape(50),
         contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
     ) {
         androidx.compose.material3.Icon(
@@ -199,7 +200,7 @@ private fun LancarButton(url: String, modifier: Modifier = Modifier) {
             modifier = Modifier.size(ButtonDefaults.IconSize),
         )
         androidx.compose.foundation.layout.Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-        Text("Lançar", style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        Text("Lançar", color = l.bg, style = MaterialTheme.typography.labelLarge, maxLines = 1)
     }
 }
 
@@ -211,7 +212,7 @@ private fun SimulateButton(open: Boolean, modifier: Modifier, onClick: () -> Uni
         modifier = modifier.fillMaxWidth().height(48.dp).semantics { stateDescription = if (open) "Aberto" else "Fechado" },
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = androidx.compose.foundation.BorderStroke(1.dp, if (open) l.muted else l.border),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(50),
     ) { Text("Simular compra", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
 }
 
