@@ -70,3 +70,14 @@ test("a tip shows one at a time and stays gone once dismissed", async ({ page })
   await expect(page.getByRole("heading", { level: 1, name: "Hoje" })).toBeAttached();
   await expect(tip).toHaveCount(0);
 });
+
+test("the month's wins become a picture to share, with no amounts", async ({ page }) => {
+  const errors = await open(page, "/");
+  const box = page.getByRole("list", { name: "Conquistas do mês" }).locator("..");
+  const download = page.waitForEvent("download");
+  await box.getByRole("button", { name: "Compartilhar" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("neko-conquista.png");
+  if (process.env.WIN_CARD_OUT) await file.saveAs(process.env.WIN_CARD_OUT);
+  expect(errors).toEqual([]);
+});

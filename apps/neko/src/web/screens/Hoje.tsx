@@ -10,7 +10,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { HEALTH_DAYS, issueKey, SAVE_LEAD } from "../../shared/today.ts";
-import { winText } from "../../shared/wins.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
@@ -40,6 +39,7 @@ import { Mascot } from "../Mascot.tsx";
 import { Simulator } from "../Pace.tsx";
 import { milestoneText, Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
+import { Wins } from "../Wins.tsx";
 
 /** Each warning in a few words, with the figure that shows it and where to look next. */
 const insightView = (i: Insight) => {
@@ -370,16 +370,7 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
           Ver o mês
         </Link>
       </div>
-      {r.wins.length > 0 && (
-        <div className="recap-wins">
-          <Mascot pose="celebrating" height={64} className="milestone-cat" />
-          <ul aria-label="Conquistas do mês">
-            {r.wins.map((w) => (
-              <li key={w.kind}>{winText(w)}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <Wins wins={r.wins} year={r.year} month={r.month} cat={64} />
       <dl className="ledger">
         <dt>{r.result < 0 ? "Faltou" : "Sobrou"}</dt>
         <dd className={r.result > 0 ? "pos" : r.result < 0 ? "neg" : undefined}>

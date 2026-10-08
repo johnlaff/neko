@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -272,21 +273,30 @@ private const val ShownAlerts = 2
 
 /** A month's wins in words, next to Neko celebrating: the recap on Hoje and a closed Mês. */
 @Composable
-internal fun WinsBox(wins: List<String>, cat: Dp) {
+internal fun WinsBox(wins: List<String>, cat: Dp, title: String) {
     if (wins.isEmpty()) return
     val l = LocalLedger.current
-    Row(
+    val context = LocalContext.current
+    Column(
         Modifier.fillMaxWidth()
-            .semantics(mergeDescendants = true) {}
             .background(l.pos.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
             .padding(horizontal = 14.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        CelebratingCat(Modifier.height(cat).hop())
-        Spacer(Modifier.width(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            wins.forEach { Text(it, color = l.text, style = MaterialTheme.typography.titleSmall) }
+        Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
+            CelebratingCat(Modifier.height(cat).hop())
+            Spacer(Modifier.width(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                wins.forEach { Text(it, color = l.text, style = MaterialTheme.typography.titleSmall) }
+            }
         }
+        // The picture carries the wins only, never an amount (share/WinCard.kt).
+        OutlinedButton(
+            onClick = { dev.johnlaff.neko.share.WinCard.share(context, title, wins) },
+            modifier = Modifier.align(Alignment.End).padding(bottom = 6.dp).heightIn(min = 40.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
+            border = androidx.compose.foundation.BorderStroke(1.dp, l.muted),
+            contentPadding = PaddingValues(horizontal = 14.dp),
+        ) { Text("Compartilhar", style = MaterialTheme.typography.labelLarge) }
     }
 }
 
@@ -300,7 +310,7 @@ internal fun RecapPanel(r: MonthRecap) {
     val before = Format.monthName(if (r.month == 1) 12 else r.month - 1)
     Panel {
         PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou")
-        WinsBox(r.wins.mapNotNull(Copy::win), 64.dp)
+        WinsBox(r.wins.mapNotNull(Copy::win), 64.dp, "${Format.capitalize(Format.monthName(r.month))} de ${r.year}")
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LedgerLine(
                 if (r.result < 0) "Faltou" else "Sobrou",
