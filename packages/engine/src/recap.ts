@@ -16,6 +16,8 @@ export const RECAP_DAYS = 7;
 export const RESERVE_MARKS = [1, 3, 6, 12] as const;
 /** The low end of the method's 20–30% of the income kept. */
 export const KEPT_GOAL = 20;
+/** Living months a closed month must follow before its share kept can be called a record. */
+export const RECORD_AFTER = 3;
 
 /**
  * What the closed month achieved, celebrated once in its recap. Only outcomes the sheet shows,
@@ -27,6 +29,10 @@ export type Win =
       readonly months: number;
     }
   | { readonly kind: "kept"; readonly share: number }
+  | {
+      readonly kind: "record" /** The highest share of the income kept so far. */;
+      readonly share: number;
+    }
   | {
       readonly kind: "reserve" /** The highest mark first crossed this month. */;
       readonly months: number;
@@ -59,8 +65,12 @@ const wins = (months: readonly MonthView[], closed: MonthView): Win[] => {
   let run = 0;
   for (let i = upTo.length - 1; i >= 0 && (upTo[i]?.result ?? 0) > 0; i--) run++;
   if (run > 0) out.push({ kind: "blue", months: run });
-  if (closed.savedShare !== null && closed.savedShare >= KEPT_GOAL)
-    out.push({ kind: "kept", share: closed.savedShare });
+  const share = closed.savedShare;
+  const earlier = upTo.slice(0, -1).map((m) => m.savedShare ?? 0);
+  // A record already says the share, so it takes the place of the 20% goal line.
+  if (share !== null && share > 0 && earlier.length >= RECORD_AFTER && share > Math.max(...earlier))
+    out.push({ kind: "record", share });
+  else if (share !== null && share >= KEPT_GOAL) out.push({ kind: "kept", share });
   // The reserve as reserve.ts reads it: kept so far over today's cost of living (last 3 months).
   const recent = upTo.slice(-3);
   const cost = add(ZERO, ...recent.map((m) => m.livingCost));

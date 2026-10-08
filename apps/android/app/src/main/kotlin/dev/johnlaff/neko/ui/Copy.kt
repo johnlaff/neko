@@ -18,6 +18,7 @@ object Copy {
     fun win(w: Win): String? = when (w.kind) {
         "blue" -> w.months?.let { if (it == 1) "Mês no azul" else "$it meses seguidos no azul" }
         "kept" -> "Bateu a meta de guardar 20% das entradas"
+        "record" -> w.share?.let { "Recorde: guardou $it% das entradas, o maior até aqui" }
         "reserve" -> w.months?.let { "A reserva já cobre ${if (it == 1) "1 mês" else "$it meses"} de custo de vida" }
         else -> null
     }
