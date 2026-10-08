@@ -122,7 +122,7 @@ private fun Mark(state: String, delay: Int) {
     LaunchedEffect(Unit) {
         if (!shown) {
             kotlinx.coroutines.delay(delay.toLong())
-            scale.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 500f))
+            scale.animateTo(1f, spring(dampingRatio = 1f, stiffness = 500f))
             shown = true
         }
     }
