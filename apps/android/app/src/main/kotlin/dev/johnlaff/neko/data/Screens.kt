@@ -166,6 +166,8 @@ data class Outflow(
     val others: Boolean = false,
     /** The last months of this destination, oldest first, opened by a tap on its line. */
     val trend: List<TrendPoint> = emptyList(),
+    /** Its bill that comes back every month or its installment; null for the others. */
+    val fixed: Fixed? = null,
 )
 
 @Serializable

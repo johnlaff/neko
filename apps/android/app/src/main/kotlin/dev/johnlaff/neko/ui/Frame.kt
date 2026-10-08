@@ -310,6 +310,8 @@ fun ListRow(
     value: String,
     modifier: Modifier = Modifier,
     avatar: String? = null,
+    /** An icon in the avatar instead of its letters. */
+    avatarIcon: Int? = null,
     /** A card's name: when it names a known bank, the avatar is that bank's mark. */
     card: String? = null,
     meta: String? = null,
@@ -331,7 +333,9 @@ fun ListRow(
                 Modifier.size(36.dp).background(if (accent) l.accent.copy(alpha = 0.16f) else l.surface2, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(it, color = if (accent) l.accent else l.muted, style = MaterialTheme.typography.labelMedium)
+                if (avatarIcon != null) {
+                    androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(avatarIcon), contentDescription = null, tint = if (accent) l.accent else l.muted, modifier = Modifier.size(18.dp))
+                } else Text(it, color = if (accent) l.accent else l.muted, style = MaterialTheme.typography.labelMedium)
             }
             Spacer(Modifier.width(12.dp))
         }
