@@ -25,7 +25,7 @@ class WinCardTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val bmp = WinCard.draw(
             context,
-            "Setembro de 2026",
+            "Setembro de 2026 fechou",
             listOf("3 meses seguidos no azul", "Recorde: guardou 34% das entradas, o maior até aqui"),
         )
         assertEquals(1080, bmp.width)
