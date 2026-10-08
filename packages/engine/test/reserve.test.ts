@@ -15,6 +15,8 @@ const month = (
   saida: c(livingCost + saved),
   diario: c(0),
   saved: c(saved),
+  savedToDate: c(saved),
+  entradaToDate: c(entrada),
   livingCost: c(livingCost),
 });
 
@@ -56,6 +58,12 @@ describe("reserve", () => {
     expect(r?.coveredTenths).toBe(10);
   });
 
+  it("leaves out lines later this month: a planned deposit is not kept yet", () => {
+    const october = { ...month(2026, 10, 2000_00, 800_00), savedToDate: c(500_00) };
+    const r = reserve([month(2026, 9, 2000_00, 1000_00), october], today);
+    expect(r?.kept).toBe(1500_00);
+  });
+
   it("rounds the covered months down to a tenth", () => {
     const r = reserve([month(2026, 9, 3000_00, 5000_00)], today);
     expect(r?.coveredTenths).toBe(16);
@@ -78,6 +86,18 @@ describe("yearTotals", () => {
       2026,
     );
     expect(t).toEqual({ year: 2026, entrada: 15000_00, saved: 1500_00, savedShare: 10 });
+  });
+
+  it("counts only what is dated up to today, income included", () => {
+    const t = yearTotals(
+      [
+        month(2026, 9, 1000_00, 500_00, 10000_00),
+        { ...month(2026, 10, 1000_00, 800_00, 10000_00), savedToDate: c(0), entradaToDate: c(0) },
+        { ...month(2026, 11, 1000_00, 800_00), savedToDate: c(0), entradaToDate: c(0) },
+      ],
+      2026,
+    );
+    expect(t).toEqual({ year: 2026, entrada: 10000_00, saved: 500_00, savedShare: 5 });
   });
 
   it("has no share without income", () => {

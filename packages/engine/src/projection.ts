@@ -117,18 +117,26 @@ export interface MonthView {
   /** Every day of the month on the termômetro, in order. */
   readonly days: readonly ThermoDay[];
   /**
-   * Saída lines under an `Investimento:` header: money kept, not spent. The method's Economia
+   * Saída lines under a `Reserva:` header: money kept, not spent. The method's Economia
    * (aulas/02 … 03-aula-3-analises-e-cenarios [18:58]).
    */
   readonly saved: Cents;
   /** saved / entrada as a whole percent, rounded; null without income. The method aims at 20–30%. */
   readonly savedShare: number | null;
+  /** `saved` from lines dated up to today only: what has really been put away so far. */
+  readonly savedToDate: Cents;
+  /** Entrada from lines dated up to today only. */
+  readonly entradaToDate: Cents;
   /** Saída plus diário minus what was saved: what the month cost to live (curso 05, aula 01). */
   readonly livingCost: Cents;
 }
 
-/** `Investimento:`, `INVESTIMENTOS` and the like, however the owner spells the header. */
-const isSavingItem = (i: NoteItem): boolean => i.section?.startsWith("invest") ?? false;
+/**
+ * `Reserva:`, `RESERVA DE EMERGÊNCIA` and the like, however the owner spells the header. Only
+ * the reserve counts as kept: lines under `Investimento:` hold things like a pension plan or a
+ * course, money that left the account and cannot be drawn on the spot (curso 05, aula 01).
+ */
+const isSavingItem = (i: NoteItem): boolean => i.section?.startsWith("reserva") ?? false;
 
 export interface UpcomingItem {
   readonly date: LocalDate;
@@ -418,6 +426,8 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
         days: [],
         saved: ZERO,
         savedShare: null,
+        savedToDate: ZERO,
+        entradaToDate: ZERO,
         livingCost: ZERO,
       };
       months.push(m);
@@ -425,7 +435,9 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     const entrada = add(m.entrada, row.entrada.amount);
     const saida = add(m.saida, row.saida.amount);
     const diario = add(m.diario, row.diario.amount);
-    const saved = add(m.saved, ...row.saida.items.filter(isSavingItem).map((i) => i.amount));
+    const savedToday = add(ZERO, ...row.saida.items.filter(isSavingItem).map((i) => i.amount));
+    const saved = add(m.saved, savedToday);
+    const past = row.date <= today;
     const balance = sheetBalance(row.date);
     const moves: DayMove[] = [
       ...cellMoves(row.entrada, () => "income"),
@@ -454,6 +466,8 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       result: sub(balance, m.startBalance),
       saved,
       savedShare: entrada > 0 ? Math.round((saved * 100) / entrada) : null,
+      savedToDate: past ? add(m.savedToDate, savedToday) : m.savedToDate,
+      entradaToDate: past ? add(m.entradaToDate, row.entrada.amount) : m.entradaToDate,
       livingCost: sub(add(saida, diario), saved),
     };
   }

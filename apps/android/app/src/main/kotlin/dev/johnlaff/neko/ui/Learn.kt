@@ -52,7 +52,7 @@ object Learn {
     /** Mês's reserve panel, word for word with the site (web/learn.ts RESERVE). */
     const val RESERVE_TITLE = "Reserva de emergência"
     const val RESERVE_RULE = "O método pede de 6 a 12 meses do custo de vida, guardados onde dá para sacar na hora."
-    const val RESERVE_EMPTY = "Linhas de Saída sob Investimento contam como guardado."
+    const val RESERVE_EMPTY = "Só contam como guardado as linhas de Saída sob o título Reserva nas notas."
 
     /** Tenths of a month as "1,6 mês" or "2 meses". */
     fun coveredLabel(tenths: Int): String {

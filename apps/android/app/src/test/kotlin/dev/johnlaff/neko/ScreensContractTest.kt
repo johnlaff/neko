@@ -42,7 +42,8 @@ class ScreensContractTest {
         assertEquals(r.cost * 6, r.min)
         assertEquals(r.cost * 12, r.max)
         assertEquals((r.kept * 10 / r.cost).toInt(), r.coveredTenths)
-        assertEquals(v.months.filter { it.year == 2026 }.sumOf { it.saved }, v.years.single { it.year == 2026 }.saved)
+        // The year counts only what is dated up to today: the fixture's deposit on the 20th is still ahead.
+        assertEquals(v.months.filter { it.year == 2026 && it.past }.sumOf { it.saved }, v.years.single { it.year == 2026 }.saved)
     }
 
     @Test fun simulate() {

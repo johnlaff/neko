@@ -159,7 +159,7 @@ export interface MonthItem {
   readonly fixedTotal: number;
   /** The termômetro: each day's balance and band, with what moved it. */
   readonly days: readonly ThermoDay[];
-  /** Saída under an `Investimento:` header, its share of entradas (whole %, null without income). */
+  /** Saída under a `Reserva:` header, its share of entradas (whole %, null without income). */
   readonly saved: number;
   readonly savedShare: number | null;
   /** Saída plus diário minus what was saved. */

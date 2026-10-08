@@ -400,7 +400,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -672,7 +672,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -781,6 +781,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 807314,
         "livingCost": 599238
       },
       {
@@ -813,7 +815,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -1085,7 +1087,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -1167,6 +1169,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 788153,
         "livingCost": 651574
       },
       {
@@ -1199,7 +1203,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -1251,7 +1255,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -1497,7 +1501,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -1606,6 +1610,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 816746,
         "livingCost": 693768
       },
       {
@@ -1638,7 +1644,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -1690,7 +1696,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -1936,7 +1942,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -2038,6 +2044,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 818665,
         "livingCost": 715890
       },
       {
@@ -2070,7 +2078,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -2122,7 +2130,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -2368,7 +2376,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -2477,6 +2485,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 803048,
         "livingCost": 714443
       },
       {
@@ -2509,7 +2519,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -2561,7 +2571,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -2807,7 +2817,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -2909,6 +2919,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 817923,
         "livingCost": 676242
       },
       {
@@ -2941,7 +2953,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -2993,7 +3005,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -3239,7 +3251,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -3348,6 +3360,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 781023,
         "livingCost": 745578
       },
       {
@@ -3380,7 +3394,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -3432,7 +3446,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -3678,7 +3692,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -3787,6 +3801,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 813687,
         "livingCost": 694448
       },
       {
@@ -3819,7 +3835,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -3871,7 +3887,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -4117,7 +4133,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -4219,6 +4235,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 789122,
         "livingCost": 665542
       },
       {
@@ -4251,7 +4269,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -4303,7 +4321,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -4549,7 +4567,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -4658,6 +4676,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 799008,
         "livingCost": 659164
       },
       {
@@ -4690,7 +4710,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -4742,7 +4762,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -4988,7 +5008,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -5090,6 +5110,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 791214,
         "livingCost": 704539
       },
       {
@@ -5122,7 +5144,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -5174,7 +5196,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -5420,7 +5442,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -5529,6 +5551,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 785356,
         "livingCost": 702333
       },
       {
@@ -5561,7 +5585,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -5613,7 +5637,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -5859,7 +5883,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -5968,6 +5992,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 807692,
         "livingCost": 637979
       },
       {
@@ -6000,7 +6026,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -6052,7 +6078,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -6298,7 +6324,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -6380,6 +6406,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 818481,
         "livingCost": 657372
       },
       {
@@ -6412,7 +6440,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -6464,7 +6492,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -6710,7 +6738,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -6819,6 +6847,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 780513,
         "livingCost": 589219
       },
       {
@@ -6851,7 +6881,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -6903,7 +6933,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -7149,7 +7179,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -7251,6 +7281,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 802127,
         "livingCost": 666454
       },
       {
@@ -7283,7 +7315,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -7335,7 +7367,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -7581,7 +7613,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -7690,6 +7722,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 807809,
         "livingCost": 637384
       },
       {
@@ -7722,7 +7756,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -7774,7 +7808,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -8020,7 +8054,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -8122,6 +8156,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 780593,
         "livingCost": 724843
       },
       {
@@ -8154,7 +8190,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -8206,7 +8242,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -8452,7 +8488,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -8561,6 +8597,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 785347,
         "livingCost": 669622
       },
       {
@@ -8593,7 +8631,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -8645,7 +8683,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -8891,7 +8929,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -9000,6 +9038,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 785265,
         "livingCost": 626833
       },
       {
@@ -9032,7 +9072,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -9084,7 +9124,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -9330,7 +9370,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -9432,6 +9472,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 80000,
+        "entradaToDate": 817736,
         "livingCost": 734972
       },
       {
@@ -9464,7 +9506,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -9516,7 +9558,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -9734,7 +9776,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -9819,6 +9861,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 0,
+        "entradaToDate": 560000,
         "livingCost": 671321
       },
       {
@@ -9851,7 +9895,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -9903,7 +9947,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -10115,7 +10159,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -10193,6 +10237,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 0,
+        "entradaToDate": 0,
         "livingCost": 576754
       },
       {
@@ -10225,7 +10271,7 @@
             "others": false
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "count": 1,
             "kind": "bill",
@@ -10277,7 +10323,7 @@
             "installment": null
           },
           {
-            "label": "Investimento",
+            "label": "Poupança",
             "amount": 80000,
             "installment": null
           },
@@ -10489,7 +10535,7 @@
               },
               {
                 "kind": "bill",
-                "description": "Investimento",
+                "description": "Poupança",
                 "amount": 80000
               }
             ]
@@ -10574,6 +10620,8 @@
         ],
         "saved": 80000,
         "savedShare": 10,
+        "savedToDate": 0,
+        "entradaToDate": 0,
         "livingCost": 689191
       }
     ],
@@ -10720,8 +10768,8 @@
       "costMonths": 3,
       "min": 4062852,
       "max": 8125704,
-      "kept": 1760000,
-      "coveredTenths": 25
+      "kept": 1680000,
+      "coveredTenths": 24
     },
     "recap": {
       "year": 2026,
@@ -10751,9 +10799,9 @@
       },
       {
         "year": 2026,
-        "entrada": 9579992,
-        "saved": 960000,
-        "savedShare": 10
+        "entrada": 7745563,
+        "saved": 720000,
+        "savedShare": 9
       }
     ],
     "insights": [
@@ -10835,7 +10883,9 @@
       }
     ],
     "milestone": null,
+    "record": null,
     "next": 21,
-    "since": "2026-09-22"
+    "since": "2026-09-22",
+    "lastWeek": 6
   }
 }
