@@ -119,3 +119,12 @@ export interface BanksResponse {
     }[];
   }[];
 }
+
+/** GET /api/mia: whether Mia is on and how much of the month's cap is spent. */
+export interface MiaStatus {
+  readonly ligada: boolean;
+  /** Whole percent of the monthly cap. */
+  readonly usadoPct: number;
+  /** `AAAA-MM-DD` Mia comes back, when the cap was reached. */
+  readonly pausadaAte: string | null;
+}
