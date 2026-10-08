@@ -1,0 +1,27 @@
+{
+  "texto": "Entraram {{v2}} em setembro: {{v3}} a mais, ou {{v4}}.",
+  "valores": {
+    "v2": {
+      "tipo": "total",
+      "rotulo": "Entradas de 2026-09",
+      "tela": "mes",
+      "mes": "2026-09",
+      "cents": 817736
+    },
+    "v3": {
+      "tipo": "diferenca",
+      "rotulo": "Entradas: 2026-09 menos 2026-08",
+      "tela": "mes",
+      "mes": "2026-09",
+      "cents": 32471
+    },
+    "v4": {
+      "rotulo": "Entradas: variação de 2026-08 para 2026-09",
+      "tela": "mes",
+      "mes": "2026-09",
+      "tipo": "percentual",
+      "pct": 4
+    }
+  },
+  "modelo": "claude-haiku-5-5"
+}

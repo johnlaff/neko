@@ -167,3 +167,29 @@ data class Reminder(val title: String, val body: String, val url: String, val ta
 
 @Serializable
 data class RemindersView(val morning: Reminder? = null, val evening: Reminder? = null)
+
+/** GET /api/mia: whether Mia is on and how much of the month's cap is spent (specs/004-mia). */
+@Serializable
+data class MiaStatus(val ligada: Boolean = false, val usadoPct: Int = 0, val pausadaAte: String? = null)
+
+/** A value the engine handed out: money in `cents`, or a whole percent in `pct`. */
+@Serializable
+data class MiaValue(
+    val tipo: String,
+    val rotulo: String,
+    val tela: String,
+    val mes: String? = null,
+    val cents: Long? = null,
+    val pct: Int? = null,
+)
+
+/** One answer: `{{vN}}` in the text, each one's value beside it. */
+@Serializable
+data class MiaReply(val texto: String, val valores: Map<String, MiaValue> = emptyMap(), val modelo: String? = null)
+
+@Serializable
+data class MiaTurn(val pergunta: String, val resposta: String)
+
+/** What Mia gets with a question: the last exchanges and the values they showed. */
+@Serializable
+data class MiaAsk(val pergunta: String, val historico: List<MiaTurn>, val valores: Map<String, MiaValue>)

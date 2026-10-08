@@ -2335,3 +2335,73 @@ form.setting.bank-add > input {
   min-height: 44px;
   padding: 6px 10px;
 }
+
+/* Mia on Hoje: a toggle like the simulator, then a quiet conversation. Values are links. */
+.quick > .mia-ask,
+.quick > .panel.mia {
+  grid-column: 1 / -1;
+}
+.quick > .panel.mia {
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+.mia-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+p.mia-lead {
+  margin: 0;
+}
+.mia-talk {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+p.mia-q {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+p.mia-text {
+  margin: 0;
+  line-height: 1.5;
+}
+a.mia-value {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+.mia-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.mia-status:empty {
+  display: none;
+}
+.mia-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mia-suggest > button.chip-button {
+  flex: 0 1 auto;
+  padding: 0 14px;
+}
+form.mia-form {
+  display: flex;
+  gap: 8px;
+}
+.panel.mia form.mia-form > input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 12px;
+}

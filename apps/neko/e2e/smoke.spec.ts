@@ -10,6 +10,7 @@ const API: Record<string, unknown> = {
   "/api/history": { points: [], delta: null },
   "/api/sessions": [],
   "/api/push/key": { publicKey: null },
+  "/api/mia": { ligada: true, usadoPct: 3, pausadaAte: null },
   "/api/settings": {
     dailyForecast: null,
     usualCard: null,
@@ -50,6 +51,16 @@ const API: Record<string, unknown> = {
   },
 };
 
+// An invented answer, shaped like the Worker's: the text points, the values come beside it.
+const MIA_REPLY = {
+  texto: "Em setembro saíram {{v1}}, e as saídas caíram {{v2}} desde agosto.",
+  valores: {
+    v1: { tipo: "total", rotulo: "Saídas de 2026-09", tela: "mes", mes: "2026-09", cents: 512_340 },
+    v2: { tipo: "diferenca", rotulo: "Saídas: 2026-09 menos 2026-08", tela: "mes", cents: -20_000 },
+  },
+  modelo: "claude-haiku-5-5",
+};
+
 /** Answers the API from fixtures and fails the test on any error the page logs or throws. */
 const open = async (page: Page, path: string) => {
   const errors: string[] = [];
@@ -59,6 +70,8 @@ const open = async (page: Page, path: string) => {
   });
   await page.route("**/api/**", (route) => {
     const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/mia" && route.request().method() === "POST")
+      return route.fulfill({ json: MIA_REPLY });
     if (pathname === "/api/projection")
       return route.fulfill({ contentType: "application/json", body: projection });
     if (pathname in API) return route.fulfill({ json: API[pathname] });
@@ -92,6 +105,18 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bancos" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: /Azul Platinum/ })).toHaveValue("Cartão Azul");
+  expect(errors).toEqual([]);
+});
+
+test("Mia answers with the engine's values, each one a link to its screen", async ({ page }) => {
+  const errors = await open(page, "/");
+  await page.getByRole("button", { name: "Perguntar à Mia" }).click();
+  await page.getByRole("button", { name: "Quanto saiu no mês passado?" }).click();
+  const answer = page.getByRole("region", { name: "Conversa com a Mia" });
+  await expect(answer.getByRole("link", { name: /5\.123,40/ })).toHaveAttribute("href", "/mes");
+  // A difference shows its size; "caíram" already says which way.
+  await expect(answer.getByRole("link", { name: /200,00/ })).not.toContainText("−");
+  await answer.screenshot({ path: "test-results/mia.png" });
   expect(errors).toEqual([]);
 });
 

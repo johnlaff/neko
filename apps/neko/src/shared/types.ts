@@ -1,4 +1,12 @@
-import type { BankMovement, BillCheck, CardConfig, Cents, Habit, Projection } from "@neko/engine";
+import type {
+  BankMovement,
+  BillCheck,
+  CardConfig,
+  Cents,
+  Habit,
+  Projection,
+  RefValue,
+} from "@neko/engine";
 import { z } from "zod";
 
 /** Shared by the Worker and the web app; no runtime-specific types here. */
@@ -127,4 +135,11 @@ export interface MiaStatus {
   readonly usadoPct: number;
   /** `AAAA-MM-DD` Mia comes back, when the cap was reached. */
   readonly pausadaAte: string | null;
+}
+
+/** One answer from POST /api/mia: `{{vN}}` in the text, each one's value beside it. */
+export interface MiaReply {
+  readonly texto: string;
+  readonly valores: Readonly<Record<string, RefValue>>;
+  readonly modelo: string | null;
 }

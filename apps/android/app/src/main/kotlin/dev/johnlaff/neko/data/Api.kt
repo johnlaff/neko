@@ -96,6 +96,13 @@ class Api(
         call("/banks/cards", body, "PUT")
     }
 
+    suspend fun mia(): MiaStatus = json.decodeFromString(call("/mia"))
+
+    suspend fun askMia(ask: MiaAsk): MiaReply {
+        val body = json.encodeToString(MiaAsk.serializer(), ask).toRequestBody(jsonType)
+        return json.decodeFromString(call("/mia", body))
+    }
+
     /** WebAuthn request options, as JSON for Credential Manager. */
     suspend fun passkeyLoginOptions(): String = call("/passkey/login/options", JsonObject(emptyMap()).asBody())
 

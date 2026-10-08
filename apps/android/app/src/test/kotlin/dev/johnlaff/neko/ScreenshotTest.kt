@@ -113,6 +113,25 @@ class ScreenshotTest {
         HojeScreen(TodayState(view), {}, {})
     }
 
+    @Test fun miaHojeLight() = shot("mia-hoje-light", night = false, scrollTo = "Perguntar à Mia") {
+        HojeScreen(
+            TodayState(view), {}, {},
+            mia = dev.johnlaff.neko.data.MiaStatus(ligada = true),
+            askMia = { error("no network in screenshots") },
+            miaOpen = true,
+            miaTalk = listOf(Fakes.miaExchange),
+        )
+    }
+
+    @Test fun miaVaziaDark() = shot("mia-vazia-dark", night = true, scrollTo = "Perguntar à Mia") {
+        HojeScreen(
+            TodayState(view), {}, {},
+            mia = dev.johnlaff.neko.data.MiaStatus(ligada = true),
+            askMia = { error("no network in screenshots") },
+            miaOpen = true,
+        )
+    }
+
     @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Já no banco") {
         FaturasScreen(ScreenState(invoices), {}, {})
     }

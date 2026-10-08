@@ -35,6 +35,7 @@ import {
 } from "../icons.tsx";
 import { HINTS } from "../learn.ts";
 import { Mascot } from "../Mascot.tsx";
+import { Mia } from "../Mia.tsx";
 import { Simulator } from "../Pace.tsx";
 import { milestoneText, Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
@@ -549,6 +550,7 @@ export const Hoje = () => (
               </a>
             )}
             {cs && <Simulator cs={cs} months={p.months} />}
+            <Mia />
           </div>
           {habit && <Streak habit={habit} />}
 

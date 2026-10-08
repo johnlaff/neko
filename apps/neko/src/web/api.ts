@@ -8,11 +8,28 @@ import type {
   BanksResponse,
   DailySource,
   HistoryResponse,
+  MiaReply,
+  MiaStatus,
   ProjectionResponse,
   UserSettings,
 } from "../shared/types.ts";
 
-export type { BanksResponse, DailySource, HistoryResponse, ProjectionResponse, UserSettings };
+export type {
+  BanksResponse,
+  DailySource,
+  HistoryResponse,
+  MiaReply,
+  MiaStatus,
+  ProjectionResponse,
+  UserSettings,
+};
+
+/** What Mia gets with a question: the last exchanges and the values they showed. */
+export interface MiaAsk {
+  pergunta: string;
+  historico: readonly { pergunta: string; resposta: string }[];
+  valores: MiaReply["valores"];
+}
 
 /** A browser signed in to this account; `current` is the one asking. */
 export interface Device {
@@ -99,6 +116,8 @@ export const api = {
   banks: () => request<BanksResponse>("/banks"),
   saveBanks: (items: readonly { itemId: string; label: string }[]) =>
     request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
+  mia: () => request<MiaStatus>("/mia"),
+  askMia: (ask: MiaAsk) => request<MiaReply>("/mia", { method: "POST", body: JSON.stringify(ask) }),
   saveBankCards: (cards: UserSettings["bankCards"]) =>
     request<{ ok: true }>("/banks/cards", { method: "PUT", body: JSON.stringify({ cards }) }),
 };
