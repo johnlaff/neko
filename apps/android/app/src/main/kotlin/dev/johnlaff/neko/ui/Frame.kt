@@ -224,7 +224,7 @@ private fun ErrorPanel(state: ScreenState<*>, onRetry: () -> Unit) {
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            if (structure) "${state.detail ?: ""} O Neko só lê o formato que conhece, então nada foi calculado."
+            if (structure) "${state.detail ?: ""} Fora do formato esperado, nada foi calculado."
             else "Pode ser a conexão ou o Google fora do ar. A planilha não foi alterada.",
             color = l.muted,
         )

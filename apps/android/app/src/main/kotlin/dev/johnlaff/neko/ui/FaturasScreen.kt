@@ -34,7 +34,7 @@ fun FaturasScreen(state: ScreenState<InvoicesView>, onRefresh: () -> Unit, onAju
                 Panel {
                     QuietMark(64.dp)
                     Text("Nenhuma fatura", style = MaterialTheme.typography.headlineSmall)
-                    Text("O Neko procura cartões nas notas de Saída, debaixo de CARTÕES.", color = LocalLedger.current.muted)
+                    Text("Os cartões vêm das notas de Saída, debaixo de CARTÕES.", color = LocalLedger.current.muted)
                 }
             }
             return@ScreenFrame

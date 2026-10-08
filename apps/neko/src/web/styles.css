@@ -2291,11 +2291,6 @@ button.setting.quiet:hover {
   color: var(--muted);
   font: italic 600 0.75rem / 1 var(--serif);
 }
-/* A celebration keeps a light wash of green: the one alert that is good news, not a task */
-.alert.milestone {
-  background: color-mix(in oklch, var(--pos) 9%, var(--surface));
-}
-
 /* Hoje: two warnings in view, the rest behind one quiet line */
 .more-alerts > summary {
   padding: 4px 2px;

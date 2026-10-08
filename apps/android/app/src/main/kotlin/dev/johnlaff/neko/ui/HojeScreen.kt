@@ -102,7 +102,6 @@ fun HojeScreen(
             if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk) }
         }
         v.habit?.let { h -> item { Streak(h) } }
-        v.habit?.milestone?.let { m -> item { MilestoneCard("Marca de $m dias", Learn.milestone(m), m) } }
         if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
@@ -120,7 +119,7 @@ private fun Hero(v: TodayView) {
         Panel {
             QuietMark(64.dp)
             Text("Nenhum cartão na planilha", style = MaterialTheme.typography.headlineSmall)
-            Text("O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.", color = l.muted)
+            Text("As faturas vêm das notas de Saída, debaixo de uma linha CARTÕES.", color = l.muted)
         }
         return
     }
@@ -232,8 +231,6 @@ private fun Alert(
     detail: String,
     color: androidx.compose.ui.graphics.Color,
     onClick: (() -> Unit)? = null,
-    good: Boolean = false,
-    action: (@Composable () -> Unit)? = null,
 ) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(12.dp)
@@ -241,12 +238,9 @@ private fun Alert(
         Modifier.fillMaxWidth()
             .appear()
             .semantics(mergeDescendants = true) {}
-            // Calm rows: only the dot carries the status color. A celebration keeps a light wash
-            // of green, the one alert that is good news rather than a task.
-            .then(
-                if (good) Modifier.background(color.copy(alpha = 0.10f), shape)
-                else Modifier.background(l.surface, shape).border(1.dp, l.border, shape),
-            )
+            // Calm rows: only the dot carries the status color.
+            .background(l.surface, shape)
+            .border(1.dp, l.border, shape)
             .clip(shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(14.dp),
@@ -258,24 +252,9 @@ private fun Alert(
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(detail, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
-        action?.invoke()
-        if (onClick != null && action == null)
+        if (onClick != null)
             Icon(painterResource(R.drawable.ic_chevron_right), null, tint = l.faint, modifier = Modifier.size(16.dp))
     }
-}
-
-/** A mark or a new best run, the day it lands and the day after (as on the site). */
-@Composable
-private fun MilestoneCard(title: String, text: String, days: Int) {
-    val l = LocalLedger.current
-    MilestoneHaptic(days)
-    Alert(
-        title,
-        text,
-        l.pos,
-        good = true,
-        action = { ShareButton(title, listOf(text), "Compartilhar: $title") },
-    )
 }
 
 @Composable

@@ -61,9 +61,7 @@ export const Faturas = () => {
             <section className="page-head empty-cards">
               <BrandMark width={64} className="quiet-mark" />
               <h1>Nenhuma fatura</h1>
-              <p className="muted">
-                O Neko procura cartões nas notas de Saída, debaixo de CARTÕES.
-              </p>
+              <p className="muted">Os cartões vêm das notas de Saída, debaixo de CARTÕES.</p>
             </section>
           );
         const bars = usual
