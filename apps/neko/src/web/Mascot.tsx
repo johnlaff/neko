@@ -1,6 +1,7 @@
 import miaPensando from "./assets/mascots/mia-pensando.webp";
 import nekoComemorando from "./assets/mascots/neko-comemorando.webp";
 import nekoDormindo from "./assets/mascots/neko-dormindo.webp";
+import nekoSatisfeito from "./assets/mascots/neko-satisfeito.webp";
 import nekoSentado from "./assets/mascots/neko-sentado.webp";
 
 /**
@@ -12,6 +13,7 @@ const POSES = {
   sitting: { src: nekoSentado, w: 288, h: 480 },
   sleeping: { src: nekoDormindo, w: 480, h: 318 },
   celebrating: { src: nekoComemorando, w: 330, h: 480 },
+  content: { src: nekoSatisfeito, w: 286, h: 480 },
   miaThinking: { src: miaPensando, w: 298, h: 480 },
 } as const;
 

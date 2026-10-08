@@ -32,6 +32,7 @@ enum class Pose(@param:DrawableRes val res: Int, val ratio: Float) {
     Sitting(R.drawable.mascot_neko_sentado, 288f / 480f),
     Sleeping(R.drawable.mascot_neko_dormindo, 480f / 318f),
     Celebrating(R.drawable.mascot_neko_comemorando, 330f / 480f),
+    Content(R.drawable.mascot_neko_satisfeito, 286f / 480f),
     MiaThinking(R.drawable.mascot_mia_pensando, 298f / 480f),
 }
 
