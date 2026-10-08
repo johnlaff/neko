@@ -235,7 +235,7 @@ private fun MilestoneCard(m: Int) {
     val l = LocalLedger.current
     MilestoneHaptic(m)
     Alert("Marca de $m dias", Learn.milestone(m), l.pos) {
-        Mascot(Pose.Celebrating, Modifier.height(56.dp).hop())
+        CelebratingCat(Modifier.height(56.dp).hop())
     }
 }
 
@@ -288,7 +288,7 @@ internal fun RecapPanel(r: MonthRecap) {
                     .padding(horizontal = 14.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Mascot(Pose.Celebrating, Modifier.height(64.dp).hop())
+                CelebratingCat(Modifier.height(64.dp).hop())
                 Spacer(Modifier.width(12.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     wins.forEach { Text(it, color = l.text, style = MaterialTheme.typography.titleSmall) }

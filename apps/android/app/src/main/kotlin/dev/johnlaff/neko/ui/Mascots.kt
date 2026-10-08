@@ -55,6 +55,11 @@ fun BlinkingCat(modifier: Modifier = Modifier) =
 fun ThinkingMia(modifier: Modifier = Modifier) =
     LivingCat(R.raw.mia_pensando, R.drawable.mascot_mia_pensando, 298f / 480f, modifier)
 
+/** The cat that marks a win waves its paws: a win is rare, so it gets the moving picture. */
+@Composable
+fun CelebratingCat(modifier: Modifier = Modifier) =
+    LivingCat(R.raw.neko_comemorando, Pose.Celebrating.res, Pose.Celebrating.ratio, modifier)
+
 /**
  * A short looping animated WebP played by the platform decoder; the still picture when "Remove
  * animations" is on or the decoder can't play it (as in the JVM screenshot tests).
