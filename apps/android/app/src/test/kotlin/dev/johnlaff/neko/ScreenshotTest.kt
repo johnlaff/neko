@@ -58,6 +58,12 @@ class ScreenshotTest {
         HojeScreen(TodayState(view.copy(habit = reached)), {}, {})
     }
 
+    /** The day the run passes its best before: the same card, a new best instead of a mark. */
+    @Test fun hojeRecorde() = shot("hoje-recorde-light", night = false) {
+        val h = view.habit!!
+        HojeScreen(TodayState(view.copy(habit = h.copy(streak = 11, best = 11, milestone = null, record = 10, editedToday = true))), {}, {})
+    }
+
     private fun <T> read(file: String, s: kotlinx.serialization.KSerializer<T>): T =
         json.decodeFromString(s, File("src/test/resources/$file").readText())
 

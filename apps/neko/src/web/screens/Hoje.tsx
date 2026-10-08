@@ -404,20 +404,23 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
   );
 };
 
-/** The day the run reaches a mark, and the day after: one card, then it leaves on its own. */
-const MilestoneCard = ({ milestone }: { milestone: number }) => (
+/**
+ * The day the run reaches a mark or passes its best before, and the day after: one card, then
+ * it leaves on its own. A mark wins when both land on the same day.
+ */
+const MilestoneCard = ({ title, text }: { title: string; text: string }) => (
   <ul className="alerts" aria-label="Sequência">
     <li>
       <div className="alert good milestone" role="status">
         <Mascot pose="celebrating" height={56} className="milestone-cat" />
         <span className="alert-text">
-          <strong>Marca de {milestone} dias</strong>
-          <span>{milestoneText(milestone)}</span>
+          <strong>{title}</strong>
+          <span>{text}</span>
         </span>
         <button
           type="button"
           className="ghost small win-share"
-          onClick={() => shareCard(`Marca de ${milestone} dias`, [milestoneText(milestone)])}
+          onClick={() => shareCard(title, [text])}
         >
           Compartilhar
         </button>
@@ -515,7 +518,19 @@ export const Hoje = () => (
           </div>
           {habit && <Streak habit={habit} />}
 
-          {habit?.milestone != null && <MilestoneCard milestone={habit.milestone} />}
+          {habit?.milestone != null ? (
+            <MilestoneCard
+              title={`Marca de ${habit.milestone} dias`}
+              text={milestoneText(habit.milestone)}
+            />
+          ) : (
+            habit?.record != null && (
+              <MilestoneCard
+                title="Novo recorde"
+                text={`${habit.record + 1} dias seguidos. O anterior era ${habit.record}.`}
+              />
+            )
+          )}
 
           {(p.insights ?? []).length > 0 && <Insights items={p.insights} />}
           {p.saving && p.saving.date >= p.today && p.saving.date <= addDays(p.today, SAVE_LEAD) && (

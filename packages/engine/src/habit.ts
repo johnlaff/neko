@@ -9,6 +9,8 @@ import { addDays, diffDays, type LocalDate, todayIn } from "./date.ts";
 
 /** 66 days is the median time for a habit to settle (Lally et al., 2010). */
 export const HABIT_MILESTONES = [7, 21, 66, 100, 200, 365] as const;
+/** The shortest earlier best worth celebrating when a new run passes it. */
+export const RECORD_MIN = 7;
 
 export type HabitDayState = "edited" | "rest" | "missed" | "today" | "future";
 
@@ -27,6 +29,11 @@ export interface Habit {
   readonly week: readonly HabitDay[];
   /** The milestone the run reached on its last edit, while that edit is today or yesterday. */
   readonly milestone: number | null;
+  /**
+   * The best run before this one, on the day this run passed it and the day after (a personal
+   * record, Strava-style); null otherwise or when that best was under a week.
+   */
+  readonly record: number | null;
   /** Next milestone above the current run; null past the last one. */
   readonly next: number | null;
   /** First day an edit was seen; null with none. */
@@ -52,6 +59,7 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
   let best = 0;
   let runAtLastEdit = 0;
   let lastEdit: LocalDate | null = null;
+  let bestBefore = 0;
   if (since !== null) {
     const misses = new Map<LocalDate, number>();
     for (let d = since; d <= today; d = addDays(d, 1)) {
@@ -70,6 +78,7 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
         if (n === 1) state.set(d, "rest");
         else {
           run = 0;
+          bestBefore = best;
           state.set(d, "missed");
         }
       }
@@ -97,6 +106,8 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
       recent && (HABIT_MILESTONES as readonly number[]).includes(runAtLastEdit)
         ? runAtLastEdit
         : null,
+    record:
+      recent && bestBefore >= RECORD_MIN && runAtLastEdit === bestBefore + 1 ? bestBefore : null,
     next: HABIT_MILESTONES.find((m) => m > run) ?? null,
     since,
     lastWeek,

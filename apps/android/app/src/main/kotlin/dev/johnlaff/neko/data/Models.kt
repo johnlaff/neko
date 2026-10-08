@@ -56,6 +56,8 @@ data class Habit(
     /** Sunday to Saturday of this week. */
     val week: List<HabitDay>,
     val milestone: Int? = null,
+    /** The best run before this one, the day this run passed it and the day after. */
+    val record: Int? = null,
     val next: Int? = null,
     val since: String? = null,
     /** Days logged last week; null until a whole week was watched. */

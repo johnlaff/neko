@@ -104,6 +104,20 @@ describe("habit", () => {
     expect(habit(range("2026-10-03", "2026-10-08"), today).milestone).toBeNull();
   });
 
+  it("marks the day the run passes the best before it, and the day after", () => {
+    // Ten days, two misses in one week (Fri 11, Sat 12) break it, then a new run from the 13th.
+    const edited = [...range("2026-09-01", "2026-09-10"), ...range("2026-09-13", "2026-09-23")];
+    expect(habit(edited, d("2026-09-23")).record).toBe(10);
+    expect(habit(edited, d("2026-09-24")).record).toBe(10);
+    expect(habit(edited, d("2026-09-25")).record).toBeNull();
+    // A tie is not a record, and the first run has no best before it to pass.
+    expect(habit(edited.slice(0, -1), d("2026-09-22")).record).toBeNull();
+    expect(habit(range("2026-09-01", "2026-09-10"), d("2026-09-10")).record).toBeNull();
+    // A short best is not worth a card: under a week, nothing to celebrate.
+    const short = [...range("2026-09-01", "2026-09-04"), ...range("2026-09-13", "2026-09-17")];
+    expect(habit(short, d("2026-09-17")).record).toBeNull();
+  });
+
   it("names the next milestone", () => {
     expect(habit(range("2026-10-04", "2026-10-08"), today).next).toBe(7);
     expect(habit(range("2026-09-01", "2026-10-08"), today).next).toBe(66);
