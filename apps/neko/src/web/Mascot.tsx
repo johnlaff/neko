@@ -1,24 +1,27 @@
 import { useEffect, useState } from "react";
 import miaEnsinando from "./assets/mascots/mia-ensinando.webp";
 import nekoComemorando from "./assets/mascots/neko-comemorando.webp";
+import nekoComemorandoViva from "./assets/mascots/neko-comemorando-viva.webp";
 import nekoDormindo from "./assets/mascots/neko-dormindo.webp";
 import nekoProcurando from "./assets/mascots/neko-procurando.webp";
 import nekoSatisfeito from "./assets/mascots/neko-satisfeito.webp";
 
+export type Pose = "searching" | "sleeping" | "celebrating" | "content" | "miaTeaching";
+
 /**
  * Neko (the brown tabby) and Mia (the cream one with glasses), drawn from the owner's two cats.
  * Each pose is a transparent WebP at most 480px on its longest side; `w`/`h` keep the box from
- * jumping while it loads. Decorative: whatever sits next to the cat says the same in words.
+ * jumping while it loads. A pose with `alive` plays that loop over the still (see LivingCat).
+ * Decorative: whatever sits next to the cat says the same in words.
  */
-const POSES = {
+const POSES: Record<Pose, { src: string; w: number; h: number; alive?: string }> = {
   searching: { src: nekoProcurando, w: 464, h: 480 },
   sleeping: { src: nekoDormindo, w: 480, h: 318 },
-  celebrating: { src: nekoComemorando, w: 330, h: 480 },
+  // A win is rare, so the cat that marks it waves its paws instead of standing still.
+  celebrating: { src: nekoComemorando, w: 330, h: 480, alive: nekoComemorandoViva },
   content: { src: nekoSatisfeito, w: 286, h: 480 },
   miaTeaching: { src: miaEnsinando, w: 357, h: 480 },
-} as const;
-
-export type Pose = keyof typeof POSES;
+};
 
 export const Mascot = ({
   pose,
@@ -31,11 +34,22 @@ export const Mascot = ({
   className?: string;
 }) => {
   const p = POSES[pose];
+  const width = Math.round((p.w * height) / p.h);
+  if (p.alive)
+    return (
+      <LivingCat
+        still={p.src}
+        alive={p.alive}
+        width={width}
+        height={height}
+        className={className}
+      />
+    );
   return (
     <img
       className={className ? `mascot ${className}` : "mascot"}
       src={p.src}
-      width={Math.round((p.w * height) / p.h)}
+      width={width}
       height={height}
       alt=""
       decoding="async"
@@ -60,7 +74,7 @@ export const LivingCat = ({
   alive: string;
   width: number;
   height: number;
-  className?: string;
+  className?: string | undefined;
 }) => {
   const [src, setSrc] = useState(still);
   useEffect(() => {
