@@ -29,6 +29,25 @@ object Learn {
     const val FATURAS = "Compra no cartão entra na planilha uma vez só: na fatura, no dia em que ela vence."
     const val MES = "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista."
 
+    /** Hoje's streak, word for word with the site (web/learn.ts HABIT). */
+    const val HABIT_RULE = "Conta os dias em que a planilha mudou. Uma folga por semana não quebra a sequência."
+    private val MILESTONES = mapOf(
+        7 to "Uma semana inteira com a planilha em dia.",
+        21 to "Três semanas: lançar já faz parte do seu dia.",
+        66 to "66 dias é o tempo médio para um hábito se firmar.",
+        100 to "Cem dias de planilha em dia.",
+        200 to "Duzentos dias: o método virou rotina.",
+        365 to "Um ano inteiro de planilha em dia.",
+    )
+
+    fun milestone(m: Int) = MILESTONES[m] ?: "$m dias de planilha em dia."
+
+    fun streakLabel(streak: Int) = when (streak) {
+        0 -> "Comece hoje"
+        1 -> "1 dia em dia"
+        else -> "$streak dias em dia"
+    }
+
     data class Idea(val title: String, val body: String)
 
     val IDEAS = listOf(

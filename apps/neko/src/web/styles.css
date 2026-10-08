@@ -2017,3 +2017,112 @@ button.setting.quiet:hover {
 .panel.list.learn details.formula p {
   margin: 4px 0 0 22px;
 }
+
+/* Hoje's streak: this week as seven quiet marks, the run in words, the rule behind a tap */
+.streak {
+  padding: 4px 4px 0;
+}
+.streak > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 48px;
+  cursor: pointer;
+  list-style: none;
+}
+.streak > summary::-webkit-details-marker {
+  display: none;
+}
+.streak > summary > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--faint);
+  transition: rotate 200ms ease-out;
+}
+.streak[open] > summary > svg {
+  rotate: 90deg;
+}
+.streak > p {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.week {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.week > li {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  width: 16px;
+  font-size: 0.625rem;
+  color: var(--faint);
+}
+.week .mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-input);
+}
+.week .edited .mark {
+  background: var(--text);
+  border-color: var(--text);
+}
+.week .rest .mark {
+  border-style: dashed;
+}
+.week .today .mark {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.week .today {
+  color: var(--text);
+}
+.week .future .mark {
+  border-color: var(--border);
+}
+.streak-text {
+  display: grid;
+  min-width: 0;
+}
+.streak-text > strong {
+  font-weight: 550;
+}
+.streak-text > span {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .week .edited .mark {
+    animation: mark-in 360ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  }
+  .week > li:nth-child(2) .mark {
+    animation-delay: 30ms;
+  }
+  .week > li:nth-child(3) .mark {
+    animation-delay: 60ms;
+  }
+  .week > li:nth-child(4) .mark {
+    animation-delay: 90ms;
+  }
+  .week > li:nth-child(5) .mark {
+    animation-delay: 120ms;
+  }
+  .week > li:nth-child(6) .mark {
+    animation-delay: 150ms;
+  }
+  .week > li:nth-child(7) .mark {
+    animation-delay: 180ms;
+  }
+}
+@keyframes mark-in {
+  from {
+    scale: 0.3;
+    opacity: 0;
+  }
+}

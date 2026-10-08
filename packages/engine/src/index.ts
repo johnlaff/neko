@@ -2,6 +2,7 @@ export * from "./balance.ts";
 export * from "./breakdown.ts";
 export * from "./cards.ts";
 export * from "./date.ts";
+export * from "./habit.ts";
 export * from "./health.ts";
 export * from "./insights.ts";
 export * from "./installments.ts";

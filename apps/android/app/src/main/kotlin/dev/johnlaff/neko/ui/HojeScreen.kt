@@ -73,6 +73,8 @@ fun HojeScreen(
             }
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
+        v.habit?.let { h -> item { Streak(h) } }
+        v.habit?.milestone?.let { m -> item { MilestoneCard(m) } }
         if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         item { Upcoming(v) }
@@ -221,6 +223,13 @@ private fun Alert(
             Text(detail, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
     }
+}
+
+@Composable
+private fun MilestoneCard(m: Int) {
+    val l = LocalLedger.current
+    MilestoneHaptic(m)
+    Alert("Marca de $m dias", Learn.milestone(m), l.pos)
 }
 
 @Composable

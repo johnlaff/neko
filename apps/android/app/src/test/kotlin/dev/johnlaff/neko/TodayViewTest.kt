@@ -25,6 +25,14 @@ class TodayViewTest {
         assertEquals(view.upcomingCount, view.upcoming.sumOf { it.items.size })
     }
 
+    @Test fun readsTheStreak() {
+        val h = view.habit!!
+        assertEquals(12, h.streak)
+        assertEquals(7, h.week.size)
+        assertEquals("today", h.week[1].state)
+        assertEquals(21, h.next)
+    }
+
     @Test fun everyWarningHasText() {
         view.insights.forEach { assertNotNull(it.kind, Copy.insight(it)) }
     }

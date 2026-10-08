@@ -2,6 +2,7 @@ import {
   addDays,
   type CanSpend,
   groupUpcomingByDay,
+  type Habit,
   type HealthIssue,
   type Insight,
   type Saving,
@@ -53,6 +54,8 @@ export interface TodayView {
   /** All points in the window, checked or not: tells "all fine" from "only checked ones left". */
   readonly issuesInWindow: number;
   readonly readAt: string;
+  /** Days the sheet changed, as a streak; null from a Worker that predates it. */
+  readonly habit: Habit | null;
 }
 
 export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): TodayView => {
@@ -82,5 +85,6 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
       .map((issue) => ({ issue, url: cellUrl(issue.ref.tab, issue.ref.a1) })),
     issuesInWindow: inWindow.length,
     readAt: r.sheet.readAt,
+    habit: r.habit ?? null,
   };
 };
