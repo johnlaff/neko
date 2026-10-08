@@ -24,12 +24,13 @@ import type {
   ProjectionResponse,
   UserSettings,
 } from "../shared/types.ts";
+import { type BankRows, bankVersion, bankView, loadBank } from "./bank.ts";
 import type { Env } from "./env.ts";
 import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./google.ts";
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "40";
+const PIPELINE_VERSION = "41";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -62,7 +63,8 @@ const readProjection = async (
   file: { version: string; modifiedTime: string },
 ): Promise<ProjectionResponse> => {
   const settings = await loadSettings(env.DB);
-  const hash = `${PIPELINE_VERSION}:${await settingsHash(settings)}`;
+  const bank = await loadBank(env.DB);
+  const hash = `${PIPELINE_VERSION}:${await settingsHash(settings)}:${bankVersion(bank)}`;
   const version = `${file.version}`;
 
   const hit = await env.DB.prepare(
@@ -81,13 +83,19 @@ const readProjection = async (
     yearTabRanges(years),
     SHEET_FIELDS,
   )) as ApiSpreadsheet;
-  const response = buildResponse(doc, today, settings, {
-    id: env.SHEET_ID,
-    version,
-    modifiedTime: file.modifiedTime,
-    readAt: new Date().toISOString(),
-    tabs: tabGids,
-  });
+  const response = buildResponse(
+    doc,
+    today,
+    settings,
+    {
+      id: env.SHEET_ID,
+      version,
+      modifiedTime: file.modifiedTime,
+      readAt: new Date().toISOString(),
+      tabs: tabGids,
+    },
+    bank,
+  );
   const { projection } = response;
   const { month } = parts(today);
   const monthEnd =
@@ -109,6 +117,7 @@ export const buildResponse = (
   today: LocalDate,
   settings: UserSettings,
   sheet: ProjectionResponse["sheet"],
+  bank: BankRows | null = null,
 ): ProjectionResponse => {
   const { ledger, ceiling } = readSpreadsheet(doc);
 
@@ -140,7 +149,13 @@ export const buildResponse = (
     cards,
     othersCards: settings.othersCards,
   });
-  return { projection, daily, cardsKnown: cards, sheet };
+  return {
+    projection,
+    daily,
+    cardsKnown: cards,
+    sheet,
+    bank: bankView(bank, ledger, cards, settings, today),
+  };
 };
 
 /** How the current month's projected end moved, one point per sheet version. */

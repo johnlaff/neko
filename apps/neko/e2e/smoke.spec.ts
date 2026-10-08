@@ -17,6 +17,37 @@ const API: Record<string, unknown> = {
     cards: [],
     othersCards: ["Cartão Verde"],
   },
+  // Invented bank, the same one e2e/make-projection.ts puts in the projection.
+  "/api/banks": {
+    configured: true,
+    cards: [{ accountId: "cartao-azul", cardNumber: null, card: "Cartão Azul" }],
+    items: [
+      {
+        itemId: "11111111-1111-4111-8111-111111111111",
+        label: "Banco Azul",
+        syncedAt: "2026-10-05T09:00:00.000Z",
+        error: null,
+        accounts: [
+          {
+            id: "conta",
+            name: "Conta corrente",
+            card: false,
+            last4: "0001",
+            balance: 2_353_747,
+            cardNumbers: [],
+          },
+          {
+            id: "cartao-azul",
+            name: "Azul Platinum",
+            card: true,
+            last4: "4321",
+            balance: 1_640_00,
+            cardNumbers: ["4321", "8765"],
+          },
+        ],
+      },
+    ],
+  },
 };
 
 /** Answers the API from fixtures and fails the test on any error the page logs or throws. */
@@ -51,6 +82,18 @@ for (const [path, heading] of [
     expect(errors).toEqual([]);
   });
 }
+
+test("the bank shows only where it and the sheet differ", async ({ page }) => {
+  const errors = await open(page, "/");
+  const missing = page.getByRole("region", { name: "Fora da planilha" });
+  await expect(missing.getByRole("button")).toHaveCount(2);
+  await page.getByRole("link", { name: "Faturas", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Já no banco" })).toBeVisible();
+  await page.getByRole("link", { name: "Ajustes", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Bancos" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: /Azul Platinum/ })).toHaveValue("Cartão Azul");
+  expect(errors).toEqual([]);
+});
 
 test("the dock moves between the four tabs", async ({ page }) => {
   await open(page, "/");

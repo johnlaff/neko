@@ -25,6 +25,17 @@ data class TodayView(
     val habit: Habit? = null,
     /** The month that just closed, in the first week of the next (engine recap.ts). */
     val recap: MonthRecap? = null,
+    /** Account movements the sheet does not have yet; null with no bank linked. */
+    val bankMissing: List<MissingMovement>? = null,
+)
+
+/** A bank movement with no sheet line (engine bank.ts), and the line to paste into the note. */
+@Serializable
+data class MissingMovement(
+    val date: String,
+    val amount: Long,
+    val description: String,
+    val line: String,
 )
 
 @Serializable

@@ -59,5 +59,26 @@
       "reimbursed": false
     }
   ],
-  "empty": []
+  "empty": [],
+  "bank": {
+    "syncedAt": "2026-10-05T09:00:00.000Z",
+    "bills": [
+      {
+        "card": "Cartão Azul",
+        "due": "2026-11-12",
+        "bank": 221990,
+        "parcels": 57990,
+        "sheet": 283807,
+        "gap": -61817
+      },
+      {
+        "card": "Cartão Azul",
+        "due": "2026-12-12",
+        "bank": 57990,
+        "parcels": 57990,
+        "sheet": 370432,
+        "gap": -312442
+      }
+    ]
+  }
 }

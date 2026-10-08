@@ -43,6 +43,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.AjustesView
+import dev.johnlaff.neko.data.BankCard
+import dev.johnlaff.neko.data.BankItem
+import dev.johnlaff.neko.data.BankLink
+import dev.johnlaff.neko.data.BanksView
 import dev.johnlaff.neko.data.CardConfig
 import dev.johnlaff.neko.data.CardDays
 import dev.johnlaff.neko.data.Device
@@ -119,6 +123,7 @@ fun AjustesScreen(
     reminders: RemindersSwitch = RemindersSwitch(),
     devices: DevicesList = DevicesList(),
     lock: LockSwitch = LockSwitch(),
+    banks: BanksList = BanksList(),
 ) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
@@ -155,6 +160,19 @@ fun AjustesScreen(
         val f = form ?: return@ScreenFrame
         item { Group("Ritmo") { Pace(f, view.dailyAuto) } }
         if (f.cards.isNotEmpty()) item { Group("Cartões") { Cards(f) } }
+        banks.view?.takeIf { it.configured || it.items.isNotEmpty() }?.let { b ->
+            item {
+                Column {
+                Group("Bancos") { Banks(b, f.cards.map { it.name }, banks) }
+                Text(
+                    "O Neko só lê o banco e nunca muda a planilha. O Item ID está no Dashboard da Pluggy, em Connected Items.",
+                    color = LocalLedger.current.faint,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                )
+                }
+            }
+        }
         item {
             Group("Neste celular") {
                 Reminders(reminders)
@@ -251,6 +269,119 @@ private fun Lock(s: LockSwitch) {
             enabled = s.on || s.unavailable == null,
             colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
         )
+    }
+}
+
+/** Ajustes › Bancos (specs/003-open-finance); hidden until read and until Pluggy is set up. */
+data class BanksList(
+    val view: BanksView? = null,
+    val onSaveItems: (List<BankLink>) -> Unit = {},
+    val onSaveCards: (List<BankCard>) -> Unit = {},
+)
+
+private const val MAX_BANKS = 5
+private val UUID = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+private fun bankStatus(i: BankItem) = when {
+    i.error != null -> "Não leu da última vez"
+    i.syncedAt != null -> "Lido ${Format.shortDate(i.syncedAt.take(10))}"
+    else -> "Ainda não lido"
+}
+
+/** The banks linked in Meu Pluggy, when each was read, and which sheet card each bank card is. */
+@Composable
+private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
+    val l = LocalLedger.current
+    val linked = b.items.map { BankLink(it.itemId, it.label) }
+    fun tied(accountId: String, number: String?) = b.cards.find { it.accountId == accountId && it.cardNumber == number }?.card ?: ""
+    fun tie(accountId: String, number: String?, card: String) = list.onSaveCards(
+        b.cards.filterNot { it.accountId == accountId && it.cardNumber == number } +
+            (if (card.isEmpty()) emptyList() else listOf(BankCard(accountId, number, card))),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        b.items.forEach { i ->
+            Setting(i.label, bankStatus(i), error = i.error != null) {
+                TextButton(
+                    onClick = { list.onSaveItems(linked.filterNot { it.itemId == i.itemId }) },
+                    modifier = Modifier.semantics { contentDescription = "Desligar ${i.label}" },
+                ) { Text("Desligar", color = l.muted) }
+            }
+            i.accounts.filter { it.card }.forEach { a ->
+                // One line for the card account, and one per physical card when it has more.
+                (listOf<String?>(null) + if (a.cardNumbers.size > 1) a.cardNumbers else emptyList()).forEach { n ->
+                    Setting(
+                        if (n != null) "Final $n" else a.name,
+                        if (n != null) "Cartão adicional ou titular" else "Cartão na planilha",
+                        modifier = Modifier.padding(start = 12.dp),
+                    ) {
+                        Picker(
+                            tied(a.id, n),
+                            if (n != null) "Igual ao cartão" else "Não ligar",
+                            sheetCards,
+                            "Cartão da planilha para ${if (n != null) "o final $n" else a.name}",
+                        ) { tie(a.id, n, it) }
+                    }
+                }
+            }
+            HorizontalDivider(color = l.border)
+        }
+        if (b.items.size < MAX_BANKS) {
+            var label by rememberSaveable { mutableStateOf("") }
+            var itemId by rememberSaveable { mutableStateOf("") }
+            val valid = label.isNotBlank() && UUID.matches(itemId.trim())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    label, { label = it.take(40) },
+                    placeholder = { Text("Banco") }, singleLine = true,
+                    modifier = Modifier.weight(1f).semantics { contentDescription = "Nome do banco" },
+                )
+                OutlinedTextField(
+                    itemId, { itemId = it },
+                    placeholder = { Text("Item ID") }, singleLine = true,
+                    isError = itemId.isNotBlank() && !UUID.matches(itemId.trim()),
+                    modifier = Modifier.weight(1.4f).semantics { contentDescription = "Item ID do Meu Pluggy" },
+                )
+            }
+            TextButton(
+                enabled = valid,
+                onClick = {
+                    list.onSaveItems(linked + BankLink(itemId.trim(), label.trim()))
+                    label = ""
+                    itemId = ""
+                },
+            ) { Text("Ligar banco") }
+        }
+    }
+}
+
+/** A dropdown like the usual card's picker, with its own empty choice. */
+@Composable
+private fun Picker(value: String, empty: String, options: List<String>, description: String, onPick: (String) -> Unit) {
+    val l = LocalLedger.current
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(
+            onClick = { open = true },
+            modifier = Modifier.semantics {
+                role = androidx.compose.ui.semantics.Role.DropdownList
+                contentDescription = description
+            },
+        ) {
+            Text(value.ifEmpty { empty }, color = l.text)
+            Spacer(Modifier.width(4.dp))
+            Icon(painterResource(R.drawable.ic_chevron_down), contentDescription = null, tint = l.muted, modifier = Modifier.size(18.dp))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            (listOf("") + options).forEach { name ->
+                DropdownMenuItem(
+                    text = { Text(name.ifEmpty { empty }) },
+                    onClick = {
+                        open = false
+                        if (name != value) onPick(name)
+                    },
+                )
+            }
+        }
     }
 }
 

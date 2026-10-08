@@ -1,4 +1,5 @@
 import {
+  type BillCheck,
   type CardConfig,
   type Cents,
   type Fixed,
@@ -71,6 +72,8 @@ export interface InvoicesView {
   readonly others: readonly OtherBill[];
   /** Cards with nothing on their open bill. */
   readonly empty: readonly string[];
+  /** Future bills as the bank already has them, against the sheet; null with no bank linked. */
+  readonly bank: { readonly syncedAt: string | null; readonly bills: readonly BillCheck[] } | null;
 }
 
 export const invoicesView = (r: ProjectionResponse): InvoicesView => {
@@ -134,6 +137,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
         reimbursed: c.reimbursed,
       })),
     empty: p.cards.filter((c) => !c.usual && c.onSheet === 0).map((c) => c.card.name),
+    bank: r.bank ? { syncedAt: r.bank.syncedAt, bills: r.bank.checks } : null,
   };
 };
 

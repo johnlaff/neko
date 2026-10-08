@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import type { BankView } from "../../shared/types.ts";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { capitalize, days, money, monthName, shortDate } from "../format.ts";
 import { Hint } from "../Hint.tsx";
@@ -21,7 +22,7 @@ export const Faturas = () => {
   const [picked, setPicked] = useState<string | null>(null);
   return (
     <WithProjection>
-      {({ projection: p }) => {
+      {({ projection: p, bank }) => {
         const usual = p.cards.find((c) => c.usual);
         const others = p.cards.filter((c) => !c.usual && c.onSheet !== 0);
         const empty = p.cards.filter((c) => c.onSheet === 0 && !c.usual);
@@ -203,9 +204,50 @@ export const Faturas = () => {
                 )}
               </section>
             )}
+            {bank && <BankBills bank={bank} />}
           </>
         );
       }}
     </WithProjection>
   );
 };
+
+/**
+ * The next bills as the bank already has them: purchases so far plus the parcels still owed,
+ * next to what the sheet expects. Only a bill already above the sheet gets color.
+ */
+const BankBills = ({ bank }: { bank: BankView }) => (
+  <section className="panel">
+    <div className="panel-head">
+      <h2>Já no banco</h2>
+      {bank.syncedAt && <span className="meta">Lido {shortDate(bank.syncedAt.slice(0, 10))}</span>}
+    </div>
+    {bank.checks.length === 0 ? (
+      <p className="hint">
+        Nenhuma fatura futura dos cartões ligados.{" "}
+        <Link className="text-link" to="/ajustes">
+          Ligar cartões em Ajustes
+        </Link>
+      </p>
+    ) : (
+      <ul className="rows lead">
+        {bank.checks.map((c) => (
+          <li key={`${c.card}-${c.due}`} className="bill">
+            <span className="avatar mono" aria-hidden="true">
+              {monogram(c.card)}
+            </span>
+            <span className="name">
+              {c.card} · {shortMonth(c.due)}
+              {c.gap > 0 && <span className="chip warn">{money(c.gap)} acima da planilha</span>}
+            </span>
+            <span className="value">{money(c.bank)}</span>
+            <span className="meta">
+              Planilha {money(c.sheet)}
+              {c.parcels > 0 ? ` · ${money(c.parcels)} em parcelas` : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+);

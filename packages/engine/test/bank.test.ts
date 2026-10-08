@@ -49,6 +49,34 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     ]);
   });
 
+  it("carries the parcels still to come onto the next bills, once per purchase", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [
+        line(12000, "2026-11", { description: "LOJA PARC 02/04", installment: 2, installments: 4 }),
+        line(12000, "2026-12", { description: "LOJA PARC 03/04", installment: 3, installments: 4 }),
+        line(5000, "2026-11", { description: "SAPATO", installment: 1, installments: 2 }),
+      ],
+      today,
+    );
+    expect(checks.map((c) => [c.due, c.parcels])).toEqual([
+      ["2026-11-10", 17000],
+      ["2026-12-10", 17000],
+    ]);
+  });
+
+  it("leaves out bills the sheet does not reach yet", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [line(12000, "2026-12", { installment: 1, installments: 3 })],
+      today,
+    );
+    // Dec is in the sheet; Jan and Feb are past the ledger's last day.
+    expect(checks.map((c) => c.due)).toEqual(["2026-12-10"]);
+  });
+
   it("leaves out bills already due and cards the sheet does not know", () => {
     const checks = billChecks(
       days,

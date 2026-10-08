@@ -1,5 +1,6 @@
 import {
   addDays,
+  type BankMovement,
   type CanSpend,
   groupUpcomingByDay,
   type Habit,
@@ -32,6 +33,17 @@ export interface TodayIssue {
   readonly url: string;
 }
 
+const brl = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** A movement as a line of the sheet's day note: "R$ 19,90 - Padaria", the amount unsigned. */
+export const noteLine = (m: BankMovement): string =>
+  `R$ ${brl.format(Math.abs(m.amount) / 100)} - ${m.description.trim()}`;
+
+export interface MissingMovement extends BankMovement {
+  /** Ready to paste into the day's note, in the Entrada or the Saída column. */
+  readonly line: string;
+}
+
 /**
  * Hoje, ready to draw: what the Android app and its widget show. Clients only format it; every
  * grouping, filter and sum is done here, next to the tests.
@@ -59,6 +71,8 @@ export interface TodayView {
   readonly habit: Habit | null;
   /** The month that just closed, in the first week of the next. */
   readonly recap: MonthRecap | null;
+  /** Account movements the sheet does not have yet; null with no bank linked. */
+  readonly bankMissing: readonly MissingMovement[] | null;
 }
 
 export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): TodayView => {
@@ -90,5 +104,6 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     readAt: r.sheet.readAt,
     habit: r.habit ?? null,
     recap: p.recap ?? null,
+    bankMissing: r.bank ? r.bank.missing.map((m) => ({ ...m, line: noteLine(m) })) : null,
   };
 };

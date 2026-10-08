@@ -18,7 +18,56 @@ data class InvoicesView(
     val buyToday: List<BuyGroup> = emptyList(),
     val others: List<OtherBill> = emptyList(),
     val empty: List<String> = emptyList(),
+    /** Future bills as the bank already has them; null with no bank linked. */
+    val bank: BankBills? = null,
 )
+
+@Serializable
+data class BankBills(val syncedAt: String? = null, val bills: List<BillCheck> = emptyList())
+
+/** One future bill (engine bank.ts): the bank's sum, its parcels, the sheet's line, bank − sheet. */
+@Serializable
+data class BillCheck(
+    val card: String,
+    val due: String,
+    val bank: Long,
+    val parcels: Long = 0,
+    val sheet: Long,
+    val gap: Long,
+)
+
+/** GET /api/banks (shared/types.ts BanksResponse): Ajustes › Bancos. */
+@Serializable
+data class BanksView(
+    val configured: Boolean = false,
+    val cards: List<BankCard> = emptyList(),
+    val items: List<BankItem> = emptyList(),
+)
+
+@Serializable
+data class BankCard(val accountId: String, val cardNumber: String?, val card: String)
+
+@Serializable
+data class BankItem(
+    val itemId: String,
+    val label: String,
+    val syncedAt: String? = null,
+    val error: String? = null,
+    val accounts: List<BankAccount> = emptyList(),
+)
+
+@Serializable
+data class BankAccount(
+    val id: String,
+    val name: String,
+    val card: Boolean = false,
+    val last4: String? = null,
+    val balance: Long = 0,
+    val cardNumbers: List<String> = emptyList(),
+)
+
+@Serializable
+data class BankLink(val itemId: String, val label: String)
 
 @Serializable
 data class UsualBill(

@@ -52,6 +52,7 @@ import dev.johnlaff.neko.ui.LockSwitch
 import dev.johnlaff.neko.ui.LoginScreen
 import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.NekoTheme
+import dev.johnlaff.neko.ui.BanksList
 import dev.johnlaff.neko.ui.DevicesList
 import dev.johnlaff.neko.ui.RemindersSwitch
 import dev.johnlaff.neko.ui.Session
@@ -135,11 +136,13 @@ class MainActivity : ComponentActivity() {
                                         val ajustes by model.ajustes.collectAsStateWithLifecycle()
                                         val save by model.save.collectAsStateWithLifecycle()
                                         val devices by model.devices.collectAsStateWithLifecycle()
+                                        val banks by model.banks.collectAsStateWithLifecycle()
                                         AjustesScreen(
                                             ajustes, save, { model.refresh(Tab.Ajustes) }, model::saveSettings, model::logout,
                                             remindersSwitch(),
                                             DevicesList(devices, model::endSession, model::endOtherSessions),
                                             lockSwitch(),
+                                            BanksList(banks, model::saveBanks, model::saveBankCards),
                                         )
                                     }
                                 }

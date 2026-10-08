@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { UserSettings } from "../shared/types.ts";
 
 export { UserSettings };
@@ -28,4 +29,13 @@ export const settingsHash = async ({ reviewed: _, ...s }: UserSettings): Promise
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")
     .slice(0, 16);
+};
+
+/**
+ * The bank cards are set from Ajustes › Bancos; a settings form that does not send them (Ajustes
+ * itself, or an older app) keeps the ones saved.
+ */
+export const keepBankCards = (body: unknown, current: UserSettings): UserSettings => {
+  const b = z.record(z.string(), z.unknown()).parse(body);
+  return UserSettings.parse("bankCards" in b ? b : { ...b, bankCards: current.bankCards });
 };

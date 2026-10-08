@@ -28,7 +28,7 @@ export interface BillCheck {
   readonly bank: Cents;
   /** Of those, the parcels of earlier purchases. */
   readonly parcels: Cents;
-  readonly sheet: Cents | null;
+  readonly sheet: Cents;
   /** bank − sheet: positive means the sheet expects less than is already committed. */
   readonly gap: Cents;
 }
@@ -36,9 +36,52 @@ export interface BillCheck {
 /** A card account also shows the payment of the previous bill; that is not a charge. */
 const PAYMENT = /\bpagamento|\bpagto|\bpgto/i;
 
+const nextMonth = (month: string, n: number): string => {
+  const [y = 0, m = 1] = month.split("-").map(Number);
+  const i = y * 12 + (m - 1) + n;
+  return `${Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`;
+};
+
+/** The purchase behind a parcel: banks often write "PARC 02/04" in the text, so that goes. */
+const purchaseKey = (l: BankCardLine): string =>
+  [
+    normalizeName(l.card),
+    l.description
+      .replace(/\bparc(ela)?\b|\d{1,2}\s*\/\s*\d{1,2}/gi, "")
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim()
+      .toLowerCase(),
+    l.amount,
+    l.installments,
+  ].join("|");
+
 /**
- * Each bill still to come, per card the sheet knows: the bank's sum against the sheet's line on
- * the due day. A bill already due is history and stays out.
+ * The bank lists only the parcels already on a bill; the rest of each purchase is already owed.
+ * Parcel n of N on month M puts n+1..N on the months after, unless the bank already lists them.
+ * Two purchases with the same text, parcel value and count read as one.
+ */
+const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
+  const seen = new Set(
+    lines.filter((l) => l.installment !== null).map((l) => `${purchaseKey(l)}|${l.installment}`),
+  );
+  const out = [...lines];
+  for (const l of lines) {
+    const { installment: n, installments: total } = l;
+    if (n === null || total === null || n >= total) continue;
+    for (let k = n + 1; k <= total; k++) {
+      const key = `${purchaseKey(l)}|${k}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ ...l, installment: k, billMonth: nextMonth(l.billMonth, k - n) });
+    }
+  }
+  return out;
+};
+
+/**
+ * Each bill still to come, per card the sheet knows: the bank's sum, with the parcels still owed,
+ * against the sheet's line on the due day. A bill already due is history and stays out, and so
+ * does one past the sheet's last tab.
  */
 export const billChecks = (
   ledger: Ledger,
@@ -48,7 +91,7 @@ export const billChecks = (
 ): BillCheck[] => {
   const byCard = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const groups = new Map<string, { card: CardConfig; month: string; lines: BankCardLine[] }>();
-  for (const l of lines) {
+  for (const l of withFutureParcels(lines)) {
     const card = byCard.get(normalizeName(l.card));
     if (!card || (l.amount < 0 && PAYMENT.test(l.description))) continue;
     const key = `${normalizeName(card.name)}|${l.billMonth}`;
@@ -65,7 +108,8 @@ export const billChecks = (
     const bank = add(ZERO, ...ls.map((l) => l.amount));
     const parcels = add(ZERO, ...ls.filter((l) => (l.installments ?? 1) > 1).map((l) => l.amount));
     const sheet = billOnSheet(ledger, card, due);
-    out.push({ card: card.name, due, bank, parcels, sheet, gap: sub(bank, sheet ?? ZERO) });
+    if (sheet === null) continue;
+    out.push({ card: card.name, due, bank, parcels, sheet, gap: sub(bank, sheet) });
   }
   return out.sort((a, b) => a.due.localeCompare(b.due) || a.card.localeCompare(b.card));
 };
