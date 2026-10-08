@@ -12,6 +12,8 @@ import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.johnlaff.neko.data.json
 import dev.johnlaff.neko.ui.Dock
+import dev.johnlaff.neko.ui.LocalRail
+import androidx.compose.runtime.CompositionLocalProvider
 import dev.johnlaff.neko.ui.NekoTheme
 import dev.johnlaff.neko.ui.Tab
 import java.io.File
@@ -26,6 +28,8 @@ enum class Device(val qualifiers: String, val fontScale: Float) {
     SmallLargeText("w360dp-h2400dp", 1.3f),
     /** Android 14+'s largest text, 200%: nothing may be cut or overlap. */
     HugeText("w412dp-h3600dp", 2f),
+    /** A tablet in landscape: the dock becomes a rail on the left. */
+    Tablet("w1280dp-h800dp", 1f),
 }
 
 fun <T> readJson(file: File, s: KSerializer<T>): T = json.decodeFromString(s, file.readText())
@@ -44,9 +48,12 @@ fun ComposeContentTestRule.shot(
     RuntimeEnvironment.setFontScale(device.fontScale)
     setContent {
         NekoTheme {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                content()
-                tab?.let { Dock(it, {}, Modifier.align(Alignment.BottomCenter)) }
+            val rail = device == Device.Tablet
+            CompositionLocalProvider(LocalRail provides rail) {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    content()
+                    tab?.let { Dock(it, {}, Modifier.align(if (rail) Alignment.CenterStart else Alignment.BottomCenter)) }
+                }
             }
         }
     }

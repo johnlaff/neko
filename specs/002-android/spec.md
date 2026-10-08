@@ -67,3 +67,7 @@ Mia, leitura de notificações do banco, qualquer escrita na planilha.
   dados, no máximo uma por visita, que some de vez com "Entendi". Ajustes › Como funciona guarda as
   ideias do método nas palavras do Neko, uma por toque, e "Rever dicas" traz as dicas de volta. Site
   e app dizem o mesmo (web/learn.ts e ui/Learn.kt).
+- Tela larga (a partir de 840dp: tablet, celular dobrável aberto): a barra de abas vira um trilho
+  à esquerda. Colunas do Mês: a faixa inteira de cada mês é o alvo, sem vãos, e dá para deslizar o
+  dedo de um mês ao outro. Gráficos desenham uma vez por lugar, e o puxar para atualizar termina com
+  uma vibração de confirmação ou de erro.
