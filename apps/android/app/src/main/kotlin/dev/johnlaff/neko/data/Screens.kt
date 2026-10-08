@@ -102,6 +102,8 @@ data class MonthItem(
     val savedShare: Int? = null,
     /** Saída plus diário minus what was saved. */
     val livingCost: Long = 0,
+    /** What a closed month achieved, as its recap showed it; empty for the others. */
+    val wins: List<Win> = emptyList(),
 )
 
 @Serializable

@@ -1,7 +1,15 @@
-import type { Fixed, MonthView, Outflow, Reserve, YearTotals } from "@neko/engine";
+import {
+  type Fixed,
+  type MonthView,
+  monthWins,
+  type Outflow,
+  type Reserve,
+  type YearTotals,
+} from "@neko/engine";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRef } from "react";
+import { winText } from "../../shared/wins.ts";
 import { api } from "../api.ts";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
@@ -259,6 +267,8 @@ export const Mes = () => {
         const result = moved(m) ? (m.result ?? null) : null;
         // Saída under an "Investimento:" header; missing on caches from before it existed.
         const saved = m.saved ?? 0;
+        // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
+        const wins = past ? monthWins(p.months, m.year, m.month) : [];
         // Panels below the hero pair up side by side on wide screens; with an odd count the last
         // one spans the row, so no panel leaves a hole next to it. The termômetro is always half.
         const panels = [
@@ -353,6 +363,16 @@ export const Mes = () => {
                   </span>
                   <strong>{money(saved)}</strong>
                 </p>
+              )}
+              {wins.length > 0 && (
+                <div className="recap-wins month-wins">
+                  <Mascot pose="celebrating" height={48} className="milestone-cat" />
+                  <ul aria-label="Conquistas do mês">
+                    {wins.map((w) => (
+                      <li key={w.kind}>{winText(w)}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
               <details className="formula">
                 <summary>

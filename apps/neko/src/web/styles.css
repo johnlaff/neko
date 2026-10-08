@@ -1603,6 +1603,10 @@ button.chip-button[aria-pressed="true"] {
 .recap-wins .milestone-cat {
   margin-block: -12px -10px;
 }
+/* Mês: a closed month's wins, between its figures and the extrato */
+.month-wins {
+  margin-top: 12px;
+}
 .recap .ledger dd > small {
   display: block;
   font-size: 0.8125rem;
