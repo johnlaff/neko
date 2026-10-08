@@ -70,7 +70,7 @@ export const WithProjection = ({
         title={structure ? "A planilha mudou de formato" : "Não consegui ler a planilha"}
         text={
           structure
-            ? `${q.error.message} O Neko só lê o formato que conhece, então nada foi calculado.`
+            ? `${q.error.message} Fora do formato esperado, nada foi calculado.`
             : "Pode ser a conexão ou o Google fora do ar. A planilha não foi alterada."
         }
         retry={() => q.refetch()}

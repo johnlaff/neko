@@ -73,8 +73,9 @@ fun Streak(h: Habit) {
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(Learn.streakLabel(h.streak), style = MaterialTheme.typography.titleMedium)
-                // A new best run is a word on this line, not a card of its own (as on the site).
+                // A mark or a new best run is a word on this line, not a card of its own (as on the site).
                 when {
+                    h.milestone != null -> Text(Learn.milestone(h.milestone), color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.record != null -> Text("Novo recorde", color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.editedToday -> Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
                 }
@@ -86,6 +87,7 @@ fun Streak(h: Habit) {
                 modifier = Modifier.size(16.dp).rotate(if (open) 90f else 0f),
             )
         }
+        h.milestone?.let { MilestoneHaptic(it) }
         Reveal(open) {
             Text(Learn.HABIT_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
             val extra = listOfNotNull(
