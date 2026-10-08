@@ -1,7 +1,12 @@
 import { SheetStructureError } from "@neko/sheet-reader";
 import { describe, expect, it } from "vitest";
 import type { ProjectionResponse } from "../src/shared/types.ts";
-import { eveningMessage, morningMessage, readFailedMessage } from "../src/worker/push.ts";
+import {
+  eveningMessage,
+  morningMessage,
+  readFailedMessage,
+  remindersView,
+} from "../src/worker/push.ts";
 
 const response = (over: Partial<ProjectionResponse["projection"]> = {}) =>
   ({
@@ -75,6 +80,10 @@ describe("reminders", () => {
   });
   it("sends nothing when there is no card to talk about", () => {
     expect(morningMessage(response({ canSpend: null }))).toBeNull();
+  });
+  it("hands the app both of today's messages, null when one has nothing to say", () => {
+    const data = response({ todayLogged: true });
+    expect(remindersView(data)).toEqual({ morning: morningMessage(data), evening: null });
   });
 });
 
