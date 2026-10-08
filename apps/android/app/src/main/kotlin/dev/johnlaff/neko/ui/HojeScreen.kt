@@ -240,7 +240,7 @@ private fun SaveCard(s: Saving, today: String) {
     val l = LocalLedger.current
     val isToday = s.date == today
     Alert(
-        if (isToday) "Dia de guardar ${money(s.amount)}" else "${relativeDay(s.date, today)}: guardar ${money(s.amount)}",
+        if (isToday) "Hoje dá para guardar ${money(s.amount)}" else "${relativeDay(s.date, today)}: guardar ${money(s.amount)}",
         "${if (isToday) "Entram" else "Vão entrar"} ${money(s.income)}. Se guardar, o menor saldo até " +
             "${shortDate(s.until)} fica em ${money(s.leftAtLowest)}",
         l.pos,
