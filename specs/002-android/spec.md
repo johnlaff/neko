@@ -34,6 +34,10 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
   frase só pelo TalkBack, interruptores na linha inteira, "Salvo" anunciado, escolhas do simulador
   como grupo de opções; com texto grande o número vai para baixo do arco; prints a 200% de texto;
   `ContrastTest` cobra 4,5:1 de todas as cores de texto nos dois temas.
+- Desempenho: toda tela guarda a última leitura (cifrada) e abre com ela na hora, inclusive sem
+  rede; Faturas e Mês são lidos em segundo plano depois do primeiro Hoje; nada de disco, Keystore ou
+  rede na thread principal ao abrir (StrictMode nas builds de debug); o código do app é compilado
+  na instalação por um baseline profile.
 - `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
   agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
 - `GET /api/invoices`, `GET /api/months` e `GET /api/ajustes` (`apps/neko/src/shared/screens.ts`):

@@ -52,7 +52,7 @@ val PREVIEW = WidgetText("Hoje cabem", "R$ 148,00", "por dia · fecha 5 nov", fa
 
 class TodayWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val view = (context.applicationContext as NekoApp).today.cached()
+        val view = (context.applicationContext as NekoApp).today.cachedNow()
         provideContent { Content(widgetText(view)) }
     }
 

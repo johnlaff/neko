@@ -47,7 +47,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     private val neko = app as NekoApp
     private val _session = MutableStateFlow<Session>(Session.Checking)
     val session: StateFlow<Session> = _session
-    private val _today = MutableStateFlow(TodayState(view = neko.today.cached()))
+    private val _today = MutableStateFlow(TodayState())
     val today: StateFlow<TodayState> = _today
     private val _invoices = MutableStateFlow(ScreenState<InvoicesView>())
     val invoices: StateFlow<ScreenState<InvoicesView>> = _invoices
@@ -66,6 +66,12 @@ class AppModel(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launch {
+            // Every screen opens with its last reading, read off the main thread while the splash shows.
+            _today.value = TodayState(view = neko.today.cached())
+            _invoices.value = ScreenState(view = neko.caches.invoices.read())
+            _months.value = ScreenState(view = neko.caches.months.read())
+            _ajustes.value = ScreenState(view = neko.caches.ajustes.read())
+            _history.value = neko.caches.history.read()
             // A cached Hoje means this phone signed in before: show it while the session is checked.
             if (_today.value.view != null) _session.value = Session.SignedIn
             val signedIn = runCatching { neko.api.me().email != null }
@@ -82,18 +88,33 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     fun refresh() = load(_today, { neko.today.refresh() }) { v ->
         WidgetRefresh.redraw(getApplication())
         Shortcuts.lancar(getApplication(), v.todayUrl)
+        prefetch()
+    }
+
+    private var prefetched = false
+
+    /**
+     * After the first Hoje of a run, Faturas and Mês are read in the background, so the first tap
+     * on them shows today's numbers instead of a skeleton. The Worker caches per sheet version, so
+     * this costs no extra Google read when the sheet hasn't changed.
+     */
+    private fun prefetch() {
+        if (prefetched) return
+        prefetched = true
+        refresh(Tab.Faturas)
+        refresh(Tab.Mes)
     }
 
     /** Reads the screen on show; what was read before stays on screen until the new read lands. */
     fun refresh(tab: Tab) = when (tab) {
         Tab.Hoje -> refresh()
-        Tab.Faturas -> load(_invoices, { neko.api.invoices() })
+        Tab.Faturas -> load(_invoices, { neko.api.invoices().also { neko.caches.invoices.write(it) } })
         Tab.Mes -> {
-            load(_months, { neko.api.months() })
-            side { _history.value = neko.api.history() }
+            load(_months, { neko.api.months().also { neko.caches.months.write(it) } })
+            side { _history.value = neko.api.history().also { neko.caches.history.write(it) } }
         }
         Tab.Ajustes -> {
-            load(_ajustes, { neko.api.ajustes() })
+            load(_ajustes, { neko.api.ajustes().also { neko.caches.ajustes.write(it) } })
             readDevices()
         }
     }
@@ -161,6 +182,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
             val result = runCatching { neko.api.saveSettings(settings) }
             result.onSuccess { s ->
                 _ajustes.update { st -> st.copy(view = st.view?.copy(settings = s)) }
+                _ajustes.value.view?.let { neko.caches.ajustes.write(it) }
                 _save.value = SaveState.Saved
                 // Settings change Hoje (pace, diário): read it again so the widget follows.
                 refresh()
@@ -187,7 +209,9 @@ class AppModel(app: Application) : AndroidViewModel(app) {
 
     private fun signedOut() {
         neko.today.clear()
+        neko.caches.clear()
         neko.cookies.clear()
+        prefetched = false
         _today.value = TodayState()
         _invoices.value = ScreenState()
         _months.value = ScreenState()

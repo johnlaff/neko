@@ -1,0 +1,5 @@
+# Ahead-of-time compiles the app's own code at install, so the first open after an update is not
+# spent in the interpreter. Neko is small enough to compile whole; Compose, OkHttp and the other
+# libraries ship their own profiles. Installed by androidx.profileinstaller (pulled in by Compose).
+HSPLdev/johnlaff/neko/**->**(**)**
+Ldev/johnlaff/neko/**;
