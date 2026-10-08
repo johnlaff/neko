@@ -42,7 +42,26 @@ jobs:
           printf 'storeFile=%s\nkeyAlias=upload\npassword=%s\n' "$RUNNER_TEMP/upload.jks" "$PASSWORD" > signing.properties
           ./gradlew bundleRelease
           rm -f "$RUNNER_TEMP/upload.jks" signing.properties
-      - uses: r0adkll/upload-google-play@v1
+      - name: Release notes from the merged change
+        # The squash subject is a pt-BR sentence saying what changed: testers read it under
+        # "O que há de novo". Play allows 500 characters.
+        run: |
+          mkdir -p "$RUNNER_TEMP/whatsnew"
+          git log -1 --format=%s | sed -E 's/ \(#[0-9]+\)$//' | cut -c1-480 > "$RUNNER_TEMP/whatsnew/whatsnew-pt-BR"
+          cat "$RUNNER_TEMP/whatsnew/whatsnew-pt-BR"
+      - id: upload
+        uses: r0adkll/upload-google-play@v1
+        continue-on-error: true
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: dev.johnlaff.neko
+          releaseFiles: apps/android/app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+          whatsNewDirectory: ${{ runner.temp }}/whatsnew
+      # Notes are a nicety: if Play refuses them, the build still ships without them.
+      - if: steps.upload.outcome == 'failure'
+        uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: dev.johnlaff.neko
