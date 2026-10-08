@@ -116,6 +116,12 @@ describe("monthRecap", () => {
       // Under 5% is noise, and no card the month before has nothing to compare.
       expect(winsOn(ms([card("Azul", 3000_00)], [card("Azul", 2900_00)]))).toEqual([]);
       expect(winsOn(ms([], [card("Azul", 100_00)]))).toEqual([]);
+      // A month without lines in between: no "month before" to compare with.
+      const gap = [
+        at(2026, 7, { outflows: [card("Azul", 3000_00)], result: cents(-1) } as Partial<MonthView>),
+        at(2026, 9, { outflows: [card("Azul", 1000_00)], result: cents(-1) } as Partial<MonthView>),
+      ];
+      expect(winsOn(gap)).toEqual([]);
     });
 
     it("marks a record share kept, once there are three months before it to beat", () => {

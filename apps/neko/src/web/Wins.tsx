@@ -1,6 +1,6 @@
 import type { Win } from "@neko/engine";
 import { useState } from "react";
-import { winText } from "../shared/wins.ts";
+import { winShareText, winText } from "../shared/wins.ts";
 import nekoComemorando from "./assets/mascots/neko-comemorando.webp";
 import { capitalize, monthName } from "./format.ts";
 import { Mascot } from "./Mascot.tsx";
@@ -23,29 +23,57 @@ export function Wins({
   cat: number;
   className?: string | undefined;
 }) {
-  const [busy, setBusy] = useState(false);
   if (wins.length === 0) return null;
-  const lines = wins.map(winText);
+  const title = `${capitalize(monthName(month))} de ${year}`;
+  return (
+    <div className={className ? `recap-wins ${className}` : "recap-wins"}>
+      <Mascot pose="celebrating" height={cat} className="milestone-cat" />
+      <ul aria-label="Conquistas do mês">
+        {wins.map((w) => (
+          <li key={w.kind}>{winText(w)}</li>
+        ))}
+      </ul>
+      <ShareButton
+        title={`${title} fechou`}
+        lines={wins.map(winShareText)}
+        label={`Compartilhar as conquistas de ${title.toLowerCase()}`}
+      />
+    </div>
+  );
+}
+
+/** Shares an achievement's picture; one share at a time, and a label that names what it shares. */
+export function ShareButton({
+  title,
+  lines,
+  label,
+}: {
+  title: string;
+  lines: readonly string[];
+  label: string;
+}) {
+  const [busy, setBusy] = useState(false);
   const share = async () => {
     setBusy(true);
     try {
-      await shareCard(`${capitalize(monthName(month))} de ${year} fechou`, lines);
+      await shareCard(title, lines);
+    } catch (e) {
+      // Drawing failed: nothing to share, and the page keeps working.
+      console.warn("share card", e);
     } finally {
       setBusy(false);
     }
   };
   return (
-    <div className={className ? `recap-wins ${className}` : "recap-wins"}>
-      <Mascot pose="celebrating" height={cat} className="milestone-cat" />
-      <ul aria-label="Conquistas do mês">
-        {lines.map((t, i) => (
-          <li key={wins[i]?.kind}>{t}</li>
-        ))}
-      </ul>
-      <button type="button" className="ghost small win-share" disabled={busy} onClick={share}>
-        Compartilhar
-      </button>
-    </div>
+    <button
+      type="button"
+      className="ghost small win-share"
+      disabled={busy}
+      aria-label={label}
+      onClick={share}
+    >
+      Compartilhar
+    </button>
   );
 }
 
@@ -84,8 +112,8 @@ const drawCard = async (title: string, lines: readonly string[]) => {
   ctx.font = `650 56px ${font}`;
   const rows = lines.flatMap((l, i) => [...(i > 0 ? [""] : []), ...wrap(ctx, l, W - 160)]);
   const rowsH = rows.reduce((h, r) => h + (r ? 68 : 28), 0);
-  const catH = 560;
-  // Title, cat and wins as one block, centred above the footer.
+  // Title, cat and wins as one block above the footer; the cat gives way when the wins are many.
+  const catH = Math.max(280, Math.min(560, H - 140 - 120 - (44 + 40 + 90 + rowsH)));
   let y = Math.max(60, (H - 140 - (44 + 40 + catH + 90 + rowsH)) / 2) + 44;
   ctx.fillStyle = "#57534e";
   ctx.font = `500 44px ${font}`;
@@ -117,10 +145,12 @@ export const shareCard = async (title: string, lines: readonly string[]) => {
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title });
-    } catch {
-      // Closing the share sheet is not an error.
+      return;
+    } catch (e) {
+      // Closing the share sheet is not an error; anything else (the tap went stale while the
+      // picture was drawn, say) falls back to the download below.
+      if (e instanceof DOMException && e.name === "AbortError") return;
     }
-    return;
   }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

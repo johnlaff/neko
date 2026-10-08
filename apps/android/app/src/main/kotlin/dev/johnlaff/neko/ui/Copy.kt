@@ -24,6 +24,10 @@ object Copy {
         else -> null
     }
 
+    /** A win as the shared picture says it: no share of the income kept (shared/wins.ts winShareText). */
+    fun winShare(w: Win): String? =
+        if (w.kind == "record") "Recorde: o mês que mais guardou até aqui" else win(w)
+
     /** Null for a kind this version does not know yet: it is skipped, not guessed. */
     fun insight(i: Insight): Line? = when (i.kind) {
         "goes-negative" -> Line(
