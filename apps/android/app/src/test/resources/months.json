@@ -416,7 +416,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 599238
+      "livingCost": 599238,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 1
+        }
+      ]
     },
     {
       "key": "2025-02",
@@ -804,7 +810,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 651574
+      "livingCost": 651574,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 2
+        }
+      ]
     },
     {
       "key": "2025-03",
@@ -1245,7 +1257,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 693768
+      "livingCost": 693768,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 3
+        }
+      ]
     },
     {
       "key": "2025-04",
@@ -1679,7 +1697,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 715890
+      "livingCost": 715890,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 4
+        }
+      ]
     },
     {
       "key": "2025-05",
@@ -2120,7 +2144,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 714443
+      "livingCost": 714443,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 5
+        }
+      ]
     },
     {
       "key": "2025-06",
@@ -2554,7 +2584,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 676242
+      "livingCost": 676242,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 6
+        }
+      ]
     },
     {
       "key": "2025-07",
@@ -2995,7 +3031,8 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 745578
+      "livingCost": 745578,
+      "wins": []
     },
     {
       "key": "2025-08",
@@ -3436,7 +3473,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 694448
+      "livingCost": 694448,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 1
+        }
+      ]
     },
     {
       "key": "2025-09",
@@ -3870,7 +3913,17 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 665542
+      "livingCost": 665542,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 2
+        },
+        {
+          "kind": "reserve",
+          "months": 1
+        }
+      ]
     },
     {
       "key": "2025-10",
@@ -4311,7 +4364,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 659164
+      "livingCost": 659164,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 3
+        }
+      ]
     },
     {
       "key": "2025-11",
@@ -4745,7 +4804,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 704539
+      "livingCost": 704539,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 4
+        }
+      ]
     },
     {
       "key": "2025-12",
@@ -5186,7 +5251,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 702333
+      "livingCost": 702333,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 5
+        }
+      ]
     },
     {
       "key": "2026-01",
@@ -5627,7 +5698,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 637979
+      "livingCost": 637979,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 6
+        }
+      ]
     },
     {
       "key": "2026-02",
@@ -6041,7 +6118,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 657372
+      "livingCost": 657372,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 7
+        }
+      ]
     },
     {
       "key": "2026-03",
@@ -6482,7 +6565,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 589219
+      "livingCost": 589219,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 8
+        }
+      ]
     },
     {
       "key": "2026-04",
@@ -6916,7 +7005,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 666454
+      "livingCost": 666454,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 9
+        }
+      ]
     },
     {
       "key": "2026-05",
@@ -7357,7 +7452,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 637384
+      "livingCost": 637384,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 10
+        }
+      ]
     },
     {
       "key": "2026-06",
@@ -7791,7 +7892,8 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 724843
+      "livingCost": 724843,
+      "wins": []
     },
     {
       "key": "2026-07",
@@ -8232,7 +8334,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 669622
+      "livingCost": 669622,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 1
+        }
+      ]
     },
     {
       "key": "2026-08",
@@ -8673,7 +8781,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 626833
+      "livingCost": 626833,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 2
+        }
+      ]
     },
     {
       "key": "2026-09",
@@ -9107,7 +9221,13 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 734972
+      "livingCost": 734972,
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 3
+        }
+      ]
     },
     {
       "key": "2026-10",
@@ -9496,7 +9616,8 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 671321
+      "livingCost": 671321,
+      "wins": []
     },
     {
       "key": "2026-11",
@@ -9872,7 +9993,8 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 576754
+      "livingCost": 576754,
+      "wins": []
     },
     {
       "key": "2026-12",
@@ -10255,7 +10377,8 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 689191
+      "livingCost": 689191,
+      "wins": []
     }
   ],
   "saving": {
