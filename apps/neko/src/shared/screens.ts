@@ -5,10 +5,12 @@ import {
   type InstallmentSimulation,
   monthWins,
   type Outflow,
+  outflowTrend,
   type Reserve,
   type Saving,
   simulateInstallments,
   type ThermoDay,
+  type TrendPoint,
   type Win,
   type YearTotals,
 } from "@neko/engine";
@@ -151,7 +153,8 @@ export interface MonthItem {
   readonly endSheet: number;
   /** The method's performance; null on a month the sheet has no lines for. */
   readonly result: number | null;
-  readonly outflows: readonly Outflow[];
+  /** Each destination with its last months, opened by a tap on its line. */
+  readonly outflows: readonly (Outflow & { readonly trend: readonly TrendPoint[] })[];
   readonly fixed: readonly Fixed[];
   readonly fixedTotal: number;
   /** The termômetro: each day's balance and band, with what moved it. */
@@ -199,7 +202,10 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
       diario: m.diario,
       endSheet: m.endSheet,
       result: moved ? m.result : null,
-      outflows: m.outflows,
+      outflows: m.outflows.map((o) => ({
+        ...o,
+        trend: outflowTrend(p.months, m.year, m.month, o.label),
+      })),
       fixed: m.fixed,
       fixedTotal: m.fixedTotal,
       days: m.days,

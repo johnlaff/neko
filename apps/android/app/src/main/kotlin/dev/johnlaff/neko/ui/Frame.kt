@@ -77,6 +77,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.ui.Format.shortDate
 
@@ -371,7 +372,13 @@ data class Bar(
  * only: the values come from the API, this turns them into heights. Tap a column to pick it.
  */
 @Composable
-fun Columns(items: List<Bar>, onSelect: (String) -> Unit, guide: Long? = null, modifier: Modifier = Modifier) {
+fun Columns(
+    items: List<Bar>,
+    onSelect: (String) -> Unit,
+    guide: Long? = null,
+    modifier: Modifier = Modifier,
+    height: Dp = 96.dp,
+) {
     val l = LocalLedger.current
     val top = maxOf(0L, items.maxOfOrNull { it.value } ?: 0L, guide ?: 0L)
     val bottom = minOf(0L, items.minOfOrNull { it.value } ?: 0L)
@@ -384,7 +391,7 @@ fun Columns(items: List<Bar>, onSelect: (String) -> Unit, guide: Long? = null, m
         }
     }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.fillMaxWidth().height(96.dp)) {
+        Box(Modifier.fillMaxWidth().height(height)) {
             // Each column's whole slot is its target, with no gaps, and a finger can slide across
             // them to read one after another.
             Row(

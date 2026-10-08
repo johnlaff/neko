@@ -1584,6 +1584,44 @@ button.chip-button[aria-pressed="true"] {
 .outflows > li:first-child .meter > span {
   background: var(--accent);
 }
+/* A destination opens its last months: the whole line is one button, drawn under the content */
+.outflows > li > .avatar {
+  grid-area: 1 / 1;
+}
+.outflows > li > .name {
+  grid-area: 1 / 2;
+}
+.outflows > li > .value {
+  grid-area: 1 / 3;
+}
+.outflows > li > :not(.row-toggle, .trend) {
+  pointer-events: none;
+}
+.outflows > li > button.row-toggle {
+  grid-area: 1 / 1 / 2 / -1;
+  align-self: stretch;
+  min-height: 0;
+  margin: -6px -8px;
+  padding: 0;
+  border-radius: 12px;
+  background: transparent;
+}
+.outflows > li > button.row-toggle:hover,
+.outflows > li.open > button.row-toggle {
+  background: color-mix(in oklch, var(--surface-2) 50%, transparent);
+}
+.outflows > li > button.row-toggle:active {
+  scale: 1;
+}
+.trend {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+}
+.trend > fieldset.columns {
+  --plot: 72px;
+}
 .recap-wins {
   display: flex;
   align-items: center;

@@ -13,3 +13,4 @@ export * from "./recap.ts";
 export * from "./reserve.ts";
 export * from "./savings.ts";
 export * from "./thermometer.ts";
+export * from "./trend.ts";

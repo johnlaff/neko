@@ -1,6 +1,8 @@
 package dev.johnlaff.neko.ui
 
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +29,7 @@ import dev.johnlaff.neko.data.MonthItem
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.Outflow
 import dev.johnlaff.neko.data.Reserve
+import dev.johnlaff.neko.data.TrendPoint
 import dev.johnlaff.neko.data.YearTotals
 import dev.johnlaff.neko.ui.Format.capitalize
 import dev.johnlaff.neko.ui.Format.money
@@ -266,23 +269,60 @@ private fun Outflows(m: MonthItem) {
 private fun OutflowRow(o: Outflow, top: Long) {
     val l = LocalLedger.current
     val change = o.change ?: 0L
-    ListRow(
-        name = o.label,
-        value = money(o.amount),
-        avatar = if (o.kind == "card") monogram(o.label) else o.label.take(1).uppercase(),
-        chips = { if (o.others) Chip("De outra pessoa", ChipTone.Plain) },
-        below = {
-            // Display only: the line's amount scaled to the month's largest line.
-            Meter(if (top <= 0) 0f else o.amount.toFloat() / top)
-            if (change != 0L) {
-                Text(
-                    "${if (change > 0) "▲" else "▼"} ${money(kotlin.math.abs(change))} ${if (change > 0) "a mais" else "a menos"}",
-                    color = if (change > 0) l.neg else l.faint,
-                    style = MaterialTheme.typography.labelMedium,
+    var open by rememberSaveable(o.label) { mutableStateOf(false) }
+    Column {
+        ListRow(
+            name = o.label,
+            value = money(o.amount),
+            // The whole line opens the destination's last months, as on the site.
+            modifier = Modifier.clickable(onClickLabel = "ver os últimos meses") { open = !open },
+            avatar = if (o.kind == "card") monogram(o.label) else o.label.take(1).uppercase(),
+            chips = { if (o.others) Chip("De outra pessoa", ChipTone.Plain) },
+            below = {
+                // Display only: the line's amount scaled to the month's largest line.
+                Meter(if (top <= 0) 0f else o.amount.toFloat() / top)
+                if (change != 0L) {
+                    Text(
+                        "${if (change > 0) "▲" else "▼"} ${money(kotlin.math.abs(change))} ${if (change > 0) "a mais" else "a menos"}",
+                        color = if (change > 0) l.neg else l.faint,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            },
+        )
+        Reveal(open && o.trend.isNotEmpty()) { Trend(o.trend) }
+    }
+}
+
+/** Where one destination went over the last months: tap a column to read it, as on the site. */
+@Composable
+internal fun Trend(points: List<TrendPoint>) {
+    val l = LocalLedger.current
+    val last = points.last()
+    var picked by remember(points) { mutableStateOf("${last.year}-${last.month}") }
+    val shown = points.firstOrNull { "${it.year}-${it.month}" == picked } ?: last
+    Column(Modifier.padding(start = 48.dp, top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Columns(
+            items = points.map { p ->
+                val k = "${p.year}-${p.month}"
+                Bar(
+                    key = k,
+                    label = capitalize(monthName(p.month).take(3)),
+                    value = p.amount,
+                    description = "${capitalize(monthName(p.month))}: ${money(p.amount)}",
+                    accent = k == picked,
                 )
-            }
-        },
-    )
+            },
+            onSelect = { picked = it },
+            height = 64.dp,
+        )
+        Text(
+            "${capitalize(monthName(shown.month))} de ${shown.year}: " +
+                if (shown.amount > 0) money(shown.amount) else "não apareceu",
+            color = l.faint,
+            style = MaterialTheme.typography.labelMedium,
+        )
+    }
 }
 
 @Composable
