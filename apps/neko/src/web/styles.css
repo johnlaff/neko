@@ -742,6 +742,10 @@ input.switch:checked::after {
   font-size: 0.8125rem;
   color: var(--muted);
 }
+/* The total keeps its figure on one line; the day name wraps first */
+.day-head > span {
+  white-space: nowrap;
+}
 .day-head h3 {
   font-size: inherit;
   font-weight: 600;
@@ -2086,6 +2090,7 @@ button.ghost.small {
 /* One-time tip: the idea behind the number above it, then gone for good */
 .tip {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-top: 4px;
@@ -2094,7 +2099,8 @@ button.ghost.small {
   background: var(--pill-active);
 }
 .tip-text {
-  flex: 1;
+  /* Below about 12rem of text (large text, zoom) "Entendi" drops under it instead of squeezing it */
+  flex: 1 1 12rem;
   margin: 0;
   font-size: 0.875rem;
   color: var(--muted);
@@ -2102,6 +2108,7 @@ button.ghost.small {
 /* The hint is already a box: its button is just the word, as on Android. */
 button.ghost.tip-ok {
   flex: none;
+  margin-left: auto;
   box-shadow: none;
   font-weight: 550;
 }
