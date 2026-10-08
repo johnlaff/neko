@@ -37,6 +37,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.role
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -150,7 +152,12 @@ fun AjustesScreen(
         devices.list?.takeIf { it.isNotEmpty() }?.let { item { Group("Aparelhos conectados") { Devices(devices) } } }
         item {
             Panel {
-                TextAction("Sair deste aparelho", onLogout, LocalLedger.current.neg)
+                ConfirmAction(
+                    "Sair deste aparelho",
+                    "Sair deste aparelho?",
+                    "Para voltar, entre de novo com a passkey.",
+                    onLogout,
+                )
             }
         }
     }
@@ -256,7 +263,14 @@ private fun Devices(d: DevicesList) {
                 }
             }
         }
-        if (others > 1) TextAction("Sair dos outros $others aparelhos", d.onEndOthers, l.neg)
+        if (others > 1) {
+            ConfirmAction(
+                "Sair dos outros $others aparelhos",
+                "Sair dos outros $others aparelhos?",
+                "Cada um precisará entrar de novo com a passkey. Este continua conectado.",
+                d.onEndOthers,
+            )
+        }
     }
 }
 
@@ -288,15 +302,27 @@ private fun Setting(
     control: @Composable () -> Unit,
 ) {
     val l = LocalLedger.current
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(label)
-            Text(sub, color = if (error) l.neg else l.faint, style = MaterialTheme.typography.labelMedium)
+    val words: @Composable () -> Unit = {
+        Text(label)
+        Text(sub, color = if (error) l.neg else l.faint, style = MaterialTheme.typography.labelMedium)
+    }
+    // With large text the label and its field no longer fit side by side: the field goes below.
+    if (stacked()) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            words()
+            control()
         }
+        return
+    }
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) { words() }
         Spacer(Modifier.width(12.dp))
         control()
     }
 }
+
+@Composable
+private fun stacked() = androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f
 
 @Composable
 private fun Field(
@@ -324,7 +350,7 @@ private fun Field(
         ),
         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.border),
         modifier = Modifier
-            .width(width.dp)
+            .then(if (stacked() && money) Modifier.fillMaxWidth() else Modifier.width(width.dp))
             .semantics { contentDescription = description }
             .onFocusChanged {
                 if (focused && !it.isFocused) onLeave()
@@ -357,7 +383,19 @@ private fun CardPicker(f: AjustesForm) {
     val l = LocalLedger.current
     var open by remember { mutableStateOf(false) }
     Box {
-        TextButton(onClick = { open = true }) { Text(f.usual.ifEmpty { "Automático" }, color = l.text) }
+        TextButton(
+            onClick = { open = true },
+            modifier = Modifier.semantics { role = androidx.compose.ui.semantics.Role.DropdownList },
+        ) {
+            Text(f.usual.ifEmpty { "Automático" }, color = l.text)
+            Spacer(Modifier.width(4.dp))
+            androidx.compose.material3.Icon(
+                androidx.compose.ui.res.painterResource(dev.johnlaff.neko.R.drawable.ic_chevron_down),
+                contentDescription = null,
+                tint = l.muted,
+                modifier = Modifier.size(18.dp),
+            )
+        }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             (listOf("") + f.cards.map { it.name }).forEach { name ->
                 DropdownMenuItem(
@@ -380,15 +418,15 @@ private fun Cards(f: AjustesForm) {
         val key = "closing-${c.name}"
         val bad = key in f.left && badDay(f.closing[c.name])
         val other = c.name in f.others
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(c.name)
-                Text(
-                    if (bad) "Dia de 1 a 31" else "Vence dia ${c.dueDay}${if (other) " · De outra pessoa" else ""}",
-                    color = if (bad) l.neg else l.faint,
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
+        val words: @Composable () -> Unit = {
+            Text(c.name)
+            Text(
+                if (bad) "Dia de 1 a 31" else "Vence dia ${c.dueDay}${if (other) " · De outra pessoa" else ""}",
+                color = if (bad) l.neg else l.faint,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+        val controls: @Composable () -> Unit = {
             Switch(
                 checked = other,
                 onCheckedChange = toggled { on ->
@@ -405,6 +443,16 @@ private fun Cards(f: AjustesForm) {
                 money = false, error = bad, width = 76,
             )
         }
+        // With large text the name gets the whole width, and its controls go below it.
+        if (stacked()) {
+            Column(Modifier.fillMaxWidth()) { words() }
+            Row(verticalAlignment = Alignment.CenterVertically) { controls() }
+        } else {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) { words() }
+                controls()
+            }
+        }
     }
     Text(
         "O botão marca o cartão de outra pessoa, que fica fora do seu ritmo. O número é o dia em que a " +
@@ -412,4 +460,27 @@ private fun Cards(f: AjustesForm) {
         color = l.faint,
         style = MaterialTheme.typography.labelMedium,
     )
+}
+
+/** A sign-out text action that asks first: undoing it means signing in again on that phone. */
+@Composable
+private fun ConfirmAction(action: String, question: String, detail: String, onConfirm: () -> Unit) {
+    val l = LocalLedger.current
+    var asking by remember { mutableStateOf(false) }
+    TextAction(action, { asking = true }, l.neg)
+    if (asking) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text(question, style = MaterialTheme.typography.headlineSmall) },
+            text = { Text(detail, color = l.muted) },
+            confirmButton = {
+                TextButton(onClick = {
+                    asking = false
+                    onConfirm()
+                }) { Text("Sair", color = l.neg) }
+            },
+            dismissButton = { TextButton(onClick = { asking = false }) { Text("Cancelar", color = l.text) } },
+            containerColor = l.surface,
+        )
+    }
 }

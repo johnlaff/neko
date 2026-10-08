@@ -108,7 +108,10 @@ class MainActivity : ComponentActivity() {
                             // The screen slides a little toward the tab's side of the dock, as on the
                             // site; the dock stays put.
                             val shift = with(LocalDensity.current) { 24.dp.roundToPx() }
+                            // Each tab keeps its scroll, picked month and open panels while away.
+                            val saved = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
                             AnimatedContent(tab, transitionSpec = { tabChange(initialState, targetState, shift) }, label = "tab") { t ->
+                                saved.SaveableStateProvider(t.name) {
                                 when (t) {
                                     Tab.Hoje -> {
                                         val today by model.today.collectAsStateWithLifecycle()
@@ -134,6 +137,7 @@ class MainActivity : ComponentActivity() {
                                             lockSwitch(),
                                         )
                                     }
+                                }
                                 }
                             }
                             Dock(tab, go, Modifier.align(Alignment.BottomCenter))

@@ -27,6 +27,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -65,6 +73,9 @@ import dev.johnlaff.neko.ui.Format.shortDate
 /** Room under the last panel so the floating dock never covers it. */
 private val DOCK_ROOM = 88.dp
 
+/** The widest a screen's column gets, as on the site. */
+private val MAX_WIDTH = 640.dp
+
 /**
  * What every screen shares: the title with when the sheet was read, pull to read again, and the
  * calm loading and error panels while there is nothing to show yet.
@@ -82,8 +93,22 @@ fun <T> ScreenFrame(
     val l = LocalLedger.current
     val haptics = LocalHapticFeedback.current
     val v = state.view
+    val pull = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+    val refreshing = state.loading && v != null
     PullToRefreshBox(
-        isRefreshing = state.loading && v != null,
+        isRefreshing = refreshing,
+        state = pull,
+        // Below the status bar and the camera, where the content starts.
+        indicator = {
+            androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator(
+                state = pull,
+                isRefreshing = refreshing,
+                modifier = Modifier.align(Alignment.TopCenter).windowInsetsPadding(
+                    androidx.compose.foundation.layout.WindowInsets.safeDrawing
+                        .only(androidx.compose.foundation.layout.WindowInsetsSides.Top),
+                ),
+            )
+        },
         onRefresh = {
             // The pull let go past the line: a tick says the read started.
             haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
@@ -92,7 +117,8 @@ fun <T> ScreenFrame(
         modifier = Modifier.fillMaxSize().background(l.bg),
     ) {
         LazyColumn(
-            Modifier.fillMaxSize().safeDrawingPadding(),
+            // A phone-width column on tablets and in landscape, not a stretched one.
+            Modifier.fillMaxHeight().widthIn(max = MAX_WIDTH).fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding(),
             contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = DOCK_ROOM),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -188,6 +214,10 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     val l = LocalLedger.current
     val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(50)
+    // Tab names grow with the system text up to 130%: past that the four no longer fit one line,
+    // and the screens above already carry the large text.
+    val scale = LocalDensity.current.fontScale
+    val label = MaterialTheme.typography.labelLarge.fontSize * (minOf(scale, 1.3f) / scale)
     Row(
         modifier
             .navigationBarsPadding()
@@ -205,7 +235,12 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
             Text(
                 tab.label,
                 color = ink,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium),
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                    fontSize = label,
+                ),
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier
                     .background(pill, shape)
                     .clickable(role = Role.Tab) {
@@ -213,7 +248,9 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
                         onSelect(tab)
                     }
                     .semantics { selected = on }
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .heightIn(min = 48.dp)
+                    .wrapContentHeight()
+                    .padding(horizontal = 16.dp),
             )
         }
     }
@@ -360,6 +397,7 @@ fun TextAction(text: String, onClick: () -> Unit, color: Color = LocalLedger.cur
         text,
         color = color,
         style = MaterialTheme.typography.labelLarge,
-        modifier = Modifier.clickable(onClick = onClick).padding(vertical = 4.dp),
+        // A finger-sized target around a short line of text.
+        modifier = Modifier.clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(),
     )
 }

@@ -80,6 +80,9 @@ fun NekoTheme(content: @Composable () -> Unit) {
         bodyMedium = base.copy(fontSize = 14.sp, lineHeight = 20.sp),
         labelLarge = base.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
         labelMedium = base.copy(fontSize = 13.sp, lineHeight = 18.sp),
+        // Roles a screen asks for must exist, or Material fills them with its own face.
+        titleLarge = base.copy(fontSize = 18.sp, fontWeight = FontWeight.Medium, lineHeight = 24.sp),
+        labelSmall = base.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp),
     )
     androidx.compose.runtime.CompositionLocalProvider(LocalLedger provides l) {
         MaterialTheme(colorScheme = scheme, typography = type, content = content)

@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -135,7 +138,8 @@ private fun Hero(v: TodayView) {
             modifier = Modifier
                 .clickable(onClickLabel = if (formula) "esconder a conta" else "mostrar a conta") { formula = !formula }
                 .semantics { stateDescription = if (formula) "Aberto" else "Fechado" }
-                .padding(vertical = 4.dp),
+                .heightIn(min = 48.dp)
+                .wrapContentHeight(),
         )
         Reveal(formula) { Formula(cs, v) }
     }
@@ -167,7 +171,16 @@ private fun LancarButton(url: String, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth().height(48.dp),
         colors = ButtonDefaults.buttonColors(containerColor = l.surface2, contentColor = l.text),
         shape = RoundedCornerShape(14.dp),
-    ) { Text("+  Lançar", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
+        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+    ) {
+        androidx.compose.material3.Icon(
+            androidx.compose.ui.res.painterResource(dev.johnlaff.neko.R.drawable.ic_add),
+            contentDescription = null,
+            modifier = Modifier.size(ButtonDefaults.IconSize),
+        )
+        androidx.compose.foundation.layout.Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+        Text("Lançar", style = MaterialTheme.typography.labelLarge, maxLines = 1)
+    }
 }
 
 @Composable

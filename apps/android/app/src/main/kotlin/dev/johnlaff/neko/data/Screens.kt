@@ -79,6 +79,11 @@ data class MonthItem(
     val fixedTotal: Long = 0,
     /** The termômetro: each day's balance and band, with what moved it. */
     val days: List<ThermoDay> = emptyList(),
+    /** Saída under an "Investimento:" header, and its whole-percent share of entradas. */
+    val saved: Long = 0,
+    val savedShare: Int? = null,
+    /** Saída plus diário minus what was saved. */
+    val livingCost: Long = 0,
 )
 
 @Serializable

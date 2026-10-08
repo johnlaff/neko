@@ -778,7 +778,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 599238
       },
       {
         "year": 2025,
@@ -1161,7 +1164,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 651574
       },
       {
         "year": 2025,
@@ -1597,7 +1603,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 693768
       },
       {
         "year": 2025,
@@ -2026,7 +2035,10 @@
               }
             ]
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 715890
       },
       {
         "year": 2025,
@@ -2462,7 +2474,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 714443
       },
       {
         "year": 2025,
@@ -2891,7 +2906,10 @@
               }
             ]
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 676242
       },
       {
         "year": 2025,
@@ -3327,7 +3345,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 745578
       },
       {
         "year": 2025,
@@ -3763,7 +3784,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 694448
       },
       {
         "year": 2025,
@@ -4192,7 +4216,10 @@
               }
             ]
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 665542
       },
       {
         "year": 2025,
@@ -4628,7 +4655,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 659164
       },
       {
         "year": 2025,
@@ -5057,7 +5087,10 @@
               }
             ]
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 704539
       },
       {
         "year": 2025,
@@ -5493,7 +5526,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 702333
       },
       {
         "year": 2026,
@@ -5929,7 +5965,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 637979
       },
       {
         "year": 2026,
@@ -6338,7 +6377,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 657372
       },
       {
         "year": 2026,
@@ -6774,7 +6816,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 589219
       },
       {
         "year": 2026,
@@ -7203,7 +7248,10 @@
               }
             ]
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 666454
       },
       {
         "year": 2026,
@@ -7639,7 +7687,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 637384
       },
       {
         "year": 2026,
@@ -8068,7 +8119,10 @@
               }
             ]
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 724843
       },
       {
         "year": 2026,
@@ -8504,7 +8558,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 669622
       },
       {
         "year": 2026,
@@ -8940,7 +8997,10 @@
             "future": false,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 626833
       },
       {
         "year": 2026,
@@ -9369,7 +9429,10 @@
               }
             ]
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 734972
       },
       {
         "year": 2026,
@@ -9753,7 +9816,10 @@
             "future": true,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 671321
       },
       {
         "year": 2026,
@@ -10124,7 +10190,10 @@
             "future": true,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 576754
       },
       {
         "year": 2026,
@@ -10502,7 +10571,10 @@
             "future": true,
             "moves": []
           }
-        ]
+        ],
+        "saved": 80000,
+        "savedShare": 10,
+        "livingCost": 689191
       }
     ],
     "upcoming": [

@@ -73,6 +73,27 @@ describe("credit mode projection", () => {
     expect(p.months.map((m) => m.result)).toEqual([0, -450_00, 0]);
   });
 
+  it("separates what the month saved from what it cost, as the method's Economia does", () => {
+    // Nov: R$ 5.000 in; R$ 1.000 out, of which R$ 300 under "Investimento:" and R$ 200 under
+    // "INVESTIMENTOS"; R$ 150 of diário.
+    const l = ledger("2026-10-01", 92, 10_000_00, {
+      "2026-11-05": { entrada: cell(5000_00, [item(5000_00, "Salário", null)]) },
+      "2026-11-06": {
+        saida: cell(1000_00, [
+          item(300_00, "Previdência", "investimento"),
+          item(200_00, "Tesouro", "investimentos"),
+          item(500_00, "Visa"),
+        ]),
+        diario: cell(150_00),
+      },
+    });
+    const nov = project(l, today, settings()).months.find((m) => m.month === 11);
+    expect(nov).toMatchObject({ saved: 500_00, savedShare: 10, livingCost: 650_00 });
+    // No income, no share: a ratio over nothing says nothing.
+    const dec = project(l, today, settings()).months.find((m) => m.month === 12);
+    expect(dec).toMatchObject({ saved: 0, savedShare: null, livingCost: 0 });
+  });
+
   it("a configured cycle budget wins over diário × days", () => {
     expect(project(base(), today, settings({ cycleBudget: cents(2000_00) })).canSpend?.perDay).toBe(
       103_33,
