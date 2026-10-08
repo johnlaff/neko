@@ -825,15 +825,8 @@ input.switch:checked::after {
   padding-block: 32px;
   gap: 10px;
 }
-.state-icon {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: 4px;
-  border-radius: 16px;
-  background: var(--surface-2);
-  color: var(--muted);
+.state-cat {
+  margin-bottom: 2px;
 }
 .panel.state h1 {
   font: 600 1.125rem / 1.3 var(--sans);
@@ -1365,12 +1358,13 @@ button.text-link {
   }
 }
 
-/* Login: the dial is the brand mark */
-.login .dial {
-  width: min(100%, 16rem);
-  margin-bottom: 4px;
+/* Login: Neko himself is the brand mark */
+.login-mark {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
 }
-.login .dial-label {
+.login-name {
   font: 500 3rem / 1 var(--serif);
   letter-spacing: -0.01em;
 }
@@ -2155,5 +2149,45 @@ button.setting.quiet:hover {
   from {
     scale: 0.3;
     opacity: 0;
+  }
+}
+
+/* Mascots: Neko and Mia, transparent pictures that never take a tap or a reading turn */
+.mascot {
+  display: block;
+  flex: none;
+  max-width: 100%;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+.page-head.empty-cards {
+  justify-items: center;
+  text-align: center;
+}
+.tip-cat {
+  align-self: flex-end;
+  margin-block: -6px -10px;
+}
+.alert.milestone .milestone-cat {
+  margin-block: -14px -10px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* A small hop into place once: the cat that celebrates a milestone */
+  .milestone-cat {
+    animation: hop 900ms 200ms cubic-bezier(0.3, 0.7, 0.3, 1) both;
+  }
+  @keyframes hop {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    45% {
+      opacity: 1;
+      transform: translateY(-5px);
+    }
+    100% {
+      transform: none;
+    }
   }
 }

@@ -90,6 +90,7 @@ private fun Hero(v: TodayView) {
     val cs = v.canSpend
     if (cs == null) {
         Panel {
+            Mascot(Pose.Sitting, Modifier.height(96.dp))
             Text("Nenhum cartão na planilha", style = MaterialTheme.typography.headlineSmall)
             Text("O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.", color = l.muted)
         }
@@ -206,6 +207,7 @@ private fun Alert(
     detail: String,
     color: androidx.compose.ui.graphics.Color,
     onClick: (() -> Unit)? = null,
+    lead: (@Composable () -> Unit)? = null,
 ) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(14.dp)
@@ -218,7 +220,8 @@ private fun Alert(
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(4.dp).height(36.dp).background(color, RoundedCornerShape(2.dp)))
+        if (lead != null) lead()
+        else Box(Modifier.width(4.dp).height(36.dp).background(color, RoundedCornerShape(2.dp)))
         Spacer(Modifier.width(12.dp))
         Column {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -231,7 +234,9 @@ private fun Alert(
 private fun MilestoneCard(m: Int) {
     val l = LocalLedger.current
     MilestoneHaptic(m)
-    Alert("Marca de $m dias", Learn.milestone(m), l.pos)
+    Alert("Marca de $m dias", Learn.milestone(m), l.pos) {
+        Mascot(Pose.Celebrating, Modifier.height(56.dp).hop())
+    }
 }
 
 @Composable

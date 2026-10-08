@@ -1,4 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
+import { Mascot } from "./Mascot.tsx";
 
 /**
  * One-time tips that teach the idea behind a number the first time it shows up, then leave for
@@ -61,7 +62,8 @@ export const Hint = ({ id, children }: { id: string; children: string }) => {
   }, [show, id]);
   if (!show) return null;
   return (
-    <aside className="tip" aria-label="Dica">
+    <aside className="tip" aria-label="Dica da Mia">
+      <Mascot pose="miaThinking" height={52} className="tip-cat" />
       <p className="tip-text">{children}</p>
       <button type="button" className="ghost small tip-ok" onClick={() => dismissHint(id)}>
         Entendi
