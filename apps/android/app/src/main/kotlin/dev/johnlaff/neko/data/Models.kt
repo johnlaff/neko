@@ -101,3 +101,10 @@ data class TodayIssue(val issue: HealthIssue, val url: String)
 
 @Serializable
 data class Me(val email: String? = null)
+
+/** One reminder as GET /api/reminders sends it (worker/push.ts): `url` "/" opens the app. */
+@Serializable
+data class Reminder(val title: String, val body: String, val url: String, val tag: String)
+
+@Serializable
+data class RemindersView(val morning: Reminder? = null, val evening: Reminder? = null)
