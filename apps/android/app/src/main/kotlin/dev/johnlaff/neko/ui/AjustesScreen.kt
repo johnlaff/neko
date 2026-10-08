@@ -1,5 +1,10 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -122,11 +127,14 @@ fun AjustesScreen(
         { "" },
         onRefresh,
         trailing = {
-            when (save) {
-                SaveState.Idle -> Unit
-                SaveState.Saving -> Chip("Salvando…", ChipTone.Plain)
-                SaveState.Saved -> Chip("Salvo", ChipTone.Ok)
-                SaveState.Failed -> Chip("Não salvou", ChipTone.Bad)
+            // TalkBack says "Salvo" / "Não salvou" without moving focus, as the autosave has no button.
+            Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                when (save) {
+                    SaveState.Idle -> Unit
+                    SaveState.Saving -> Chip("Salvando…", ChipTone.Plain)
+                    SaveState.Saved -> Chip("Salvo", ChipTone.Ok)
+                    SaveState.Failed -> Chip("Não salvou", ChipTone.Bad)
+                }
             }
         },
     ) { view ->
@@ -168,12 +176,13 @@ private fun Reminders(r: RemindersSwitch) {
             else -> "Quanto cabe às 8h, lançar o dia às 21h"
         },
         r.blocked,
+        // The whole row is the switch: a bigger target, and TalkBack reads the label with the state.
+        Modifier.toggleable(r.on, role = Role.Switch, onValueChange = toggled(r.onChange)),
     ) {
         Switch(
             checked = r.on,
-            onCheckedChange = toggled(r.onChange),
+            onCheckedChange = null,
             colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
-            modifier = Modifier.semantics { contentDescription = "Lembretes neste celular" },
         )
     }
 }
@@ -196,13 +205,18 @@ private fun Lock(s: LockSwitch) {
             s.unavailable != null -> s.unavailable
             else -> "Digital ou senha do celular para abrir"
         },
+        modifier = Modifier.toggleable(
+            s.on,
+            enabled = s.on || s.unavailable == null,
+            role = Role.Switch,
+            onValueChange = toggled(s.onChange),
+        ),
     ) {
         Switch(
             checked = s.on,
-            onCheckedChange = toggled(s.onChange),
+            onCheckedChange = null,
             enabled = s.on || s.unavailable == null,
             colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
-            modifier = Modifier.semantics { contentDescription = "Bloqueio com digital ou senha" },
         )
     }
 }
@@ -260,15 +274,21 @@ private fun toggled(onChange: (Boolean) -> Unit): (Boolean) -> Unit {
 private fun Group(title: String, content: @Composable () -> Unit) {
     val l = LocalLedger.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, color = l.muted, style = MaterialTheme.typography.labelLarge)
+        Text(title, color = l.muted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.semantics { heading() })
         Panel { content() }
     }
 }
 
 @Composable
-private fun Setting(label: String, sub: String, error: Boolean = false, control: @Composable () -> Unit) {
+private fun Setting(
+    label: String,
+    sub: String,
+    error: Boolean = false,
+    modifier: Modifier = Modifier,
+    control: @Composable () -> Unit,
+) {
     val l = LocalLedger.current
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(label)
             Text(sub, color = if (error) l.neg else l.faint, style = MaterialTheme.typography.labelMedium)

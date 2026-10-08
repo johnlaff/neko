@@ -1,5 +1,7 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -71,7 +73,7 @@ fun PanelHead(title: String, trailing: @Composable () -> Unit = {}) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(end = 8.dp))
+        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(end = 8.dp).semantics { heading() })
         trailing()
     }
 }

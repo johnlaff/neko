@@ -30,6 +30,10 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
   grande roda como odômetro, avisos aparecem, "Como calculei" e o extrato abrem pela altura, a troca
   de aba desliza para o lado da aba, e o carregamento é um esqueleto com brilho. "Remover animações"
   do Android zera tudo.
+- Acessibilidade (WCAG 2.2 AA): títulos marcados como cabeçalho, figuras e linhas lidas como uma
+  frase só pelo TalkBack, interruptores na linha inteira, "Salvo" anunciado, escolhas do simulador
+  como grupo de opções; com texto grande o número vai para baixo do arco; prints a 200% de texto;
+  `ContrastTest` cobra 4,5:1 de todas as cores de texto nos dois temas.
 - `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
   agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
 - `GET /api/invoices`, `GET /api/months` e `GET /api/ajustes` (`apps/neko/src/shared/screens.ts`):

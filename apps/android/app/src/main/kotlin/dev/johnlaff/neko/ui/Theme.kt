@@ -47,7 +47,7 @@ val DarkLedger = Ledger(
 val LightLedger = Ledger(
     bg = Color(0xFFF6F5F1), surface = Color(0xFFFFFEFC), surface2 = Color(0xFFEEECE7),
     border = Color(0xFFE2DFD8), text = Color(0xFF1C1A17), muted = Color(0xFF57534E),
-    faint = Color(0xFF6D6861), accent = Color(0xFF2C7A4B), pos = Color(0xFF2C7A4B),
+    faint = Color(0xFF6D6861), accent = Color(0xFF2A7548), pos = Color(0xFF2A7548),
     warn = Color(0xFF96580B), neg = Color(0xFFB0412B),
 )
 

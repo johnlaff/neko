@@ -1,5 +1,7 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalDensity
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -96,15 +98,22 @@ private fun Hero(v: TodayView) {
                 else -> Chip("Acima do ritmo", ChipTone.Warn)
             }
         }
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+        // With large text the figure no longer fits inside the arc: it goes under it instead.
+        val stacked = LocalDensity.current.fontScale >= 1.25f
+        val gauge = @Composable {
             Gauge(
                 value = cs.accumulated,
                 total = cs.budget,
                 mark = cs.paceExpected,
                 over = over || cs.paceGap < 0,
-                modifier = Modifier.fillMaxWidth(0.86f).aspectRatio(2f),
+                modifier = Modifier.fillMaxWidth(if (stacked) 0.6f else 0.86f).aspectRatio(2f),
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        }
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+            if (!stacked) gauge()
+            // Read as one sentence: "Hoje cabem, R$ 147,00, por dia".
+            Column(Modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
+                if (stacked) gauge()
                 Text(if (over) "Passou do plano" else "Hoje cabem", color = l.muted, style = MaterialTheme.typography.labelMedium)
                 BigMoney(if (over) cs.overBy else cs.perDay, if (over) l.neg else l.text)
                 Text(
@@ -123,7 +132,10 @@ private fun Hero(v: TodayView) {
             if (formula) "Esconder a conta" else "Como calculei",
             color = l.muted,
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.clickable { formula = !formula }.padding(vertical = 4.dp),
+            modifier = Modifier
+                .clickable(onClickLabel = if (formula) "esconder a conta" else "mostrar a conta") { formula = !formula }
+                .semantics { stateDescription = if (formula) "Aberto" else "Fechado" }
+                .padding(vertical = 4.dp),
         )
         Reveal(formula) { Formula(cs, v) }
     }
@@ -182,6 +194,7 @@ private fun Alert(
     Row(
         Modifier.fillMaxWidth()
             .appear()
+            .semantics(mergeDescendants = true) {}
             .background(color.copy(alpha = 0.10f), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(14.dp),
@@ -247,7 +260,7 @@ private fun Day(d: UpcomingDay, today: String) {
         }
         d.items.forEach { u ->
             val income = u.kind == "income"
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     u.description.ifBlank { "Sem descrição" },
                     modifier = Modifier.weight(1f),
@@ -287,7 +300,9 @@ private fun Conference(v: TodayView) {
             val line = Copy.issue(t.issue)
             Column(
                 Modifier.fillMaxWidth()
-                    .clickable { context.startActivity(Intent(Intent.ACTION_VIEW, t.url.toUri())) }
+                    .clickable(onClickLabel = "abrir na planilha", role = Role.Button) {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, t.url.toUri()))
+                    }
                     .padding(vertical = 4.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
