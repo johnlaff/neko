@@ -3,6 +3,7 @@ import miaEnsinando from "./assets/mascots/mia-ensinando.webp";
 import nekoComemorando from "./assets/mascots/neko-comemorando.webp";
 import nekoComemorandoViva from "./assets/mascots/neko-comemorando-viva.webp";
 import nekoDormindo from "./assets/mascots/neko-dormindo.webp";
+import nekoDormindoVivo from "./assets/mascots/neko-dormindo-vivo.webp";
 import nekoProcurando from "./assets/mascots/neko-procurando.webp";
 import nekoSatisfeito from "./assets/mascots/neko-satisfeito.webp";
 
@@ -16,7 +17,8 @@ export type Pose = "searching" | "sleeping" | "celebrating" | "content" | "miaTe
  */
 const POSES: Record<Pose, { src: string; w: number; h: number; alive?: string }> = {
   searching: { src: nekoProcurando, w: 464, h: 480 },
-  sleeping: { src: nekoDormindo, w: 480, h: 318 },
+  // A failed read is when the screen needs softening most: the cat naps, breathing slowly.
+  sleeping: { src: nekoDormindo, w: 480, h: 318, alive: nekoDormindoVivo },
   // A win is rare, so the cat that marks it waves its paws instead of standing still.
   celebrating: { src: nekoComemorando, w: 330, h: 480, alive: nekoComemorandoViva },
   content: { src: nekoSatisfeito, w: 286, h: 480 },

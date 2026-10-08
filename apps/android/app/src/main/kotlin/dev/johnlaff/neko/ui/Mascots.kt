@@ -60,6 +60,11 @@ fun ThinkingMia(modifier: Modifier = Modifier) =
 fun CelebratingCat(modifier: Modifier = Modifier) =
     LivingCat(R.raw.neko_comemorando, Pose.Celebrating.res, Pose.Celebrating.ratio, modifier)
 
+/** The cat on a failed read naps and breathes slowly: the screen that most needs softening. */
+@Composable
+fun SleepingCat(modifier: Modifier = Modifier) =
+    LivingCat(R.raw.neko_dormindo, Pose.Sleeping.res, Pose.Sleeping.ratio, modifier)
+
 /**
  * A short looping animated WebP played by the platform decoder; the still picture when "Remove
  * animations" is on or the decoder can't play it (as in the JVM screenshot tests).
