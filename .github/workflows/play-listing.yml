@@ -1,0 +1,29 @@
+name: Play listing
+
+# The store listing pictures (apps/android/store/*.png) go to Google Play when they change on
+# main. Same Play-only service account as play.yml; it needs the "Store presence" permission
+# in Play Console › Users and permissions.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/android/store/*.png"
+      - ".github/scripts/play_listing.py"
+  workflow_dispatch:
+
+concurrency:
+  group: play
+  cancel-in-progress: false
+
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install google-api-python-client google-auth
+      - env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: python .github/scripts/play_listing.py
