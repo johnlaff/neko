@@ -222,7 +222,7 @@ private fun Evolution(h: HistoryView) {
 }
 
 @Composable
-private fun LedgerLine(label: String, value: String, color: androidx.compose.ui.graphics.Color = LocalLedger.current.text, total: Boolean = false) {
+internal fun LedgerLine(label: String, value: String, color: androidx.compose.ui.graphics.Color = LocalLedger.current.text, total: Boolean = false) {
     val l = LocalLedger.current
     val style = if (total) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

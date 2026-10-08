@@ -1590,6 +1590,14 @@ button.chip-button[aria-pressed="true"] {
 .outflows > li:first-child .meter > span {
   background: var(--accent);
 }
+.recap .ledger dd > small {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.recap .ledger dd > small.pos {
+  color: var(--pos);
+}
 .reserve > .meter {
   margin: 4px 0 12px;
   height: 6px;

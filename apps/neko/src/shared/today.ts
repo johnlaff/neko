@@ -5,6 +5,7 @@ import {
   type Habit,
   type HealthIssue,
   type Insight,
+  type MonthRecap,
   type Saving,
   type UpcomingDay,
 } from "@neko/engine";
@@ -56,6 +57,8 @@ export interface TodayView {
   readonly readAt: string;
   /** Days the sheet changed, as a streak; null from a Worker that predates it. */
   readonly habit: Habit | null;
+  /** The month that just closed, in the first week of the next. */
+  readonly recap: MonthRecap | null;
 }
 
 export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): TodayView => {
@@ -86,5 +89,6 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     issuesInWindow: inWindow.length,
     readAt: r.sheet.readAt,
     habit: r.habit ?? null,
+    recap: p.recap ?? null,
   };
 };

@@ -54,9 +54,9 @@ for (const [path, heading] of [
 
 test("the dock moves between the four tabs", async ({ page }) => {
   await open(page, "/");
-  await page.getByRole("link", { name: "Faturas" }).click();
+  await page.getByRole("link", { name: "Faturas", exact: true }).click();
   await expect(page).toHaveURL(/\/faturas$/);
-  await page.getByRole("link", { name: "Mês" }).click();
+  await page.getByRole("link", { name: "Mês", exact: true }).click();
   await expect(page).toHaveURL(/\/mes$/);
 });
 

@@ -3,6 +3,7 @@ import {
   groupUpcomingByDay,
   type HealthIssue,
   type Insight,
+  type MonthRecap,
   type Saving,
   type UpcomingDay,
 } from "@neko/engine";
@@ -330,6 +331,58 @@ const splitDays = (days: readonly UpcomingDay[]) => {
   return [days.slice(0, cut), days.slice(cut)] as const;
 };
 
+/**
+ * The month that just closed, in the first week of the next: how it ended, what it kept, what it
+ * cost to live and where most of it went. A plain panel: it informs, it does not warn.
+ */
+const RecapPanel = ({ r }: { r: MonthRecap }) => {
+  const name = monthName(r.month);
+  const before = monthName(r.month === 1 ? 12 : r.month - 1);
+  return (
+    <section className="panel recap">
+      <div className="panel-head">
+        <h2>{capitalize(name)} fechou</h2>
+        <Link
+          to="/mes"
+          search={{ m: `${r.year}-${String(r.month).padStart(2, "0")}` }}
+          className="text-link"
+        >
+          Ver o mês
+        </Link>
+      </div>
+      <dl className="ledger">
+        <dt>{r.result < 0 ? "Faltou" : "Sobrou"}</dt>
+        <dd className={r.result > 0 ? "pos" : r.result < 0 ? "neg" : undefined}>
+          {money(Math.abs(r.result))}
+        </dd>
+        {r.saved > 0 && (
+          <>
+            <dt>Guardado{r.savedShare !== null && ` · ${r.savedShare}% das entradas`}</dt>
+            <dd>{money(r.saved)}</dd>
+          </>
+        )}
+        <dt>Custo de vida</dt>
+        <dd>
+          {money(r.livingCost)}
+          {r.costChange !== null && r.costChange !== 0 && (
+            <small className={r.costChange < 0 ? "pos" : undefined}>
+              {r.costChange < 0 ? "▼" : "▲"} {money(Math.abs(r.costChange))} sobre {before}
+            </small>
+          )}
+        </dd>
+        {r.top && (
+          <>
+            <dt>Maior saída</dt>
+            <dd>
+              {r.top.label} · {money(r.top.amount)}
+            </dd>
+          </>
+        )}
+      </dl>
+    </section>
+  );
+};
+
 /** The day the run reaches a mark, and the day after: one card, then it leaves on its own. */
 const MilestoneCard = ({ milestone }: { milestone: number }) => (
   <ul className="alerts" aria-label="Sequência">
@@ -441,6 +494,9 @@ export const Hoje = () => (
           {p.saving && p.saving.date >= p.today && p.saving.date <= addDays(p.today, SAVE_LEAD) && (
             <SaveCard save={p.saving} today={p.today} />
           )}
+
+          {/* Missing on projections cached before it existed. */}
+          {p.recap && <RecapPanel r={p.recap} />}
 
           <section className="panel half">
             <div className="panel-head">
