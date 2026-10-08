@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,7 +47,12 @@ fun MesScreen(state: ScreenState<MonthsView>, history: HistoryView? = null, onRe
             ?: v.months.indexOfFirst { it.key == v.current }.coerceAtLeast(0)
         val m = v.months.getOrNull(idx)
         if (m == null) {
-            item { Panel { Text("A planilha não tem meses para mostrar.", color = LocalLedger.current.muted) } }
+            item {
+                Panel {
+                    Mascot(Pose.Searching, Modifier.height(96.dp))
+                    Text("A planilha não tem meses para mostrar.", color = LocalLedger.current.muted)
+                }
+            }
             return@ScreenFrame
         }
         item {

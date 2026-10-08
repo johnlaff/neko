@@ -90,7 +90,7 @@ private fun Hero(v: TodayView) {
     val cs = v.canSpend
     if (cs == null) {
         Panel {
-            Mascot(Pose.Sitting, Modifier.height(96.dp))
+            Mascot(Pose.Searching, Modifier.height(96.dp))
             Text("Nenhum cartão na planilha", style = MaterialTheme.typography.headlineSmall)
             Text("O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.", color = l.muted)
         }
