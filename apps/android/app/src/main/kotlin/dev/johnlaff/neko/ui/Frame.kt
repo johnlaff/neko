@@ -76,6 +76,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -489,6 +491,17 @@ fun Columns(
             }
         }
     }
+}
+
+/** A save that did not go through, said where it was tried (the site's `.setting-error`). */
+@Composable
+fun SaveFailed() {
+    Text(
+        "Não salvou. Tente de novo.",
+        color = LocalLedger.current.neg,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(vertical = 8.dp).semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 /** A small text action, like the site's text links. */

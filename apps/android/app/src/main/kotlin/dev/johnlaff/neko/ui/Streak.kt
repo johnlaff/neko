@@ -34,6 +34,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -66,12 +68,18 @@ private fun stateLabel(state: String) = when (state) {
 @Composable
 fun Streak(h: Habit) {
     val l = LocalLedger.current
-    var open by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    // Open on the first visit, so the marks are read once with their legend; closed from then on
+    // (as on the site; Ajustes › Rever dicas opens it once more).
+    var open by rememberSaveable { mutableStateOf(!Hints.seen(context, "streak")) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
         Row(
             Modifier.fillMaxWidth()
                 .heightIn(min = 48.dp)
-                .clickable(onClickLabel = if (open) "esconder a regra" else "ver a regra") { open = !open }
+                .clickable(onClickLabel = if (open) "esconder a regra" else "ver a regra") {
+                    open = !open
+                    if (!open) Hints.dismiss(context, "streak")
+                }
                 .semantics(mergeDescendants = true) { stateDescription = if (open) "Aberto" else "Fechado" },
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -129,6 +137,8 @@ private fun Legend() {
 @Composable
 private fun Week(week: List<HabitDay>) {
     val l = LocalLedger.current
+    // Large text: the letters crowd into one word, so only the marks stay (the legend names them).
+    val letters = LocalDensity.current.fontScale < 1.3f
     val description = week.mapIndexed { i, d -> "${NAMES.getOrElse(i) { "" }}: ${stateLabel(d.state)}" }.joinToString(", ")
     Row(
         // The day letters are drawn for the eye; TalkBack hears each day's name and state.
@@ -138,11 +148,13 @@ private fun Week(week: List<HabitDay>) {
         week.forEachIndexed { i, d ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Mark(d.state, delay = i * 30)
-                Text(
-                    LETTERS.getOrElse(i) { "" },
-                    color = if (d.state == "today") l.text else l.faint,
-                    style = MaterialTheme.typography.labelSmall,
-                )
+                if (letters) {
+                    Text(
+                        LETTERS.getOrElse(i) { "" },
+                        color = if (d.state == "today") l.text else l.faint,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
             }
         }
     }

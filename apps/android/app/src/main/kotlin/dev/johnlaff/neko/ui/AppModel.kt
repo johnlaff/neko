@@ -230,11 +230,16 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
      * Worker has them now, since the site may have checked others. True once saved; Hoje is then
      * read again, as the Worker filters the points it sends.
      */
-    suspend fun review(keys: List<String>, hide: Boolean): Boolean {
+    suspend fun review(keys: List<String>, hide: Boolean): Boolean =
+        editReviewed { if (hide) (it + keys).takeLast(300) else it - keys.toSet() }
+
+    /** Ajustes › Como funciona: every point set aside comes back on Hoje at once (as on the site). */
+    suspend fun restoreReviewed(): Boolean = editReviewed { emptyList() }
+
+    private suspend fun editReviewed(change: (List<String>) -> List<String>): Boolean {
         val result = runCatching {
             val s = neko.api.settings()
-            val reviewed = if (hide) (s.reviewed + keys).takeLast(300) else s.reviewed - keys.toSet()
-            neko.api.saveSettings(s.copy(reviewed = reviewed))
+            neko.api.saveSettings(s.copy(reviewed = change(s.reviewed)))
         }
         result.onSuccess { s ->
             saved = s

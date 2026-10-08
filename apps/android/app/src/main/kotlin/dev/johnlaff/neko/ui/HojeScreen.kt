@@ -477,7 +477,17 @@ private fun Conference(v: TodayView, review: Review?) {
     val scope = rememberCoroutineScope()
     // What the last tap hid, so it can come back with one more tap.
     var justHid by rememberSaveable { mutableStateOf<List<String>?>(null) }
-    var busy by remember { mutableStateOf(false) }
+    // Which save is on its way (hide or undo), so the button says so; and whether the last one failed.
+    var busy by remember { mutableStateOf<Boolean?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    // Points brought back (Ajustes › Como funciona) come in a newer Hoje: the last hide is then over.
+    var seen by remember { mutableStateOf(v.issues) }
+    LaunchedEffect(v.issues) {
+        if (v.issues != seen) {
+            seen = v.issues
+            if (v.issues.any { issueKey(it.issue) in justHid.orEmpty() }) justHid = null
+        }
+    }
     // The Worker leaves checked points out; until Hoje is read again, the ones just hidden stay out here.
     val open = v.issues.filter { issueKey(it.issue) !in justHid.orEmpty() }
     Panel {
@@ -510,13 +520,14 @@ private fun Conference(v: TodayView, review: Review?) {
             }
         }
         if (review != null && open.isNotEmpty()) {
-            TextAction("Já conferi, esconder", {
-                if (!busy) {
+            TextAction(if (busy == true) "Escondendo…" else "Já conferi, esconder", {
+                if (busy == null) {
                     val keys = open.map { issueKey(it.issue) }
                     busy = true
                     scope.launch {
-                        if (review(keys, true)) justHid = keys
-                        busy = false
+                        failed = !review(keys, true)
+                        if (!failed) justHid = keys
+                        busy = null
                     }
                 }
             }, l.accent)
@@ -534,17 +545,19 @@ private fun Conference(v: TodayView, review: Review?) {
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                TextAction("Desfazer", {
-                    if (!busy) {
-                        busy = true
+                TextAction(if (busy == false) "Desfazendo…" else "Desfazer", {
+                    if (busy == null) {
+                        busy = false
                         scope.launch {
-                            if (review(hid, false)) justHid = null
-                            busy = false
+                            failed = !review(hid, false)
+                            if (!failed) justHid = null
+                            busy = null
                         }
                     }
                 }, l.accent)
             }
         }
+        if (failed) SaveFailed()
     }
 }
 
@@ -573,7 +586,7 @@ private fun BankMissing(items: List<MissingMovement>) {
                     .padding(vertical = 4.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(Format.bankText(m.description), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(Format.bankText(m.description), modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(
                         signed(m.amount, if (m.amount > 0) '+' else '−'),
                         color = if (m.amount > 0) l.pos else l.text,

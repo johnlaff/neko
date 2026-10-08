@@ -160,6 +160,7 @@ class MainActivity : ComponentActivity() {
                                             DevicesList(devices, model::endSession, model::endOtherSessions),
                                             lockSwitch(),
                                             BanksList(banks, model::saveBanks, model::saveBankCards),
+                                            model::restoreReviewed,
                                         )
                                     }
                                 }

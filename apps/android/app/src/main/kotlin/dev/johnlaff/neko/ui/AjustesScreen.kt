@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +70,7 @@ import androidx.core.net.toUri
 import androidx.compose.ui.semantics.stateDescription
 import dev.johnlaff.neko.R
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** How long typing must pause before a typed field saves on its own, as on the site. */
 private const val TYPING_PAUSE = 1200L
@@ -127,6 +129,7 @@ fun AjustesScreen(
     devices: DevicesList = DevicesList(),
     lock: LockSwitch = LockSwitch(),
     banks: BanksList = BanksList(),
+    restoreReviewed: (suspend () -> Boolean)? = null,
 ) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
@@ -184,7 +187,7 @@ fun AjustesScreen(
             }
         }
         devices.list?.takeIf { it.isNotEmpty() }?.let { item { Group("Aparelhos conectados") { Devices(devices) } } }
-        item { Group("Como funciona") { HowItWorks() } }
+        item { Group("Como funciona") { HowItWorks(view.settings.reviewed.size, restoreReviewed) } }
         item {
             Panel {
                 Privacy()
@@ -703,7 +706,7 @@ private fun ConfirmAction(action: String, question: String, detail: String, onCo
 
 /** Every idea the tips teach, one tap each, for whoever skipped a tip or wants it again. */
 @Composable
-private fun HowItWorks() {
+private fun HowItWorks(reviewed: Int, restore: (suspend () -> Boolean)?) {
     val l = LocalLedger.current
     val context = LocalContext.current
     Text(Learn.INTRO, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
@@ -740,4 +743,20 @@ private fun HowItWorks() {
             reset = true
         }
     })
+    // Conferência points set aside on Hoje come back here, all at once, whenever wanted.
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
+    if (restore != null && reviewed > 0) {
+        TextAction(if (busy) "Trazendo de volta…" else "Mostrar de novo os pontos conferidos ($reviewed)", {
+            if (!busy) {
+                busy = true
+                scope.launch {
+                    failed = !restore()
+                    busy = false
+                }
+            }
+        })
+    }
+    if (failed) SaveFailed()
 }

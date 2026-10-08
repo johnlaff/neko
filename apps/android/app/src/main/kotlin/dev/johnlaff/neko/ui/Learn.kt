@@ -112,6 +112,12 @@ object Hints {
         return id !in seen && (current == null || current == id)
     }
 
+    /** Whether this tip, or a once-only opening like the streak's, was already sent away here. */
+    internal fun seen(context: Context, id: String): Boolean {
+        load(context)
+        return id in seen
+    }
+
     internal fun claim(id: String) {
         if (current == null) current = id
     }
