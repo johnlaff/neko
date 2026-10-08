@@ -25,6 +25,8 @@ import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.MonthItem
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.Outflow
+import dev.johnlaff.neko.data.Reserve
+import dev.johnlaff.neko.data.YearTotals
 import dev.johnlaff.neko.ui.Format.capitalize
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.monthName
@@ -58,6 +60,41 @@ fun MesScreen(state: ScreenState<MonthsView>, history: HistoryView? = null, onRe
         if (m.days.isNotEmpty()) item { Thermo(m, v.today, v.saving) }
         if (m.outflows.isNotEmpty()) item { Outflows(m) }
         if (m.fixed.isNotEmpty()) item { FixedPanel(m) }
+        v.reserve?.let { r -> item { ReservePanel(r, v.years.firstOrNull { it.year == m.year }) } }
+    }
+}
+
+/**
+ * The method's emergency reserve, as on the site: cost of living times 6 to 12 months, against
+ * what the sheet shows as kept, plus the year's Economia (the sheet's tab of the same name).
+ */
+@Composable
+internal fun ReservePanel(r: Reserve, year: YearTotals?) {
+    val l = LocalLedger.current
+    Panel {
+        PanelHead(Learn.RESERVE_TITLE) {
+            Text(
+                if (r.kept > 0) "${Learn.coveredLabel(r.coveredTenths)} de 6" else "Nada guardado ainda",
+                color = l.muted,
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+        // Display only: kept over the 6-month goal, full past it.
+        Meter(if (r.min <= 0) 0f else r.kept.toFloat() / r.min, color = l.accent)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LedgerLine(Learn.costLabel(r.costMonths), money(r.cost))
+            LedgerLine("6 meses", money(r.min))
+            LedgerLine("12 meses", money(r.max))
+            LedgerLine("Guardado na planilha", money(r.kept), total = true)
+            if (year != null && year.saved > 0) {
+                LedgerLine("Em ${year.year}" + (year.savedShare?.let { " · $it% das entradas" } ?: ""), money(year.saved))
+            }
+        }
+        Text(
+            if (r.kept > 0) Learn.RESERVE_RULE else "${Learn.RESERVE_RULE} ${Learn.RESERVE_EMPTY}",
+            color = l.muted,
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 

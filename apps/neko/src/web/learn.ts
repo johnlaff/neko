@@ -50,3 +50,20 @@ export const HABIT = {
 
 export const streakLabel = (streak: number) =>
   streak === 0 ? "Comece hoje" : streak === 1 ? "1 dia em dia" : `${streak} dias em dia`;
+
+/** Mês's reserve panel, in the same words on the site and the app (ui/Learn.kt). */
+export const RESERVE = {
+  title: "Reserva de emergência",
+  rule: "O método pede de 6 a 12 meses do custo de vida, guardados onde dá para sacar na hora.",
+  empty: "Linhas de Saída sob Investimento contam como guardado.",
+} as const;
+
+/** Tenths of a month as "1,6 mês" or "2 meses". */
+export const coveredLabel = (tenths: number) => {
+  const n = tenths / 10;
+  const s = Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ",");
+  return `${s} ${n >= 2 ? "meses" : "mês"}`;
+};
+
+export const costLabel = (months: number) =>
+  months === 1 ? "Custo de vida do último mês" : `Custo de vida, média de ${months} meses`;

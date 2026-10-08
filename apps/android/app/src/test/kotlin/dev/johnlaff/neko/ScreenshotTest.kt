@@ -69,6 +69,10 @@ class ScreenshotTest {
 
     @Test fun mesDark() = shot("mes-dark", night = true) { MesScreen(ScreenState(months), Fakes.history) {} }
 
+    @Test fun mesReserva() = shot("mes-reserva-dark", night = true) {
+        dev.johnlaff.neko.ui.ReservePanel(months.reserve!!, months.years.lastOrNull())
+    }
+
     @Test fun mesLight() = shot("mes-light", night = false) { MesScreen(ScreenState(months), Fakes.history) {} }
 
     @Test fun simularDark() = shot("simular-dark", night = true) {

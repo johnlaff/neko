@@ -9,5 +9,6 @@ export * from "./installments.ts";
 export * from "./ledger.ts";
 export * from "./money.ts";
 export * from "./projection.ts";
+export * from "./reserve.ts";
 export * from "./savings.ts";
 export * from "./thermometer.ts";

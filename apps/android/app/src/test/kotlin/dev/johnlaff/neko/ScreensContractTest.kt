@@ -37,6 +37,12 @@ class ScreensContractTest {
         assertTrue(now.saved > 0)
         assertEquals(now.saida + now.diario - now.saved, now.livingCost)
         assertTrue(now.savedShare != null)
+        // The emergency reserve and the Economia tab, from the same months.
+        val r = v.reserve!!
+        assertEquals(r.cost * 6, r.min)
+        assertEquals(r.cost * 12, r.max)
+        assertEquals((r.kept * 10 / r.cost).toInt(), r.coveredTenths)
+        assertEquals(v.months.filter { it.year == 2026 }.sumOf { it.saved }, v.years.single { it.year == 2026 }.saved)
     }
 
     @Test fun simulate() {
