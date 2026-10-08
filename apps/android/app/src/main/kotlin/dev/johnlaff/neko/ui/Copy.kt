@@ -2,6 +2,7 @@ package dev.johnlaff.neko.ui
 
 import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
+import dev.johnlaff.neko.data.Win
 import dev.johnlaff.neko.ui.Format.capitalize
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.monthName
@@ -12,6 +13,14 @@ object Copy {
     enum class Tone { Bad, Warn }
 
     data class Line(val title: String, val detail: String, val tone: Tone = Tone.Warn)
+
+    /** A month's win in the recap; null for a kind this version does not know yet. */
+    fun win(w: Win): String? = when (w.kind) {
+        "blue" -> w.months?.let { if (it == 1) "Mês no azul" else "$it meses seguidos no azul" }
+        "kept" -> "Bateu a meta de guardar 20% das entradas"
+        "reserve" -> w.months?.let { "A reserva já cobre ${if (it == 1) "1 mês" else "$it meses"} de custo de vida" }
+        else -> null
+    }
 
     /** Null for a kind this version does not know yet: it is skipped, not guessed. */
     fun insight(i: Insight): Line? = when (i.kind) {

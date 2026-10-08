@@ -10734,7 +10734,13 @@
       "top": {
         "label": "Cartão Azul",
         "amount": 361629
-      }
+      },
+      "wins": [
+        {
+          "kind": "blue",
+          "months": 3
+        }
+      ]
     },
     "years": [
       {
