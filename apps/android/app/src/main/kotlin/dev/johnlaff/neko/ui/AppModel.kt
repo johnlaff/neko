@@ -13,6 +13,7 @@ import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.UserSettings
+import dev.johnlaff.neko.shortcuts.Shortcuts
 import dev.johnlaff.neko.widget.WidgetRefresh
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,7 +79,10 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun refresh() = load(_today, { neko.today.refresh() }) { WidgetRefresh.redraw(getApplication()) }
+    fun refresh() = load(_today, { neko.today.refresh() }) { v ->
+        WidgetRefresh.redraw(getApplication())
+        Shortcuts.lancar(getApplication(), v.todayUrl)
+    }
 
     /** Reads the screen on show; what was read before stays on screen until the new read lands. */
     fun refresh(tab: Tab) = when (tab) {
@@ -194,6 +198,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         saved = null
         _session.value = Session.SignedOut
         WidgetRefresh.redraw(getApplication())
+        Shortcuts.lancar(getApplication(), null)
     }
 }
 

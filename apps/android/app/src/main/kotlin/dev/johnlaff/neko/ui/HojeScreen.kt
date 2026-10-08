@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,8 +51,11 @@ fun HojeScreen(
     onAjustes: () -> Unit,
     simulate: Simulate? = null,
     simulatorOpen: Boolean = false,
+    /** Grows each time the "Simular" shortcut is used: opens the simulator again. */
+    simulateAsk: Int = 0,
 ) {
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
+    LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh) { v ->
         item { Hero(v) }
         val cs = v.canSpend.takeIf { simulate != null }

@@ -1,6 +1,7 @@
 package dev.johnlaff.neko
 
 import android.Manifest
+import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,7 +29,10 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.johnlaff.neko.ui.AjustesScreen
 import dev.johnlaff.neko.reminders.Reminders
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import dev.johnlaff.neko.security.AppLock
+import dev.johnlaff.neko.shortcuts.Launch
+import dev.johnlaff.neko.shortcuts.launchFor
 import dev.johnlaff.neko.ui.AppModel
 import dev.johnlaff.neko.ui.Dock
 import dev.johnlaff.neko.ui.FaturasScreen
@@ -49,10 +54,17 @@ class MainActivity : ComponentActivity() {
     /** The app lock is waiting: nothing but the lock screen is drawn. */
     private var locked by mutableStateOf(false)
     private var lockOn by mutableStateOf(false)
+    /** A shortcut asked for this place; taken once. */
+    private var request by mutableStateOf<Launch?>(null)
+    /** Bumped by each "Simular" shortcut, so a second tap opens the simulator again. */
+    private var simulateAsk by mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The system splash stays until the session is known, instead of a blank page.
+        installSplashScreen().setKeepOnScreenCondition { model.session.value == Session.Checking }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (savedInstanceState == null) handle(intent)
         lockOn = AppLock.enabled(this)
         AppLock.guardWindow(this, lockOn)
         setContent {
@@ -62,6 +74,13 @@ class MainActivity : ComponentActivity() {
                 val go = { t: Tab ->
                     tab = t
                     model.refresh(t)
+                }
+                LaunchedEffect(request, session) {
+                    val r = request ?: return@LaunchedEffect
+                    if (session != Session.SignedIn) return@LaunchedEffect
+                    go(r.tab)
+                    if (r.simulate) simulateAsk++
+                    request = null
                 }
                 // Signing out from Ajustes and back in lands on Hoje, which is read on sign-in.
                 LaunchedEffect(session) { if (session == Session.SignedOut) tab = Tab.Hoje }
@@ -84,7 +103,7 @@ class MainActivity : ComponentActivity() {
                             when (tab) {
                                 Tab.Hoje -> {
                                     val today by model.today.collectAsStateWithLifecycle()
-                                    HojeScreen(today, model::refresh, { go(Tab.Ajustes) }, model::simulate)
+                                    HojeScreen(today, model::refresh, { go(Tab.Ajustes) }, model::simulate, simulateAsk = simulateAsk)
                                 }
                                 Tab.Faturas -> {
                                     val invoices by model.invoices.collectAsStateWithLifecycle()
@@ -113,6 +132,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handle(intent)
+    }
+
+    private fun handle(intent: Intent?) {
+        launchFor(intent?.action)?.let { request = it }
     }
 
     override fun onStart() {
