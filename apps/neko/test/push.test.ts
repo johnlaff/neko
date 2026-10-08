@@ -54,6 +54,37 @@ describe("reminders", () => {
     expect(withHabit({ milestone: null, record: null, editedToday: false })).not.toMatch(/Ontem/);
   });
 
+  it("morning: a card bill due today or in two days earns a line, the only warning before a late fee", () => {
+    const bill = (date: string, description = "Roxo", amount = 154_00) => ({
+      date,
+      description,
+      amount,
+      kind: "card",
+    });
+    const body = (upcoming: object[]) =>
+      morningMessage(response({ upcoming } as never))?.body ?? "";
+    expect(body([bill("2026-10-06")])).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias. A fatura do Roxo vence em 6 out: R$ 154,00.",
+    );
+    expect(body([bill("2026-10-04")])).toMatch(/ Hoje vence a fatura do Roxo: R\$ 154,00\.$/);
+    // Tomorrow was yesterday's two-day warning; other bills and income stay in the app.
+    expect(body([bill("2026-10-05")])).not.toMatch(/vence/);
+    expect(body([{ ...bill("2026-10-04"), kind: "bill" }])).not.toMatch(/vence/);
+    expect(body([bill("2026-10-04", "Roxo"), bill("2026-10-04", "Azul", 99_00)])).toMatch(
+      / Hoje vence a fatura do Roxo: R\$ 154,00\. Hoje vence a fatura do Azul: R\$ 99,00\.$/,
+    );
+    // Without a usual card the morning still warns about the bill.
+    expect(
+      morningMessage(response({ canSpend: null, upcoming: [bill("2026-10-04")] } as never)),
+    ).toEqual({
+      title: "Hoje vence a fatura do Roxo",
+      body: "R$ 154,00.",
+      url: "/faturas",
+      tag: "morning",
+    });
+    expect(morningMessage(response({ canSpend: null, upcoming: [] } as never))).toBeNull();
+  });
+
   it("morning: today's allowance on the usual card, opening Neko", () => {
     expect(morningMessage(response())).toEqual({
       title: "Hoje cabem R$ 176,66 no Visa",

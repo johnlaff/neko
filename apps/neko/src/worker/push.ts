@@ -1,5 +1,5 @@
 import { buildPushPayload, type VapidKeys } from "@block65/webcrypto-web-push";
-import { formatBRL, sub } from "@neko/engine";
+import { addDays, formatBRL, sub } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import { sheetCellUrl } from "../shared/sheet.ts";
 import type { ProjectionResponse } from "../shared/types.ts";
@@ -75,21 +75,54 @@ const closingText = (cs: { closing: string; daysLeft: number }) =>
     ? "A fatura fecha hoje."
     : `A fatura fecha em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`;
 
+/** Days ahead a card bill is announced, besides its own day: time to move money if needed. */
+const DUE_AHEAD = 2;
+/**
+ * Card bills due today or in DUE_AHEAD days. A late bill costs a fee, interest and IOF, and the
+ * sheet cannot tell whether it was paid, so the warning comes before, never after.
+ */
+const dueBills = (p: ProjectionResponse["projection"]) =>
+  (p.upcoming ?? [])
+    .filter(
+      (u) => u.kind === "card" && (u.date === p.today || u.date === addDays(p.today, DUE_AHEAD)),
+    )
+    .map((u) =>
+      u.date === p.today
+        ? { title: `Hoje vence a fatura do ${u.description}`, amount: u.amount }
+        : {
+            title: `A fatura do ${u.description} vence em ${shortDate(u.date)}`,
+            amount: u.amount,
+          },
+    );
+const dueDay = (p: ProjectionResponse["projection"]) =>
+  dueBills(p)
+    .map((b) => ` ${b.title}: ${money(b.amount)}.`)
+    .join("");
+
 /** 08:00: how much fits today on the usual card. */
 export const morningMessage = (data: ProjectionResponse): Reminder | null => {
   const p = data.projection;
   const cs = p.canSpend;
-  if (!cs) return null;
+  if (!cs) {
+    const [first, ...rest] = dueBills(p);
+    if (!first) return null;
+    return {
+      title: first.title,
+      body: `${money(first.amount)}.${rest.map((b) => ` ${b.title}: ${money(b.amount)}.`).join("")}`,
+      url: "/faturas",
+      tag: "morning",
+    };
+  }
   if (cs.perDay < 0)
     return {
       title: `O ${cs.card} passou ${money(sub(cs.accumulated, cs.budget))} do plano do ciclo`,
-      body: `${closingText(cs)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
+      body: `${closingText(cs)}${dueDay(p)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
       url: "/",
       tag: "morning",
     };
   return {
     title: `Hoje cabem ${money(cs.perDay)} no ${cs.card}`,
-    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
+    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${dueDay(p)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
     url: "/",
     tag: "morning",
   };
