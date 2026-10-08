@@ -80,6 +80,11 @@ class ScreenshotTest {
         MesScreen(ScreenState(months.copy(current = "2025-09"))) {}
     }
 
+    /** A destination of "Para onde foi" opened: its last six months. */
+    @Test fun mesDestino() = shot("mes-destino-light", night = false) {
+        dev.johnlaff.neko.ui.Trend(months.months.first { it.key == "2025-09" }.outflows.first().trend)
+    }
+
     @Test fun mesLight() = shot("mes-light", night = false) { MesScreen(ScreenState(months), Fakes.history) {} }
 
     @Test fun simularDark() = shot("simular-dark", night = true) {

@@ -3,12 +3,14 @@ import {
   type MonthView,
   monthWins,
   type Outflow,
+  outflowTrend,
   type Reserve,
+  type TrendPoint,
   type YearTotals,
 } from "@neko/engine";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { winText } from "../../shared/wins.ts";
 import { api } from "../api.ts";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
@@ -46,34 +48,95 @@ const Evolution = () => {
 /** Lines shown before "Ver todas". */
 const OUTFLOWS_SHOWN = 5;
 
-const OutflowRows = ({ items, top }: { items: readonly Outflow[]; top: number }) => (
+/** Where one destination went over the last months: tap a column to read it. */
+const Trend = ({ points, label }: { points: readonly TrendPoint[]; label: string }) => {
+  const last = points.at(-1);
+  const [picked, setPicked] = useState(last ? key(last.year, last.month) : "");
+  const shown = points.find((p) => key(p.year, p.month) === picked) ?? last;
+  return (
+    <div className="trend">
+      <Columns
+        label={`${label} nos últimos meses`}
+        selected={picked}
+        onSelect={setPicked}
+        items={points.map((p) => ({
+          key: key(p.year, p.month),
+          label: capitalize(monthName(p.month).slice(0, 3)),
+          value: p.amount,
+          description: `${capitalize(monthName(p.month))}: ${money(p.amount)}`,
+          tone: key(p.year, p.month) === picked ? "accent" : undefined,
+        }))}
+      />
+      {shown && (
+        <p className="meta">
+          {capitalize(monthName(shown.month))} de {shown.year}:{" "}
+          {shown.amount > 0 ? money(shown.amount) : "não apareceu"}
+        </p>
+      )}
+    </div>
+  );
+};
+
+const OutflowRow = ({
+  o,
+  top,
+  trend,
+}: {
+  o: Outflow;
+  top: number;
+  trend: () => readonly TrendPoint[];
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <li className={open ? "open" : undefined}>
+      {/* The whole line opens its last months; the button sits under the line's content. */}
+      <button
+        type="button"
+        className="row-toggle"
+        aria-expanded={open}
+        aria-label={`${o.label}: ver os últimos meses`}
+        onClick={() => setOpen(!open)}
+      />
+      <span className="avatar" aria-hidden="true">
+        {o.kind === "card" ? <IconCard /> : <IconReceipt />}
+      </span>
+      <span className="name">
+        <ItemName text={o.label} />
+        {o.others && <span className="chip">De outra pessoa</span>}
+        {/* Display only: the bar is the line's amount scaled to the month's largest line. */}
+        <span className="meter" aria-hidden="true">
+          <span style={{ width: `${top <= 0 ? 0 : (o.amount / top) * 100}%` }} />
+        </span>
+      </span>
+      <span className="value">
+        {money(o.amount)}
+        {o.change != null && o.change !== 0 && (
+          <small className={o.change > 0 ? "neg" : undefined}>
+            <span aria-hidden="true">{o.change > 0 ? "▲" : "▼"} </span>
+            {money(Math.abs(o.change))}
+            <span className="sr-only">
+              {o.change > 0 ? " a mais" : " a menos"} que no mês anterior
+            </span>
+          </small>
+        )}
+      </span>
+      {open && <Trend points={trend()} label={o.label} />}
+    </li>
+  );
+};
+
+const OutflowRows = ({
+  items,
+  top,
+  trend,
+}: {
+  items: readonly Outflow[];
+  top: number;
+  trend: (label: string) => readonly TrendPoint[];
+}) => (
   <ul className="rows lead outflows">
     {items.map((o) => (
-      <li key={o.label}>
-        <span className="avatar" aria-hidden="true">
-          {o.kind === "card" ? <IconCard /> : <IconReceipt />}
-        </span>
-        <span className="name">
-          <ItemName text={o.label} />
-          {o.others && <span className="chip">De outra pessoa</span>}
-          {/* Display only: the bar is the line's amount scaled to the month's largest line. */}
-          <span className="meter" aria-hidden="true">
-            <span style={{ width: `${top <= 0 ? 0 : (o.amount / top) * 100}%` }} />
-          </span>
-        </span>
-        <span className="value">
-          {money(o.amount)}
-          {o.change != null && o.change !== 0 && (
-            <small className={o.change > 0 ? "neg" : undefined}>
-              <span aria-hidden="true">{o.change > 0 ? "▲" : "▼"} </span>
-              {money(Math.abs(o.change))}
-              <span className="sr-only">
-                {o.change > 0 ? " a mais" : " a menos"} que no mês anterior
-              </span>
-            </small>
-          )}
-        </span>
-      </li>
+      <OutflowRow key={o.label} o={o} top={top} trend={() => trend(o.label)} />
     ))}
   </ul>
 );
@@ -83,10 +146,12 @@ const Outflows = ({
   items,
   before,
   half,
+  trend,
 }: {
   items: readonly Outflow[];
   before: string;
   half: boolean;
+  trend: (label: string) => readonly TrendPoint[];
 }) => {
   const top = items[0]?.amount ?? 0;
   const shown = items.slice(0, OUTFLOWS_SHOWN);
@@ -99,14 +164,14 @@ const Outflows = ({
           {items.length === 1 ? "1 destino" : `${items.length} destinos`}
         </span>
       </div>
-      <OutflowRows items={shown} top={top} />
+      <OutflowRows items={shown} top={top} trend={trend} />
       {rest.length > 0 && (
         <details className="formula">
           <summary>
             <IconChevron />
             Ver mais {rest.length}
           </summary>
-          <OutflowRows items={rest} top={top} />
+          <OutflowRows items={rest} top={top} trend={trend} />
         </details>
       )}
       {items.some((o) => o.change != null && o.change !== 0) && (
@@ -435,6 +500,7 @@ export const Mes = () => {
                 items={outflows}
                 half={halves.has("outflows")}
                 before={monthName(m.month === 1 ? 12 : m.month - 1)}
+                trend={(label) => outflowTrend(p.months, m.year, m.month, label)}
               />
             )}
 
