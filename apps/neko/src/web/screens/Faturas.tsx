@@ -56,6 +56,29 @@ export const Faturas = () => {
             });
         }
         const halvesBefore = (usual && p.history.length > 0 ? 1 : 0) + (mine.length > 1 ? 1 : 0);
+        const paired = halvesBefore % 2 === 1;
+        const outros = (others.length > 0 || empty.length > 0) && (
+          <section className="panel">
+            <h2>Outros cartões</h2>
+            <ul className="rows lead">
+              {others.map((c) => (
+                <li key={c.card.name} className="bill">
+                  <CardAvatar name={c.card.name} />
+                  <span className="name">
+                    {c.card.name}
+                    {c.others && <span className="chip plain">De outra pessoa</span>}
+                    {c.reimbursed && <span className="chip plain">Reembolsada</span>}
+                  </span>
+                  <span className="value">{money(c.onSheet)}</span>
+                  <span className="meta">Vence {shortDate(c.cycle.due)}</span>
+                </li>
+              ))}
+            </ul>
+            {empty.length > 0 && (
+              <p className="hint">Sem compras: {empty.map((c) => c.card.name).join(", ")}.</p>
+            )}
+          </section>
+        );
         if (p.cards.length === 0)
           return (
             <section className="page-head empty-cards">
@@ -178,30 +201,19 @@ export const Faturas = () => {
               </section>
             )}
 
-            {(others.length > 0 || empty.length > 0) && (
-              // Half width only when it has a partner on its row; alone it spans the page.
-              <section className={`panel${halvesBefore % 2 === 1 ? " half" : ""}`}>
-                <h2>Outros cartões</h2>
-                <ul className="rows lead">
-                  {others.map((c) => (
-                    <li key={c.card.name} className="bill">
-                      <CardAvatar name={c.card.name} />
-                      <span className="name">
-                        {c.card.name}
-                        {c.others && <span className="chip">De outra pessoa</span>}
-                        {c.reimbursed && <span className="chip plain">Reembolsada</span>}
-                      </span>
-                      <span className="value">{money(c.onSheet)}</span>
-                      <span className="meta">Vence {shortDate(c.cycle.due)}</span>
-                    </li>
-                  ))}
-                </ul>
-                {empty.length > 0 && (
-                  <p className="hint">Sem compras: {empty.map((c) => c.card.name).join(", ")}.</p>
-                )}
-              </section>
+            {/* Half width only when it has a partner on its row; then the bank bills join it in
+                that column, so the short card leaves no hole beside a tall one. */}
+            {outros && paired ? (
+              <div className="half stack">
+                {outros}
+                {bank && <BankBills bank={bank} />}
+              </div>
+            ) : (
+              <>
+                {outros}
+                {bank && <BankBills bank={bank} />}
+              </>
             )}
-            {bank && <BankBills bank={bank} />}
           </>
         );
       }}
@@ -239,7 +251,7 @@ const BankBills = ({ bank }: { bank: BankView }) => (
             <span className="meta">
               Planilha {money(c.sheet)}
               {c.parcels > 0 && c.parcels === c.bank
-                ? " · Banco: só parcelas"
+                ? " · No banco, só parcelas"
                 : c.parcels > 0
                   ? ` · Parcelas ${money(c.parcels)}`
                   : ""}

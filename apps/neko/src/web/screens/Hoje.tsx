@@ -249,6 +249,8 @@ const Conference = ({
     mutationFn: api.saveSettings,
     onSuccess: (saved) => queryClient.setQueryData(["settings"], saved),
   });
+  // What the last tap hid, so it can come back with one more tap.
+  const [justHid, setJustHid] = useState<readonly string[] | null>(null);
   const seen = new Set(settings.data?.reviewed ?? []);
   const open = issues.filter((i) => !seen.has(issueKey(i)));
   return (
@@ -274,14 +276,44 @@ const Conference = ({
               disabled={review.isPending}
               onClick={() => {
                 const s = settings.data;
-                const reviewed = [...s.reviewed, ...open.map(issueKey)].slice(-300);
-                review.mutate({ ...s, reviewed });
+                const keys = open.map(issueKey);
+                const reviewed = [...s.reviewed, ...keys].slice(-300);
+                review.mutate({ ...s, reviewed }, { onSuccess: () => setJustHid(keys) });
               }}
             >
-              Já conferi, esconder
+              {review.isPending
+                ? "Escondendo…"
+                : open.length === 1
+                  ? "Já conferi, esconder este"
+                  : `Já conferi, esconder os ${open.length}`}
             </button>
           )}
         </>
+      )}
+      {open.length === 0 && justHid && settings.data && (
+        <p className="hint" role="status">
+          {justHid.length === 1 ? "1 ponto escondido." : `${justHid.length} pontos escondidos.`}{" "}
+          <button
+            type="button"
+            className="text-link"
+            disabled={review.isPending}
+            onClick={() => {
+              const s = settings.data;
+              const back = new Set(justHid);
+              review.mutate(
+                { ...s, reviewed: s.reviewed.filter((k) => !back.has(k)) },
+                { onSuccess: () => setJustHid(null) },
+              );
+            }}
+          >
+            {review.isPending ? "Desfazendo…" : "Desfazer"}
+          </button>
+        </p>
+      )}
+      {review.isError && (
+        <p className="setting-error" role="status">
+          Não salvou. Tente de novo.
+        </p>
       )}
     </section>
   );
@@ -451,7 +483,7 @@ export const Hoje = () => (
       return (
         <>
           {cs ? (
-            <section className="panel hero today">
+            <section className="panel hero today half">
               <div className="panel-head">
                 <h2>{cs.card}</h2>
                 {/* Over the plan, the figure already says so in red: the chip would repeat it. */}
@@ -515,25 +547,37 @@ export const Hoje = () => (
             </section>
           )}
 
-          <div className="quick">
-            {todayUrl && (
-              <a className="button" href={todayUrl} target="_blank" rel="noreferrer">
-                <IconPlus />
-                Lançar
-              </a>
-            )}
-            {cs && <Simulator cs={cs} months={p.months} />}
-            <Mia />
-          </div>
-          {habit && <Streak habit={habit} />}
+          {/* Beside the dial on wide screens: what to do now, then what to look at. */}
+          <div className={cs ? "half stack" : "stack"}>
+            <div className="quick">
+              {todayUrl && (
+                <a
+                  className="button"
+                  href={todayUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-keyshortcuts="L"
+                  title="Lançar na planilha (L)"
+                >
+                  <IconPlus />
+                  Lançar
+                </a>
+              )}
+              {cs && <Simulator cs={cs} months={p.months} />}
+              <Mia />
+            </div>
+            {habit && <Streak habit={habit} />}
 
-          {/* Over the plan, the red figure already says the bill is high: no second card. */}
-          <Insights
-            items={(p.insights ?? []).filter((i) => !(over && i.kind === "bill-above-average"))}
-          />
-          {p.saving && p.saving.date >= p.today && p.saving.date <= addDays(p.today, SAVE_LEAD) && (
-            <SaveCard save={p.saving} today={p.today} />
-          )}
+            {/* Over the plan, the red figure already says the bill is high: no second card. */}
+            <Insights
+              items={(p.insights ?? []).filter((i) => !(over && i.kind === "bill-above-average"))}
+            />
+            {p.saving &&
+              p.saving.date >= p.today &&
+              p.saving.date <= addDays(p.today, SAVE_LEAD) && (
+                <SaveCard save={p.saving} today={p.today} />
+              )}
+          </div>
 
           {/* Missing on projections cached before it existed. */}
           {p.recap && <RecapPanel r={p.recap} />}

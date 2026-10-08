@@ -78,6 +78,8 @@ class Api(
     suspend fun simulate(amount: Long, count: Int): InstallmentSimulation? =
         json.decodeFromString(call("/simulate?amount=$amount&count=$count"))
 
+    suspend fun settings(): UserSettings = json.decodeFromString(call("/settings"))
+
     suspend fun saveSettings(settings: UserSettings): UserSettings {
         val body = json.encodeToString(UserSettings.serializer(), settings).toRequestBody(jsonType)
         return json.decodeFromString(call("/settings", body, "PUT"))

@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.BankBills
 import dev.johnlaff.neko.data.BillBar
@@ -60,19 +63,40 @@ private fun UsualPanel(u: UsualBill) {
             )
         }
         BigMoney(u.onSheet)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Step("Fecha", shortDate(u.closing), if (u.closingEstimated) "Estimado" else null, now = true, Modifier.weight(1f))
-            Step("Vence", shortDate(u.due), "Sai da conta", now = false, Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Timeline()
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Step("Fecha", shortDate(u.closing), if (u.closingEstimated) "Estimado" else null, Alignment.Start, Modifier.weight(1f))
+                Step("Vence", shortDate(u.due), "Sai da conta", Alignment.End, Modifier.weight(1f))
+            }
         }
         Hint("faturas", Learn.FATURAS)
     }
 }
 
+/**
+ * Closing then due as the two ends of one line across the card (the site's `.timeline`): the
+ * closing dot is lit, as it is the next thing to happen; the due dot is an open ring.
+ */
 @Composable
-private fun Step(label: String, date: String, sub: String?, now: Boolean, modifier: Modifier) {
+private fun Timeline() {
     val l = LocalLedger.current
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Meter(1f, color = if (now) l.accent else l.border)
+    Canvas(Modifier.fillMaxWidth().height(12.dp)) {
+        val r = 6.dp.toPx()
+        val y = size.height / 2
+        val ring = 2.dp.toPx()
+        drawLine(l.borderInput, Offset(r, y), Offset(size.width - r, y), ring)
+        drawCircle(l.warn.copy(alpha = 0.22f), r + 4.dp.toPx(), Offset(r, y))
+        drawCircle(l.warn, r, Offset(r, y))
+        drawCircle(l.surface, r, Offset(size.width - r, y))
+        drawCircle(l.borderInput, r - ring / 2, Offset(size.width - r, y), style = Stroke(ring))
+    }
+}
+
+@Composable
+private fun Step(label: String, date: String, sub: String?, align: Alignment.Horizontal, modifier: Modifier) {
+    val l = LocalLedger.current
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp), horizontalAlignment = align) {
         Text(label, color = l.muted, style = MaterialTheme.typography.labelMedium)
         Text(date, style = MaterialTheme.typography.titleMedium)
         sub?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
@@ -187,7 +211,7 @@ private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
                 avatar = monogram(c.card),
                 card = c.card,
                 meta = "Planilha ${money(c.sheet)}" + when {
-                    c.parcels > 0 && c.parcels == c.bank -> " · Banco: só parcelas"
+                    c.parcels > 0 && c.parcels == c.bank -> " · No banco, só parcelas"
                     c.parcels > 0 -> " · Parcelas ${money(c.parcels)}"
                     else -> ""
                 },

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Política de privacidade · Neko</title>
+    <meta name="description" content="O que o Neko lê, guarda e envia, e o que ele nunca faz." />
+    <link rel="icon" href="/favicon.png" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f4ee;
+        --text: #24211d;
+        --muted: #6b665f;
+        --border: #e2ddd3;
+        --accent: #2f7a55;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171614;
+          --text: #ece8e1;
+          --muted: #a39d93;
+          --border: #34312c;
+          --accent: #7cc49b;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 1rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 48px 20px 64px;
+      }
+      h1,
+      h2 {
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-weight: 400;
+        line-height: 1.2;
+      }
+      h1 {
+        font-size: 2rem;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 1.25rem;
+        margin: 36px 0 8px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+      p,
+      li {
+        max-width: 65ch;
+      }
+      ul {
+        padding-left: 1.25rem;
+      }
+      li + li {
+        margin-top: 6px;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 0.875rem;
+        margin: 0;
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Política de privacidade</h1>
+      <p class="meta">Neko, site e app Android · Atualizada em 8 de outubro de 2026</p>
+
+      <p>
+        O Neko é um app pessoal de finanças. Ele lê uma planilha do Google preenchida à mão pelo
+        dono e mostra o que ela diz: quanto cabe por dia no cartão, as faturas e o mês. O acesso é
+        fechado: só entram os e-mails que o dono autorizou.
+      </p>
+
+      <h2>O que o Neko lê</h2>
+      <ul>
+        <li>
+          <strong>A planilha do Google</strong>, só para leitura, por uma conta de serviço. O Neko
+          nunca escreve nela.
+        </li>
+        <li>
+          <strong>Contas e cartões do banco</strong>, quando o dono liga essa opção em Ajustes, por
+          Open Finance (Pluggy), também só para leitura: saldos, faturas e movimentos. O Neko não
+          faz pagamentos nem transferências.
+        </li>
+        <li>
+          <strong>O e-mail da conta Google</strong> usada para entrar, só para conferir se ela tem
+          acesso.
+        </li>
+      </ul>
+
+      <h2>O que fica guardado</h2>
+      <p>No servidor do Neko (Cloudflare), ficam:</p>
+      <ul>
+        <li>Os ajustes que você escolhe, como dias de fechamento e plano do ciclo.</li>
+        <li>
+          As chaves de acesso (passkeys) e sessões de cada aparelho, com o e-mail e o nome do
+          aparelho. Você pode tirar um aparelho em Ajustes.
+        </li>
+        <li>O endereço para avisos no aparelho, se você ligar os lembretes.</li>
+        <li>Uma cópia recente dos dados do banco, para comparar com a planilha.</li>
+        <li>As contas já feitas a partir da planilha, para abrir mais rápido.</li>
+      </ul>
+      <p>
+        No seu aparelho, ficam uma cópia da última leitura (para abrir sem internet) e preferências
+        como esconder valores.
+      </p>
+
+      <h2>Com quem os dados são compartilhados</h2>
+      <ul>
+        <li><strong>Google</strong>: leitura da planilha e login.</li>
+        <li><strong>Pluggy</strong>: conexão com o banco, só se ligada.</li>
+        <li>
+          <strong>Anthropic</strong>: quando você pergunta algo à Mia, a pergunta e os números
+          necessários para responder vão para a API da Anthropic. A conversa não fica guardada no
+          Neko; só a contagem de uso, para controlar o custo.
+        </li>
+        <li>
+          <strong>Sentry</strong>: relatórios de erro técnico, com o que travou e em que tela.
+        </li>
+        <li><strong>Cloudflare</strong>: hospeda o site e o banco de dados.</li>
+      </ul>
+      <p>
+        O Neko não tem anúncios, não vende dados, não usa rastreamento nem analytics, e não
+        compartilha nada com mais ninguém. Toda conexão usa HTTPS.
+      </p>
+
+      <h2>Apagar os dados</h2>
+      <p>
+        Sair em Ajustes apaga a sessão do aparelho. Desligar o banco em Ajustes apaga a cópia dos
+        dados dele. Para apagar tudo, peça pelo
+        <a href="https://github.com/johnlaff/neko/issues">GitHub do projeto</a>; os dados são
+        apagados em até 30 dias.
+      </p>
+
+      <h2>Contato</h2>
+      <p>
+        Dúvidas sobre esta política:
+        <a href="https://github.com/johnlaff/neko/issues">github.com/johnlaff/neko</a>.
+      </p>
+    </main>
+  </body>
+</html>

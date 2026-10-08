@@ -46,6 +46,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,6 +59,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
+import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.data.MissingMovement
 import dev.johnlaff.neko.data.MonthRecap
@@ -87,6 +90,7 @@ fun HojeScreen(
     onMonth: (String?) -> Unit = { onScreen("mes") },
     miaOpen: Boolean = false,
     miaTalk: List<MiaExchange> = emptyList(),
+    review: Review? = null,
 ) {
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     var asking by rememberSaveable { mutableStateOf(miaOpen) }
@@ -116,7 +120,7 @@ fun HojeScreen(
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
-        item { Conference(v) }
+        item { Conference(v, review) }
         v.bankMissing?.takeIf { it.isNotEmpty() }?.let { m -> item { BankMissing(m) } }
     }
 }
@@ -456,13 +460,39 @@ private fun Day(d: UpcomingDay, today: String) {
     }
 }
 
+/** Sets Conferência points aside (hide) or brings them back; true once the settings saved. */
+typealias Review = suspend (keys: List<String>, hide: Boolean) -> Boolean
+
+/** A point's stable name, kept in settings once checked (shared/today.ts `issueKey`). */
+private fun issueKey(i: HealthIssue) = "${i.kind}|${i.date}|${i.ref.tab}!${i.ref.a1}"
+
+/**
+ * Sheet points the method says should hold but do not. Ones already checked can be set aside, so
+ * an old difference nobody will fix does not keep the panel yellow; a new one shows up again.
+ */
 @Composable
-private fun Conference(v: TodayView) {
+private fun Conference(v: TodayView, review: Review?) {
     val l = LocalLedger.current
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    // What the last tap hid, so it can come back with one more tap.
+    var justHid by rememberSaveable { mutableStateOf<List<String>?>(null) }
+    // Which save is on its way (hide or undo), so the button says so; and whether the last one failed.
+    var busy by remember { mutableStateOf<Boolean?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    // Points brought back (Ajustes › Como funciona) come in a newer Hoje: the last hide is then over.
+    var seen by remember { mutableStateOf(v.issues) }
+    LaunchedEffect(v.issues) {
+        if (v.issues != seen) {
+            seen = v.issues
+            if (v.issues.any { issueKey(it.issue) in justHid.orEmpty() }) justHid = null
+        }
+    }
+    // The Worker leaves checked points out; until Hoje is read again, the ones just hidden stay out here.
+    val open = v.issues.filter { issueKey(it.issue) !in justHid.orEmpty() }
     Panel {
         PanelHead("Conferência") {
-            val n = v.issues.size
+            val n = open.size
             Chip(
                 when (n) {
                     0 -> "Tudo certo"
@@ -473,7 +503,7 @@ private fun Conference(v: TodayView) {
             )
         }
         // All clear is the title and its chip alone: a sentence saying so again only adds height.
-        v.issues.forEach { t ->
+        open.forEach { t ->
             val line = Copy.issue(t.issue)
             Column(
                 Modifier.fillMaxWidth()
@@ -489,6 +519,53 @@ private fun Conference(v: TodayView) {
                 Text(line.detail, color = l.faint, style = MaterialTheme.typography.labelMedium)
             }
         }
+        if (review != null && open.isNotEmpty()) {
+            TextAction(
+                when {
+                    busy == true -> "Escondendo…"
+                    open.size == 1 -> "Já conferi, esconder este"
+                    else -> "Já conferi, esconder os ${open.size}"
+                },
+                {
+                    if (busy == null) {
+                        val keys = open.map { issueKey(it.issue) }
+                        busy = true
+                        scope.launch {
+                            failed = !review(keys, true)
+                            if (!failed) justHid = keys
+                            busy = null
+                        }
+                    }
+                },
+                l.accent,
+            )
+        }
+        val hid = justHid
+        if (review != null && open.isEmpty() && hid != null) {
+            Row(
+                Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    if (hid.size == 1) "1 ponto escondido." else "${hid.size} pontos escondidos.",
+                    color = l.muted,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                TextAction(if (busy == false) "Desfazendo…" else "Desfazer", {
+                    if (busy == null) {
+                        busy = false
+                        scope.launch {
+                            failed = !review(hid, false)
+                            if (!failed) justHid = null
+                            busy = null
+                        }
+                    }
+                }, l.accent)
+            }
+        }
+        if (failed) SaveFailed()
     }
 }
 
@@ -517,7 +594,7 @@ private fun BankMissing(items: List<MissingMovement>) {
                     .padding(vertical = 4.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(Format.bankText(m.description), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(Format.bankText(m.description), modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(
                         signed(m.amount, if (m.amount > 0) '+' else '−'),
                         color = if (m.amount > 0) l.pos else l.text,

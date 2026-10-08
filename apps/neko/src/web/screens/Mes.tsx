@@ -121,7 +121,7 @@ const OutflowRow = ({
       <span className="name">
         <ItemName text={o.label} />
         {fixed && <span className="sr-only">, fixo</span>}
-        {o.others && <span className="chip">De outra pessoa</span>}
+        {o.others && <span className="chip plain">De outra pessoa</span>}
         {fixed?.installment && <small className="meta">{installmentLine(fixed.installment)}</small>}
         {/* Display only: the bar is the line's amount scaled to the month's largest line. */}
         <span className="meter" aria-hidden="true">
@@ -305,7 +305,7 @@ export const Mes = () => {
         // The sheet's own balance on the month's last day: a date, not a guess.
         const endLabel = past
           ? "Terminou com"
-          : `Saldo em ${shortDate(key(m.year, m.month) + `-${daysInMonth(m.year, m.month)}`)}`;
+          : `Saldo em ${shortDate(`${key(m.year, m.month)}-${daysInMonth(m.year, m.month)}`)}`;
         const year = p.months.filter((x) => x.year === m.year);
         // A projection cached offline by an older version has no outflows yet.
         const outflows = m.outflows ?? [];
@@ -336,6 +336,7 @@ export const Mes = () => {
                 onClick={() => setPicked(keys[idx - 1] ?? null)}
                 disabled={idx === 0}
                 aria-label="Mês anterior"
+                aria-keyshortcuts="ArrowLeft"
               >
                 <IconChevronLeft />
               </button>
@@ -348,6 +349,7 @@ export const Mes = () => {
                 onClick={() => setPicked(keys[idx + 1] ?? null)}
                 disabled={idx === p.months.length - 1}
                 aria-label="Próximo mês"
+                aria-keyshortcuts="ArrowRight"
               >
                 <IconChevron />
               </button>

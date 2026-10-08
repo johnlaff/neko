@@ -158,3 +158,22 @@ test("the month's wins become a picture to share, with no amounts", async ({ pag
   if (process.env.WIN_CARD_OUT) await file.saveAs(process.env.WIN_CARD_OUT);
   expect(errors).toEqual([]);
 });
+
+test("keys switch screens and months, but a calendar arrow stays in the calendar", async ({
+  page,
+}) => {
+  await open(page, "/");
+  await expect(page.getByRole("heading", { level: 1, name: "Hoje" })).toBeVisible();
+  await page.keyboard.press("3");
+  await expect(page).toHaveURL(/\/mes$/);
+  const month = page.locator(".month-nav h2");
+  const shown = (await month.textContent()) ?? "";
+  await page.locator(".thermo-grid button.day").first().focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(month).toHaveText(shown);
+  await page.locator(".month-nav h2").click();
+  await page.keyboard.press("ArrowLeft");
+  await expect(month).not.toHaveText(shown);
+  await page.keyboard.press("4");
+  await expect(page).toHaveURL(/\/ajustes$/);
+});

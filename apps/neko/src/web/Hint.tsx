@@ -42,6 +42,8 @@ export const dismissHint = (id: string) => {
   notify();
 };
 
+export const hintSeen = (id: string) => seen.has(id);
+
 /** Ajustes › Rever dicas: every tip comes back, one per visit as before. */
 export const resetHints = () => {
   seen = new Set();

@@ -876,7 +876,19 @@ input.switch:checked::after {
   color: var(--muted);
 }
 .masthead .read.warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--warn);
+  font-weight: 600;
+}
+/* Offline is the one state the head must not let you miss: a solid dot before the words. */
+.masthead .read-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
 }
 .masthead button.icon svg {
   width: 20px;
@@ -1300,6 +1312,17 @@ fieldset.panel > legend {
   padding: 6px 10px;
   text-align: right;
 }
+a.setting.link {
+  min-height: 56px;
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+}
+a.setting.link > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--faint);
+}
 button.setting.danger {
   width: 100%;
   justify-content: flex-start;
@@ -1341,67 +1364,23 @@ button.text-link {
   align-items: start;
 }
 
-/* Desktop: brand and freshness share the row with the top pill bar; the Hoje hero reads as
-   the dial on the left and its figures on the right. */
+/* Desktop: the masthead keeps its row; on Hoje the dial takes the left half and what to do now
+   sits beside it, so the gauge never floats in an empty full-width card. The dial card takes the
+   row's height and centres the dial, so a taller column beside it leaves no hole. */
 @media (min-width: 48rem) {
+  .hero.today.half {
+    align-self: stretch;
+    grid-template-rows: auto 1fr;
+  }
+  .hero.today.half > .dial {
+    align-self: center;
+  }
   .page {
     padding-top: 20px;
   }
   .masthead {
     min-height: 50px;
     margin: 0 0 12px;
-  }
-  .hero.today {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      "head head"
-      "dial figures"
-      "chips formula";
-    column-gap: 40px;
-  }
-  .hero.today > .panel-head {
-    grid-area: head;
-  }
-  .hero.today > .dial {
-    grid-area: dial;
-  }
-  .hero.today > .chips {
-    grid-area: chips;
-  }
-  .hero.today > .figures {
-    grid-area: figures;
-    grid-template-columns: 1fr;
-    align-self: center;
-    gap: 0;
-    padding-top: 0;
-    border-top: 0;
-  }
-  .hero.today > .figures > div {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--border);
-    text-align: left;
-  }
-  .hero.today > .figures > div:last-child {
-    border-bottom: 0;
-  }
-  .hero.today > .figures dd {
-    font-size: 1.125rem;
-  }
-  .hero.today > .formula {
-    grid-area: formula;
-    align-self: start;
-  }
-  /* Over the plan there are no figures beside the dial: one column, nothing floating. */
-  .hero.today:not(:has(> .figures)) {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "head"
-      "dial"
-      "chips"
-      "formula";
   }
 }
 @media (min-width: 48rem) {
@@ -1544,7 +1523,7 @@ button.chip-button[aria-pressed="true"] {
   color: var(--neg);
 }
 
-/* Bill dates: closing then due, as two steps on a line */
+/* Bill dates: closing then due, as the two ends of one line across the card */
 .timeline {
   list-style: none;
   margin: 0;
@@ -1559,7 +1538,7 @@ button.chip-button[aria-pressed="true"] {
   position: absolute;
   top: 19px;
   left: 5px;
-  right: 50%;
+  right: 5px;
   height: 2px;
   background: var(--border-input);
 }
@@ -1579,6 +1558,14 @@ button.chip-button[aria-pressed="true"] {
   border-radius: 50%;
   background: var(--surface);
   box-shadow: inset 0 0 0 2px var(--border-input);
+}
+.timeline > li.step:last-child {
+  justify-items: end;
+  text-align: right;
+}
+.timeline > li.step:last-child::before {
+  left: auto;
+  right: 0;
 }
 .timeline > li.step.now::before {
   background: var(--warn);
@@ -2047,17 +2034,6 @@ button.ghost.small::before {
   font-size: 0.875rem;
   color: var(--muted);
 }
-.thermo-save {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  font-size: 0.875rem;
-}
-.thermo-save strong {
-  font-variant-numeric: tabular-nums;
-}
 .band-text {
   color: var(--tone);
   font-weight: 600;
@@ -2225,17 +2201,35 @@ button.setting.quiet:hover {
   font-size: 0.6875rem;
   color: var(--faint);
 }
-.week .mark {
+.week-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.week-legend > li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.week .mark,
+.week-legend .mark {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   border: 1.5px solid var(--border-input);
 }
-.week .edited .mark {
+.week .edited .mark,
+.week-legend .edited .mark {
   background: var(--text);
   border-color: var(--text);
 }
-.week .rest .mark {
+.week .rest .mark,
+.week-legend .rest .mark {
   border-style: dashed;
 }
 .week .today .mark {
@@ -2512,4 +2506,29 @@ form.mia-form {
 .panel-head > h2.with-mark > span.avatar.brand > svg {
   width: 18px;
   height: 18px;
+}
+
+/* Keyboard shortcuts, named only where a keyboard is likely */
+.learn-text.keys kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 4px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+@media (pointer: coarse) {
+  .learn-text.keys {
+    display: none;
+  }
+}
+
+/* A save that did not go through, said where it was tried */
+.setting-error {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--neg);
+  font-size: 0.875rem;
 }
