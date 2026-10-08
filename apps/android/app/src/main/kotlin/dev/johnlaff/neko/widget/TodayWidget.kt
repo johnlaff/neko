@@ -25,6 +25,7 @@ import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
+import androidx.glance.layout.width
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
 import androidx.glance.text.FontWeight
@@ -51,6 +52,9 @@ data class WidgetText(
     val billDetail: String? = null,
     /** The next days with something on the sheet, for the tall widget. */
     val days: List<WidgetDay> = emptyList(),
+    /** "12 dias em dia" and this week as seven marks, for the tall widget; null without a streak. */
+    val streak: String? = null,
+    val week: List<String> = emptyList(),
 )
 
 fun widgetText(v: TodayView?): WidgetText {
@@ -59,6 +63,9 @@ fun widgetText(v: TodayView?): WidgetText {
         WidgetDay(Format.relativeDay(d.date, v!!.today), Format.signed(kotlin.math.abs(d.net), if (d.net > 0) '+' else '−'), d.net > 0)
     }
     val bill = cs?.let { Format.money(it.accumulated) }
+    val h = v?.habit
+    val streak = h?.let { dev.johnlaff.neko.ui.Learn.streakLabel(it.streak) }
+    val week = h?.week.orEmpty().map { it.state }
     val billDetail = cs?.let { "de ${Format.money(it.budget)} do plano" }
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
@@ -73,7 +80,7 @@ fun widgetText(v: TodayView?): WidgetText {
             billDetail,
             days,
         )
-    }
+    }.copy(streak = streak, week = week)
 }
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
@@ -81,6 +88,8 @@ val PREVIEW = WidgetText(
     "Hoje cabem", "R$ 148,00", "por dia · fecha 5 nov", false,
     "R$ 2.310,00", "de R$ 4.500,00 do plano",
     listOf(WidgetDay("Amanhã", "−R$ 120,00", false), WidgetDay("Sexta, 10 out", "+R$ 5.600,00", true)),
+    "5 dias em dia",
+    listOf("edited", "edited", "rest", "edited", "edited", "today", "future"),
 )
 
 private val SMALL = DpSize(110.dp, 50.dp)
@@ -144,6 +153,28 @@ class TodayWidget : GlanceAppWidget() {
                         Text(d.label, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp), maxLines = 1, modifier = GlanceModifier.defaultWeight())
                         Text(d.net, style = TextStyle(color = if (d.income) pair { it.pos } else pair { it.text }, fontSize = 12.sp), maxLines = 1)
                     }
+                }
+            }
+            if (tall && t.streak != null) {
+                Spacer(GlanceModifier.defaultWeight())
+                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    t.week.forEach { s ->
+                        // Filled when the sheet changed, hollow otherwise, ringed in jade for today.
+                        Text(
+                            if (s == "edited") "●" else "○",
+                            style = TextStyle(
+                                color = when (s) {
+                                    "edited" -> pair { it.text }
+                                    "today" -> pair { it.accent }
+                                    else -> pair { it.faint }
+                                },
+                                fontSize = 11.sp,
+                            ),
+                            modifier = GlanceModifier.padding(end = 3.dp),
+                        )
+                    }
+                    Spacer(GlanceModifier.width(8.dp))
+                    Text(t.streak, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp), maxLines = 1)
                 }
             }
         }
