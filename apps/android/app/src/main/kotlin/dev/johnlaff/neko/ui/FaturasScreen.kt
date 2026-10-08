@@ -167,7 +167,7 @@ private fun Others(v: InvoicesView) {
 private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
     val l = LocalLedger.current
     Panel {
-        PanelHead("Já no banco") {
+        PanelHead("Faturas no banco") {
             b.syncedAt?.let { Text("Lido ${shortDate(it.take(10))}", color = l.faint, style = MaterialTheme.typography.labelMedium) }
         }
         if (b.bills.isEmpty()) {
@@ -180,7 +180,11 @@ private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
                 value = money(c.bank),
                 avatar = monogram(c.card),
                 card = c.card,
-                meta = "Planilha ${money(c.sheet)}" + if (c.parcels > 0) " · ${money(c.parcels)} em parcelas" else "",
+                meta = "Planilha ${money(c.sheet)}" + when {
+                    c.parcels > 0 && c.parcels == c.bank -> " · Só parcelas"
+                    c.parcels > 0 -> " · Parcelas ${money(c.parcels)}"
+                    else -> ""
+                },
                 chips = { if (c.gap > 0) Chip("${money(c.gap)} acima da planilha", ChipTone.Warn) },
             )
         }

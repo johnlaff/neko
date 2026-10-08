@@ -101,7 +101,7 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   const missing = page.getByRole("region", { name: "Fora da planilha" });
   await expect(missing.getByRole("button")).toHaveCount(2);
   await page.getByRole("link", { name: "Faturas", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Já no banco" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Faturas no banco" })).toBeVisible();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bancos" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: /Azul Platinum/ })).toHaveValue("Cartão Azul");
