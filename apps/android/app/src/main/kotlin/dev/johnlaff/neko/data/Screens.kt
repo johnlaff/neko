@@ -115,7 +115,12 @@ data class Outflow(
     val kind: String = "bill",
     val change: Long? = null,
     val others: Boolean = false,
+    /** The last months of this destination, oldest first, opened by a tap on its line. */
+    val trend: List<TrendPoint> = emptyList(),
 )
+
+@Serializable
+data class TrendPoint(val year: Int, val month: Int, val amount: Long)
 
 @Serializable
 data class Fixed(val label: String, val amount: Long, val installment: Installment? = null)

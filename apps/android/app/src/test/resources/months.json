@@ -23,7 +23,14 @@
           "kind": "card",
           "change": null,
           "countBefore": null,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 260274
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -32,7 +39,14 @@
           "kind": "bill",
           "change": null,
           "countBefore": null,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -41,7 +55,14 @@
           "kind": "bill",
           "change": null,
           "countBefore": null,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -50,7 +71,14 @@
           "kind": "card",
           "change": null,
           "countBefore": null,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 38874
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -59,7 +87,14 @@
           "kind": "bill",
           "change": null,
           "countBefore": null,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -68,7 +103,14 @@
           "kind": "bill",
           "change": null,
           "countBefore": null,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 22948
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -77,7 +119,14 @@
           "kind": "bill",
           "change": null,
           "countBefore": null,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [],
@@ -444,7 +493,19 @@
           "kind": "card",
           "change": 51533,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 260274
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 311807
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -453,7 +514,19 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -462,7 +535,19 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -471,7 +556,19 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -480,7 +577,19 @@
           "kind": "card",
           "change": -8805,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 38874
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 30069
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -489,7 +598,19 @@
           "kind": "bill",
           "change": 2419,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 22948
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 25367
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -498,7 +619,19 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [],
@@ -838,7 +971,24 @@
           "kind": "card",
           "change": 35287,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 260274
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 311807
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 347094
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -847,7 +997,24 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -856,7 +1023,24 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -865,7 +1049,24 @@
           "kind": "card",
           "change": 11978,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 38874
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 30069
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 42047
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -874,7 +1075,24 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -883,7 +1101,24 @@
           "kind": "bill",
           "change": -2057,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 22948
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 25367
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 23310
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -892,7 +1127,24 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -1285,7 +1537,29 @@
           "kind": "card",
           "change": 20060,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 260274
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 311807
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 347094
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 367154
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -1294,7 +1568,29 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -1303,7 +1599,29 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -1312,7 +1630,29 @@
           "kind": "card",
           "change": -4754,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 38874
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 30069
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 42047
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 37293
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -1321,7 +1661,29 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -1330,7 +1692,29 @@
           "kind": "bill",
           "change": -5061,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 22948
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 25367
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 23310
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 18249
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -1339,7 +1723,29 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -1725,7 +2131,34 @@
           "kind": "card",
           "change": -22436,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 260274
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 311807
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 347094
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 367154
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 344718
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -1734,7 +2167,34 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -1743,7 +2203,34 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -1752,7 +2239,34 @@
           "kind": "card",
           "change": 23416,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 38874
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 30069
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 42047
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 37293
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 60709
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -1761,7 +2275,34 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -1770,7 +2311,34 @@
           "kind": "bill",
           "change": 3766,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 22948
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 25367
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 23310
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 18249
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 22015
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -1779,7 +2347,34 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -2172,7 +2767,39 @@
           "kind": "card",
           "change": -22066,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 260274
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 311807
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 347094
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 367154
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 344718
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 322652
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -2181,7 +2808,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -2190,7 +2849,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -2199,7 +2890,39 @@
           "kind": "card",
           "change": -19180,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 38874
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 30069
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 42047
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 37293
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 60709
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 41529
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -2208,7 +2931,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -2217,7 +2972,39 @@
           "kind": "bill",
           "change": -135,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 22948
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 25367
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 23310
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 18249
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 22015
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 21880
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -2226,7 +3013,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -2612,7 +3431,39 @@
           "kind": "card",
           "change": 46969,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 311807
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 347094
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 367154
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 344718
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 322652
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 369621
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -2621,7 +3472,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -2630,7 +3513,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -2639,7 +3554,39 @@
           "kind": "card",
           "change": 20149,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 30069
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 42047
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 37293
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 60709
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 41529
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 61678
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -2648,7 +3595,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -2657,7 +3636,39 @@
           "kind": "bill",
           "change": 3046,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 25367
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 23310
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 18249
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 22015
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 21880
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 24926
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -2666,7 +3677,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -3054,7 +4097,39 @@
           "kind": "card",
           "change": -54009,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 347094
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 367154
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 344718
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 322652
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 369621
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 315612
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -3063,7 +4138,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -3072,7 +4179,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -3081,7 +4220,39 @@
           "kind": "card",
           "change": 8040,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 42047
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 37293
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 60709
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 41529
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 61678
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 69718
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -3090,7 +4261,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -3099,7 +4302,39 @@
           "kind": "bill",
           "change": -6147,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 23310
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 18249
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 22015
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 21880
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 24926
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 18779
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -3108,7 +4343,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -3501,7 +4768,39 @@
           "kind": "card",
           "change": 14998,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 367154
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 344718
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 322652
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 369621
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 315612
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 330610
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -3510,7 +4809,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -3519,7 +4850,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -3528,7 +4891,39 @@
           "kind": "card",
           "change": -31582,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 37293
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 60709
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 41529
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 61678
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 69718
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 38136
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -3537,7 +4932,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -3546,7 +4973,39 @@
           "kind": "bill",
           "change": 4241,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 18249
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 22015
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 21880
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 24926
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 18779
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 23020
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -3555,7 +5014,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -3945,7 +5436,39 @@
           "kind": "card",
           "change": -26954,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 344718
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 322652
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 369621
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 315612
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 330610
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 303656
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -3954,7 +5477,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -3963,7 +5518,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -3972,7 +5559,39 @@
           "kind": "card",
           "change": 1827,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 60709
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 41529
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 61678
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 69718
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 38136
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 39963
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -3981,7 +5600,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -3990,7 +5641,39 @@
           "kind": "bill",
           "change": 973,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 22015
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 21880
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 24926
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 18779
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 23020
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 23993
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -3999,7 +5682,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -4392,7 +6107,39 @@
           "kind": "card",
           "change": 66969,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 322652
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 369621
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 315612
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 330610
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 303656
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 370625
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -4401,7 +6148,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -4410,7 +6189,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -4419,7 +6230,39 @@
           "kind": "card",
           "change": -6444,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 41529
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 61678
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 69718
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 38136
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 39963
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 33519
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -4428,7 +6271,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -4437,7 +6312,39 @@
           "kind": "bill",
           "change": -3472,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 21880
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 24926
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 18779
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 23020
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 23993
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 20521
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -4446,7 +6353,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -4832,7 +6771,39 @@
           "kind": "card",
           "change": -27985,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 369621
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 315612
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 330610
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 303656
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 370625
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 342640
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -4841,7 +6812,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -4850,7 +6853,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -4859,7 +6894,39 @@
           "kind": "card",
           "change": 26358,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 61678
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 69718
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 38136
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 39963
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 33519
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 59877
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -4868,7 +6935,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -4877,7 +6976,39 @@
           "kind": "bill",
           "change": 719,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 24926
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 18779
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 23020
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 23993
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 20521
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 21240
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -4886,7 +7017,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -5279,7 +7442,39 @@
           "kind": "card",
           "change": -68988,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 315612
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 330610
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 303656
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 370625
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 342640
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 273652
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -5288,7 +7483,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -5297,7 +7524,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -5306,7 +7565,39 @@
           "kind": "card",
           "change": -2725,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 69718
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 38136
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 39963
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 33519
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 59877
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 57152
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -5315,7 +7606,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -5324,7 +7647,39 @@
           "kind": "bill",
           "change": -1492,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 18779
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 23020
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 23993
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 20521
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 21240
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 19748
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -5333,7 +7688,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -5726,7 +8113,39 @@
           "kind": "card",
           "change": 37654,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 330610
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 303656
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 370625
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 342640
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 273652
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 311306
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -5735,7 +8154,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -5744,7 +8195,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -5753,7 +8236,39 @@
           "kind": "card",
           "change": -14768,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 38136
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 39963
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 33519
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 59877
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 57152
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 42384
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -5762,7 +8277,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -5771,7 +8318,39 @@
           "kind": "bill",
           "change": 6180,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 23020
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 23993
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 20521
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 21240
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 19748
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 25928
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -5780,7 +8359,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 9,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -6146,7 +8757,39 @@
           "kind": "card",
           "change": -52153,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 303656
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 370625
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 342640
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 273652
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 311306
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 259153
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -6155,7 +8798,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -6164,7 +8839,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -6173,7 +8880,39 @@
           "kind": "card",
           "change": -7181,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 39963
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 33519
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 59877
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 57152
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 42384
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 35203
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -6182,7 +8921,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -6191,7 +8962,39 @@
           "kind": "bill",
           "change": -5190,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 23993
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 20521
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 21240
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 19748
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 25928
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 20738
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -6200,7 +9003,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 10,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -6593,7 +9428,39 @@
           "kind": "card",
           "change": 47868,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 370625
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 342640
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 273652
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 311306
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 259153
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 307021
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -6602,7 +9469,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 190000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -6611,7 +9510,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 80000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -6620,7 +9551,39 @@
           "kind": "card",
           "change": 16680,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 33519
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 59877
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 57152
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 42384
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 35203
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 51883
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -6629,7 +9592,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 32000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -6638,7 +9633,39 @@
           "kind": "bill",
           "change": -41,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 20521
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 21240
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 19748
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 25928
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 20738
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 20697
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -6647,7 +9674,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 11,
+              "amount": 12000
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -7033,7 +10092,39 @@
           "kind": "card",
           "change": -41609,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 342640
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 273652
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 311306
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 259153
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 307021
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 265412
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -7042,7 +10133,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -7051,7 +10174,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -7060,7 +10215,39 @@
           "kind": "card",
           "change": 6453,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 59877
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 57152
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 42384
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 35203
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 51883
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 58336
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -7069,7 +10256,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -7078,7 +10297,39 @@
           "kind": "bill",
           "change": 3192,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 21240
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 19748
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 25928
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 20738
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 20697
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 23889
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -7087,7 +10338,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2025,
+              "month": 12,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -7480,7 +10763,39 @@
           "kind": "card",
           "change": 75782,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 273652
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 311306
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 259153
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 307021
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 265412
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 341194
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -7489,7 +10804,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -7498,7 +10845,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -7507,7 +10886,39 @@
           "kind": "card",
           "change": 6994,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 57152
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 42384
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 35203
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 51883
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 58336
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 65330
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -7516,7 +10927,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -7525,7 +10968,39 @@
           "kind": "bill",
           "change": -2813,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 19748
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 25928
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 20738
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 20697
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 23889
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 21076
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -7534,7 +11009,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 1,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -7915,7 +11422,39 @@
           "kind": "card",
           "change": -45143,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 311306
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 259153
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 307021
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 265412
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 341194
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 296051
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -7924,7 +11463,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -7933,7 +11504,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -7942,7 +11545,39 @@
           "kind": "card",
           "change": -7598,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 42384
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 35203
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 51883
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 58336
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 65330
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 57732
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -7951,7 +11586,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -7960,7 +11627,39 @@
           "kind": "bill",
           "change": -992,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 25928
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 20738
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 20697
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 23889
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 21076
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 20084
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -7969,7 +11668,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 2,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -8362,7 +12093,39 @@
           "kind": "card",
           "change": -35980,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 259153
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 307021
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 265412
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 341194
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 296051
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 260071
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -8371,7 +12134,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -8380,7 +12175,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -8389,7 +12216,39 @@
           "kind": "card",
           "change": -7711,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 35203
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 51883
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 58336
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 65330
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 57732
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 50021
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -8398,7 +12257,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -8407,7 +12298,39 @@
           "kind": "bill",
           "change": 2046,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 20738
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 20697
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 23889
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 21076
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 20084
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 22130
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -8416,7 +12339,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 3,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -8809,7 +12764,39 @@
           "kind": "card",
           "change": 101558,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 307021
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 265412
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 341194
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 296051
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 260071
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 361629
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -8818,7 +12805,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -8827,7 +12846,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -8836,7 +12887,39 @@
           "kind": "card",
           "change": 19075,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 51883
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 58336
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 65330
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 57732
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 50021
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 69096
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -8845,7 +12928,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -8854,7 +12969,39 @@
           "kind": "bill",
           "change": -89,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 20697
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 23889
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 21076
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 20084
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 22130
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 22041
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -8863,7 +13010,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 4,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -9249,7 +13428,39 @@
           "kind": "card",
           "change": -1598,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 265412
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 341194
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 296051
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 260071
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 361629
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 360031
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -9258,7 +13469,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -9267,7 +13510,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -9276,7 +13551,39 @@
           "kind": "card",
           "change": -16326,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 58336
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 65330
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 57732
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 50021
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 69096
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 52770
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -9285,7 +13592,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -9294,7 +13633,39 @@
           "kind": "bill",
           "change": -3159,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 23889
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 21076
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 20084
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 22130
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 22041
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 18882
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -9303,7 +13674,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 5,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -9639,7 +14042,39 @@
           "kind": "card",
           "change": -76224,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 341194
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 296051
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 260071
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 361629
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 360031
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 283807
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -9648,7 +14083,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -9657,7 +14124,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -9666,7 +14165,39 @@
           "kind": "card",
           "change": -16551,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 65330
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 57732
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 50021
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 69096
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 52770
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 36219
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -9675,7 +14206,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -9684,7 +14247,39 @@
           "kind": "bill",
           "change": 3846,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 21076
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 20084
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 22130
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 22041
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 18882
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 22728
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -9693,7 +14288,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 6,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [
@@ -10016,7 +14643,39 @@
           "kind": "card",
           "change": 86625,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 296051
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 260071
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 361629
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 360031
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 283807
+            },
+            {
+              "year": 2026,
+              "month": 12,
+              "amount": 370432
+            }
+          ]
         },
         {
           "label": "Aluguel",
@@ -10025,7 +14684,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 190000
+            },
+            {
+              "year": 2026,
+              "month": 12,
+              "amount": 190000
+            }
+          ]
         },
         {
           "label": "Investimento",
@@ -10034,7 +14725,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 80000
+            },
+            {
+              "year": 2026,
+              "month": 12,
+              "amount": 80000
+            }
+          ]
         },
         {
           "label": "Cartão Verde",
@@ -10043,7 +14766,39 @@
           "kind": "card",
           "change": 26519,
           "countBefore": 1,
-          "others": true
+          "others": true,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 57732
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 50021
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 69096
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 52770
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 36219
+            },
+            {
+              "year": 2026,
+              "month": 12,
+              "amount": 62738
+            }
+          ]
         },
         {
           "label": "Academia e curso",
@@ -10052,7 +14807,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 32000
+            },
+            {
+              "year": 2026,
+              "month": 12,
+              "amount": 32000
+            }
+          ]
         },
         {
           "label": "Luz",
@@ -10061,7 +14848,39 @@
           "kind": "bill",
           "change": -707,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 20084
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 22130
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 22041
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 18882
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 22728
+            },
+            {
+              "year": 2026,
+              "month": 12,
+              "amount": 22021
+            }
+          ]
         },
         {
           "label": "Internet",
@@ -10070,7 +14889,39 @@
           "kind": "bill",
           "change": 0,
           "countBefore": 1,
-          "others": false
+          "others": false,
+          "trend": [
+            {
+              "year": 2026,
+              "month": 7,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 8,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 9,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 10,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 11,
+              "amount": 12000
+            },
+            {
+              "year": 2026,
+              "month": 12,
+              "amount": 12000
+            }
+          ]
         }
       ],
       "fixed": [

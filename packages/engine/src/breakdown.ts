@@ -35,6 +35,10 @@ const cardTest = (cardNames: readonly string[]) => {
 /** Label for Saída amounts the note does not itemize. */
 export const UNITEMIZED = "Sem detalhe";
 
+/** What makes two lines the same destination: "Carro 12/36" and "carro 13/36" are one. */
+export const outflowKey = (label: string) =>
+  normalizeName(label.replace(INSTALLMENT_SUFFIX, "")) || UNITEMIZED;
+
 type Group = { label: string; amount: Cents; count: number; card: boolean };
 
 /** One month's Saída by description key; what the note does not itemize goes to UNITEMIZED. */
@@ -59,7 +63,7 @@ const groupMonth = (
       itemized = add(itemized, item.amount);
       const label = item.description.split("#")[0]?.trim() || UNITEMIZED;
       // "Carro 12/36" and "Carro 13/36" are the same destination a month apart.
-      const key = normalizeName(label.replace(INSTALLMENT_SUFFIX, "")) || UNITEMIZED;
+      const key = outflowKey(label);
       put(key, label, item.amount, isCard(item, label));
     }
     const rest = sub(row.saida.amount, itemized);
