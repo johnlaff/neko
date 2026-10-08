@@ -55,6 +55,8 @@ describe("android sign-in", () => {
 
   it("keeps Hoje behind a session", async () => {
     expect((await call("/api/today")).status).toBe(401);
+    // Reminders carry balances too.
+    expect((await call("/api/reminders")).status).toBe(401);
   });
 });
 

@@ -26,7 +26,13 @@ import {
   verifyRegistration,
 } from "./passkey.ts";
 import { getProjection, monthEndHistory, pruneSnapshots } from "./pipeline.ts";
-import { eveningMessage, morningMessage, readFailedMessage, sendReminder } from "./push.ts";
+import {
+  eveningMessage,
+  morningMessage,
+  readFailedMessage,
+  remindersView,
+  sendReminder,
+} from "./push.ts";
 import { loadSettings, saveSettings, UserSettings } from "./settings.ts";
 
 const app = new Hono<AppEnv>().basePath("/api");
@@ -114,6 +120,7 @@ app.use("/today", requireSession);
 app.use("/invoices", requireSession);
 app.use("/months", requireSession);
 app.use("/ajustes", requireSession);
+app.use("/reminders", requireSession);
 app.use("/history", requireSession);
 app.use("/settings", requireSession);
 app.use("/push/*", requireSession);
@@ -208,6 +215,11 @@ app.get("/ajustes", async (c) => {
   ]);
   return c.json(ajustesView(data, settings));
 });
+
+/** Today's 08:00 and 21:00 reminders, for the Android app to show itself (see push.ts). */
+app.get("/reminders", async (c) =>
+  c.json(remindersView(await getProjection(c.env, todayIn(new Date())))),
+);
 
 app.get("/history", async (c) => {
   const points = await monthEndHistory(c.env.DB, todayIn(new Date()));

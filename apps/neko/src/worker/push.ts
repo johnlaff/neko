@@ -67,6 +67,15 @@ export const eveningMessage = ({ projection: p, sheet }: ProjectionResponse): Re
         tag: "evening",
       };
 
+/**
+ * Both of today's reminders, for the Android app: it shows them on its own at 08:00 and 21:00
+ * from the phone, so they arrive without a browser subscription. Null means nothing to say.
+ */
+export const remindersView = (data: ProjectionResponse) => ({
+  morning: morningMessage(data),
+  evening: eveningMessage(data),
+});
+
 export const vapidKeys = (env: Env): VapidKeys | null =>
   env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY
     ? {

@@ -94,6 +94,7 @@ fun AjustesScreen(
     onRefresh: () -> Unit,
     onSave: (UserSettings) -> Unit,
     onLogout: () -> Unit,
+    reminders: RemindersSwitch = RemindersSwitch(),
 ) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
@@ -127,11 +128,37 @@ fun AjustesScreen(
         val f = form ?: return@ScreenFrame
         item { Group("Ritmo") { Pace(f, view.dailyAuto) } }
         if (f.cards.isNotEmpty()) item { Group("Cartões") { Cards(f) } }
+        item { Group("Lembretes") { Reminders(reminders) } }
         item {
             Panel {
                 TextAction("Sair deste aparelho", onLogout, LocalLedger.current.neg)
             }
         }
+    }
+}
+
+/** The phone's own reminders: a setting of this device, not of the account, so it is not saved. */
+data class RemindersSwitch(
+    val on: Boolean = false,
+    /** Android refused notifications to the app; only its settings can undo that. */
+    val blocked: Boolean = false,
+    val onChange: (Boolean) -> Unit = {},
+)
+
+@Composable
+private fun Reminders(r: RemindersSwitch) {
+    val l = LocalLedger.current
+    Setting(
+        "Neste celular",
+        if (r.blocked) "Permita as notificações do Neko no Android" else "Quanto cabe às 8h, lançar o dia às 21h",
+        r.blocked,
+    ) {
+        Switch(
+            checked = r.on,
+            onCheckedChange = r.onChange,
+            colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
+            modifier = Modifier.semantics { contentDescription = "Lembretes neste celular" },
+        )
     }
 }
 

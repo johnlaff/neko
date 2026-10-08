@@ -5,6 +5,7 @@ import android.os.Build
 import dev.johnlaff.neko.data.Api
 import dev.johnlaff.neko.data.CookieStore
 import dev.johnlaff.neko.data.TodayRepository
+import dev.johnlaff.neko.reminders.Reminders
 import dev.johnlaff.neko.widget.WidgetRefresh
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -35,5 +36,6 @@ class NekoApp : Application() {
         api = Api(BuildConfig.NEKO_URL, client, cookies)
         today = TodayRepository(api, File(noBackupFilesDir, "today.json"))
         WidgetRefresh.schedule(this)
+        Reminders.ensure(this)
     }
 }

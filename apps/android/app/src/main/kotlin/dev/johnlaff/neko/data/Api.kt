@@ -59,6 +59,8 @@ class Api(
 
     suspend fun ajustes(): AjustesView = json.decodeFromString(call("/ajustes"))
 
+    suspend fun reminders(): RemindersView = json.decodeFromString(call("/reminders"))
+
     suspend fun saveSettings(settings: UserSettings): UserSettings {
         val body = json.encodeToString(UserSettings.serializer(), settings).toRequestBody(jsonType)
         return json.decodeFromString(call("/settings", body, "PUT"))
