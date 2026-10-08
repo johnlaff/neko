@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ApiError, api, type ProjectionResponse } from "./api.ts";
-import { IconCloudOff } from "./icons.tsx";
+import { Mascot } from "./Mascot.tsx";
 
 export const useProjection = () => useQuery({ queryKey: ["projection"], queryFn: api.projection });
 
@@ -46,9 +46,7 @@ export const ErrorBlock = ({
   busy?: boolean;
 }) => (
   <section className="panel state" role="alert">
-    <span className="state-icon">
-      <IconCloudOff />
-    </span>
+    <Mascot pose="sleeping" height={84} className="state-cat" />
     <h1>{title}</h1>
     <p className="muted">{text}</p>
     <button type="button" className="ghost" onClick={retry} disabled={busy}>

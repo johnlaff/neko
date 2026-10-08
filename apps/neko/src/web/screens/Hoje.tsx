@@ -31,11 +31,11 @@ import {
   IconIncome,
   IconPlus,
   IconReceipt,
-  IconSpark,
   IconToday,
   IconTrendUp,
 } from "../icons.tsx";
 import { HINTS } from "../learn.ts";
+import { Mascot } from "../Mascot.tsx";
 import { Simulator } from "../Pace.tsx";
 import { milestoneText, Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
@@ -388,9 +388,7 @@ const MilestoneCard = ({ milestone }: { milestone: number }) => (
   <ul className="alerts" aria-label="Sequência">
     <li>
       <div className="alert good milestone" role="status">
-        <span className="alert-icon" aria-hidden="true">
-          <IconSpark />
-        </span>
+        <Mascot pose="celebrating" height={56} className="milestone-cat" />
         <span className="alert-text">
           <strong>Marca de {milestone} dias</strong>
           <span>{milestoneText(milestone)}</span>
@@ -469,7 +467,8 @@ export const Hoje = () => (
               <Hint id="hoje">{HINTS.hoje}</Hint>
             </section>
           ) : (
-            <section className="page-head">
+            <section className="page-head empty-cards">
+              <Mascot pose="sitting" height={96} />
               <h2>Nenhum cartão na planilha</h2>
               <p className="muted">
                 O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.

@@ -48,7 +48,10 @@ const precacheBuild = (): Plugin => ({
   async writeBundle(options, bundle) {
     const files = Object.keys(bundle)
       .filter(
-        (f) => /^assets\/.+\.(js|css)$/.test(f) || /-latin-wght-normal-[\w-]+\.woff2$/.test(f),
+        (f) =>
+          // The login cat's animation is only needed signed out, so it is not precached.
+          (/^assets\/.+\.(js|css|webp)$/.test(f) && !f.includes("piscando")) ||
+          /-latin-wght-normal-[\w-]+\.woff2$/.test(f),
       )
       .sort()
       .map((f) => `/${f}`);

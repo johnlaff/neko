@@ -12,7 +12,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(SHELL)
-      .then((c) => c.addAll(["/", "/manifest.webmanifest", "/icon.svg", ...ASSETS]))
+      .then((c) => c.addAll(["/", "/manifest.webmanifest", "/favicon.png", ...ASSETS]))
       .then(() => self.skipWaiting()),
   );
 });
