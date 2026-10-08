@@ -28,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.contentDescription
@@ -177,6 +179,7 @@ private fun DayTile(
     onClick: () -> Unit,
 ) {
     val l = LocalLedger.current
+    val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(10.dp)
     Box(
         Modifier
@@ -193,7 +196,10 @@ private fun DayTile(
                     else -> Modifier
                 },
             )
-            .clickable(onClick = onClick)
+            .clickable {
+                if (!picked) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                onClick()
+            }
             .semantics(mergeDescendants = true) {
                 contentDescription = description
                 selected = picked

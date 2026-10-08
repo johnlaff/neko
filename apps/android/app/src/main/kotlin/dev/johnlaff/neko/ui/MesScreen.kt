@@ -19,6 +19,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -126,7 +128,14 @@ private fun MonthNav(m: MonthItem, prev: (() -> Unit)?, next: (() -> Unit)?) {
 @Composable
 private fun MonthArrow(icon: Int, label: String, go: (() -> Unit)?) {
     val l = LocalLedger.current
-    androidx.compose.material3.IconButton(onClick = { go?.invoke() }, enabled = go != null) {
+    val haptics = LocalHapticFeedback.current
+    androidx.compose.material3.IconButton(
+        onClick = {
+            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+            go?.invoke()
+        },
+        enabled = go != null,
+    ) {
         androidx.compose.material3.Icon(
             androidx.compose.ui.res.painterResource(icon),
             contentDescription = label,
