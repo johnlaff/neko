@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
@@ -269,6 +270,26 @@ private fun Insights(v: TodayView, onAjustes: () -> Unit) {
 
 private const val ShownAlerts = 2
 
+/** A month's wins in words, next to Neko celebrating: the recap on Hoje and a closed Mês. */
+@Composable
+internal fun WinsBox(wins: List<String>, cat: Dp) {
+    if (wins.isEmpty()) return
+    val l = LocalLedger.current
+    Row(
+        Modifier.fillMaxWidth()
+            .semantics(mergeDescendants = true) {}
+            .background(l.pos.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CelebratingCat(Modifier.height(cat).hop())
+        Spacer(Modifier.width(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            wins.forEach { Text(it, color = l.text, style = MaterialTheme.typography.titleSmall) }
+        }
+    }
+}
+
 /**
  * The month that just closed, as on the site: how it ended, what it kept, what it cost to live
  * and where most of it went. A plain panel: it informs, it does not warn.
@@ -279,22 +300,7 @@ internal fun RecapPanel(r: MonthRecap) {
     val before = Format.monthName(if (r.month == 1) 12 else r.month - 1)
     Panel {
         PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou")
-        val wins = r.wins.mapNotNull(Copy::win)
-        if (wins.isNotEmpty()) {
-            Row(
-                Modifier.fillMaxWidth()
-                    .semantics(mergeDescendants = true) {}
-                    .background(l.pos.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CelebratingCat(Modifier.height(64.dp).hop())
-                Spacer(Modifier.width(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    wins.forEach { Text(it, color = l.text, style = MaterialTheme.typography.titleSmall) }
-                }
-            }
-        }
+        WinsBox(r.wins.mapNotNull(Copy::win), 64.dp)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LedgerLine(
                 if (r.result < 0) "Faltou" else "Sobrou",

@@ -75,6 +75,16 @@ const wins = (months: readonly MonthView[], closed: MonthView): Win[] => {
   return out;
 };
 
+/**
+ * The wins of any closed month, as its recap showed them: the Mês screen keeps them after the
+ * recap leaves Hoje. Empty for a month the sheet has no lines for. The caller passes only
+ * closed months; this does not look at today.
+ */
+export const monthWins = (months: readonly MonthView[], year: number, month: number): Win[] => {
+  const closed = months.find((x) => x.year === year && x.month === month && moved(x));
+  return closed ? wins(months, closed) : [];
+};
+
 export const monthRecap = (months: readonly MonthView[], today: LocalDate): MonthRecap | null => {
   const { year, month, day } = parts(today);
   if (day > RECAP_DAYS) return null;

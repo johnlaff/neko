@@ -75,6 +75,11 @@ class ScreenshotTest {
         dev.johnlaff.neko.ui.ReservePanel(months.reserve!!, months.years.lastOrNull())
     }
 
+    /** A closed month keeps its wins: September 2025 ended in the blue and first covered a month. */
+    @Test fun mesFechado() = shot("mes-fechado-light", night = false) {
+        MesScreen(ScreenState(months.copy(current = "2025-09"))) {}
+    }
+
     @Test fun mesLight() = shot("mes-light", night = false) { MesScreen(ScreenState(months), Fakes.history) {} }
 
     @Test fun simularDark() = shot("simular-dark", night = true) {

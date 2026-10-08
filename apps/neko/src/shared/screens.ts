@@ -3,11 +3,13 @@ import {
   type Cents,
   type Fixed,
   type InstallmentSimulation,
+  monthWins,
   type Outflow,
   type Reserve,
   type Saving,
   simulateInstallments,
   type ThermoDay,
+  type Win,
   type YearTotals,
 } from "@neko/engine";
 import type { ProjectionResponse, UserSettings } from "./types.ts";
@@ -159,6 +161,8 @@ export interface MonthItem {
   readonly savedShare: number | null;
   /** Saída plus diário minus what was saved. */
   readonly livingCost: number;
+  /** What a closed month achieved, as its recap showed it; empty for the others. */
+  readonly wins: readonly Win[];
 }
 
 export interface MonthsView {
@@ -202,6 +206,7 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
       saved: m.saved,
       savedShare: m.savedShare,
       livingCost: m.livingCost,
+      wins: key < nowKey ? monthWins(p.months, m.year, m.month) : [],
     };
   });
   const current = months.find((m) => m.key === nowKey) ?? months[0];

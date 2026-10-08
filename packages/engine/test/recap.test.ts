@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cents, localDate, type MonthView, monthRecap } from "../src/index.ts";
+import { cents, localDate, type MonthView, monthRecap, monthWins } from "../src/index.ts";
 
 const month = (year: number, m: number, livingCost: number, extra: Partial<MonthView> = {}) =>
   ({
@@ -92,6 +92,25 @@ describe("monthRecap", () => {
       ];
       expect(winsOn(ms)).toEqual([{ kind: "reserve", months: 3 }]);
       expect(winsOn(ms.slice(0, 2), "2026-09-02")).toEqual([]);
+    });
+  });
+
+  describe("monthWins: a closed month keeps its wins after the recap leaves Hoje", () => {
+    const at = (y: number, m: number, extra: Partial<MonthView>) => month(y, m, 3000_00, extra);
+
+    it("reads only the months up to the one asked, as its recap did", () => {
+      const ms = [at(2026, 7, {}), at(2026, 8, { savedShare: 25 }), at(2026, 9, {})];
+      expect(monthWins(ms, 2026, 8)).toEqual([
+        { kind: "blue", months: 2 },
+        { kind: "kept", share: 25 },
+      ]);
+      expect(monthWins(ms, 2026, 9)).toEqual(monthRecap(ms, localDate("2026-10-03"))?.wins);
+    });
+
+    it("has none for a month the sheet has no lines for, or does not have", () => {
+      const empty = month(2026, 9, 0, { entrada: cents(0) });
+      expect(monthWins([empty], 2026, 9)).toEqual([]);
+      expect(monthWins([at(2026, 9, {})], 2026, 5)).toEqual([]);
     });
   });
 });
