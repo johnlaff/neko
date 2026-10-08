@@ -61,7 +61,7 @@ fun MesScreen(state: ScreenState<MonthsView>, history: HistoryView? = null, onRe
         if (m == null) {
             item {
                 Panel {
-                    Mascot(Pose.Searching, Modifier.height(96.dp))
+                    QuietMark(64.dp)
                     Text("A planilha não tem meses para mostrar.", color = LocalLedger.current.muted)
                 }
             }
@@ -203,7 +203,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             }
         }
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
-        WinsBox(m.wins, 48.dp, "${capitalize(monthName(m.month))} de ${m.year}")
+        WinsBox(m.wins, "${capitalize(monthName(m.month))} de ${m.year}")
         TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger }, open = ledger)
         Reveal(ledger) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

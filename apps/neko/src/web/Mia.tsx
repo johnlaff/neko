@@ -2,9 +2,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Fragment, useId, useState } from "react";
 import { ApiError, api, type MiaReply } from "./api.ts";
+import { BrandMark } from "./BrandMark.tsx";
 import { money, shortDate } from "./format.ts";
 import { IconChevron } from "./icons.tsx";
-import { Mascot } from "./Mascot.tsx";
 
 /** Questions Mia answers well, one tap each (specs/004-mia). */
 export const MIA_SUGGESTIONS = [
@@ -99,7 +99,7 @@ export const Mia = () => {
         aria-controls={`${id}-panel`}
         onClick={() => setOpen(!open)}
       >
-        <Mascot pose="miaTeaching" height={40} />
+        <BrandMark width={40} className="mia-mark" />
         <span className="alert-text">
           <strong>Perguntar à Mia</strong>
           <span>Respostas com os números da sua planilha</span>

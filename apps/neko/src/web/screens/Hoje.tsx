@@ -13,6 +13,7 @@ import { useState } from "react";
 import { HEALTH_DAYS, issueKey, noteLine, SAVE_LEAD } from "../../shared/today.ts";
 import type { BankView } from "../../shared/types.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
+import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
@@ -36,7 +37,6 @@ import {
   IconReceipt,
 } from "../icons.tsx";
 import { HINTS } from "../learn.ts";
-import { Mascot } from "../Mascot.tsx";
 import { Mia } from "../Mia.tsx";
 import { Simulator } from "../Pace.tsx";
 import { milestoneText, Streak } from "../Streak.tsx";
@@ -411,7 +411,7 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
           Ver o mês
         </Link>
       </div>
-      <Wins wins={r.wins} year={r.year} month={r.month} cat={64} />
+      <Wins wins={r.wins} year={r.year} month={r.month} />
       <dl className="ledger">
         <dt>{r.result < 0 ? "Faltou" : "Sobrou"}</dt>
         <dd className={r.result > 0 ? "pos" : r.result < 0 ? "neg" : undefined}>
@@ -437,7 +437,6 @@ const MilestoneCard = ({ title, text }: { title: string; text: string }) => (
   <ul className="alerts" aria-label="Sequência">
     <li>
       <div className="alert good milestone">
-        <Mascot pose="celebrating" height={56} className="milestone-cat" />
         <span className="alert-text" role="status">
           <strong>{title}</strong>
           <span>{text}</span>
@@ -522,7 +521,7 @@ export const Hoje = () => (
             </section>
           ) : (
             <section className="page-head empty-cards">
-              <Mascot pose="searching" height={96} />
+              <BrandMark width={64} className="quiet-mark" />
               <h2>Nenhum cartão na planilha</h2>
               <p className="muted">
                 O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.

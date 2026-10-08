@@ -142,7 +142,7 @@ fun Hint(id: String, text: String) {
             .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ThinkingMia(Modifier.height(52.dp))
+            TipMark()
             Text(text, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(vertical = 8.dp))
             if (!stacked) TextAction("Entendi", { Hints.dismiss(context, id) }, l.text)
         }

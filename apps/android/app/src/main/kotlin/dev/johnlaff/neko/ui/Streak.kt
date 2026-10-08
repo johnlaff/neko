@@ -75,11 +75,6 @@ fun Streak(h: Habit) {
                 Text(Learn.streakLabel(h.streak), style = MaterialTheme.typography.titleMedium)
                 if (h.editedToday) Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
             }
-            // The day is on the sheet: Neko purrs, right where the habit is counted.
-            if (h.editedToday) {
-                Mascot(Pose.Content, Modifier.height(40.dp).hop())
-                Spacer(Modifier.width(8.dp))
-            }
             Icon(
                 painterResource(R.drawable.ic_chevron_right),
                 contentDescription = null,
