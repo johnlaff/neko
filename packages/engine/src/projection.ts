@@ -1,5 +1,5 @@
 import { checkBalances } from "./balance.ts";
-import { type Fixed, monthFixed, monthOutflows, type Outflow } from "./breakdown.ts";
+import { type Fixed, monthFixed, monthOutflows, type Outflow, UNITEMIZED } from "./breakdown.ts";
 import {
   billOnSheet,
   type CardConfig,
@@ -476,6 +476,14 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
         kind: "income",
       });
     }
+    // What the cell holds beyond its note lines still moves the balance, so it is listed too.
+    const rest = (c: typeof row.saida) => sub(c.amount, add(ZERO, ...c.items.map((i) => i.amount)));
+    const outRest = rest(row.saida);
+    if (outRest > 0)
+      upcoming.push({ date: row.date, description: UNITEMIZED, amount: outRest, kind: "bill" });
+    const inRest = rest(row.entrada);
+    if (inRest > 0)
+      upcoming.push({ date: row.date, description: UNITEMIZED, amount: inRest, kind: "income" });
   }
 
   const bills: BillLine[] = [];

@@ -1,6 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { cents, inferCards, localDate, mergeCards, project } from "@neko/engine";
+import {
+  cents,
+  inferCards,
+  isCardItem,
+  localDate,
+  mergeCards,
+  normalizeName,
+  project,
+} from "@neko/engine";
 import { type ApiSpreadsheet, readSpreadsheet } from "@neko/sheet-reader";
 import { describe, expect, it } from "vitest";
 import { ajustesView, invoicesView, monthsView } from "../src/shared/screens.ts";
@@ -51,6 +59,41 @@ describe.runIf(available)("the real sheet", () => {
   });
   it("knows the cards behind the bills", () => {
     expect(projection.cards.length).toBeGreaterThanOrEqual(2);
+  });
+  it("shows every day's balance and moves exactly as the cells have them", () => {
+    const byDate = new Map(ledger.map((r) => [r.date, r]));
+    for (const m of projection.months) {
+      const key = `${m.year}-${String(m.month).padStart(2, "0")}`;
+      const rows = ledger.filter((r) => r.date.startsWith(key));
+      const sum = (f: (r: (typeof rows)[number]) => number) => rows.reduce((a, r) => a + f(r), 0);
+      expect([m.entrada, m.saida, m.diario], key).toEqual([
+        sum((r) => r.entrada.amount),
+        sum((r) => r.saida.amount),
+        sum((r) => r.diario.amount),
+      ]);
+      for (const d of m.days) {
+        const date = `${key}-${String(d.day).padStart(2, "0")}`;
+        const row = byDate.get(date);
+        expect(d.balance, date).toBe(row?.saldo);
+        const moved = (income: boolean) =>
+          d.moves.filter((v) => (v.kind === "income") === income).reduce((a, v) => a + v.amount, 0);
+        expect([moved(true), moved(false)], date).toEqual([
+          row?.entrada.amount,
+          (row?.saida.amount ?? 0) + (row?.diario.amount ?? 0),
+        ]);
+      }
+    }
+  });
+  it("puts each card's due day where its latest bill sits", () => {
+    for (const c of projection.cards) {
+      const name = normalizeName(c.card.name);
+      const last = ledger
+        .filter((r) =>
+          r.saida.items.some((i) => isCardItem(i) && normalizeName(i.description) === name),
+        )
+        .at(-1);
+      expect(last && Number(last.date.slice(8)), c.card.name).toBe(c.card.dueDay);
+    }
   });
 });
 

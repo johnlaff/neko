@@ -26,7 +26,7 @@ import { accessToken, fileVersion, spreadsheet, tabs } from "./google.ts";
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "31";
+const PIPELINE_VERSION = "32";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
