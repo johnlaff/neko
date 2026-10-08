@@ -94,6 +94,30 @@ describe("monthRecap", () => {
       expect(winsOn(ms.slice(0, 2), "2026-09-02")).toEqual([]);
     });
 
+    it("marks own card bills paid in the month at least 5% below the month before's", () => {
+      const card = (label: string, amount: number, others = false) => ({
+        label,
+        amount: cents(amount),
+        count: 1,
+        kind: "card",
+        change: null,
+        countBefore: null,
+        others,
+      });
+      const ms = (aug: object[], sep: object[]) => [
+        at(2026, 8, { outflows: aug, result: cents(-1) } as Partial<MonthView>),
+        at(2026, 9, { outflows: sep, result: cents(-1) } as Partial<MonthView>),
+      ];
+      const down = { kind: "cards-down" };
+      // 3.000 to 2.800 is a step down; the partner's card does not count either way.
+      expect(
+        winsOn(ms([card("Azul", 3000_00)], [card("Azul", 2800_00), card("Gio", 900_00, true)])),
+      ).toEqual([down]);
+      // Under 5% is noise, and no card the month before has nothing to compare.
+      expect(winsOn(ms([card("Azul", 3000_00)], [card("Azul", 2900_00)]))).toEqual([]);
+      expect(winsOn(ms([], [card("Azul", 100_00)]))).toEqual([]);
+    });
+
     it("marks a record share kept, once there are three months before it to beat", () => {
       const ms = [
         at(2026, 5, { savedShare: 12 }),
