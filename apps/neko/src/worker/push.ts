@@ -52,6 +52,11 @@ const winsDay = (p: ProjectionResponse["projection"]) => {
   if (!r || !first || !p.today.endsWith("-01")) return "";
   return ` ${MONTH_NAMES[r.month - 1]} fechou: ${winText(first).replace(/^./, (c) => c.toLowerCase())}.`;
 };
+/** Sunday morning: the week that just closed, as a fact, only when something was logged. */
+const weekDay = ({ projection: p, habit }: ProjectionResponse) =>
+  habit?.lastWeek && habit.week[0]?.date === p.today
+    ? ` Semana passada: ${habit.lastWeek} de 7 dias lançados.`
+    : "";
 // Intl puts a non-breaking space after R$; a plain space reads the same in a notification.
 const money = (c: Parameters<typeof formatBRL>[0]) => formatBRL(c).replace(/\s/g, " ");
 
@@ -61,19 +66,20 @@ const closingText = (cs: { closing: string; daysLeft: number }) =>
     : `A fatura fecha em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`;
 
 /** 08:00: how much fits today on the usual card. */
-export const morningMessage = ({ projection: p }: ProjectionResponse): Reminder | null => {
+export const morningMessage = (data: ProjectionResponse): Reminder | null => {
+  const p = data.projection;
   const cs = p.canSpend;
   if (!cs) return null;
   if (cs.perDay < 0)
     return {
       title: `O ${cs.card} passou ${money(sub(cs.accumulated, cs.budget))} do plano do ciclo`,
-      body: `${closingText(cs)}${redDay(p)}${savingDay(p)}${winsDay(p)}`,
+      body: `${closingText(cs)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}`,
       url: "/",
       tag: "morning",
     };
   return {
     title: `Hoje cabem ${money(cs.perDay)} no ${cs.card}`,
-    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${redDay(p)}${savingDay(p)}${winsDay(p)}`,
+    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}`,
     url: "/",
     tag: "morning",
   };

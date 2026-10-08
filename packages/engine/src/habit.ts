@@ -31,6 +31,8 @@ export interface Habit {
   readonly next: number | null;
   /** First day an edit was seen; null with none. */
   readonly since: LocalDate | null;
+  /** Days logged last week (Sunday to Saturday); null until a whole week was watched. */
+  readonly lastWeek: number | null;
 }
 
 /** Day of the week, 0 = Sunday. */
@@ -79,6 +81,12 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
     const s = date > today ? "future" : (state.get(date) ?? (date === today ? "today" : "missed"));
     return { date, state: s };
   });
+  const lastStart = addDays(start, -7);
+  const lastWeek =
+    since !== null && since <= lastStart
+      ? Array.from({ length: 7 }, (_, i) => addDays(lastStart, i)).filter((x) => edited.has(x))
+          .length
+      : null;
   const recent = lastEdit !== null && diffDays(lastEdit, today) <= 1 && run === runAtLastEdit;
   return {
     streak: run,
@@ -91,5 +99,6 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
         : null,
     next: HABIT_MILESTONES.find((m) => m > run) ?? null,
     since,
+    lastWeek,
   };
 };

@@ -27,6 +27,19 @@ const response = (over: Partial<ProjectionResponse["projection"]> = {}) =>
   }) as unknown as ProjectionResponse;
 
 describe("reminders", () => {
+  it("morning: on Sunday, the week that just closed, when something was logged", () => {
+    const sunday = [{ date: "2026-10-04" }];
+    const withWeek = (lastWeek: number | null, week = sunday) =>
+      morningMessage({ ...response(), habit: { lastWeek, week } } as never)?.body;
+    expect(withWeek(6)).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias. Semana passada: 6 de 7 dias lançados.",
+    );
+    expect(withWeek(1)).toMatch(/Semana passada: 1 de 7 dias lançados\.$/);
+    expect(withWeek(0)).not.toMatch(/Semana passada/);
+    expect(withWeek(null)).not.toMatch(/Semana passada/);
+    expect(withWeek(6, [{ date: "2026-09-27" }])).not.toMatch(/Semana passada/);
+  });
+
   it("morning: today's allowance on the usual card, opening Neko", () => {
     expect(morningMessage(response())).toEqual({
       title: "Hoje cabem R$ 176,66 no Visa",
