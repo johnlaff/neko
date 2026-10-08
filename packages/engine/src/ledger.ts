@@ -8,7 +8,7 @@ export type Column = "entrada" | "saida" | "diario";
 export interface NoteItem {
   readonly amount: Cents;
   readonly description: string;
-  /** Normalized header such as `cartoes`, `faturas`, `contas`, `investimentos`; null if none. */
+  /** Normalized header such as `cartoes`, `faturas`, `contas`, `reserva`; null if none. */
   readonly section: string | null;
 }
 

@@ -17,6 +17,8 @@ export interface ReserveMonth {
   readonly saida: Cents;
   readonly diario: Cents;
   readonly saved: Cents;
+  readonly savedToDate: Cents;
+  readonly entradaToDate: Cents;
   readonly livingCost: Cents;
 }
 
@@ -27,7 +29,7 @@ export interface Reserve {
   readonly costMonths: number;
   readonly min: Cents;
   readonly max: Cents;
-  /** Saída under `Investimento:` up to the current month: what the sheet shows as kept. */
+  /** Saída under `Reserva:` dated up to today: what the sheet shows as kept, nothing planned. */
   readonly kept: Cents;
   /** kept / cost, in tenths of a month, rounded down. */
   readonly coveredTenths: number;
@@ -54,7 +56,7 @@ export const reserve = (
   if (recent.length === 0) return null;
   const cost = divFloor(add(...recent.map((m) => m.livingCost)), recent.length);
   if (cost <= 0) return null;
-  const kept = add(ZERO, ...months.filter((m) => key(m) <= now).map((m) => m.saved));
+  const kept = add(ZERO, ...months.filter((m) => key(m) <= now).map((m) => m.savedToDate));
   return {
     cost,
     costMonths: recent.length,
@@ -65,11 +67,14 @@ export const reserve = (
   };
 };
 
-/** The sheet's Economia tab for one year: every month of it, as the tab's formulas sum them. */
+/**
+ * One year's entradas and what was kept, as the Economia tab adds them up, but only from lines
+ * dated up to today: planned lines later in the year are not money kept yet.
+ */
 export const yearTotals = (months: readonly ReserveMonth[], year: number): YearTotals => {
   const of = months.filter((m) => m.year === year);
-  const entrada = add(ZERO, ...of.map((m) => m.entrada));
-  const saved = add(ZERO, ...of.map((m) => m.saved));
+  const entrada = add(ZERO, ...of.map((m) => m.entradaToDate));
+  const saved = add(ZERO, ...of.map((m) => m.savedToDate));
   return {
     year,
     entrada,

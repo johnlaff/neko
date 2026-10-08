@@ -74,32 +74,43 @@ describe("credit mode projection", () => {
   });
 
   it("separates what the month saved from what it cost, as the method's Economia does", () => {
-    // Nov: R$ 5.000 in; R$ 1.000 out, of which R$ 300 under "Investimento:" and R$ 200 under
-    // "INVESTIMENTOS"; R$ 150 of diário.
+    // Nov: R$ 5.000 in; R$ 1.200 out, of which R$ 300 under "Reserva:" and R$ 200 under
+    // "RESERVA DE EMERGÊNCIA"; R$ 150 of diário. A pension under "Investimento:" is a cost.
     const l = ledger("2026-10-01", 92, 10_000_00, {
       "2026-11-05": { entrada: cell(5000_00, [item(5000_00, "Salário", null)]) },
       "2026-11-06": {
-        saida: cell(1000_00, [
-          item(300_00, "Previdência", "investimento"),
-          item(200_00, "Tesouro", "investimentos"),
+        saida: cell(1200_00, [
+          item(300_00, "Poupança", "reserva"),
+          item(200_00, "Tesouro Selic", "reserva de emergencia"),
+          item(200_00, "Previdência", "investimento"),
           item(500_00, "Visa"),
         ]),
         diario: cell(150_00),
       },
     });
     const nov = project(l, today, settings()).months.find((m) => m.month === 11);
-    expect(nov).toMatchObject({ saved: 500_00, savedShare: 10, livingCost: 650_00 });
+    expect(nov).toMatchObject({ saved: 500_00, savedShare: 10, livingCost: 850_00 });
     // No income, no share: a ratio over nothing says nothing.
     const dec = project(l, today, settings()).months.find((m) => m.month === 12);
     expect(dec).toMatchObject({ saved: 0, savedShare: null, livingCost: 0 });
     // The Economia tab of the year, and the reserve once a month has closed.
     const all = project(l, today, settings());
-    expect(all.years).toEqual([{ year: 2026, entrada: 5000_00, saved: 500_00, savedShare: 10 }]);
+    // Every line is still ahead of today: nothing has come in or been kept yet.
+    expect(all.years).toEqual([{ year: 2026, entrada: 0, saved: 0, savedShare: null }]);
     expect(all.reserve).toBeNull();
-    expect(project(l, localDate("2026-12-10"), settings()).reserve).toMatchObject({
-      cost: 650_00,
-      kept: 500_00,
+    const december = project(l, localDate("2026-12-10"), settings());
+    expect(december.years).toEqual([
+      { year: 2026, entrada: 5000_00, saved: 500_00, savedShare: 10 },
+    ]);
+    expect(december.reserve).toMatchObject({ cost: 850_00, kept: 500_00 });
+    // On the 5th the deposits of the 6th are only planned: the month still shows them, the
+    // reserve does not count them yet.
+    const fifth = project(l, localDate("2026-11-05"), settings());
+    expect(fifth.months.find((m) => m.month === 11)).toMatchObject({
+      saved: 500_00,
+      savedToDate: 0,
     });
+    expect(fifth.years).toEqual([{ year: 2026, entrada: 5000_00, saved: 0, savedShare: 0 }]);
   });
 
   it("a configured cycle budget wins over diário × days", () => {

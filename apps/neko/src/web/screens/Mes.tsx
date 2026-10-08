@@ -330,7 +330,7 @@ export const Mes = () => {
         // and meaningless on months the sheet has no lines for.
         const moved = (x: MonthView) => x.entrada !== 0 || x.saida !== 0 || x.diario !== 0;
         const result = moved(m) ? (m.result ?? null) : null;
-        // Saída under an "Investimento:" header; missing on caches from before it existed.
+        // Saída under a "Reserva:" header; missing on caches from before it existed.
         const saved = m.saved ?? 0;
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         const wins = past ? monthWins(p.months, m.year, m.month) : [];
