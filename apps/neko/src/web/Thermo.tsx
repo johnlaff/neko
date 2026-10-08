@@ -5,9 +5,9 @@ import { money, monthName, shortDate, signed } from "./format.ts";
 import { IconCard, IconIncome, IconReceipt, IconToday } from "./icons.tsx";
 
 const BAND_LABEL: Record<Band, string> = {
-  negative: "Negativo",
-  attention: "Atenção",
-  healthy: "Saudável",
+  negative: "No vermelho",
+  attention: "Apertado",
+  healthy: "Folgado",
   surplus: "Sobrando",
 };
 const MOVE_ICON = {
@@ -117,7 +117,7 @@ export const Thermo = ({
   return (
     <section className="panel half thermo">
       <div className="panel-head">
-        <h2>Termômetro</h2>
+        <h2>Saldo dia a dia</h2>
         {shown ? (
           <span className="meta" aria-live="polite">
             {shown.day} {mon} ·{" "}
@@ -170,7 +170,7 @@ export const Thermo = ({
         {save && (
           <li>
             <i className="swatch dot" />
-            Dia de guardar
+            Guardar
           </li>
         )}
       </ul>

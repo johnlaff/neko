@@ -112,7 +112,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
         )
         m.result?.let { r ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${if (r < 0) "Prejuízo" else "Lucro"} ${if (m.past) "do mês" else "previsto"}", color = l.muted)
+                Text("${if (r < 0) "Falta" else "Sobra"} ${if (m.past) "do mês" else "prevista"}", color = l.muted)
                 Text(
                     money(kotlin.math.abs(r)),
                     style = MaterialTheme.typography.titleMedium,
@@ -145,8 +145,8 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             }
             m.result?.let { r ->
                 Text(
-                    "${if (r < 0) "Prejuízo" else "Lucro"} é quanto o saldo ${if (r < 0) "desceu" else "subiu"} no mês. " +
-                        "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer como prejuízo.",
+                    "${if (r < 0) "Falta" else "Sobra"} é quanto o saldo ${if (r < 0) "desceu" else "subiu"} no mês. " +
+                        "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com falta.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                 )

@@ -17,9 +17,8 @@ export const thermometer = (balance: Cents): Band =>
         : "surplus";
 
 /**
- * One thing that moved a day's balance. `forecast` is the diário Neko expects on the usual card's
- * bill due that day, `estimate` what another card's open bill should still add (description: the
- * card); an empty description is a cell amount without a note line.
+ * One thing that moved a day's balance, as the sheet has it; an empty description is a cell
+ * amount without a note line.
  */
 export interface DayMove {
   readonly kind: "income" | "bill" | "card" | "diario";
@@ -29,11 +28,11 @@ export interface DayMove {
 
 export interface ThermoDay {
   readonly day: number;
-  /** Projected balance at the end of the day: the sheet's, minus card forecast already due. */
+  /** Balance at the end of the day, as the sheet has it. */
   readonly balance: Cents;
   readonly band: Band;
   /** After today: a forecast, not what happened. */
   readonly future: boolean;
-  /** What moved the balance that day, in sheet order: Entrada, Saída, Diário, then forecast. */
+  /** What moved the balance that day, in sheet order: Entrada, Saída, Diário. */
   readonly moves: readonly DayMove[];
 }

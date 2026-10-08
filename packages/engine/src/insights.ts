@@ -17,6 +17,19 @@ export type Insight =
       /** The lowest balance in the horizon, and its day. */
       readonly deepest: Cents;
       readonly deepestDate: LocalDate;
+      /** Today's balance is already below zero. */
+      readonly already: boolean;
+      /** First day after `start` back at zero or above; null when not within the horizon. */
+      readonly until: LocalDate | null;
+    }
+  | {
+      /**
+       * A month ahead with neither day-to-day spending nor a card bill on the sheet: its balances
+       * only look good because the spending is missing.
+       */
+      readonly kind: "no-spending-ahead";
+      readonly year: number;
+      readonly month: number;
     }
   | {
       readonly kind: "bill-above-average";
@@ -38,6 +51,28 @@ export type Insight =
     };
 
 export const MAX_INSIGHTS = 3;
+
+/**
+ * The first month after today's, within the warning horizon, with no diário and no card bill of
+ * the owner's on the sheet. The method keeps the expected day-to-day spending on every day ahead
+ * (on the card bills, for who spends on credit); without it the balances there are too rosy.
+ */
+export const firstUnplannedMonth = (
+  months: readonly Pick<Projection["months"][number], "year" | "month" | "diario" | "outflows">[],
+  today: LocalDate,
+): { year: number; month: number } | null => {
+  const now = parts(today);
+  const at = months.findIndex((m) => m.year === now.year && m.month === now.month);
+  if (at < 0) return null;
+  const m = months
+    .slice(at + 1, at + MONTHS_AHEAD)
+    .find(
+      (m) =>
+        (m.diario ?? 0) === 0 &&
+        !(m.outflows ?? []).some((o) => o.kind === "card" && !o.others && o.amount > 0),
+    );
+  return m ? { year: m.year, month: m.month } : null;
+};
 /** How many months ahead, the current one included, a red day is worth a warning. */
 const MONTHS_AHEAD = 4;
 /** A bill counts as above average past both of these. */
@@ -57,14 +92,18 @@ export const insights = (p: Input): Insight[] => {
   const now = parts(p.today);
   const at = p.months.findIndex((m) => m.year === now.year && m.month === now.month);
 
-  // Only from a balance that is not already negative: then the warning is news, not noise.
-  if (at >= 0 && (p.balanceToday ?? 0) >= 0) {
+  if (at >= 0) {
     let start: LocalDate | null = null;
+    let until: LocalDate | null = null;
     let deepest: { date: LocalDate; balance: Cents } | null = null;
     for (const m of p.months.slice(at, at + MONTHS_AHEAD))
       for (const d of m.days ?? []) {
         const date = ymd(m.year, m.month, d.day);
-        if (date < p.today || d.balance >= 0) continue;
+        if (date < p.today) continue;
+        if (d.balance >= 0) {
+          if (start && !until) until = date;
+          continue;
+        }
         start ??= date;
         if (!deepest || d.balance < deepest.balance) deepest = { date, balance: d.balance };
       }
@@ -74,8 +113,13 @@ export const insights = (p: Input): Insight[] => {
         start,
         deepest: deepest.balance,
         deepestDate: deepest.date,
+        already: (p.balanceToday ?? 0) < 0,
+        until,
       });
   }
+
+  const unplanned = firstUnplannedMonth(p.months, p.today);
+  if (unplanned) out.push({ kind: "no-spending-ahead", ...unplanned });
 
   const usual = p.cards.find((c) => c.usual);
   if (usual && p.historyAverage !== null && p.openVsAverage !== null) {

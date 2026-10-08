@@ -8,9 +8,9 @@ import {
   isCardItem,
   normalizeName,
 } from "./cards.ts";
-import { addDays, diffDays, type LocalDate, parts } from "./date.ts";
+import { addDays, diffDays, type LocalDate, parts, ymd } from "./date.ts";
 import { type HealthIssue, missingBills, sheetHealth } from "./health.ts";
-import { type Insight, insights } from "./insights.ts";
+import { firstUnplannedMonth, type Insight, insights } from "./insights.ts";
 import type { CellRef, Ledger, NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, divFloor, mul, sub, ZERO } from "./money.ts";
 import { type Saving, saveable } from "./savings.ts";
@@ -504,6 +504,9 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
 
   const historyAverage = averageOf(history.filter((h) => h.amount !== 0).map((h) => h.amount));
 
+  const unplanned = firstUnplannedMonth(months, today);
+  const plannedUntil = unplanned && ymd(unplanned.year, unplanned.month, 1);
+
   const view: Omit<Projection, "insights"> = {
     today,
     balanceToday: byDate.has(today) ? sheetBalance(today) : null,
@@ -524,9 +527,10 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     health: [...sheetHealth(ledger), ...missingBills(ledger, settings.cards, today)].sort((a, b) =>
       a.date.localeCompare(b.date),
     ),
+    // Past a month with no spending on the sheet the balances are too rosy to save from.
     saving: saveable(
       ledger
-        .filter((row) => row.date >= today)
+        .filter((row) => row.date >= today && (plannedUntil === null || row.date < plannedUntil))
         .map((row) => ({
           date: row.date,
           balance: sheetBalance(row.date),

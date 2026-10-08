@@ -66,19 +66,30 @@ describe("saveable", () => {
 });
 
 describe("project → saving", () => {
+  const settings: Settings = {
+    dailyForecast: cents(0),
+    usualCard: null,
+    cycleBudget: null,
+    cards: [],
+    othersCards: [],
+  };
   it("reads the payday and balances from the ledger", () => {
-    const settings: Settings = {
-      dailyForecast: cents(0),
-      usualCard: null,
-      cycleBudget: null,
-      cards: [],
-      othersCards: [],
-    };
     const l = ledger("2026-10-01", 92, 2_000_00, {
       "2026-10-20": { entrada: cell(3_000_00, [item(3_000_00, "Salário")]) },
+      "2026-11-15": { diario: cell(100_00) },
+      "2026-12-15": { diario: cell(100_00) },
     });
     const p = project(l, localDate("2026-10-05"), settings);
     expect(p.saving?.date).toBe("2026-10-20");
     expect(p.saving?.income).toBe(3_000_00);
+  });
+
+  it("does not count on months ahead that have no spending on the sheet yet", () => {
+    const l = ledger("2026-10-01", 92, 2_000_00, {
+      "2026-10-20": { entrada: cell(3_000_00, [item(3_000_00, "Salário")]) },
+      "2026-12-15": { diario: cell(100_00) },
+    });
+    // November has neither diário nor a card bill: its balances would make the saving too big.
+    expect(project(l, localDate("2026-10-05"), settings).saving).toBeNull();
   });
 });

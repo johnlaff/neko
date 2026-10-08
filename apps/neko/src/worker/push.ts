@@ -22,13 +22,14 @@ const days = (n: number) => (n === 1 ? "1 dia" : `${n} dias`);
 /** Only the balance going red earns a line in the push; the rest waits in the app. */
 const redDay = (p: ProjectionResponse["projection"]) => {
   const red = (p.insights ?? []).find((i) => i.kind === "goes-negative");
-  return red?.kind === "goes-negative" ? ` O saldo fica negativo em ${shortDate(red.start)}.` : "";
+  if (red?.kind !== "goes-negative") return "";
+  return red.already
+    ? " O saldo está negativo."
+    : ` O saldo fica negativo em ${shortDate(red.start)}.`;
 };
 /** On payday, the method's saving (see engine `saveable`) is the one thing worth doing first. */
 const savingDay = (p: ProjectionResponse["projection"]) =>
-  p.saving && p.saving.date === p.today
-    ? ` Dia de guardar: dá para separar ${money(p.saving.amount)}.`
-    : "";
+  p.saving && p.saving.date === p.today ? ` Hoje dá para guardar ${money(p.saving.amount)}.` : "";
 // Intl puts a non-breaking space after R$; a plain space reads the same in a notification.
 const money = (c: Parameters<typeof formatBRL>[0]) => formatBRL(c).replace(/\s/g, " ");
 

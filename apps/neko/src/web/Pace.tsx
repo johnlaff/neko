@@ -109,13 +109,16 @@ export const Simulator = ({ cs, months }: { cs: CanSpend; months: readonly Month
             <p className="sim-outlook" aria-live="polite">
               {red ? (
                 <span className="bad">
-                  {capital(monthName(red.month))} termina no vermelho: {money(red.end)}
+                  {red.date
+                    ? `Fica no vermelho em ${shortDate(red.date)}: ${money(red.end)}`
+                    : `${capital(monthName(red.month))} termina no vermelho: ${money(red.end)}`}
                 </span>
               ) : (
                 sim.lowest && (
                   <span>
-                    Menor fim de mês: {monthLabel(sim.lowest.year, sim.lowest.month)},{" "}
-                    {money(sim.lowest.end)}
+                    {sim.lowest.date
+                      ? `Menor saldo: ${shortDate(sim.lowest.date)}, ${money(sim.lowest.end)}`
+                      : `Menor fim de mês: ${monthLabel(sim.lowest.year, sim.lowest.month)}, ${money(sim.lowest.end)}`}
                   </span>
                 )
               )}

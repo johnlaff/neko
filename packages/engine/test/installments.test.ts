@@ -57,13 +57,25 @@ describe("installments", () => {
       [12, 2_500_00, 1_700_00],
       [1, 2_000_00, 800_00],
     ]);
-    expect(s.lowest).toEqual({ year: 2027, month: 1, end: 800_00 });
+    expect(s.lowest).toEqual({ year: 2027, month: 1, end: 800_00, date: null });
     expect(s.firstNegative).toBeNull();
   });
 
   it("names the first month the purchase pushes into the red", () => {
     const s = simulateInstallments(cs, months, cents(6_000_00), 2);
-    expect(s.firstNegative).toEqual({ year: 2026, month: 12, end: -3_500_00 });
+    expect(s.firstNegative).toEqual({ year: 2026, month: 12, end: -3_500_00, date: null });
+  });
+
+  it("checks every day, not just month ends: a dip mid-month counts", () => {
+    const day = (d: number, balance: number) => ({ day: d, balance: cents(balance) });
+    const withDays = [
+      // Nov: R$ 300 on the 9th, R$ 900 from the 10th; the month ends at R$ 3.000 after salary.
+      { ...month(2026, 11, 3_000_00), days: [day(9, 300_00), day(10, 900_00), day(30, 3_000_00)] },
+    ] as unknown as MonthView[];
+    const s = simulateInstallments(cs, withDays, cents(1_000_00), 1);
+    // The parcel leaves on the 10th: the 9th is untouched, the 10th goes to −R$ 100.
+    expect(s.firstNegative).toEqual({ year: 2026, month: 11, end: -100_00, date: "2026-11-10" });
+    expect(s.lowest).toEqual({ year: 2026, month: 11, end: -100_00, date: "2026-11-10" });
   });
 
   it("keeps the due day valid in shorter months", () => {

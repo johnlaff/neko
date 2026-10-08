@@ -273,7 +273,7 @@ export const Mes = () => {
               {result !== null && (
                 <p className="figure-line performance">
                   <span className="muted">
-                    {result < 0 ? "Prejuízo" : "Lucro"} {past ? "do mês" : "previsto"}
+                    {result < 0 ? "Falta" : "Sobra"} {past ? "do mês" : "prevista"}
                   </span>
                   <strong className={result > 0 ? "pos" : result < 0 ? "neg" : undefined}>
                     {money(Math.abs(result))}
@@ -313,9 +313,9 @@ export const Mes = () => {
                 </dl>
                 {result !== null && (
                   <p>
-                    {result < 0 ? "Prejuízo" : "Lucro"} é quanto o saldo{" "}
+                    {result < 0 ? "Falta" : "Sobra"} é quanto o saldo{" "}
                     {result < 0 ? "desceu" : "subiu"} no mês. Dinheiro guardado também sai da conta,
-                    então um mês em que você economizou pode aparecer como prejuízo.
+                    então um mês em que você economizou pode aparecer com falta.
                   </p>
                 )}
                 {saved > 0 && (

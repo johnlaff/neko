@@ -140,14 +140,16 @@ fun Simulator(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (red != null) {
                     Text(
-                        "${capitalize(monthName(red.month))} termina no vermelho: ${money(red.end)}",
+                        red.date?.let { "Fica no vermelho em ${shortDate(it)}: ${money(red.end)}" }
+                            ?: "${capitalize(monthName(red.month))} termina no vermelho: ${money(red.end)}",
                         color = l.neg,
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 } else {
                     s.lowest?.let { lo ->
                         Text(
-                            "Menor fim de mês: ${monthLabel(lo.year, lo.month)}, ${money(lo.end)}",
+                            lo.date?.let { "Menor saldo: ${shortDate(it)}, ${money(lo.end)}" }
+                                ?: "Menor fim de mês: ${monthLabel(lo.year, lo.month)}, ${money(lo.end)}",
                             color = l.muted,
                             style = MaterialTheme.typography.bodyMedium,
                         )

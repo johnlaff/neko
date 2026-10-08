@@ -3,7 +3,15 @@ import { cents, insights, localDate, type Projection } from "../src/index.ts";
 
 type Month = Projection["months"][number];
 const month = (y: number, m: number, end: number, extra: Partial<Month> = {}): Month =>
-  ({ year: y, month: m, endProjected: cents(end), outflows: [], fixed: [], ...extra }) as Month;
+  ({
+    year: y,
+    month: m,
+    endProjected: cents(end),
+    diario: cents(100_00),
+    outflows: [],
+    fixed: [],
+    ...extra,
+  }) as Month;
 /** A month whose day `d` ends at `balances[d]`, or `rest` when not listed. */
 const daily = (y: number, m: number, rest: number, balances: Record<number, number> = {}) => {
   const n = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -41,11 +49,47 @@ describe("insights", () => {
         start: "2026-11-02",
         deepest: -2_739_94,
         deepestDate: "2026-11-10",
+        already: false,
+        until: "2026-11-04",
       },
     ]);
   });
 
-  it("stays quiet about red days already past, beyond four months, or from a red balance", () => {
+  it("from a red balance today, says until when and how deep", () => {
+    const months = [daily(2026, 10, 500_00, { 4: -10_00, 5: -50_00, 6: -80_00, 7: -20_00 })];
+    expect(insights({ ...base, months, balanceToday: cents(-50_00) })).toEqual([
+      {
+        kind: "goes-negative",
+        start: "2026-10-05",
+        deepest: -80_00,
+        deepestDate: "2026-10-06",
+        already: true,
+        until: "2026-10-08",
+      },
+    ]);
+  });
+
+  it("points at the first month ahead with no day-to-day spending and no card bill", () => {
+    const card = {
+      label: "Cartão Azul",
+      amount: cents(900_00),
+      count: 1,
+      kind: "card",
+      change: null,
+      countBefore: null,
+      others: false,
+    } as const;
+    const months = [
+      month(2026, 10, 500_00, { diario: cents(0) }),
+      month(2026, 11, 200_00, { diario: cents(0), outflows: [card] }),
+      month(2026, 12, 300_00, { diario: cents(0) }),
+    ];
+    expect(insights({ ...base, months })).toEqual([
+      { kind: "no-spending-ahead", year: 2026, month: 12 },
+    ]);
+  });
+
+  it("stays quiet about red days already past or beyond four months", () => {
     const past = [daily(2026, 10, 500_00, { 1: -50_00, 4: -10_00 })];
     expect(insights({ ...base, months: past })).toEqual([]);
     const far = [
@@ -56,8 +100,6 @@ describe("insights", () => {
       daily(2027, 2, 500_00, { 3: -1_00 }),
     ];
     expect(insights({ ...base, months: far })).toEqual([]);
-    const red = [daily(2026, 10, -500_00)];
-    expect(insights({ ...base, months: red, balanceToday: cents(-50_00) })).toEqual([]);
   });
 
   it("flags the usual bill only past R$ 100 and 15% above its average", () => {

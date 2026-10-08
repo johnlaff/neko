@@ -1,5 +1,5 @@
-import { clampedDay, type LocalDate, parts } from "./date.ts";
-import { add, type Cents, cents, divFloor, sub } from "./money.ts";
+import { clampedDay, type LocalDate, parts, ymd } from "./date.ts";
+import { add, type Cents, cents, divFloor, sub, ZERO } from "./money.ts";
 import type { CanSpend, MonthView, Simulation } from "./projection.ts";
 import { simulatePurchase } from "./projection.ts";
 
@@ -21,10 +21,12 @@ export interface MonthImpact {
   readonly endAfter: Cents;
 }
 
+/** A month's lowest balance once the parcels are due, and its day (null without daily data). */
 export interface MonthEnd {
   readonly year: number;
   readonly month: number;
   readonly end: Cents;
+  readonly date: LocalDate | null;
 }
 
 export interface InstallmentSimulation {
@@ -33,8 +35,9 @@ export interface InstallmentSimulation {
   readonly parcels: readonly { readonly due: LocalDate; readonly amount: Cents }[];
   /** Month ends from the first parcel's month on, before and after the purchase. */
   readonly months: readonly MonthImpact[];
+  /** The lowest day after the purchase, across those months. */
   readonly lowest: MonthEnd | null;
-  /** The first month the purchase takes below zero; null when none does. */
+  /** The first month the purchase takes some day below zero; null when none does. */
   readonly firstNegative: MonthEnd | null;
 }
 
@@ -69,12 +72,42 @@ export const simulateInstallments = (
         endAfter: sub(m.endSheet, add(...paid.map((p) => p.amount))),
       };
     });
-  const end = (m: MonthImpact): MonthEnd => ({ year: m.year, month: m.month, end: m.endAfter });
-  const lowest = impacts.reduce<MonthImpact | null>(
-    (lo, m) => (lo === null || m.endAfter < lo.endAfter ? m : lo),
+  const paidBy = (date: LocalDate) =>
+    add(ZERO, ...parcels.filter((p) => p.due <= date).map((p) => p.amount));
+  // Each day from the first parcel's due date on, as the sheet has it and with what is due so
+  // far: a red day mid-month is as real as a red month end.
+  const lows = months
+    .filter((m) => key(m.year, m.month) >= key(due.year, due.month))
+    .map((m) => {
+      const days = (m.days ?? [])
+        .map((d) => ({ date: ymd(m.year, m.month, d.day), balance: d.balance }))
+        .filter((d) => d.date >= (parcels[0]?.due ?? cs.due));
+      if (days.length === 0) {
+        const paid = paidBy(clampedDay(m.year, m.month, 31));
+        return {
+          year: m.year,
+          month: m.month,
+          before: m.endSheet,
+          end: sub(m.endSheet, paid),
+          date: null,
+        };
+      }
+      const after = days.map((d) => ({ date: d.date, end: sub(d.balance, paidBy(d.date)) }));
+      const low = after.reduce((lo, d) => (d.end < lo.end ? d : lo));
+      const before = Math.min(...days.map((d) => d.balance));
+      return { year: m.year, month: m.month, before, end: low.end, date: low.date };
+    });
+  const end = (m: (typeof lows)[number]): MonthEnd => ({
+    year: m.year,
+    month: m.month,
+    end: m.end,
+    date: m.date,
+  });
+  const lowest = lows.reduce<(typeof lows)[number] | null>(
+    (lo, m) => (lo === null || m.end < lo.end ? m : lo),
     null,
   );
-  const negative = impacts.find((m) => m.endAfter < 0 && m.endBefore >= 0);
+  const negative = lows.find((m) => m.end < 0 && m.before >= 0);
   return {
     cycle: simulatePurchase(cs, parcels[0]?.amount ?? amount),
     parcels,
