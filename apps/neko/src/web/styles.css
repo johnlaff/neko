@@ -1968,3 +1968,52 @@ button.ghost.small {
 .figure-line.performance {
   margin: 8px 0 0;
 }
+
+/* One-time tip: the idea behind the number above it, then gone for good */
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--pill-active);
+}
+.hint-text {
+  flex: 1;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.hint-ok {
+  flex: none;
+}
+/* Como funciona: a short list of ideas, each one tap away */
+.panel.list.learn details.formula {
+  padding: 12px 0;
+}
+.panel.list.learn details.formula:first-child {
+  padding-top: 16px;
+}
+button.setting.quiet {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 56px;
+  padding: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+}
+button.setting.quiet:hover {
+  background: transparent;
+  color: var(--text);
+}
+.panel.list.learn details.formula summary {
+  color: var(--text);
+  font-size: 0.9375rem;
+}
+.panel.list.learn details.formula p {
+  margin: 4px 0 0 22px;
+}

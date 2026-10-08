@@ -21,6 +21,7 @@ import {
   shortDate,
   signed,
 } from "../format.ts";
+import { Hint } from "../Hint.tsx";
 import {
   IconAlert,
   IconCard,
@@ -32,6 +33,7 @@ import {
   IconToday,
   IconTrendUp,
 } from "../icons.tsx";
+import { HINTS } from "../learn.ts";
 import { Simulator } from "../Pace.tsx";
 import { WithProjection } from "../useProjection.tsx";
 
@@ -391,6 +393,7 @@ export const Hoje = () => (
                   {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
                 </p>
               </details>
+              <Hint id="hoje">{HINTS.hoje}</Hint>
             </section>
           ) : (
             <section className="page-head">

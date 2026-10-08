@@ -142,6 +142,7 @@ private fun Hero(v: TodayView) {
                 .wrapContentHeight(),
         )
         Reveal(formula) { Formula(cs, v) }
+        Hint("hoje", Learn.HOJE)
     }
 }
 

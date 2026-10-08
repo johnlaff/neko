@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { api, type UserSettings } from "../api.ts";
 import { Devices } from "../Devices.tsx";
 import { toCents } from "../format.ts";
+import { resetHints } from "../Hint.tsx";
+import { IconChevron } from "../icons.tsx";
+import { IDEAS } from "../learn.ts";
 import { Reminders } from "../Reminders.tsx";
 import { ErrorBlock, Skeleton, useProjection } from "../useProjection.tsx";
 
@@ -267,6 +270,7 @@ export const Ajustes = () => {
         </div>
       </section>
       <Devices />
+      <HowItWorks />
       <section className="group" aria-label="Sessão">
         <div className="panel list">
           <button
@@ -281,5 +285,37 @@ export const Ajustes = () => {
         </div>
       </section>
     </>
+  );
+};
+
+/** Every idea the tips teach, one tap each, for whoever skipped a tip or wants it again. */
+const HowItWorks = () => {
+  const [reset, setReset] = useState(false);
+  return (
+    <section className="group" aria-labelledby="g-learn">
+      <h2 id="g-learn">Como funciona</h2>
+      <div className="panel list learn">
+        {IDEAS.map((idea) => (
+          <details key={idea.title} className="formula">
+            <summary>
+              <IconChevron />
+              {idea.title}
+            </summary>
+            <p>{idea.body}</p>
+          </details>
+        ))}
+        <button
+          type="button"
+          className="setting quiet"
+          disabled={reset}
+          onClick={() => {
+            resetHints();
+            setReset(true);
+          }}
+        >
+          {reset ? "As dicas voltam aos poucos" : "Rever dicas"}
+        </button>
+      </div>
+    </section>
   );
 };

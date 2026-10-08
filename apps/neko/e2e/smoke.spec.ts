@@ -59,3 +59,14 @@ test("the dock moves between the four tabs", async ({ page }) => {
   await page.getByRole("link", { name: "Mês" }).click();
   await expect(page).toHaveURL(/\/mes$/);
 });
+
+test("a tip shows one at a time and stays gone once dismissed", async ({ page }) => {
+  await open(page, "/");
+  const tip = page.getByRole("complementary", { name: "Dica" });
+  await expect(tip).toHaveCount(1);
+  await tip.getByRole("button", { name: "Entendi" }).click();
+  await expect(tip).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "Hoje" })).toBeAttached();
+  await expect(tip).toHaveCount(0);
+});

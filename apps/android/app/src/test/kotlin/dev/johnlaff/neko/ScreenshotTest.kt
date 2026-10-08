@@ -83,6 +83,8 @@ class ScreenshotTest {
     @Test fun loginDark() = shot("login-dark", night = true) { LoginScreen {} }
 
     private fun shot(name: String, night: Boolean, content: @androidx.compose.runtime.Composable () -> Unit) {
+        // Each screen shows its own first-time tip, whatever the test before it showed.
+        dev.johnlaff.neko.ui.Hints.reset(org.robolectric.RuntimeEnvironment.getApplication())
         org.robolectric.RuntimeEnvironment.setQualifiers(if (night) "+night" else "+notnight")
         // The app's window paints the background; a bare composition here would be transparent.
         compose.setContent {
