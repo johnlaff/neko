@@ -18,6 +18,8 @@ export const RESERVE_MARKS = [1, 3, 6, 12] as const;
 export const KEPT_GOAL = 20;
 /** Living months a closed month must follow before its share kept can be called a record. */
 export const RECORD_AFTER = 3;
+/** How much smaller the month's own card bills must be than the month before's to count. */
+export const CARDS_DOWN_SHARE = 0.05;
 
 /**
  * What the closed month achieved, celebrated once in its recap. Only outcomes the sheet shows,
@@ -32,6 +34,10 @@ export type Win =
   | {
       readonly kind: "record" /** The highest share of the income kept so far. */;
       readonly share: number;
+    }
+  | {
+      /** Own card bills paid in the month smaller than the month before's: each one a step. */
+      readonly kind: "cards-down";
     }
   | {
       readonly kind: "reserve" /** The highest mark first crossed this month. */;
@@ -71,6 +77,14 @@ const wins = (months: readonly MonthView[], closed: MonthView): Win[] => {
   if (share !== null && share > 0 && earlier.length >= RECORD_AFTER && share > Math.max(...earlier))
     out.push({ kind: "record", share });
   else if (share !== null && share >= KEPT_GOAL) out.push({ kind: "kept", share });
+  const cardsPaid = (m: MonthView) =>
+    add(ZERO, ...m.outflows.filter((o) => o.kind === "card" && !o.others).map((o) => o.amount));
+  const before = upTo.at(-2);
+  if (before) {
+    const was = cardsPaid(before);
+    if (was > 0 && cardsPaid(closed) <= was * (1 - CARDS_DOWN_SHARE))
+      out.push({ kind: "cards-down" });
+  }
   // The reserve as reserve.ts reads it: kept so far over today's cost of living (last 3 months).
   const recent = upTo.slice(-3);
   const cost = add(ZERO, ...recent.map((m) => m.livingCost));

@@ -2744,6 +2744,9 @@
         {
           "kind": "blue",
           "months": 5
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -3408,6 +3411,9 @@
         {
           "kind": "blue",
           "months": 6
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -4745,6 +4751,9 @@
         {
           "kind": "blue",
           "months": 1
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -6084,6 +6093,9 @@
         {
           "kind": "blue",
           "months": 3
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -7419,6 +7431,9 @@
         {
           "kind": "blue",
           "months": 5
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -8090,6 +8105,9 @@
         {
           "kind": "blue",
           "months": 6
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -9405,6 +9423,9 @@
         {
           "kind": "blue",
           "months": 8
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -10740,6 +10761,9 @@
         {
           "kind": "blue",
           "months": 10
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -12070,6 +12094,9 @@
         {
           "kind": "blue",
           "months": 1
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
@@ -12741,6 +12768,9 @@
         {
           "kind": "blue",
           "months": 2
+        },
+        {
+          "kind": "cards-down"
         }
       ]
     },
