@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.Fixed
 import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.MonthItem
@@ -64,18 +65,26 @@ fun MesScreen(state: ScreenState<MonthsView>, history: HistoryView? = null, onRe
 private fun MonthNav(m: MonthItem, prev: (() -> Unit)?, next: (() -> Unit)?) {
     val l = LocalLedger.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = { prev?.invoke() }, enabled = prev != null, modifier = Modifier.semantics { contentDescription = "Mês anterior" }) {
-            Text("‹", style = MaterialTheme.typography.headlineSmall, color = if (prev != null) l.text else l.border)
-        }
+        MonthArrow(R.drawable.ic_chevron_left, "Mês anterior", prev)
         Text(
             "${capitalize(monthName(m.month))} ${m.year}",
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = { next?.invoke() }, enabled = next != null, modifier = Modifier.semantics { contentDescription = "Próximo mês" }) {
-            Text("›", style = MaterialTheme.typography.headlineSmall, color = if (next != null) l.text else l.border)
-        }
+        MonthArrow(R.drawable.ic_chevron_right, "Próximo mês", next)
+    }
+}
+
+@Composable
+private fun MonthArrow(icon: Int, label: String, go: (() -> Unit)?) {
+    val l = LocalLedger.current
+    androidx.compose.material3.IconButton(onClick = { go?.invoke() }, enabled = go != null) {
+        androidx.compose.material3.Icon(
+            androidx.compose.ui.res.painterResource(icon),
+            contentDescription = label,
+            tint = if (go != null) l.text else l.border,
+        )
     }
 }
 

@@ -1,5 +1,9 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -71,7 +75,7 @@ fun LoginScreen(onSignedIn: () -> Unit) {
         Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Neko", style = MaterialTheme.typography.displayLarge)
+        Text("Neko", style = MaterialTheme.typography.displayLarge, modifier = Modifier.semantics { heading() })
         Spacer(Modifier.height(8.dp))
         Text("Sua planilha, lida todo dia.", color = l.muted, style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.height(32.dp))
@@ -98,7 +102,13 @@ fun LoginScreen(onSignedIn: () -> Unit) {
         }
         error?.let {
             Spacer(Modifier.height(12.dp))
-            Text(it, color = l.neg, style = MaterialTheme.typography.bodyMedium)
+            // Read out as it appears: the button gives no other sign that sign-in failed.
+            Text(
+                it,
+                color = l.neg,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
         }
         Spacer(Modifier.height(24.dp))
         Text(

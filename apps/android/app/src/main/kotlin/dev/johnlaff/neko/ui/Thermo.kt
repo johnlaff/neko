@@ -179,7 +179,8 @@ private fun DayTile(
     Box(
         Modifier
             .fillMaxWidth()
-            .aspectRatio(5f / 4f)
+            // Square: as tall as the column allows, closer to a finger's size than a wide strip.
+            .aspectRatio(1f)
             .then(if (picked) Modifier.border(2.dp, l.muted, shape) else Modifier)
             .padding(if (picked) 3.dp else 0.dp)
             .background(if (future) Color.Transparent else lerp(l.surface, l.text, 0.05f), shape)
