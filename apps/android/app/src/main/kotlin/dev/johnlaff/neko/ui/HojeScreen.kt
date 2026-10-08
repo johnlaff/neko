@@ -428,14 +428,20 @@ private fun Day(d: UpcomingDay, today: String) {
         // A band names the day, as on the site; its total only when it adds up more than one line.
         Row(
             Modifier.fillMaxWidth().background(l.surface2, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(relativeDay(d.date, today), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
+            // The day name wraps first; the total keeps its figure on one line.
+            Text(
+                relativeDay(d.date, today),
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.weight(1f),
+            )
             if (d.items.size > 1) {
                 Text(
                     signed(kotlin.math.abs(d.net), if (d.net > 0) '+' else '−'),
                     color = if (d.net > 0) l.pos else l.muted,
                     style = MaterialTheme.typography.labelLarge,
+                    softWrap = false,
                 )
             }
         }

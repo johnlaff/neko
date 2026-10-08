@@ -3,6 +3,8 @@ package dev.johnlaff.neko.ui
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -130,16 +133,23 @@ fun Hint(id: String, text: String) {
     if (!Hints.showing(context, id)) return
     LaunchedEffect(id) { Hints.claim(id) }
     val l = LocalLedger.current
-    Row(
+    // Large text: "Entendi" drops under the tip instead of squeezing it into a narrow column.
+    val stacked = LocalDensity.current.fontScale >= 1.3f
+    Column(
         Modifier
             .fillMaxWidth()
             .background(l.surface2, RoundedCornerShape(12.dp))
             .padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ThinkingMia(Modifier.height(52.dp))
-        Text(text, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(vertical = 8.dp))
-        TextAction("Entendi", { Hints.dismiss(context, id) }, l.text)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ThinkingMia(Modifier.height(52.dp))
+            Text(text, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(vertical = 8.dp))
+            if (!stacked) TextAction("Entendi", { Hints.dismiss(context, id) }, l.text)
+        }
+        if (stacked) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                TextAction("Entendi", { Hints.dismiss(context, id) }, l.text)
+            }
+        }
     }
 }
