@@ -52,12 +52,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -95,6 +105,14 @@ fun <T> ScreenFrame(
     val v = state.view
     val pull = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
     val refreshing = state.loading && v != null
+    // A pull ends with a feel of how it went: done, or it could not read the sheet.
+    var pulled by remember { mutableStateOf(false) }
+    LaunchedEffect(state.loading) {
+        if (pulled && !state.loading) {
+            pulled = false
+            haptics.performHapticFeedback(if (state.error == null) HapticFeedbackType.Confirm else HapticFeedbackType.Reject)
+        }
+    }
     PullToRefreshBox(
         isRefreshing = refreshing,
         state = pull,
@@ -112,14 +130,16 @@ fun <T> ScreenFrame(
         onRefresh = {
             // The pull let go past the line: a tick says the read started.
             haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+            pulled = true
             onRefresh()
         },
         modifier = Modifier.fillMaxSize().background(l.bg),
     ) {
         LazyColumn(
             // A phone-width column on tablets and in landscape, not a stretched one.
-            Modifier.fillMaxHeight().widthIn(max = MAX_WIDTH).fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding(),
-            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = DOCK_ROOM),
+            Modifier.fillMaxHeight().padding(start = if (LocalRail.current) RAIL_ROOM else 0.dp)
+                .widthIn(max = MAX_WIDTH).fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding(),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (LocalRail.current) 16.dp else DOCK_ROOM),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
@@ -208,50 +228,70 @@ private fun ErrorPanel(state: ScreenState<*>, onRetry: () -> Unit) {
     }
 }
 
-/** The floating pill dock, the site's: the current place in sage, the others quiet. */
+/** True on a wide window (tablet, unfolded phone, desktop): the dock stands on the left as a rail. */
+val LocalRail = staticCompositionLocalOf { false }
+
+/** Width from which the dock becomes a rail, Material's "expanded" window class. */
+val RAIL_FROM = 840.dp
+private val RAIL_ROOM = 128.dp
+
+/**
+ * The floating pill dock, the site's: the current place in sage, the others quiet. On a wide
+ * window it stands on the left, top to bottom, where the thumb and the eye don't reach across.
+ */
 @Composable
 fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     val l = LocalLedger.current
     val haptics = LocalHapticFeedback.current
-    val shape = RoundedCornerShape(50)
+    val rail = LocalRail.current
+    val shape = RoundedCornerShape(if (rail) 28.dp else 50.dp)
     // Tab names grow with the system text up to 130%: past that the four no longer fit one line,
     // and the screens above already carry the large text.
     val scale = LocalDensity.current.fontScale
     val label = MaterialTheme.typography.labelLarge.fontSize * (minOf(scale, 1.3f) / scale)
-    Row(
-        modifier
-            .navigationBarsPadding()
-            .padding(bottom = 12.dp)
-            .background(l.surface, shape)
-            .border(1.dp, l.border, shape)
-            .selectableGroup()
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Tab.entries.forEach { tab ->
-            val on = tab == current
-            val pill by animateColorAsState(if (on) l.surface2 else Color.Transparent, tween(200), label = "pill")
-            val ink by animateColorAsState(if (on) l.text else l.muted, tween(200), label = "ink")
-            Text(
-                tab.label,
-                color = ink,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                    fontSize = label,
-                ),
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier
-                    .background(pill, shape)
-                    .clickable(role = Role.Tab) {
-                        if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        onSelect(tab)
-                    }
-                    .semantics { selected = on }
-                    .heightIn(min = 48.dp)
-                    .wrapContentHeight()
-                    .padding(horizontal = 16.dp),
-            )
+    val item: @Composable (Tab, Modifier) -> Unit = { tab, m ->
+        val on = tab == current
+        val pill by animateColorAsState(if (on) l.surface2 else Color.Transparent, tween(200), label = "pill")
+        val ink by animateColorAsState(if (on) l.text else l.muted, tween(200), label = "ink")
+        Text(
+            tab.label,
+            color = ink,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                fontSize = label,
+            ),
+            maxLines = 1,
+            softWrap = false,
+            modifier = m
+                .background(pill, RoundedCornerShape(50))
+                .clickable(role = Role.Tab) {
+                    if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    onSelect(tab)
+                }
+                .semantics { selected = on }
+                .heightIn(min = 48.dp)
+                .wrapContentHeight()
+                .padding(horizontal = 16.dp),
+        )
+    }
+    val frame = Modifier
+        .background(l.surface, shape)
+        .border(1.dp, l.border, shape)
+        .selectableGroup()
+        .padding(4.dp)
+    if (rail) {
+        Column(
+            modifier.safeDrawingPadding().padding(start = 12.dp).width(IntrinsicSize.Max).then(frame),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Tab.entries.forEach { item(it, Modifier.fillMaxWidth()) }
+        }
+    } else {
+        Row(
+            modifier.navigationBarsPadding().padding(bottom = 12.dp).then(frame),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Tab.entries.forEach { item(it, Modifier) }
         }
     }
 }
@@ -310,7 +350,7 @@ fun monogram(name: String): String {
 @Composable
 fun Meter(share: Float, modifier: Modifier = Modifier, color: Color = LocalLedger.current.muted) {
     val l = LocalLedger.current
-    val grow = arrival(600)
+    val grow = arrival(400)
     Box(modifier.fillMaxWidth().height(4.dp).background(l.surface2, RoundedCornerShape(2.dp))) {
         Box(Modifier.fillMaxWidth(share.coerceIn(0f, 1f) * grow).height(4.dp).background(color, RoundedCornerShape(2.dp)))
     }
@@ -335,12 +375,27 @@ fun Columns(items: List<Bar>, onSelect: (String) -> Unit, guide: Long? = null, m
     val top = maxOf(0L, items.maxOfOrNull { it.value } ?: 0L, guide ?: 0L)
     val bottom = minOf(0L, items.minOfOrNull { it.value } ?: 0L)
     val span = (top - bottom).coerceAtLeast(1L).toFloat()
+    val haptics = LocalHapticFeedback.current
+    val pick = rememberUpdatedState { n: Int ->
+        items.getOrNull(n)?.takeIf { !it.accent }?.let {
+            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            onSelect(it.key)
+        }
+    }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.fillMaxWidth().height(96.dp)) {
-            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // Each column's whole slot is its target, with no gaps, and a finger can slide across
+            // them to read one after another.
+            Row(
+                Modifier.fillMaxSize().pointerInput(items.size) {
+                    detectHorizontalDragGestures { change, _ ->
+                        pick.value((change.position.x / size.width * items.size).toInt().coerceIn(0, items.size - 1))
+                    }
+                },
+            ) {
                 items.forEachIndexed { n, c ->
                     // Columns grow from the zero line one after another, like the site's.
-                    val grow = arrival(520, delay = n * 35)
+                    val grow = arrival(360, delay = n * 15)
                     val color = when {
                         c.accent -> l.accent
                         c.faint -> l.border
@@ -348,7 +403,7 @@ fun Columns(items: List<Bar>, onSelect: (String) -> Unit, guide: Long? = null, m
                     }
                     Canvas(
                         Modifier.weight(1f).fillMaxSize()
-                            .clickable { onSelect(c.key) }
+                            .clickable { pick.value(n) }
                             .semantics { contentDescription = c.description; selected = c.accent },
                     ) {
                         val zero = size.height * (top / span)
@@ -356,8 +411,8 @@ fun Columns(items: List<Bar>, onSelect: (String) -> Unit, guide: Long? = null, m
                         val y = if (c.value >= 0) zero - h else zero
                         drawRoundRect(
                             color,
-                            topLeft = Offset(size.width * 0.15f, y),
-                            size = androidx.compose.ui.geometry.Size(size.width * 0.7f, h.coerceAtLeast(2f)),
+                            topLeft = Offset(size.width * 0.2f, y),
+                            size = androidx.compose.ui.geometry.Size(size.width * 0.6f, h.coerceAtLeast(2f)),
                             cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f, 6f),
                         )
                     }
@@ -376,14 +431,15 @@ fun Columns(items: List<Bar>, onSelect: (String) -> Unit, guide: Long? = null, m
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            items.forEach { c ->
+        Row(Modifier.fillMaxWidth()) {
+            items.forEachIndexed { n, c ->
                 Text(
                     c.label,
                     color = if (c.accent) l.text else l.faint,
                     style = MaterialTheme.typography.labelMedium,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f),
+                    // The label belongs to its column: tapping it picks the same month.
+                    modifier = Modifier.weight(1f).clearAndSetSemantics {}.clickable { pick.value(n) },
                 )
             }
         }

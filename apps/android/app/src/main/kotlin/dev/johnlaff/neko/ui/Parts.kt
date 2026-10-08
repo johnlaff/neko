@@ -22,7 +22,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -167,11 +171,15 @@ fun Gauge(value: Long, total: Long, mark: Long, over: Boolean, modifier: Modifie
     val l = LocalLedger.current
     val target = if (total <= 0) 0f else (value.toFloat() / total).coerceIn(0f, 1f)
     val at = if (total <= 0) 0f else (mark.toFloat() / total).coerceIn(0f, 1f)
-    // The arc draws in once; a new reading moves it from where it was.
-    val fill = remember { Animatable(0f) }
-    LaunchedEffect(target) { fill.animateTo(target, tween(900, easing = Motion.Settle)) }
+    // The arc draws in once; a new reading moves it from where it was, also after a tab change.
+    var drawn by rememberSaveable { mutableFloatStateOf(0f) }
+    val fill = remember { Animatable(drawn) }
+    LaunchedEffect(target) {
+        fill.animateTo(target, tween(600, easing = Motion.Settle))
+        drawn = target
+    }
     val share = fill.value
-    val tickIn = arrival(300, delay = 600)
+    val tickIn = arrival(240, delay = 300)
     Canvas(modifier) {
         val stroke = size.width * 0.06f
         val r = (size.width - stroke) / 2
