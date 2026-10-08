@@ -92,9 +92,15 @@ private fun History(v: InvoicesView) {
                 )
             }
         }
+        // The open bill is already the hero's number: until a bar is picked, the line shows the
+        // average the bars are read against.
+        val average = v.historyAverage?.takeIf { picked == null }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("${shortMonth(shown.due)}${if (shown.open) ", aberta" else ""}", color = l.muted)
-            Text(money(shown.amount), style = MaterialTheme.typography.titleMedium)
+            Text(
+                if (average != null) "- - Média" else "${shortMonth(shown.due)}${if (shown.open) ", aberta" else ""}",
+                color = l.muted,
+            )
+            Text(money(average ?: shown.amount), style = MaterialTheme.typography.titleMedium)
         }
         Columns(
             items = v.history.map { b ->
@@ -109,7 +115,6 @@ private fun History(v: InvoicesView) {
             onSelect = { picked = it },
             guide = v.historyAverage,
         )
-        v.historyAverage?.let { Text("- - Média ${money(it)}", color = l.faint, style = MaterialTheme.typography.labelMedium) }
     }
 }
 
