@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { simulateInstallments } from "@neko/engine";
 import { describe, expect, it } from "vitest";
-import { ajustesView, invoicesView, monthsView } from "../src/shared/screens.ts";
+import { ajustesView, invoicesView, monthsView, simulateView } from "../src/shared/screens.ts";
 import { type ProjectionResponse, UserSettings } from "../src/shared/types.ts";
 import type { Env } from "../src/worker/env.ts";
 import worker from "../src/worker/index.ts";
@@ -115,6 +116,33 @@ describe("months view", () => {
   });
 });
 
+describe("months termômetro", () => {
+  it("brings each month's days and the next payday's saving", () => {
+    const v = monthsView(fixture);
+    const now = v.months.find((m) => m.key === v.current);
+    expect(now?.days).toEqual(
+      fixture.projection.months.find((m) => m.year === now?.year && m.month === now?.month)?.days,
+    );
+    expect(now?.days.length).toBeGreaterThan(0);
+    expect(v.saving).toEqual(fixture.projection.saving);
+  });
+});
+
+describe("simulate view", () => {
+  it("answers as the site's simulator does", () => {
+    const cs = fixture.projection.canSpend;
+    if (!cs) throw new Error("fixture has a usual card");
+    expect(simulateView(fixture, 600_00 as never, 3)).toEqual(
+      simulateInstallments(cs, fixture.projection.months, 600_00 as never, 3),
+    );
+  });
+
+  it("has nothing to simulate without a usual card", () => {
+    const none = { ...fixture, projection: { ...fixture.projection, canSpend: null } };
+    expect(simulateView(none, 100_00 as never, 1)).toBeNull();
+  });
+});
+
 describe("ajustes view", () => {
   it("brings the settings, the sheet's cards and the diário in use", () => {
     const settings = UserSettings.parse({ othersCards: ["Cartão Verde"] });
@@ -127,17 +155,21 @@ describe("ajustes view", () => {
 
 describe("screen routes", () => {
   const env = { ALLOWED_EMAILS: "dono@example.com", SESSION_SECRET: "test-secret" } as Env;
-  it.each(["/api/invoices", "/api/months", "/api/ajustes"])(
-    "keeps %s behind a session",
-    async (path) => {
-      const res = await worker.fetch(
-        new Request(`https://neko.test${path}`) as never,
-        env,
-        {} as ExecutionContext,
-      );
-      expect(res.status).toBe(401);
-    },
-  );
+  it.each([
+    "/api/invoices",
+    "/api/months",
+    "/api/ajustes",
+    "/api/simulate?amount=100&count=1",
+    "/api/history",
+    "/api/sessions",
+  ])("keeps %s behind a session", async (path) => {
+    const res = await worker.fetch(
+      new Request(`https://neko.test${path}`) as never,
+      env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(401);
+  });
 });
 
 /**
@@ -150,6 +182,7 @@ describe("android screen contracts", () => {
     ["invoices.json", invoicesView(fixture)],
     ["months.json", monthsView(fixture)],
     ["ajustes.json", ajustesView(fixture, settings)],
+    ["simulate.json", simulateView(fixture, 600_00 as never, 3)],
   ])("%s matches what the Worker sends for the e2e fixture", (file, view) => {
     const path = join(import.meta.dirname, "../../android/app/src/test/resources", file);
     if (process.env.UPDATE_CONTRACT) writeFileSync(path, `${JSON.stringify(view, null, 2)}\n`);

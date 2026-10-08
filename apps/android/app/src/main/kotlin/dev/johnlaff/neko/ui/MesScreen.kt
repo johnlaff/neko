@@ -20,12 +20,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.Fixed
+import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.MonthItem
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.Outflow
 import dev.johnlaff.neko.ui.Format.capitalize
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.monthName
+import dev.johnlaff.neko.ui.Format.shortDate
 import dev.johnlaff.neko.ui.Format.signed
 
 /** Lines shown before "Ver mais", as on the site. */
@@ -34,7 +36,7 @@ private const val FIXED_SHOWN = 4
 
 /** The site's Mês (web/screens/Mes.tsx): how a month ends, where the money went, what is fixed. */
 @Composable
-fun MesScreen(state: ScreenState<MonthsView>, onRefresh: () -> Unit) {
+fun MesScreen(state: ScreenState<MonthsView>, history: HistoryView? = null, onRefresh: () -> Unit) {
     var picked by rememberSaveable { mutableStateOf<String?>(null) }
     ScreenFrame("Mês", state, { it.readAt }, onRefresh) { v ->
         val idx = v.months.indexOfFirst { it.key == (picked ?: v.current) }.takeIf { it >= 0 }
@@ -51,7 +53,8 @@ fun MesScreen(state: ScreenState<MonthsView>, onRefresh: () -> Unit) {
                 next = v.months.getOrNull(idx + 1)?.let { n -> { picked = n.key } },
             )
         }
-        item { Hero(m, v.months.filter { it.year == m.year }) { picked = it } }
+        item { Hero(m, v.months.filter { it.year == m.year }, history.takeIf { m.key == v.current }) { picked = it } }
+        if (m.days.isNotEmpty()) item { Thermo(m, v.today, v.saving) }
         if (m.outflows.isNotEmpty()) item { Outflows(m) }
         if (m.fixed.isNotEmpty()) item { FixedPanel(m) }
     }
@@ -77,13 +80,14 @@ private fun MonthNav(m: MonthItem, prev: (() -> Unit)?, next: (() -> Unit)?) {
 }
 
 @Composable
-private fun Hero(m: MonthItem, year: List<MonthItem>, onPick: (String) -> Unit) {
+private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     var ledger by remember(m.key) { mutableStateOf(false) }
     val ends = if (m.past) "Terminou com" else "Termina com"
     Panel {
         PanelHead(ends) { Chip(if (m.past) "Fechado" else "Previsão", ChipTone.Plain) }
         BigMoney(m.endSheet, if (m.endSheet < 0) l.neg else l.text)
+        history?.let { Evolution(it) }
         Columns(
             items = year.map { x ->
                 Bar(
@@ -130,6 +134,26 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, onPick: (String) -> Unit) 
                 )
             }
         }
+    }
+}
+
+/** How the current month's end moved since the first reading of the month, under the figure. */
+@Composable
+private fun Evolution(h: HistoryView) {
+    val l = LocalLedger.current
+    val first = h.points.firstOrNull() ?: return
+    val delta = h.delta ?: return
+    val since = "desde ${shortDate(first.today)}"
+    val style = MaterialTheme.typography.labelLarge
+    if (delta == 0L) {
+        Text("Igual $since", color = l.muted, style = style)
+        return
+    }
+    Row(Modifier.semantics(mergeDescendants = true) {
+        contentDescription = "${if (delta > 0) "Melhorou" else "Piorou"} ${money(kotlin.math.abs(delta))} $since"
+    }) {
+        Text("${if (delta > 0) "▲" else "▼"} ${money(kotlin.math.abs(delta))} ", color = if (delta > 0) l.pos else l.neg, style = style)
+        Text(since, color = l.muted, style = style)
     }
 }
 

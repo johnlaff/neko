@@ -1,4 +1,13 @@
-import type { CardConfig, Fixed, Outflow } from "@neko/engine";
+import {
+  type CardConfig,
+  type Cents,
+  type Fixed,
+  type InstallmentSimulation,
+  type Outflow,
+  type Saving,
+  simulateInstallments,
+  type ThermoDay,
+} from "@neko/engine";
 import type { ProjectionResponse, UserSettings } from "./types.ts";
 
 /**
@@ -141,6 +150,8 @@ export interface MonthItem {
   readonly outflows: readonly Outflow[];
   readonly fixed: readonly Fixed[];
   readonly fixedTotal: number;
+  /** The termômetro: each day's balance and band, with what moved it. */
+  readonly days: readonly ThermoDay[];
 }
 
 export interface MonthsView {
@@ -149,6 +160,8 @@ export interface MonthsView {
   /** The month to open on: today's, or the first one when the sheet does not reach today. */
   readonly current: string | null;
   readonly months: readonly MonthItem[];
+  /** Next payday's saving: the termômetro marks its day in that month. */
+  readonly saving: Saving | null;
 }
 
 const monthKey = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
@@ -174,11 +187,31 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
       outflows: m.outflows,
       fixed: m.fixed,
       fixedTotal: m.fixedTotal,
+      days: m.days,
     };
   });
   const current = months.find((m) => m.key === nowKey) ?? months[0];
-  return { today: p.today, readAt: r.sheet.readAt, current: current?.key ?? null, months };
+  return {
+    today: p.today,
+    readAt: r.sheet.readAt,
+    current: current?.key ?? null,
+    months,
+    saving: p.saving,
+  };
 };
+
+/**
+ * Hoje's "Simular compra": a purchase of `amount` today on the usual card in `count` parcels, as
+ * the site's simulator computes it. Null when the sheet has no usual card to put it on.
+ */
+export const simulateView = (
+  r: ProjectionResponse,
+  amount: Cents,
+  count: number,
+): InstallmentSimulation | null =>
+  r.projection.canSpend
+    ? simulateInstallments(r.projection.canSpend, r.projection.months, amount, count)
+    : null;
 
 export interface AjustesView {
   readonly settings: UserSettings;
