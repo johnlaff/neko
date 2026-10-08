@@ -29,7 +29,7 @@ const inviteFromUrl = () => new URLSearchParams(window.location.search).get("con
 
 const passkeyError = (e: unknown, creating: boolean) => {
   if (e instanceof Error && e.name === "NotAllowedError")
-    return "Cancelado. Toque de novo quando quiser.";
+    return "Cancelado. Tente de novo quando quiser.";
   if (e instanceof ApiError && e.code === "invite-invalid")
     return "Este convite expirou ou já foi usado. Peça um novo.";
   if (e instanceof ApiError && e.code === "passkey-rejected")

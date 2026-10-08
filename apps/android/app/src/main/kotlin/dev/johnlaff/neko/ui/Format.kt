@@ -19,7 +19,7 @@ object Format {
         val a = abs(cents)
         val reais = (a / 100).toString().reversed().chunked(3).joinToString(".").reversed()
         val sign = if (cents < 0) "−" else ""
-        return "${sign}R$ $reais,${(a % 100).toString().padStart(2, '0')}"
+        return "${sign}R$\u00A0$reais,${(a % 100).toString().padStart(2, '0')}"
     }
 
     /** `+R$ 10,00` or `−R$ 10,00`; no sign at zero. */

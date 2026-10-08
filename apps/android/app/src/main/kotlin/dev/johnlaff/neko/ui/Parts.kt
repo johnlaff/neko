@@ -110,7 +110,7 @@ fun Chip(text: String, tone: ChipTone) {
 @Composable
 fun BigMoney(cents: Long, color: Color = LocalLedger.current.text) {
     val text = Format.money(cents)
-    val m = Regex("""^(−?)R\$ ([\d.]+)(,\d{2})$""").find(text)
+    val m = Regex("""^(−?)R\$[\s\u00A0]([\d.]+)(,\d{2})$""").find(text)
     val base = MaterialTheme.typography.bodyLarge.copy(fontFamily = Geist, lineHeight = 52.sp, color = color)
     val describe = Modifier.clearAndSetSemantics { contentDescription = text }
     if (m == null) {

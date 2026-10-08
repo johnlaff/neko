@@ -124,7 +124,7 @@ export const Thermo = ({
             <strong className={`band-text ${shown.band}`}>{money(shown.balance)}</strong>
           </span>
         ) : (
-          <span className="meta">Toque num dia</span>
+          <span className="meta">Escolha um dia</span>
         )}
       </div>
       <fieldset

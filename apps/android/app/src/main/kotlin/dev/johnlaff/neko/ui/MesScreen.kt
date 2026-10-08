@@ -154,8 +154,8 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             if (m.saved > 0) {
                 LedgerLine("Custo de vida", money(m.livingCost), total = true)
                 Text(
-                    "Custo de vida é o que saiu sem contar o que foi guardado. É a base da reserva de emergência, " +
-                        "que o método pede de 6 a 12 vezes maior.",
+                    "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método " +
+                        "cobre de 6 a 12 meses desse custo.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                 )

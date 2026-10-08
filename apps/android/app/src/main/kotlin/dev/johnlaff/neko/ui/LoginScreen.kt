@@ -54,7 +54,7 @@ private suspend fun signIn(activity: Activity): String? {
         api.passkeyLogin(credential.authenticationResponseJson)
         null
     } catch (_: GetCredentialCancellationException) {
-        "Cancelado. Toque de novo quando quiser."
+        "Cancelado. Tente de novo quando quiser."
     } catch (_: NoCredentialException) {
         "Nenhuma passkey do Neko neste celular. Crie uma no site com o convite e volte aqui."
     } catch (e: ApiException) {
