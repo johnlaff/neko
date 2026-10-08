@@ -1,6 +1,6 @@
 package dev.johnlaff.neko
 
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
