@@ -146,7 +146,7 @@ fun Thermo(m: MonthItem, today: String, saving: Saving?) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(4.dp).background(l.muted, CircleShape))
                     Spacer(Modifier.width(6.dp))
-                    Text("Guardar", color = l.faint, style = MaterialTheme.typography.labelSmall)
+                    Text("Dia de guardar", color = l.faint, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -189,7 +189,7 @@ private fun DayTile(
             .then(
                 when {
                     today -> Modifier.border(2.dp, l.text, shape)
-                    future -> Modifier.border(1.dp, l.border, shape)
+                    // Days still ahead are plain numbers: no box, so the month reads as one calm grid.
                     else -> Modifier
                 },
             )
@@ -212,7 +212,7 @@ private fun DayTile(
                 .padding(bottom = 5.dp)
                 .width(14.dp)
                 .height(3.dp)
-                .background(bandColor(band).copy(alpha = if (future) 0.55f else 1f), RoundedCornerShape(2.dp)),
+                .background(bandColor(band).copy(alpha = if (future) 0.4f else 1f), RoundedCornerShape(2.dp)),
         )
         if (payday) {
             Box(

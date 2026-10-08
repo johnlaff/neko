@@ -1678,7 +1678,7 @@ button.chip-button[aria-pressed="true"] {
   }
 }
 
-/* Avisos: tinted rows for the few things worth acting on, status colors only */
+/* Avisos: calm rows for the few things worth acting on; only the icon carries the status color */
 .alerts {
   display: grid;
   gap: 8px;
@@ -1695,8 +1695,8 @@ button.chip-button[aria-pressed="true"] {
   border-radius: 14px;
   color: var(--text);
   text-decoration: none;
-  background: color-mix(in oklch, var(--tone) 11%, var(--surface));
-  border: 1px solid color-mix(in oklch, var(--tone) 28%, transparent);
+  background: var(--surface);
+  border: 1px solid var(--border);
   animation: appear 320ms ease-out both;
 }
 .alert.bad {
@@ -1739,7 +1739,7 @@ button.chip-button[aria-pressed="true"] {
 }
 @media (hover: hover) {
   .alert:hover {
-    border-color: color-mix(in oklch, var(--tone) 50%, transparent);
+    border-color: color-mix(in oklch, var(--tone) 45%, var(--border));
   }
 }
 
@@ -1929,13 +1929,13 @@ button.ghost.small {
   border-radius: 2px;
   background: var(--tone);
 }
+/* Days still ahead are plain numbers: no box, so the month reads as one calm grid */
 .thermo-grid > button.day.future {
   background: transparent;
-  box-shadow: inset 0 0 0 1px var(--border);
   color: var(--muted);
 }
 .thermo-grid > button.day.future::before {
-  opacity: 0.55;
+  opacity: 0.4;
 }
 .thermo-grid > button.day.today {
   box-shadow: 0 0 0 2px var(--text);
@@ -2242,6 +2242,10 @@ button.setting.quiet:hover {
 .tip-cat {
   align-self: flex-end;
   margin-block: -6px -10px;
+}
+/* A celebration keeps a light wash of green: the one alert that is good news, not a task */
+.alert.milestone {
+  background: color-mix(in oklch, var(--pos) 9%, var(--surface));
 }
 .alert.milestone .milestone-cat {
   margin-block: -14px -10px;
