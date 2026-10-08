@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
+import dev.johnlaff.neko.data.MonthRecap
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.UpcomingDay
@@ -77,6 +78,7 @@ fun HojeScreen(
         v.habit?.milestone?.let { m -> item { MilestoneCard(m) } }
         if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
+        v.recap?.let { r -> item { RecapPanel(r) } }
         item { Upcoming(v) }
         item { Conference(v) }
     }
@@ -247,6 +249,44 @@ private fun Insights(v: TodayView, onAjustes: () -> Unit) {
                 else -> l.warn
             }
             Alert(line.title, line.detail, tone, open)
+        }
+    }
+}
+
+/**
+ * The month that just closed, as on the site: how it ended, what it kept, what it cost to live
+ * and where most of it went. A plain panel: it informs, it does not warn.
+ */
+@Composable
+internal fun RecapPanel(r: MonthRecap) {
+    val l = LocalLedger.current
+    val before = Format.monthName(if (r.month == 1) 12 else r.month - 1)
+    Panel {
+        PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou")
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LedgerLine(
+                if (r.result < 0) "Faltou" else "Sobrou",
+                money(kotlin.math.abs(r.result)),
+                when {
+                    r.result > 0 -> l.pos
+                    r.result < 0 -> l.neg
+                    else -> l.text
+                },
+            )
+            if (r.saved > 0) {
+                LedgerLine("Guardado" + (r.savedShare?.let { " · $it% das entradas" } ?: ""), money(r.saved))
+            }
+            LedgerLine("Custo de vida", money(r.livingCost))
+            r.costChange?.takeIf { it != 0L }?.let { c ->
+                Text(
+                    "${if (c < 0) "▼" else "▲"} ${money(kotlin.math.abs(c))} sobre $before",
+                    color = if (c < 0) l.pos else l.muted,
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            r.top?.let { t -> LedgerLine("Maior saída", "${t.label} · ${money(t.amount)}") }
         }
     }
 }
