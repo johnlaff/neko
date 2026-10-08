@@ -1,5 +1,6 @@
 import type { Band, DayMove, Saving, ThermoDay } from "@neko/engine";
 import { type CSSProperties, type KeyboardEvent, useRef, useState } from "react";
+import { RowAvatar } from "./CardAvatar.tsx";
 import { ItemName } from "./Figures.tsx";
 import { money, monthName, shortDate, signed } from "./format.ts";
 import { Hint } from "./Hint.tsx";
@@ -32,9 +33,12 @@ const Moves = ({ moves }: { moves: readonly DayMove[] }) =>
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: a day can repeat the same line, order is the sheet's
           <li key={`${m.kind}-${m.description}-${i}`}>
-            <span className={`avatar${income ? " pos" : ""}`}>
+            <RowAvatar
+              card={m.kind === "card" ? m.description : null}
+              className={`avatar${income ? " pos" : ""}`}
+            >
               <Icon />
-            </span>
+            </RowAvatar>
             <span className="name">
               <ItemName text={moveName(m)} />
             </span>

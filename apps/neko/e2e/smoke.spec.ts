@@ -62,7 +62,7 @@ const MIA_REPLY = {
 };
 
 /** Answers the API from fixtures and fails the test on any error the page logs or throws. */
-const open = async (page: Page, path: string) => {
+const open = async (page: Page, path: string, body = projection) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
@@ -73,7 +73,7 @@ const open = async (page: Page, path: string) => {
     if (pathname === "/api/mia" && route.request().method() === "POST")
       return route.fulfill({ json: MIA_REPLY });
     if (pathname === "/api/projection")
-      return route.fulfill({ contentType: "application/json", body: projection });
+      return route.fulfill({ contentType: "application/json", body });
     if (pathname in API) return route.fulfill({ json: API[pathname] });
     return route.fulfill({ status: 204 });
   });
@@ -117,6 +117,16 @@ test("Mia answers with the engine's values, each one a link to its screen", asyn
   // A difference shows its size; "caíram" already says which way.
   await expect(answer.getByRole("link", { name: /200,00/ })).not.toContainText("−");
   await answer.screenshot({ path: "test-results/mia.png" });
+  expect(errors).toEqual([]);
+});
+
+test("a card named after a known bank shows the bank's mark", async ({ page }) => {
+  // The fixture's invented cards, renamed to banks the app knows.
+  const banks = projection.replaceAll("Cartão Azul", "Nubank").replaceAll("Cartão Verde", "Itaú");
+  const errors = await open(page, "/faturas", banks);
+  await expect(page.locator(".avatar.brand").first()).toBeVisible();
+  await expect(page.locator(".avatar.mono")).toHaveCount(0);
+  await page.screenshot({ path: "test-results/logos-faturas.png", fullPage: true });
   expect(errors).toEqual([]);
 });
 

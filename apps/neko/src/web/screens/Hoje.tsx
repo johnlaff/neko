@@ -13,6 +13,7 @@ import { useState } from "react";
 import { HEALTH_DAYS, issueKey, noteLine, SAVE_LEAD } from "../../shared/today.ts";
 import type { BankView } from "../../shared/types.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
+import { RowAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
   capitalize,
@@ -356,9 +357,12 @@ const Days = ({ days, today }: { days: readonly UpcomingDay[]; today: string }) 
             const Icon = KIND_ICON[u.kind];
             return (
               <li key={`${u.kind}-${u.description}-${u.amount}`}>
-                <span className={`avatar${u.kind === "income" ? " pos" : ""}`}>
+                <RowAvatar
+                  card={u.kind === "card" ? u.description : null}
+                  className={`avatar${u.kind === "income" ? " pos" : ""}`}
+                >
                   <Icon />
-                </span>
+                </RowAvatar>
                 <span className="name">
                   <ItemName text={u.description || "Sem descrição"} />
                 </span>

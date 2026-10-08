@@ -310,6 +310,8 @@ fun ListRow(
     value: String,
     modifier: Modifier = Modifier,
     avatar: String? = null,
+    /** A card's name: when it names a known bank, the avatar is that bank's mark. */
+    card: String? = null,
     meta: String? = null,
     valueColor: Color = LocalLedger.current.text,
     accent: Boolean = false,
@@ -318,7 +320,13 @@ fun ListRow(
 ) {
     val l = LocalLedger.current
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        avatar?.let {
+        val bank = card?.let(::institutionOf)
+        if (bank != null) {
+            Box(Modifier.size(36.dp).background(Color(bank.bg), CircleShape), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(bank.mark), contentDescription = null, tint = Color(bank.fg), modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+        } else avatar?.let {
             Box(
                 Modifier.size(36.dp).background(if (accent) l.accent.copy(alpha = 0.16f) else l.surface2, CircleShape),
                 contentAlignment = Alignment.Center,
@@ -329,7 +337,7 @@ fun ListRow(
         }
         // The value shares only the name's line; chips and bars below get the full width, so they
         // don't clip on a small phone with large text.
-        Column(Modifier.weight(1f).padding(top = if (avatar != null) 6.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.weight(1f).padding(top = if (avatar != null || bank != null) 6.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 // Two lines before cutting: "Financiamento Carro 13/36" fits on a small phone.
                 Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))

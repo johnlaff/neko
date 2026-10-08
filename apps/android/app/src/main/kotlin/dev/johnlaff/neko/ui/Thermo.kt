@@ -252,6 +252,7 @@ private fun Moves(moves: List<DayMove>) {
                     "diario" -> "D"
                     else -> name.take(1).uppercase()
                 },
+                card = name.takeIf { m.kind == "card" },
                 valueColor = if (income) l.pos else l.text,
                 accent = income,
             )
