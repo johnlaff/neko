@@ -67,6 +67,25 @@ class ScreensContractTest {
         }
     }
 
+    /** The category table and the descriptions the Worker's tests match (shared/categories.ts). */
+    @Test fun categories() {
+        val c = json.parseToJsonElement(text("categories.json")).jsonObject
+        val table = c.getValue("categories").jsonArray.map { it.jsonObject }
+        assertEquals(table.map { it.getValue("slug").jsonPrimitive.content }, dev.johnlaff.neko.ui.CATEGORIES.map { it.slug })
+        table.zip(dev.johnlaff.neko.ui.CATEGORIES).forEach { (t, k) ->
+            assertEquals(t.getValue("words").jsonArray.map { it.jsonPrimitive.content }, k.words)
+            assertEquals(t.getValue("icon").jsonPrimitive.content, k.icon)
+        }
+        c.getValue("cases").jsonObject.forEach { (text, slug) ->
+            val want = (slug as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+            assertEquals(text, want, dev.johnlaff.neko.ui.categoryOf(text)?.slug)
+        }
+        // Every icon parses into a path Compose can draw.
+        dev.johnlaff.neko.ui.CATEGORIES.forEach { k ->
+            assertTrue(k.slug, androidx.compose.ui.graphics.vector.PathParser().parsePathString(k.icon).toNodes().isNotEmpty())
+        }
+    }
+
     /** A Mia reply (apps/neko/test/mia.test.ts): a total, a difference and a percent. */
     @Test fun mia() {
         val v = json.decodeFromString<MiaReply>(text("mia.json"))

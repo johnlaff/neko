@@ -46,6 +46,7 @@ import dev.johnlaff.neko.ui.AppModelFactory
 import dev.johnlaff.neko.ui.Dock
 import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
+import dev.johnlaff.neko.ui.MonthAsk
 import dev.johnlaff.neko.ui.LocalLedger
 import dev.johnlaff.neko.ui.LockScreen
 import dev.johnlaff.neko.ui.LockSwitch
@@ -68,6 +69,8 @@ class MainActivity : ComponentActivity() {
     private var request by mutableStateOf<Launch?>(null)
     /** Bumped by each "Simular" shortcut, so a second tap opens the simulator again. */
     private var simulateAsk by mutableIntStateOf(0)
+    /** A month a warning on Hoje asked Mês to open; taken once. */
+    private var monthAsk by mutableStateOf<MonthAsk?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The system splash stays until the session is known, instead of a blank page.
@@ -130,6 +133,10 @@ class MainActivity : ComponentActivity() {
                                             onScreen = { tela ->
                                                 go(when (tela) { "faturas" -> Tab.Faturas; "mes" -> Tab.Mes; else -> Tab.Hoje })
                                             },
+                                            onMonth = { key ->
+                                                monthAsk = MonthAsk(key)
+                                                go(Tab.Mes)
+                                            },
                                         )
                                     }
                                     Tab.Faturas -> {
@@ -139,7 +146,7 @@ class MainActivity : ComponentActivity() {
                                     Tab.Mes -> {
                                         val months by model.months.collectAsStateWithLifecycle()
                                         val history by model.history.collectAsStateWithLifecycle()
-                                        MesScreen(months, history) { model.refresh(Tab.Mes) }
+                                        MesScreen(months, history, monthAsk, { monthAsk = null }) { model.refresh(Tab.Mes) }
                                     }
                                     Tab.Ajustes -> {
                                         val ajustes by model.ajustes.collectAsStateWithLifecycle()

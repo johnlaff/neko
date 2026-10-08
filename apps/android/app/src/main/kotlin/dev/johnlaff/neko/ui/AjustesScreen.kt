@@ -506,7 +506,7 @@ private fun Field(
             keyboardType = if (money) KeyboardType.Decimal else KeyboardType.Number,
             imeAction = ImeAction.Done,
         ),
-        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.border),
+        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
         modifier = Modifier
             .then(if (stacked() && money) Modifier.fillMaxWidth() else Modifier.width(width.dp))
             .semantics { contentDescription = description }
@@ -520,18 +520,18 @@ private fun Field(
 @Composable
 private fun Pace(f: AjustesForm, dailyAuto: Long) {
     val dailyBad = "daily" in f.left && badMoney(f.daily)
-    Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Vazio usa a planilha", dailyBad) {
+    Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
         Field(
             f.daily, { f.daily = it }, { f.left += "daily"; f.now = true },
             placeholder = fromCents(dailyAuto), description = "Diário", money = true, error = dailyBad, width = 150,
         )
     }
-    Setting("Cartão principal", "O do ritmo em Hoje") { CardPicker(f) }
+    Setting("Cartão principal", "O que aparece em Hoje") { CardPicker(f) }
     val budgetBad = "budget" in f.left && badMoney(f.budget)
-    Setting("Plano por ciclo", if (budgetBad) "Use um valor como 5.000,00" else "Vazio usa diário × dias", budgetBad) {
+    Setting("Plano por ciclo", if (budgetBad) "Use um valor como 5.000,00" else "Em branco, diário × dias do ciclo", budgetBad) {
         Field(
             f.budget, { f.budget = it }, { f.left += "budget"; f.now = true },
-            placeholder = "Auto", description = "Plano por ciclo", money = true, error = budgetBad, width = 150,
+            placeholder = "Automático", description = "Plano por ciclo", money = true, error = budgetBad, width = 150,
         )
     }
 }
@@ -681,11 +681,7 @@ private fun ConfirmAction(action: String, question: String, detail: String, onCo
 private fun HowItWorks() {
     val l = LocalLedger.current
     val context = LocalContext.current
-    // Mia is the one who gives the tips, so the full list opens with her mark.
-    Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        MiaMark(48.dp)
-        Text(Learn.INTRO, color = l.muted, style = MaterialTheme.typography.bodyMedium)
-    }
+    Text(Learn.INTRO, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
     Learn.IDEAS.forEach { idea ->
         var open by rememberSaveable(idea.title) { mutableStateOf(false) }
         Column {
@@ -713,7 +709,7 @@ private fun HowItWorks() {
     }
     var reset by remember { mutableStateOf(false) }
     HorizontalDivider(color = l.border)
-    TextAction(if (reset) "As dicas voltam aos poucos" else "Rever dicas", {
+    TextAction(if (reset) "As dicas voltam, uma por visita" else "Rever dicas", {
         if (!reset) {
             Hints.reset(context)
             reset = true

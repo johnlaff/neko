@@ -84,8 +84,7 @@ const open = async (page: Page, path: string, body = projection) => {
 for (const [path, heading] of [
   ["/", "Hoje"],
   ["/faturas", "Faturas"],
-  // Mês is titled by the month on screen: the fixture's today is 2026-10-05.
-  ["/mes", /Outubro/i],
+  ["/mes", "Mês"],
   ["/ajustes", "Ajustes"],
 ] as const) {
   test(`${path} renders from the projection without errors`, async ({ page }) => {

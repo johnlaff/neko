@@ -104,7 +104,7 @@ fun Simulator(
             placeholder = { Text("0,00", color = l.faint) },
             textStyle = MaterialTheme.typography.headlineSmall,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.border),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Valor da compra" },
         )
         FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

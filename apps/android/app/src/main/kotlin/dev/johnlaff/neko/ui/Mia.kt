@@ -210,7 +210,7 @@ fun MiaPanel(
                     placeholder = { Text("Pergunte algo", color = l.faint) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = { send(typed) }),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.border),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
                     modifier = Modifier.weight(1f).semantics { contentDescription = "Pergunta para a Mia" },
                 )
                 Button(

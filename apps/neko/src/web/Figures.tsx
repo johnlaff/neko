@@ -103,7 +103,7 @@ export interface Column {
   value: number;
   /** Read by screen readers and shown when the column is picked. */
   description: string;
-  tone?: "accent" | "faint" | undefined;
+  tone?: "accent" | "ink" | "faint" | undefined;
 }
 
 /**

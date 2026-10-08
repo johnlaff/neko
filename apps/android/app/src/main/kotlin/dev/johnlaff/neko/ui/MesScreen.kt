@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,13 +48,30 @@ import dev.johnlaff.neko.ui.Format.monthName
 import dev.johnlaff.neko.ui.Format.shortDate
 import dev.johnlaff.neko.ui.Format.signed
 
+/** A request to open Mês on a month, from a warning on Hoje; each tap is a new one, even for the same month. */
+class MonthAsk(val key: String?)
+
 /** Lines shown before "Ver mais", as on the site. */
 private const val OUTFLOWS_SHOWN = 5
 
 /** The site's Mês (web/screens/Mes.tsx): how a month ends, where the money went, what is fixed. */
 @Composable
-fun MesScreen(state: ScreenState<MonthsView>, history: HistoryView? = null, onRefresh: () -> Unit) {
+fun MesScreen(
+    state: ScreenState<MonthsView>,
+    history: HistoryView? = null,
+    /** A month another screen asked for ("2025-10"; null key for the current one), taken once. */
+    open: MonthAsk? = null,
+    /** The ask was taken: coming back to Mês later keeps whatever month was picked then. */
+    onOpened: () -> Unit = {},
+    onRefresh: () -> Unit,
+) {
     var picked by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(open) {
+        if (open != null) {
+            picked = open.key
+            onOpened()
+        }
+    }
     ScreenFrame("Mês", state, { it.readAt }, onRefresh) { v ->
         val idx = v.months.indexOfFirst { it.key == (picked ?: v.current) }.takeIf { it >= 0 }
             ?: v.months.indexOfFirst { it.key == v.current }.coerceAtLeast(0)
@@ -161,7 +179,9 @@ private fun MonthArrow(icon: Int, label: String, go: (() -> Unit)?) {
 private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     var ledger by remember(m.key) { mutableStateOf(false) }
-    val ends = if (m.past) "Terminou com" else "Deve terminar com"
+    // The sheet's own balance on the month's last day: a date, not a guess (as on the site).
+    val ends = if (m.past) "Terminou com"
+    else "Saldo em ${shortDate(java.time.YearMonth.of(m.year, m.month).atEndOfMonth().toString())}"
     Panel {
         PanelHead(ends)
         BigMoney(m.endSheet, if (m.endSheet < 0) l.neg else l.text)
@@ -173,7 +193,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                     label = capitalize(monthName(x.month).take(1)),
                     value = x.endSheet,
                     description = "${capitalize(monthName(x.month))}: ${money(x.endSheet)}",
-                    accent = x.key == m.key,
+                    picked = x.key == m.key,
                     faint = x.future,
                 )
             },
@@ -181,7 +201,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
         )
         m.result?.let { r ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${if (r < 0) "Falta" else "Sobra"} ${if (m.past) "do mês" else "prevista"}", color = l.muted)
+                Text("${if (r < 0) "Falta" else "Sobra"} no mês", color = l.muted)
                 Text(
                     money(kotlin.math.abs(r)),
                     style = MaterialTheme.typography.titleMedium,
@@ -194,13 +214,12 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             }
         }
         if (m.saved > 0) {
-            Row(
-                Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("Guardado" + (m.savedShare?.let { " · $it% das entradas" } ?: ""), color = l.muted)
-                Text(money(m.saved), style = MaterialTheme.typography.titleMedium)
-            }
+            // The label wraps and the amount never does, as in the extrato.
+            LedgerLine(
+                "Guardado" + (m.savedShare?.let { " · $it% das entradas" } ?: ""),
+                money(m.saved),
+                valueStyle = MaterialTheme.typography.titleMedium,
+            )
         }
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         WinsBox(m.wins, "${capitalize(monthName(m.month))} de ${m.year}")
@@ -256,20 +275,28 @@ private fun Evolution(h: HistoryView) {
 }
 
 @Composable
-internal fun LedgerLine(label: String, value: String, color: androidx.compose.ui.graphics.Color = LocalLedger.current.text, total: Boolean = false) {
+internal fun LedgerLine(
+    label: String,
+    value: String,
+    color: androidx.compose.ui.graphics.Color = LocalLedger.current.text,
+    total: Boolean = false,
+    /** The amount's own style, when it stands out from its label (Guardado on the hero). */
+    valueStyle: androidx.compose.ui.text.TextStyle? = null,
+) {
     val l = LocalLedger.current
     val style = if (total) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
     // The label wraps and the value never does: with large text a long label used to squeeze the
     // amount to one character per line. Past 1.5× the two stack instead.
     if (LocalDensity.current.fontScale > 1.5f) {
-        Column(Modifier.fillMaxWidth()) {
+        // Label and amount are read as one line by TalkBack.
+        Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
             Text(label, color = if (total) l.text else l.muted, style = style)
-            Text(value, color = color, style = style, softWrap = false)
+            Text(value, color = color, style = valueStyle ?: style, softWrap = false)
         }
     } else {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(label, color = if (total) l.text else l.muted, style = style, modifier = Modifier.weight(1f))
-            Text(value, color = color, style = style, softWrap = false)
+            Text(value, color = color, style = valueStyle ?: style, softWrap = false)
         }
     }
 }
@@ -317,7 +344,9 @@ private fun OutflowRow(o: Outflow, top: Long) {
             // The whole line opens the destination's last months, as on the site.
             modifier = Modifier.clickable(onClickLabel = "ver os últimos meses") { open = !open },
             avatar = if (o.kind == "card") monogram(o.label) else o.label.take(1).uppercase(),
-            avatarIcon = R.drawable.ic_repeat.takeIf { o.kind != "card" && o.fixed != null },
+            // What the line is about, when its words say so; otherwise a fixed line repeats and the rest is a bill (as on the site).
+            avatarIcon = if (o.kind == "card") null else if (o.fixed != null) R.drawable.ic_repeat else R.drawable.ic_receipt,
+            avatarVector = if (o.kind == "card") null else categoryIcon(o.label),
             card = o.label.takeIf { o.kind == "card" },
             meta = o.fixed?.installment?.let(::installmentLine),
             chips = { if (o.others) Chip("De outra pessoa", ChipTone.Plain) },
@@ -356,7 +385,7 @@ internal fun Trend(points: List<TrendPoint>) {
                     label = capitalize(monthName(p.month).take(3)),
                     value = p.amount,
                     description = "${capitalize(monthName(p.month))}: ${money(p.amount)}",
-                    accent = k == picked,
+                    picked = k == picked,
                 )
             },
             onSelect = { picked = it },

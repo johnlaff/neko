@@ -28,14 +28,14 @@ val INSTITUTIONS = listOf(
     Institution("xp", listOf("xp", "xp investimentos"), 0xFF000000, 0xFFFFFFFF, R.drawable.bank_xp),
 )
 
-/** Lowercase words without accents: "Itaú Personnalité" → " itau personnalite ". */
-private fun words(s: String): String {
+/** Lowercase words without accents: "Itaú Personnalité" → " itau personnalite ". Shared with categoryOf. */
+internal fun wordsOf(s: String): String {
     val plain = Normalizer.normalize(s, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "").lowercase()
     return " " + plain.replace(Regex("[^a-z0-9]+"), " ").trim() + " "
 }
 
 /** The issuer a card's name points to, by whole words only ("Inter" yes, "Internet" no). */
 fun institutionOf(name: String): Institution? {
-    val w = words(name)
+    val w = wordsOf(name)
     return INSTITUTIONS.firstOrNull { i -> i.words.any { w.contains(" $it ") } }
 }

@@ -15,6 +15,7 @@ import type { BankView } from "../../shared/types.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
 import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
+import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
   bankText,
@@ -36,7 +37,7 @@ import {
   IconPlus,
   IconReceipt,
 } from "../icons.tsx";
-import { HINTS } from "../learn.ts";
+import { CARDS_COME_FROM, HINTS } from "../learn.ts";
 import { Mia } from "../Mia.tsx";
 import { Simulator } from "../Pace.tsx";
 import { Streak } from "../Streak.tsx";
@@ -65,7 +66,7 @@ const insightView = (i: Insight) => {
         to: "/mes",
         month: `${i.year}-${String(i.month).padStart(2, "0")}`,
         title: `${capitalize(monthName(i.month))} ainda sem gastos previstos`,
-        detail: "Sem diário nem fatura, o saldo de lá parece maior do que será",
+        detail: "Sem diário nem fatura lançados, esse saldo ainda está alto",
       } as const;
     case "bill-above-average":
       return {
@@ -87,7 +88,7 @@ const insightView = (i: Insight) => {
         tone: "ask",
         to: "/ajustes",
         title: `Qual dia fecha o ${i.card}?`,
-        detail: `Estimado em ${shortDate(i.closing)}. Confirme em Ajustes`,
+        detail: `Fecha ≈ ${shortDate(i.closing)}. Confirme em Ajustes`,
       } as const;
     default:
       // A copy cached by an older version can carry a kind this one no longer knows.
@@ -102,6 +103,7 @@ const SHOWN_ALERTS = 2;
 const Insights = ({ items }: { items: readonly Insight[] }) => {
   const known = items.filter((i) => insightView(i) !== null);
   const rest = known.slice(SHOWN_ALERTS);
+  if (known.length === 0) return null;
   return (
     <>
       <AlertList items={known.slice(0, SHOWN_ALERTS)} />
@@ -150,12 +152,11 @@ const SaveCard = ({ save, today }: { save: Saving; today: string }) => {
           <span className="alert-text">
             <strong>
               {isToday
-                ? `Hoje dá para guardar ${money(save.amount)}`
-                : `${relativeDay(save.date, today)}: guardar ${money(save.amount)}`}
+                ? `Na conta, dá para guardar ${money(save.amount)} hoje`
+                : `${relativeDay(save.date, today)}: dá para guardar ${money(save.amount)}`}
             </strong>
             <span>
-              Mesmo guardando, o dia mais apertado até {shortDate(save.until)} fica com{" "}
-              {money(save.leftAtLowest)}
+              Depois de guardar, menor saldo até {shortDate(save.until)}: {money(save.leftAtLowest)}
             </span>
           </span>
           <IconChevron />
@@ -328,9 +329,7 @@ const BankMissing = ({ bank }: { bank: BankView }) => {
           </li>
         ))}
       </ul>
-      <p className="hint">
-        Escolha um movimento para copiar a linha da nota. O banco não muda a planilha.
-      </p>
+      <p className="hint">Escolha um para copiar a linha da nota. O Neko não altera a planilha.</p>
     </section>
   );
 };
@@ -362,7 +361,11 @@ const Days = ({ days, today }: { days: readonly UpcomingDay[]; today: string }) 
                   card={u.kind === "card" ? u.description : null}
                   className={`avatar${u.kind === "income" ? " pos" : ""}`}
                 >
-                  <Icon />
+                  {u.kind === "card" ? (
+                    <Icon />
+                  ) : (
+                    <CategoryIcon text={u.description} fallback={<Icon />} />
+                  )}
                 </RowAvatar>
                 <span className="name">
                   <ItemName text={u.description || "Sem descrição"} />
@@ -447,7 +450,6 @@ export const Hoje = () => (
       const [shown, rest] = splitDays(groupUpcomingByDay(p.upcoming));
       return (
         <>
-          <h1 className="sr-only">Hoje</h1>
           {cs ? (
             <section className="panel hero today">
               <div className="panel-head">
@@ -509,9 +511,7 @@ export const Hoje = () => (
             <section className="page-head empty-cards">
               <BrandMark width={64} className="quiet-mark" />
               <h2>Nenhum cartão na planilha</h2>
-              <p className="muted">
-                As faturas vêm das notas de Saída, debaixo de uma linha CARTÕES.
-              </p>
+              <p className="muted">{CARDS_COME_FROM}</p>
             </section>
           )}
 
@@ -527,7 +527,10 @@ export const Hoje = () => (
           </div>
           {habit && <Streak habit={habit} />}
 
-          {(p.insights ?? []).length > 0 && <Insights items={p.insights} />}
+          {/* Over the plan, the red figure already says the bill is high: no second card. */}
+          <Insights
+            items={(p.insights ?? []).filter((i) => !(over && i.kind === "bill-above-average"))}
+          />
           {p.saving && p.saving.date >= p.today && p.saving.date <= addDays(p.today, SAVE_LEAD) && (
             <SaveCard save={p.saving} today={p.today} />
           )}
@@ -541,7 +544,7 @@ export const Hoje = () => (
               {p.upcoming.length > 0 && <span className="meta">{p.upcoming.length} itens</span>}
             </div>
             {p.upcoming.length === 0 ? (
-              <p className="muted">Nada lançado para esta semana.</p>
+              <p className="muted">Nada lançado nos próximos 7 dias.</p>
             ) : (
               <>
                 <Days days={shown} today={p.today} />

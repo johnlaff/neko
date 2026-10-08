@@ -41,7 +41,7 @@ object Copy {
         )
         "no-spending-ahead" -> Line(
             "${capitalize(monthName(i.month ?: return null))} ainda sem gastos previstos",
-            "Sem diário nem fatura, o saldo de lá parece maior do que será",
+            "Sem diário nem fatura lançados, esse saldo ainda está alto",
         )
         "bill-above-average" -> Line("Fatura acima do normal", "${i.card}: ${money(i.over ?: 0)} acima da média")
         "fixed-up" -> Line(
@@ -50,7 +50,7 @@ object Copy {
         )
         "closing-estimated" -> Line(
             "Qual dia fecha o ${i.card}?",
-            "Estimado em ${shortDate(i.closing ?: return null)}. Confirme em Ajustes",
+            "Fecha ≈ ${shortDate(i.closing ?: return null)}. Confirme em Ajustes",
         )
         else -> null
     }

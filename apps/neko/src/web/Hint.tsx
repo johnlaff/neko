@@ -61,7 +61,7 @@ export const Hint = ({ id, children }: { id: string; children: string }) => {
   }, [show, id]);
   if (!show) return null;
   return (
-    <aside className="tip" aria-label="Dica da Mia">
+    <aside className="tip" aria-label="Dica">
       <span className="tip-mark" aria-hidden="true">
         i
       </span>

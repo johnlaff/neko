@@ -312,6 +312,8 @@ fun ListRow(
     avatar: String? = null,
     /** An icon in the avatar instead of its letters. */
     avatarIcon: Int? = null,
+    /** A line's category icon (Categories.kt); wins over avatarIcon. */
+    avatarVector: androidx.compose.ui.graphics.vector.ImageVector? = null,
     /** A card's name: when it names a known bank, the avatar is that bank's mark. */
     card: String? = null,
     meta: String? = null,
@@ -333,7 +335,9 @@ fun ListRow(
                 Modifier.size(36.dp).background(if (accent) l.accent.copy(alpha = 0.16f) else l.surface2, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                if (avatarIcon != null) {
+                if (avatarVector != null) {
+                    androidx.compose.material3.Icon(avatarVector, contentDescription = null, tint = if (accent) l.accent else l.muted, modifier = Modifier.size(18.dp))
+                } else if (avatarIcon != null) {
                     androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(avatarIcon), contentDescription = null, tint = if (accent) l.accent else l.muted, modifier = Modifier.size(18.dp))
                 } else Text(it, color = if (accent) l.accent else l.muted, style = MaterialTheme.typography.labelMedium)
             }
@@ -379,7 +383,8 @@ data class Bar(
     val label: String,
     val value: Long,
     val description: String,
-    val accent: Boolean = false,
+    /** The picked column, drawn in ink: green keeps meaning "good", never just "selected" (as on the site). */
+    val picked: Boolean = false,
     val faint: Boolean = false,
 )
 
@@ -401,7 +406,7 @@ fun Columns(
     val span = (top - bottom).coerceAtLeast(1L).toFloat()
     val haptics = LocalHapticFeedback.current
     val pick = rememberUpdatedState { n: Int ->
-        items.getOrNull(n)?.takeIf { !it.accent }?.let {
+        items.getOrNull(n)?.takeIf { !it.picked }?.let {
             haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
             onSelect(it.key)
         }
@@ -421,14 +426,14 @@ fun Columns(
                     // Columns grow from the zero line one after another, like the site's.
                     val grow = arrival(360, delay = n * 15)
                     val color = when {
-                        c.accent -> l.accent
+                        c.picked -> l.text
                         c.faint -> l.border
                         else -> l.faint.copy(alpha = 0.55f)
                     }
                     Canvas(
                         Modifier.weight(1f).fillMaxSize()
-                            .clickable { pick.value(n) }
-                            .semantics { contentDescription = c.description; selected = c.accent },
+                            .clickable(role = Role.Button) { pick.value(n) }
+                            .semantics { contentDescription = c.description; selected = c.picked },
                     ) {
                         val zero = size.height * (top / span)
                         val h = size.height * (kotlin.math.abs(c.value) / span) * grow
@@ -459,7 +464,7 @@ fun Columns(
             items.forEachIndexed { n, c ->
                 Text(
                     c.label,
-                    color = if (c.accent) l.text else l.faint,
+                    color = if (c.picked) l.text else l.faint,
                     style = MaterialTheme.typography.labelMedium,
                     textAlign = TextAlign.Center,
                     // The label belongs to its column: tapping it picks the same month.

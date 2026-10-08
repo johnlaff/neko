@@ -68,8 +68,11 @@ object Learn {
 
     data class Idea(val title: String, val body: String)
 
-    /** Opens Ajustes › Como funciona, next to Mia. */
-    const val INTRO = "Tudo o que a Mia ensina nas dicas, num lugar só."
+    /** Opens Ajustes › Como funciona. */
+    const val INTRO = "Todas as dicas do app, num lugar só."
+
+    /** Where cards come from, when the sheet has none: Hoje and Faturas say it the same way. */
+    const val CARDS_COME_FROM = "Os cartões vêm das notas de Saída, abaixo da linha CARTÕES."
 
     val IDEAS = listOf(
         Idea("De onde vêm os números", "Tudo vem da sua planilha. O Neko lê e faz as contas, mas nunca escreve nela."),
