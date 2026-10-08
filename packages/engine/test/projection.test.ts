@@ -228,6 +228,21 @@ describe("upcoming", () => {
   });
 });
 
+describe("upcoming without detail", () => {
+  it("lists what a cell holds beyond its note lines, so the days add up to the sheet", () => {
+    const l = ledger("2026-10-01", 40, 5_000_00, {
+      "2026-10-06": { saida: cell(300_00, [item(74_00, "Vivo", "contas")]) },
+      "2026-10-07": { entrada: cell(200_00) },
+    });
+    const p = project(l, localDate("2026-10-05"), settings());
+    expect(p.upcoming.map((u) => [u.date, u.description, u.amount, u.kind])).toEqual([
+      ["2026-10-06", "Vivo", 74_00, "bill"],
+      ["2026-10-06", "Sem detalhe", 226_00, "bill"],
+      ["2026-10-07", "Sem detalhe", 200_00, "income"],
+    ]);
+  });
+});
+
 describe("upcoming by day", () => {
   it("groups items by date in order and nets each day, income positive", () => {
     const d1 = localDate("2026-10-05");

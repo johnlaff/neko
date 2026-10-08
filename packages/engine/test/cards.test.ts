@@ -57,6 +57,18 @@ describe("card names", () => {
       { name: "Nubank", dueDay: 26, closingDay: 19, closingEstimated: true },
     ]);
   });
+  it("follows where the latest bills sit when a card's due day moved", () => {
+    const l = ledger("2026-01-01", 300, 0, {
+      "2026-01-26": { saida: cell(50, [item(50, "Nubank")]) },
+      "2026-02-26": { saida: cell(50, [item(50, "Nubank")]) },
+      "2026-03-26": { saida: cell(50, [item(50, "Nubank")]) },
+      "2026-04-26": { saida: cell(50, [item(50, "Nubank")]) },
+      "2026-06-29": { saida: cell(50, [item(50, "Nubank")]) },
+      "2026-09-04": { saida: cell(50, [item(50, "Nubank")]) },
+      "2026-10-04": { saida: cell(50, [item(50, "Nubank")]) },
+    });
+    expect(inferCards(l).map((c) => c.dueDay)).toEqual([4]);
+  });
   it("configured cards replace inferred ones", () => {
     const merged = mergeCards(
       [{ name: "Itau", dueDay: 10, closingDay: 3, closingEstimated: true }],
