@@ -58,6 +58,8 @@ data class Habit(
     val milestone: Int? = null,
     val next: Int? = null,
     val since: String? = null,
+    /** Days logged last week; null until a whole week was watched. */
+    val lastWeek: Int? = null,
 )
 
 /** `state` is "edited", "rest", "missed", "today" or "future". */

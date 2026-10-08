@@ -109,6 +109,16 @@ describe("habit", () => {
     expect(habit(range("2026-09-01", "2026-10-08"), today).next).toBe(66);
   });
 
+  it("counts last week's logged days, once a whole week was watched", () => {
+    // Last week ran Sunday 27 Sep to Saturday 3 Oct.
+    const edited = days("2026-09-26", "2026-09-27", "2026-09-29", "2026-09-30", "2026-10-01");
+    expect(
+      habit([...edited, ...days("2026-10-02", "2026-10-03", "2026-10-05")], today).lastWeek,
+    ).toBe(6);
+    expect(habit(range("2026-10-01", "2026-10-08"), today).lastWeek).toBeNull();
+    expect(habit([], today).lastWeek).toBeNull();
+  });
+
   it("ignores duplicates and dates after today", () => {
     const h = habit(days("2026-10-08", "2026-10-08", "2026-10-07", "2026-10-12"), today);
     expect(h.streak).toBe(2);
