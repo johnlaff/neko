@@ -1581,6 +1581,17 @@ button.chip-button[aria-pressed="true"] {
 .outflows > li:first-child .meter > span {
   background: var(--accent);
 }
+.reserve > .meter {
+  margin: 4px 0 12px;
+  height: 6px;
+}
+.reserve > .meter > span {
+  background: var(--accent);
+}
+.reserve > .note {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+}
 @keyframes grow-x {
   from {
     transform: scaleX(0);

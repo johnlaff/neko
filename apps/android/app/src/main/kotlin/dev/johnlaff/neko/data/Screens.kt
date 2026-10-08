@@ -59,7 +59,25 @@ data class MonthsView(
     val months: List<MonthItem> = emptyList(),
     /** Next payday's saving: the termômetro marks its day in that month. */
     val saving: Saving? = null,
+    /** The emergency reserve; null before a month closed. */
+    val reserve: Reserve? = null,
+    /** The sheet's Economia tab, one entry per year. */
+    val years: List<YearTotals> = emptyList(),
 )
+
+/** The method's emergency reserve: cost of living times 6 to 12 months, against what was kept. */
+@Serializable
+data class Reserve(
+    val cost: Long,
+    val costMonths: Int,
+    val min: Long,
+    val max: Long,
+    val kept: Long,
+    val coveredTenths: Int,
+)
+
+@Serializable
+data class YearTotals(val year: Int, val entrada: Long, val saved: Long, val savedShare: Int? = null)
 
 @Serializable
 data class MonthItem(

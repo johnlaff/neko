@@ -4,9 +4,11 @@ import {
   type Fixed,
   type InstallmentSimulation,
   type Outflow,
+  type Reserve,
   type Saving,
   simulateInstallments,
   type ThermoDay,
+  type YearTotals,
 } from "@neko/engine";
 import type { ProjectionResponse, UserSettings } from "./types.ts";
 
@@ -167,6 +169,10 @@ export interface MonthsView {
   readonly months: readonly MonthItem[];
   /** Next payday's saving: the termômetro marks its day in that month. */
   readonly saving: Saving | null;
+  /** The emergency reserve; null before a month closed. */
+  readonly reserve: Reserve | null;
+  /** The Economia tab, one entry per year. */
+  readonly years: readonly YearTotals[];
 }
 
 const monthKey = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
@@ -205,6 +211,8 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
     current: current?.key ?? null,
     months,
     saving: p.saving,
+    reserve: p.reserve ?? null,
+    years: p.years ?? [],
   };
 };
 

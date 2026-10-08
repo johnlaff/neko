@@ -10266,5 +10266,27 @@
     "lowestDate": "2026-10-15",
     "leftAtLowest": 53404,
     "until": "2026-12-31"
-  }
+  },
+  "reserve": {
+    "cost": 677142,
+    "costMonths": 3,
+    "min": 4062852,
+    "max": 8125704,
+    "kept": 1760000,
+    "coveredTenths": 25
+  },
+  "years": [
+    {
+      "year": 2025,
+      "entrada": 9611259,
+      "saved": 960000,
+      "savedShare": 10
+    },
+    {
+      "year": 2026,
+      "entrada": 9579992,
+      "saved": 960000,
+      "savedShare": 10
+    }
+  ]
 }

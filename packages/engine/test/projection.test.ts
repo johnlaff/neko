@@ -92,6 +92,14 @@ describe("credit mode projection", () => {
     // No income, no share: a ratio over nothing says nothing.
     const dec = project(l, today, settings()).months.find((m) => m.month === 12);
     expect(dec).toMatchObject({ saved: 0, savedShare: null, livingCost: 0 });
+    // The Economia tab of the year, and the reserve once a month has closed.
+    const all = project(l, today, settings());
+    expect(all.years).toEqual([{ year: 2026, entrada: 5000_00, saved: 500_00, savedShare: 10 }]);
+    expect(all.reserve).toBeNull();
+    expect(project(l, localDate("2026-12-10"), settings()).reserve).toMatchObject({
+      cost: 650_00,
+      kept: 500_00,
+    });
   });
 
   it("a configured cycle budget wins over diário × days", () => {
