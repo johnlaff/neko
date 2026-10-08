@@ -175,7 +175,7 @@ export const Thermo = ({
         {save && (
           <li>
             <i className="swatch dot" />
-            Guardar
+            Dia de guardar
           </li>
         )}
       </ul>
