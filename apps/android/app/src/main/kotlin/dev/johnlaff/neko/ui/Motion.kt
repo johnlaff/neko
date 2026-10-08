@@ -1,0 +1,79 @@
+package dev.johnlaff.neko.ui
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.unit.dp
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+
+/**
+ * The site's motion (styles.css "Motion"): figures arrive once, quickly, and stay still after.
+ * Android's "Remove animations" setting scales every duration here to zero, as the site's
+ * prefers-reduced-motion does.
+ */
+object Motion {
+    /** Settling curve for bars and arcs drawing in. */
+    val Settle = CubicBezierEasing(0.2f, 0.7f, 0.2f, 1f)
+    /** Entering screens and rolling digits. */
+    val Enter = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
+}
+
+/** 0 → 1 once, after [delay] ms: the progress a bar or arc draws with. */
+@Composable
+fun arrival(duration: Int, delay: Int = 0): Float {
+    val a = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { a.animateTo(1f, tween(duration, delay, Motion.Settle)) }
+    return a.value
+}
+
+/** Fades and grows a little into place once, like the site's `appear`. */
+@Composable
+fun Modifier.appear(duration: Int = 320, delay: Int = 0): Modifier {
+    val t = arrival(duration, delay)
+    return graphicsLayer {
+        alpha = t
+        val s = 0.96f + 0.04f * t
+        scaleX = s
+        scaleY = s
+    }
+}
+
+/**
+ * A tab change: the new screen comes in from the side of the dock it sits on, the old one leaves
+ * the other way, shorter than the entry (the site's view transition).
+ */
+fun tabChange(from: Tab, to: Tab, shift: Int): ContentTransform {
+    val dir = if (to.ordinal >= from.ordinal) 1 else -1
+    val enter = fadeIn(tween(260, easing = Motion.Enter)) + slideInHorizontally(tween(260, easing = Motion.Enter)) { shift * dir }
+    val exit = fadeOut(tween(160, easing = FastOutLinearInEasing)) + slideOutHorizontally(tween(160)) { -shift * 2 / 3 * dir }
+    return enter togetherWith exit
+}
+
+/** A disclosure's content opening and closing by height, like the site's `details`. */
+@Composable
+fun ColumnScope.Reveal(visible: Boolean, content: @Composable () -> Unit) {
+    AnimatedVisibility(
+        visible,
+        enter = expandVertically(tween(240, easing = Motion.Settle)) + fadeIn(tween(200)),
+        exit = shrinkVertically(tween(200, easing = Motion.Settle)) + fadeOut(tween(150)),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
+    }
+}

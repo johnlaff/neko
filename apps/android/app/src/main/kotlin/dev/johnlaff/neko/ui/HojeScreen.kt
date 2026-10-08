@@ -125,7 +125,7 @@ private fun Hero(v: TodayView) {
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.clickable { formula = !formula }.padding(vertical = 4.dp),
         )
-        if (formula) Formula(cs, v)
+        Reveal(formula) { Formula(cs, v) }
     }
 }
 
@@ -181,6 +181,7 @@ private fun Alert(
     val shape = RoundedCornerShape(14.dp)
     Row(
         Modifier.fillMaxWidth()
+            .appear()
             .background(color.copy(alpha = 0.10f), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(14.dp),

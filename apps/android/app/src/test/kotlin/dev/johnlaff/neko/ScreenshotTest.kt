@@ -76,6 +76,8 @@ class ScreenshotTest {
         AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true))
     }
 
+    @Test fun loadingDark() = shot("carregando-dark", night = true) { HojeScreen(TodayState(loading = true), {}, {}) }
+
     @Test fun lockLight() = shot("lock-light", night = false) { LockScreen {} }
 
     @Test fun loginDark() = shot("login-dark", night = true) { LoginScreen {} }
