@@ -1,6 +1,7 @@
 import type { Habit, HabitDayState } from "@neko/engine";
 import { IconChevron } from "./icons.tsx";
 import { HABIT, streakLabel } from "./learn.ts";
+import { Mascot } from "./Mascot.tsx";
 
 const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"] as const;
 const WEEKDAY_NAMES = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -35,6 +36,8 @@ export const Streak = ({ habit }: { habit: Habit }) => (
         <strong>{streakLabel(habit.streak)}</strong>
         {habit.editedToday && <span>Hoje já lançado</span>}
       </span>
+      {/* The day is on the sheet: Neko purrs, right where the habit is counted. */}
+      {habit.editedToday && <Mascot pose="content" height={40} className="milestone-cat" />}
       <IconChevron />
     </summary>
     <p>{HABIT.rule}</p>
