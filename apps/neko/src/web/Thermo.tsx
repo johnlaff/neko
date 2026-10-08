@@ -2,7 +2,9 @@ import type { Band, DayMove, Saving, ThermoDay } from "@neko/engine";
 import { type CSSProperties, type KeyboardEvent, useRef, useState } from "react";
 import { ItemName } from "./Figures.tsx";
 import { money, monthName, shortDate, signed } from "./format.ts";
+import { Hint } from "./Hint.tsx";
 import { IconCard, IconIncome, IconReceipt, IconToday } from "./icons.tsx";
+import { HINTS } from "./learn.ts";
 
 const BAND_LABEL: Record<Band, string> = {
   negative: "No vermelho",
@@ -184,6 +186,7 @@ export const Thermo = ({
           </span>
         </p>
       )}
+      <Hint id="mes">{HINTS.mes}</Hint>
     </section>
   );
 };
