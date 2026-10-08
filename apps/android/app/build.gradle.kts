@@ -25,7 +25,7 @@ android {
         minSdk = 28
         targetSdk = 37
         versionCode = (System.getenv("NEKO_VERSION_CODE") ?: "1").toInt()
-        versionName = "0.8.0"
+        versionName = "0.9.0"
         buildConfigField("String", "NEKO_URL", "\"https://neko.joaoaraxaiba.workers.dev\"")
     }
 
@@ -103,6 +103,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.robolectric)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
