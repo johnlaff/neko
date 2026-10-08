@@ -61,9 +61,9 @@ export const Hint = ({ id, children }: { id: string; children: string }) => {
   }, [show, id]);
   if (!show) return null;
   return (
-    <aside className="hint" aria-label="Dica">
-      <p className="hint-text">{children}</p>
-      <button type="button" className="ghost small hint-ok" onClick={() => dismissHint(id)}>
+    <aside className="tip" aria-label="Dica">
+      <p className="tip-text">{children}</p>
+      <button type="button" className="ghost small tip-ok" onClick={() => dismissHint(id)}>
         Entendi
       </button>
     </aside>
