@@ -61,7 +61,7 @@ object WinCard {
         c.drawColor(BG)
         // Title, cat and wins as one block, centred above the footer.
         var y = maxOf(60f, (H - 140 - (44 + 40 + catH + 90 + rowsH)) / 2f) + 44
-        c.drawText("$title fechou", W / 2f, y, head)
+        c.drawText(title, W / 2f, y, head)
         ContextCompat.getDrawable(context, R.drawable.mascot_neko_comemorando)?.let { d ->
             val catW = d.intrinsicWidth * catH / d.intrinsicHeight
             val left = (W - catW) / 2
@@ -89,6 +89,6 @@ object WinCard {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(send, "$title fechou").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent.createChooser(send, title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }

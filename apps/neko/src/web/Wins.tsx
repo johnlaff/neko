@@ -29,7 +29,7 @@ export function Wins({
   const share = async () => {
     setBusy(true);
     try {
-      await shareCard(`${capitalize(monthName(month))} de ${year}`, lines);
+      await shareCard(`${capitalize(monthName(month))} de ${year} fechou`, lines);
     } finally {
       setBusy(false);
     }
@@ -89,7 +89,7 @@ const drawCard = async (title: string, lines: readonly string[]) => {
   let y = Math.max(60, (H - 140 - (44 + 40 + catH + 90 + rowsH)) / 2) + 44;
   ctx.fillStyle = "#57534e";
   ctx.font = `500 44px ${font}`;
-  ctx.fillText(`${title} fechou`, W / 2, y);
+  ctx.fillText(title, W / 2, y);
   const catW = (img.naturalWidth / img.naturalHeight) * catH;
   ctx.drawImage(img, (W - catW) / 2, y + 40, catW, catH);
   y += 40 + catH + 90;
@@ -107,13 +107,16 @@ const drawCard = async (title: string, lines: readonly string[]) => {
   );
 };
 
-/** Shares the picture where the browser can (phones), else downloads it. */
-const shareCard = async (title: string, lines: readonly string[]) => {
+/**
+ * Shares a picture of an achievement where the browser can (phones), else downloads it: a
+ * heading, the celebrating Neko and the lines, never an amount.
+ */
+export const shareCard = async (title: string, lines: readonly string[]) => {
   const blob = await drawCard(title, lines);
   const file = new File([blob], "neko-conquista.png", { type: "image/png" });
   if (navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: `${title} fechou` });
+      await navigator.share({ files: [file], title });
     } catch {
       // Closing the share sheet is not an error.
     }

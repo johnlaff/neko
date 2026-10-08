@@ -210,6 +210,7 @@ private fun Alert(
     color: androidx.compose.ui.graphics.Color,
     onClick: (() -> Unit)? = null,
     lead: (@Composable () -> Unit)? = null,
+    action: (@Composable () -> Unit)? = null,
 ) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(14.dp)
@@ -225,10 +226,11 @@ private fun Alert(
         if (lead != null) lead()
         else Box(Modifier.width(4.dp).height(36.dp).background(color, RoundedCornerShape(2.dp)))
         Spacer(Modifier.width(12.dp))
-        Column {
+        Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(detail, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
+        action?.invoke()
     }
 }
 
@@ -236,9 +238,14 @@ private fun Alert(
 private fun MilestoneCard(m: Int) {
     val l = LocalLedger.current
     MilestoneHaptic(m)
-    Alert("Marca de $m dias", Learn.milestone(m), l.pos) {
-        CelebratingCat(Modifier.height(56.dp).hop())
-    }
+    val context = LocalContext.current
+    Alert(
+        "Marca de $m dias",
+        Learn.milestone(m),
+        l.pos,
+        lead = { CelebratingCat(Modifier.height(56.dp).hop()) },
+        action = { ShareButton { dev.johnlaff.neko.share.WinCard.share(context, "Marca de $m dias", listOf(Learn.milestone(m))) } },
+    )
 }
 
 @Composable
@@ -290,14 +297,23 @@ internal fun WinsBox(wins: List<String>, cat: Dp, title: String) {
             }
         }
         // The picture carries the wins only, never an amount (share/WinCard.kt).
-        OutlinedButton(
-            onClick = { dev.johnlaff.neko.share.WinCard.share(context, title, wins) },
-            modifier = Modifier.align(Alignment.End).padding(bottom = 6.dp).heightIn(min = 40.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
-            border = androidx.compose.foundation.BorderStroke(1.dp, l.muted),
-            contentPadding = PaddingValues(horizontal = 14.dp),
-        ) { Text("Compartilhar", style = MaterialTheme.typography.labelLarge) }
+        Box(Modifier.align(Alignment.End).padding(bottom = 6.dp)) {
+            ShareButton { dev.johnlaff.neko.share.WinCard.share(context, "$title fechou", wins) }
+        }
     }
+}
+
+/** Opens the share sheet with an achievement's picture (share/WinCard.kt). */
+@Composable
+private fun ShareButton(onClick: () -> Unit) {
+    val l = LocalLedger.current
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.heightIn(min = 40.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
+        border = androidx.compose.foundation.BorderStroke(1.dp, l.muted),
+        contentPadding = PaddingValues(horizontal = 14.dp),
+    ) { Text("Compartilhar", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
 }
 
 /**
