@@ -2036,8 +2036,16 @@ button.ghost.small {
 .panel.list.learn details.formula {
   padding: 12px 0;
 }
-.panel.list.learn details.formula:first-child {
-  padding-top: 16px;
+.learn-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0 4px;
+}
+.learn-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 button.setting.quiet {
   width: 100%;

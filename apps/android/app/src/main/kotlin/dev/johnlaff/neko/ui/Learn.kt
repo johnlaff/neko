@@ -65,6 +65,9 @@ object Learn {
 
     data class Idea(val title: String, val body: String)
 
+    /** Opens Ajustes › Como funciona, next to Mia. */
+    const val INTRO = "Tudo o que a Mia ensina nas dicas, num lugar só."
+
     val IDEAS = listOf(
         Idea("De onde vêm os números", "Tudo vem da sua planilha. O Neko lê e faz as contas, mas nunca escreve nela."),
         Idea(

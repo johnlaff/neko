@@ -34,6 +34,7 @@ enum class Pose(@param:DrawableRes val res: Int, val ratio: Float) {
     Celebrating(R.drawable.mascot_neko_comemorando, 330f / 480f),
     Content(R.drawable.mascot_neko_satisfeito, 286f / 480f),
     MiaThinking(R.drawable.mascot_mia_pensando, 298f / 480f),
+    MiaTeaching(R.drawable.mascot_mia_ensinando, 357f / 480f),
 }
 
 @Composable
