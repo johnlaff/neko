@@ -11,13 +11,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -31,6 +31,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -86,17 +88,38 @@ fun miaShown(v: MiaValue): String = when {
 
 data class MiaExchange(val pergunta: String, val reply: MiaReply)
 
-/** The site's "Perguntar à Mia" (web/Mia.tsx), opened from Hoje under Lançar and Simular. */
+/**
+ * The site's "Perguntar à Mia" (web/Mia.tsx): a quiet row under Lançar and Simular, not a third
+ * big button. The chevron turns when the conversation is open.
+ */
 @Composable
 fun MiaButton(open: Boolean, onClick: () -> Unit) {
     val l = LocalLedger.current
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(48.dp).semantics { stateDescription = if (open) "Aberto" else "Fechado" },
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (open) l.muted else l.border),
-        shape = RoundedCornerShape(50),
-    ) { Text("Perguntar à Mia", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
+    val shape = RoundedCornerShape(14.dp)
+    val turn by androidx.compose.animation.core.animateFloatAsState(if (open) 90f else 0f, label = "chevron")
+    Row(
+        Modifier.fillMaxWidth()
+            .background(l.surface, shape)
+            .border(1.dp, l.border, shape)
+            .clip(shape)
+            .clickable(onClickLabel = if (open) "Fechar a conversa" else "Abrir a conversa", onClick = onClick)
+            .semantics(mergeDescendants = true) { stateDescription = if (open) "Aberto" else "Fechado" }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Mascot(Pose.MiaTeaching, Modifier.height(40.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Perguntar à Mia", style = MaterialTheme.typography.titleMedium)
+            Text("Respostas com os números da sua planilha", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        }
+        androidx.compose.material3.Icon(
+            androidx.compose.ui.res.painterResource(dev.johnlaff.neko.R.drawable.ic_chevron_right),
+            null,
+            tint = l.faint,
+            modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = turn },
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -142,14 +165,7 @@ fun MiaPanel(
     }
 
     Panel(Modifier.semantics { contentDescription = "Conversa com a Mia" }) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Mascot(Pose.MiaTeaching, Modifier.height(56.dp))
-            Text(
-                if (paused != null) "A Mia descansa até ${shortDate(paused)}."
-                else "Pergunte sobre a sua planilha. Os valores vêm do Neko.",
-                color = l.muted,
-            )
-        }
+        if (paused != null) Text("A Mia descansa até ${shortDate(paused)}.", color = l.muted)
         talk.forEach { x ->
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(x.pergunta, color = l.muted, style = MaterialTheme.typography.bodyMedium)

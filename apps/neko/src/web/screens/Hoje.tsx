@@ -332,7 +332,9 @@ const BankMissing = ({ bank }: { bank: BankView }) => {
           </li>
         ))}
       </ul>
-      <p className="hint">Toque para copiar a linha da nota. O banco não muda a planilha.</p>
+      <p className="hint">
+        Escolha um movimento para copiar a linha da nota. O banco não muda a planilha.
+      </p>
     </section>
   );
 };
@@ -398,7 +400,6 @@ const splitDays = (days: readonly UpcomingDay[]) => {
  */
 const RecapPanel = ({ r }: { r: MonthRecap }) => {
   const name = monthName(r.month);
-  const before = monthName(r.month === 1 ? 12 : r.month - 1);
   return (
     <section className="panel recap">
       <div className="panel-head">
@@ -423,23 +424,7 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
             <dd>{money(r.saved)}</dd>
           </>
         )}
-        <dt>Custo de vida</dt>
-        <dd>
-          {money(r.livingCost)}
-          {r.costChange !== null && r.costChange !== 0 && (
-            <small className={r.costChange < 0 ? "pos" : undefined}>
-              {r.costChange < 0 ? "▼" : "▲"} {money(Math.abs(r.costChange))} sobre {before}
-            </small>
-          )}
-        </dd>
-        {r.top && (
-          <>
-            <dt>Maior saída</dt>
-            <dd>
-              {r.top.label} · {money(r.top.amount)}
-            </dd>
-          </>
-        )}
+        {/* Custo de vida and the largest line are one tap away, on Mês. */}
       </dl>
     </section>
   );
