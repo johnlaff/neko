@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +31,7 @@ fun FaturasScreen(state: ScreenState<InvoicesView>, onRefresh: () -> Unit, onAju
         if (!v.hasCards) {
             item {
                 Panel {
+                    Mascot(Pose.Searching, Modifier.height(96.dp))
                     Text("Nenhuma fatura", style = MaterialTheme.typography.headlineSmall)
                     Text("O Neko procura cartões nas notas de Saída, debaixo de CARTÕES.", color = LocalLedger.current.muted)
                 }

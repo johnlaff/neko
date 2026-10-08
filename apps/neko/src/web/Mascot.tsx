@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import miaEnsinando from "./assets/mascots/mia-ensinando.webp";
 import nekoComemorando from "./assets/mascots/neko-comemorando.webp";
 import nekoDormindo from "./assets/mascots/neko-dormindo.webp";
+import nekoProcurando from "./assets/mascots/neko-procurando.webp";
 import nekoSatisfeito from "./assets/mascots/neko-satisfeito.webp";
-import nekoSentado from "./assets/mascots/neko-sentado.webp";
 
 /**
  * Neko (the brown tabby) and Mia (the cream one with glasses), drawn from the owner's two cats.
@@ -11,7 +11,7 @@ import nekoSentado from "./assets/mascots/neko-sentado.webp";
  * jumping while it loads. Decorative: whatever sits next to the cat says the same in words.
  */
 const POSES = {
-  sitting: { src: nekoSentado, w: 288, h: 480 },
+  searching: { src: nekoProcurando, w: 464, h: 480 },
   sleeping: { src: nekoDormindo, w: 480, h: 318 },
   celebrating: { src: nekoComemorando, w: 330, h: 480 },
   content: { src: nekoSatisfeito, w: 286, h: 480 },
