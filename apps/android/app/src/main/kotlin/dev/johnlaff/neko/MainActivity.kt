@@ -84,9 +84,11 @@ class MainActivity : ComponentActivity() {
             NekoTheme {
                 val session by model.session.collectAsStateWithLifecycle()
                 var tab by rememberSaveable { mutableStateOf(Tab.Hoje) }
+                // Switching shows the last reading at once; only one older than a minute is read
+                // again, silently (refresh, a pull or "Tentar de novo" read now and say so).
                 val go = { t: Tab ->
                     tab = t
-                    model.refresh(t)
+                    model.show(t)
                 }
                 LaunchedEffect(request, session) {
                     val r = request ?: return@LaunchedEffect
@@ -97,9 +99,9 @@ class MainActivity : ComponentActivity() {
                 }
                 // Signing out from Ajustes and back in lands on Hoje, which is read on sign-in.
                 LaunchedEffect(session) { if (session == Session.SignedOut) tab = Tab.Hoje }
-                // Coming back to the app after a while reads the sheet again, like the site does.
+                // Coming back to the app after a while reads the sheet again, silently, like the site does.
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-                    if (session == Session.SignedIn) model.refresh(tab)
+                    if (session == Session.SignedIn) model.show(tab)
                 }
                 // Back from another place returns to Hoje before leaving the app.
                 BackHandler(enabled = session == Session.SignedIn && tab != Tab.Hoje) { go(Tab.Hoje) }

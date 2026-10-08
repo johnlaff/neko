@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewmodel.initializer
@@ -42,6 +43,7 @@ enum class ReadError { Offline, SheetStructure, Other }
 /** One screen's last read, whether a new one is on the way and why the last one failed. */
 data class ScreenState<T>(
     val view: T? = null,
+    /** A read the screen shows as such: asked for, or with nothing to show yet. */
     val loading: Boolean = false,
     val error: ReadError? = null,
     /** The sheet's message when its structure changed. */
@@ -50,10 +52,21 @@ data class ScreenState<T>(
 
 typealias TodayState = ScreenState<TodayView>
 
+/**
+ * How long a screen's reading counts as fresh: showing it again within this reads nothing, and
+ * after it the read is silent, the reading staying on screen (stale-while-revalidate).
+ */
+const val FRESH_FOR = 60_000L
+
 /** How the Ajustes autosave went, for the chip next to the title. */
 enum class SaveState { Idle, Saving, Saved, Failed }
 
-class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel() {
+class AppModel(
+    private val neko: Neko,
+    /** A monotonic clock in ms, for how fresh each reading is; tests drive their own. */
+    private val clock: () -> Long = SystemClock::elapsedRealtime,
+    private val effects: Effects,
+) : ViewModel() {
     private val _session = MutableStateFlow<Session>(Session.Checking)
     val session: StateFlow<Session> = _session
     private val _today = MutableStateFlow(TodayState())
@@ -94,11 +107,14 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
                 signedIn.isFailure && _today.value.view != null -> Session.SignedIn
                 else -> Session.SignedOut
             }
-            if (_session.value == Session.SignedIn) refresh()
+            if (_session.value == Session.SignedIn) readToday(shown = false)
         }
     }
 
-    fun refresh() = load(_today, { neko.today.refresh() }) { v ->
+    /** Hoje read now, as asked (the refresh button, a pull, "Tentar de novo"). */
+    fun refresh() = readToday(shown = true)
+
+    private fun readToday(shown: Boolean) = load(_today, { neko.today.refresh() }, shown) { v ->
         effects.todayChanged(v)
         prefetch()
         side { _mia.value = neko.api.mia() }
@@ -114,20 +130,38 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
     private fun prefetch() {
         if (prefetched) return
         prefetched = true
-        refresh(Tab.Faturas)
-        refresh(Tab.Mes)
+        read(Tab.Faturas, shown = false)
+        read(Tab.Mes, shown = false)
     }
 
-    /** Reads the screen on show; what was read before stays on screen until the new read lands. */
-    fun refresh(tab: Tab) = when (tab) {
-        Tab.Hoje -> refresh()
-        Tab.Faturas -> load(_invoices, { neko.api.invoices().also { neko.caches.invoices.write(it) } })
+    /** Reads the screen now, as asked; what was read before stays on screen until the new read lands. */
+    fun refresh(tab: Tab) = read(tab, shown = true)
+
+    /**
+     * A tab shown or the app back in front: a fresh reading is kept as is, an older one is read
+     * again in the background without a spinner, as Gmail does, and lands quietly.
+     */
+    fun show(tab: Tab) {
+        val at = readAt[stateOf(tab)]
+        if (at == null || clock() - at >= FRESH_FOR) read(tab, shown = false)
+    }
+
+    private fun stateOf(tab: Tab): MutableStateFlow<out ScreenState<*>> = when (tab) {
+        Tab.Hoje -> _today
+        Tab.Faturas -> _invoices
+        Tab.Mes -> _months
+        Tab.Ajustes -> _ajustes
+    }
+
+    private fun read(tab: Tab, shown: Boolean) = when (tab) {
+        Tab.Hoje -> readToday(shown)
+        Tab.Faturas -> load(_invoices, { neko.api.invoices().also { neko.caches.invoices.write(it) } }, shown)
         Tab.Mes -> {
-            load(_months, { neko.api.months().also { neko.caches.months.write(it) } })
+            load(_months, { neko.api.months().also { neko.caches.months.write(it) } }, shown)
             side { _history.value = neko.api.history().also { neko.caches.history.write(it) } }
         }
         Tab.Ajustes -> {
-            load(_ajustes, { neko.api.ajustes().also { neko.caches.ajustes.write(it) } })
+            load(_ajustes, { neko.api.ajustes().also { neko.caches.ajustes.write(it) } }, shown)
             readDevices()
             side { _banks.value = neko.api.banks() }
         }
@@ -171,16 +205,34 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
     /** Hoje's simulator; the Worker does the math, as for every other figure. */
     suspend fun simulate(amount: Long, count: Int): InstallmentSimulation? = neko.api.simulate(amount, count)
 
+    /** When each screen was last read well, on [clock]; a screen not read this run is missing. */
+    private val readAt = mutableMapOf<MutableStateFlow<out ScreenState<*>>, Long>()
+
+    /** Screens with a read on its way, shown or silent: a second one is never started. */
+    private val reading = mutableSetOf<MutableStateFlow<out ScreenState<*>>>()
+
+    /**
+     * Reads one screen. A [shown] read (asked for) spins the head; a silent one does only when
+     * there is nothing to show yet, and when it fails the last reading stays, marked offline.
+     */
     private fun <T> load(
         state: MutableStateFlow<ScreenState<T>>,
         read: suspend () -> T,
+        shown: Boolean,
         done: (T) -> Unit = {},
     ) {
-        if (state.value.loading) return
-        state.update { it.copy(loading = true) }
+        val spin = shown || state.value.view == null
+        // Already reading: a refresh asked meanwhile spins until that read lands.
+        if (!reading.add(state)) {
+            if (spin) state.update { it.copy(loading = true) }
+            return
+        }
+        if (spin) state.update { it.copy(loading = true) }
         viewModelScope.launch {
             val result = runCatching { read() }
+            reading.remove(state)
             result.onSuccess { v ->
+                readAt[state] = clock()
                 state.value = ScreenState(view = v)
                 done(v)
             }
@@ -215,7 +267,7 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
                 _ajustes.value.view?.let { neko.caches.ajustes.write(it) }
                 _save.value = SaveState.Saved
                 // Settings change Hoje (pace, diário): read it again so the widget follows.
-                refresh()
+                readToday(shown = false)
             }
             result.onFailure { e ->
                 if (e is kotlinx.coroutines.CancellationException) throw e
@@ -245,7 +297,7 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
             saved = s
             _ajustes.update { st -> st.copy(view = st.view?.copy(settings = s)) }
             _ajustes.value.view?.let { neko.caches.ajustes.write(it) }
-            refresh()
+            readToday(shown = false)
         }
         result.onFailure { e ->
             if (e is kotlinx.coroutines.CancellationException) throw e
@@ -256,7 +308,7 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
 
     fun signedIn() {
         _session.value = Session.SignedIn
-        refresh()
+        readToday(shown = false)
     }
 
     fun logout() {
@@ -271,6 +323,7 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
         neko.caches.clear()
         neko.cookies.clear()
         prefetched = false
+        readAt.clear()
         _today.value = TodayState()
         _invoices.value = ScreenState()
         _months.value = ScreenState()
@@ -290,11 +343,11 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
 val AppModelFactory = viewModelFactory {
     initializer {
         val app = this[APPLICATION_KEY] as NekoApp
-        AppModel(app.neko) { view ->
+        AppModel(app.neko, effects = { view ->
             WidgetRefresh.redraw(app)
             Shortcuts.lancar(app, view?.todayUrl)
             dev.johnlaff.neko.tile.LancarTile.refresh(app)
-        }
+        })
     }
 }
 

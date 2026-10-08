@@ -46,14 +46,21 @@ export const checkedAt = (r: ProjectionResponse, at: Date): ProjectionResponse =
  * settings). Unchanged sheet and same day: one Drive call and a D1 read.
  */
 export const getProjection = async (env: Env, today: LocalDate): Promise<ProjectionResponse> => {
-  const token = await accessToken(env.GOOGLE_SERVICE_ACCOUNT_JSON);
-  const file = await fileVersion(env.SHEET_ID, token);
-  await recordEdits(env.DB, [file.modifiedTime]);
-  const withHabit = async (r: ProjectionResponse): Promise<ProjectionResponse> => ({
-    ...r,
-    habit: await loadHabit(env.DB, today),
-  });
-  return withHabit(await readProjection(env, today, token, file));
+  // Independent reads go out together: every screen switch waits on this, so each round trip
+  // to Google or D1 saved is time the person does not wait.
+  const [file, settings, bank] = await Promise.all([
+    accessToken(env.GOOGLE_SERVICE_ACCOUNT_JSON).then(async (token) => ({
+      token,
+      ...(await fileVersion(env.SHEET_ID, token)),
+    })),
+    loadSettings(env.DB),
+    loadBank(env.DB),
+  ]);
+  const [habit, response] = await Promise.all([
+    recordEdits(env.DB, [file.modifiedTime]).then(() => loadHabit(env.DB, today)),
+    readProjection(env, today, file.token, file, settings, bank),
+  ]);
+  return { ...response, habit };
 };
 
 const readProjection = async (
@@ -61,9 +68,9 @@ const readProjection = async (
   today: LocalDate,
   token: string,
   file: { version: string; modifiedTime: string },
+  settings: UserSettings,
+  bank: BankRows | null,
 ): Promise<ProjectionResponse> => {
-  const settings = await loadSettings(env.DB);
-  const bank = await loadBank(env.DB);
   const hash = `${PIPELINE_VERSION}:${await settingsHash(settings)}:${bankVersion(bank)}`;
   const version = `${file.version}`;
 
