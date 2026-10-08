@@ -150,7 +150,12 @@ private fun Reminders(r: RemindersSwitch) {
     val l = LocalLedger.current
     Setting(
         "Neste celular",
-        if (r.blocked) "Permita as notificações do Neko no Android" else "Quanto cabe às 8h, lançar o dia às 21h",
+        when {
+            r.blocked -> "Permita as notificações do Neko no Android"
+            // The site's browser push sends the same two reminders; both on would arrive twice.
+            r.on -> "Às 8h e às 21h. Desligue os do site neste celular"
+            else -> "Quanto cabe às 8h, lançar o dia às 21h"
+        },
         r.blocked,
     ) {
         Switch(
