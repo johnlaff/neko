@@ -42,6 +42,8 @@ export const Streak = ({ habit }: { habit: Habit }) => (
     </summary>
     <p>{HABIT.rule}</p>
     <p className="meta">
+      {/* Missing on projections cached before it existed. */}
+      {habit.lastWeek != null ? `Semana passada: ${habit.lastWeek} de 7 dias lançados. ` : ""}
       {habit.best > habit.streak ? `Melhor sequência: ${habit.best} dias. ` : ""}
       {habit.next !== null ? `Próxima marca: ${habit.next} dias.` : ""}
     </p>

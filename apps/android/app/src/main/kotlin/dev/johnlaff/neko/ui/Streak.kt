@@ -90,6 +90,7 @@ fun Streak(h: Habit) {
         Reveal(open) {
             Text(Learn.HABIT_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
             val extra = listOfNotNull(
+                h.lastWeek?.let { "Semana passada: $it de 7 dias lançados." },
                 if (h.best > h.streak) "Melhor sequência: ${h.best} dias." else null,
                 h.next?.let { "Próxima marca: $it dias." },
             ).joinToString(" ")
