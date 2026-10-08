@@ -9,7 +9,7 @@ import {
   RouterProvider,
   useRouterState,
 } from "@tanstack/react-router";
-import { Fragment, lazy, Suspense, useEffect } from "react";
+import { Fragment, lazy, Suspense, useEffect, useState } from "react";
 import { api } from "./api.ts";
 import { readAtLabel } from "./format.ts";
 import {
@@ -80,6 +80,15 @@ const Masthead = () => {
   const q = useProjection();
   const hidden = useValuesHidden();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  // Reads the app starts on its own (coming back to the tab, a stale screen) are silent: the
+  // last reading stays and the time updates when the new one lands. Only a read the person asked
+  // for shows progress, as in stale-while-revalidate apps.
+  const [asked, setAsked] = useState(false);
+  const reading = asked && q.isFetching;
+  const readAgain = () => {
+    setAsked(true);
+    q.refetch().finally(() => setAsked(false));
+  };
   useEffect(() => {
     window.addEventListener("keydown", onShortcut);
     return () => window.removeEventListener("keydown", onShortcut);
@@ -91,7 +100,7 @@ const Masthead = () => {
         {q.data && (
           <p className={q.data.offline ? "read warn" : "read"} role="status">
             {q.data.offline && <span className="read-dot" aria-hidden="true" />}
-            {q.isFetching
+            {reading
               ? "Lendo a planilha…"
               : `${q.data.offline ? "Sem conexão · Lida" : "Planilha lida"} ${readAtLabel(q.data.sheet.readAt)}`}
           </p>
@@ -108,10 +117,10 @@ const Masthead = () => {
       </button>
       <button
         type="button"
-        className={`icon${q.isFetching ? " spinning" : ""}`}
-        onClick={() => q.refetch()}
-        disabled={q.isFetching}
-        aria-label={q.isFetching ? "Lendo a planilha" : "Ler a planilha de novo"}
+        className={`icon${reading ? " spinning" : ""}`}
+        onClick={readAgain}
+        disabled={reading}
+        aria-label={reading ? "Lendo a planilha" : "Ler a planilha de novo"}
         aria-keyshortcuts="R"
         title="Ler a planilha de novo (R)"
       >

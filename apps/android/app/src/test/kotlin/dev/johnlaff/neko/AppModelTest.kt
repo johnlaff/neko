@@ -3,11 +3,16 @@ package dev.johnlaff.neko
 import dev.johnlaff.neko.data.Neko
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.ui.AppModel
+import dev.johnlaff.neko.ui.FRESH_FOR
 import dev.johnlaff.neko.ui.ReadError
 import dev.johnlaff.neko.ui.Session
+import dev.johnlaff.neko.ui.Tab
 import java.io.File
 import java.nio.file.Files
 import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -43,6 +48,14 @@ class AppModelTest {
     /** Path → answer; anything missing is a 404. */
     private val answers = mutableMapOf<String, MockResponse>()
 
+    /** Path → a gate its answer waits behind, to look at the screen while a read is on its way. */
+    private val gates = ConcurrentHashMap<String, CountDownLatch>()
+
+    /** The model's clock, in ms; moved by hand. */
+    @Volatile private var now = 0L
+
+    private fun hold(path: String) = CountDownLatch(1).also { gates[path] = it }
+
     private fun ok(fixture: String) = MockResponse(code = 200, body = File("src/test/resources/$fixture").readText())
 
     private fun json(code: Int, body: String) = MockResponse(code = code, body = body)
@@ -53,6 +66,7 @@ class AppModelTest {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 val path = request.url.encodedPath.removePrefix("/api")
                 asked += path
+                gates[path]?.await(5, TimeUnit.SECONDS)
                 return answers[path] ?: MockResponse(code = 404, body = """{"error":"not-found"}""")
             }
         }
@@ -65,6 +79,7 @@ class AppModelTest {
     }
 
     @After fun stop() {
+        gates.values.forEach { it.countDown() }
         server.close()
         Dispatchers.resetMain()
         dir.deleteRecursively()
@@ -72,12 +87,17 @@ class AppModelTest {
 
     private fun neko() = Neko.create(dir, server.url("/").toString().trimEnd('/'), "test", lazyOf(null))
 
-    private fun model(neko: Neko = neko()) = AppModel(neko) { todayChanges += it }
+    private fun model(neko: Neko = neko()) = AppModel(neko, clock = { now }) { todayChanges += it }
 
     private fun until(what: String, check: () -> Boolean) = runBlocking {
         runCatching { withTimeout(5_000) { while (!check()) delay(10) } }
             .onFailure { throw AssertionError("never happened: $what (asked: $asked)") }
     }
+
+    /** Time for a read that should not happen to show up. */
+    private fun settle() = runBlocking { delay(300) }
+
+    private fun reads(path: String) = asked.count { it == path }
 
     @Test fun signedInReadsHojeThenFaturasAndMesInTheBackground() {
         val m = model()
@@ -133,5 +153,91 @@ class AppModelTest {
         until("checked") { m.session.value != Session.Checking }
         assertEquals(Session.SignedOut, m.session.value)
         assertTrue(asked.none { it == "/today" })
+    }
+
+    @Test fun aTabShownWithinAMinuteIsNotReadAgain() {
+        val m = model()
+        until("prefetched") { m.invoices.value.view != null && m.months.value.view != null }
+        now = FRESH_FOR - 1
+        m.show(Tab.Faturas)
+        m.show(Tab.Mes)
+        m.show(Tab.Hoje)
+        settle()
+        assertEquals(1, reads("/invoices"))
+        assertEquals(1, reads("/months"))
+        assertEquals(1, reads("/today"))
+        assertFalse(m.invoices.value.loading)
+    }
+
+    @Test fun anOlderReadingIsReadAgainSilentlyAndStaysOnScreen() {
+        val m = model()
+        until("prefetched") { m.invoices.value.view != null }
+        val before = m.invoices.value.view
+        now = FRESH_FOR
+        val gate = hold("/invoices")
+        m.show(Tab.Faturas)
+        until("read again") { reads("/invoices") == 2 }
+        // No spinner, no "Lendo a planilha…": the last reading stays as it was.
+        assertFalse(m.invoices.value.loading)
+        assertEquals(before, m.invoices.value.view)
+        gate.countDown()
+        settle()
+        assertFalse(m.invoices.value.loading)
+        assertNull(m.invoices.value.error)
+        // Read just now: showing it again within the minute reads nothing.
+        now += FRESH_FOR - 1
+        m.show(Tab.Faturas)
+        settle()
+        assertEquals(2, reads("/invoices"))
+    }
+
+    @Test fun aSilentReadThatFailsKeepsTheReadingMarkedOffline() {
+        val m = model()
+        until("prefetched") { m.invoices.value.view != null }
+        server.close()
+        now = FRESH_FOR
+        m.show(Tab.Faturas)
+        until("offline noticed") { m.invoices.value.error == ReadError.Offline }
+        assertFalse(m.invoices.value.loading)
+        assertNotNull(m.invoices.value.view)
+    }
+
+    @Test fun anAskedRefreshReadsNowAndSaysSo() {
+        val m = model()
+        until("prefetched") { m.invoices.value.view != null }
+        val gate = hold("/invoices")
+        m.refresh(Tab.Faturas)
+        assertTrue(m.invoices.value.loading)
+        gate.countDown()
+        until("landed") { !m.invoices.value.loading }
+        assertEquals(2, reads("/invoices"))
+    }
+
+    @Test fun aRefreshDuringASilentReadWaitsForItWithTheSpinner() {
+        val m = model()
+        until("prefetched") { m.invoices.value.view != null }
+        now = FRESH_FOR
+        val gate = hold("/invoices")
+        m.show(Tab.Faturas)
+        until("read again") { reads("/invoices") == 2 }
+        assertFalse(m.invoices.value.loading)
+        m.refresh(Tab.Faturas)
+        assertTrue(m.invoices.value.loading)
+        gate.countDown()
+        until("landed") { !m.invoices.value.loading }
+        settle()
+        // The refresh rode on the read already on its way.
+        assertEquals(2, reads("/invoices"))
+    }
+
+    @Test fun withNothingToShowTheFirstReadShowsLoading() {
+        val gate = hold("/today")
+        val m = model()
+        until("reading Hoje") { reads("/today") == 1 }
+        assertNull(m.today.value.view)
+        assertTrue(m.today.value.loading)
+        gate.countDown()
+        until("Hoje read") { m.today.value.view != null }
+        assertFalse(m.today.value.loading)
     }
 }
