@@ -268,6 +268,22 @@ internal fun RecapPanel(r: MonthRecap) {
     val before = Format.monthName(if (r.month == 1) 12 else r.month - 1)
     Panel {
         PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou")
+        val wins = r.wins.mapNotNull(Copy::win)
+        if (wins.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth()
+                    .semantics(mergeDescendants = true) {}
+                    .background(l.pos.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Mascot(Pose.Celebrating, Modifier.height(64.dp).hop())
+                Spacer(Modifier.width(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    wins.forEach { Text(it, color = l.text, style = MaterialTheme.typography.titleSmall) }
+                }
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LedgerLine(
                 if (r.result < 0) "Faltou" else "Sobrou",

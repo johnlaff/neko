@@ -44,6 +44,7 @@ describe("monthRecap", () => {
       livingCost: 3500_00,
       costChange: -500_00,
       top: { label: "Aluguel", amount: 1900_00 },
+      wins: [{ kind: "blue", months: 2 }],
     });
   });
 
@@ -58,5 +59,39 @@ describe("monthRecap", () => {
     expect(monthRecap([dec], localDate("2026-01-02"))?.costChange).toBeNull();
     const empty = month(2026, 9, 0, { entrada: cents(0) });
     expect(monthRecap([empty], localDate("2026-10-02"))).toBeNull();
+  });
+
+  describe("wins: what the closed month achieved, straight from the sheet", () => {
+    const at = (y: number, m: number, extra: Partial<MonthView>) => month(y, m, 3000_00, extra);
+    const winsOn = (ms: MonthView[], d = "2026-10-02") => monthRecap(ms, localDate(d))?.wins;
+
+    it("counts the months in a row that ended in the blue", () => {
+      const ms = [
+        at(2026, 6, { result: cents(-10_00) }),
+        at(2026, 7, {}),
+        at(2026, 8, {}),
+        at(2026, 9, {}),
+      ];
+      expect(winsOn(ms)).toContainEqual({ kind: "blue", months: 3 });
+      expect(winsOn([at(2026, 9, { result: cents(0) })])).toEqual([]);
+    });
+
+    it("praises keeping the method's 20% of the income", () => {
+      expect(winsOn([at(2026, 9, { savedShare: 20 })])).toContainEqual({ kind: "kept", share: 20 });
+      expect(winsOn([at(2026, 9, { savedShare: 19 })])).not.toContainEqual(
+        expect.objectContaining({ kind: "kept" }),
+      );
+    });
+
+    it("marks the month the reserve first covered 1, 3, 6 or 12 months of living", () => {
+      const ms = [
+        at(2026, 7, { saved: cents(2000_00), result: cents(-1) }),
+        at(2026, 8, { saved: cents(500_00), result: cents(-1) }),
+        // 2.000 + 500 + 7.000 = 9.500 over a 3.000 living cost: crosses 3 months in September.
+        at(2026, 9, { saved: cents(7000_00), result: cents(-1) }),
+      ];
+      expect(winsOn(ms)).toEqual([{ kind: "reserve", months: 3 }]);
+      expect(winsOn(ms.slice(0, 2), "2026-09-02")).toEqual([]);
+    });
   });
 });

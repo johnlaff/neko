@@ -86,7 +86,7 @@ self.addEventListener("push", (event) => {
       body: msg.body,
       tag: msg.tag,
       icon: "/icon-192.png",
-      badge: "/icon-192.png",
+      badge: "/badge-96.png",
       data: { url: msg.url },
     }),
   );

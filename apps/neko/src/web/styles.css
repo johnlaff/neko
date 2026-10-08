@@ -1584,6 +1584,25 @@ button.chip-button[aria-pressed="true"] {
 .outflows > li:first-child .meter > span {
   background: var(--accent);
 }
+.recap-wins {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: color-mix(in oklch, var(--pos) 11%, var(--surface));
+}
+.recap-wins ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 550;
+}
+.recap-wins .milestone-cat {
+  margin-block: -12px -10px;
+}
 .recap .ledger dd > small {
   display: block;
   font-size: 0.8125rem;
