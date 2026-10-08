@@ -2454,3 +2454,18 @@ form.mia-form {
   letter-spacing: -0.01em;
   margin-right: 4px;
 }
+/* Faturas: the usual card's bank mark before its name, smaller than a row's */
+.panel-head > h2.with-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.panel-head > h2.with-mark > span.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.panel-head > h2.with-mark > span.avatar.brand > svg {
+  width: 18px;
+  height: 18px;
+}

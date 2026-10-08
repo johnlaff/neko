@@ -35,6 +35,16 @@ object Format {
 
     fun days(n: Int): String = if (n == 1) "1 dia" else "$n dias"
 
+    /**
+     * The usual card's closing, from the API's `closesInDays`, which counts today: 1 is today,
+     * 2 tomorrow.
+     */
+    fun closesIn(closesInDays: Int): String = when {
+        closesInDays <= 1 -> "Fecha hoje"
+        closesInDays == 2 -> "Fecha amanhã"
+        else -> "Fecha em ${days(closesInDays - 1)}"
+    }
+
     /** `Hoje`, `Amanhã` or `Quinta, 9 out`, relative to the sheet's today. */
     fun relativeDay(iso: String, today: String): String {
         val diff = ChronoUnit.DAYS.between(LocalDate.parse(today), LocalDate.parse(iso))

@@ -28,6 +28,13 @@ class FormatTest {
         assertEquals("3 dias", Format.days(3))
     }
 
+    @Test fun closesIn() {
+        // closesInDays counts today: 1 is today, 2 tomorrow, 4 is three days away.
+        assertEquals("Fecha hoje", Format.closesIn(1))
+        assertEquals("Fecha amanhã", Format.closesIn(2))
+        assertEquals("Fecha em 3 dias", Format.closesIn(4))
+    }
+
     @Test fun typedMoney() {
         assertEquals(17_700L, Format.toCents("177,00"))
         assertEquals(500_000L, Format.toCents(" 5.000 "))
