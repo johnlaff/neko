@@ -24,6 +24,8 @@ enum class Device(val qualifiers: String, val fontScale: Float) {
     Phone("w412dp-h915dp", 1f),
     /** A small phone with large text, tall enough to show the whole list: where layouts break. */
     SmallLargeText("w360dp-h2400dp", 1.3f),
+    /** Android 14+'s largest text, 200%: nothing may be cut or overlap. */
+    HugeText("w412dp-h3600dp", 2f),
 }
 
 fun <T> readJson(file: File, s: KSerializer<T>): T = json.decodeFromString(s, file.readText())
