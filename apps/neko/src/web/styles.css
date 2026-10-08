@@ -15,9 +15,9 @@
   --text: #fafaf9;
   --muted: #bab5ad;
   --faint: #938e86;
-  --accent: #86d19f;
+  --accent: #7cbf96;
   --accent-tint: color-mix(in oklch, var(--accent) 14%, transparent);
-  --pos: #86d19f;
+  --pos: #7cbf96;
   --warn: #e7b765;
   --mia: #e0a85a;
   --neg: #f08f78;
@@ -25,7 +25,7 @@
   --pill-active: color-mix(in oklch, var(--text) 13%, transparent);
   --sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --serif: "Faustina Variable", ui-serif, Georgia, serif;
-  --radius: 18px;
+  --radius: 12px;
   --gutter: 16px;
 }
 
@@ -40,8 +40,8 @@
     --text: #1c1a17;
     --muted: #57534e;
     --faint: #6d6861;
-    --accent: #2a7548;
-    --pos: #2a7548;
+    --accent: #2a6b47;
+    --pos: #2a6b47;
     --warn: #96580b;
     --mia: #a8661a;
     --neg: #b0412b;
@@ -135,7 +135,7 @@ a {
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   padding: 5px;
-  border-radius: 999px;
+  border-radius: 16px;
   background: color-mix(in oklch, var(--surface) 82%, transparent);
   backdrop-filter: blur(16px) saturate(1.2);
   box-shadow:
@@ -148,7 +148,7 @@ a {
   gap: 1px;
   padding: 7px 0 6px;
   min-height: 52px;
-  border-radius: 999px;
+  border-radius: 12px;
   color: var(--faint);
   text-decoration: none;
   font-size: 0.6875rem;
@@ -494,7 +494,7 @@ button {
   background: var(--text);
   color: var(--bg);
   border: 0;
-  border-radius: 999px;
+  border-radius: 10px;
   padding: 0 22px;
   cursor: pointer;
   transition:
@@ -546,7 +546,7 @@ button.icon:hover {
   grid-template-columns: 44px 1fr 44px;
   align-items: center;
   text-align: center;
-  border-radius: 999px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface);
   padding: 3px;
@@ -556,7 +556,7 @@ button.icon:hover {
   letter-spacing: 0;
 }
 .month-nav button.icon {
-  border-radius: 999px;
+  border-radius: 8px;
 }
 
 .form {
@@ -781,7 +781,7 @@ input.switch:checked::after {
   gap: 8px;
   background: color-mix(in oklch, var(--warn) 12%, transparent);
   color: var(--text);
-  border-radius: 999px;
+  border-radius: 10px;
   padding: 8px 14px;
   font-size: 0.8125rem;
 }
@@ -819,7 +819,7 @@ input.switch:checked::after {
 }
 .skeleton .pill {
   height: 48px;
-  border-radius: 999px;
+  border-radius: 10px;
 }
 .skeleton .dot {
   width: 32px;
@@ -938,22 +938,23 @@ input.switch:checked::after {
 }
 .gauge .track {
   stroke: var(--surface-2);
-  stroke-width: 10;
+  stroke-width: 4;
 }
+/* A thin ink arc: the status color is spent only on the pace dot and the words under it */
 .gauge .fill {
-  stroke: var(--accent);
-  stroke-width: 10;
-}
-.gauge .fill.over {
-  stroke: var(--warn);
-}
-.gauge .fill.bad {
-  stroke: var(--neg);
+  stroke: var(--text);
+  stroke-width: 4;
 }
 .gauge .tick {
-  fill: var(--text);
+  fill: var(--pos);
   stroke: var(--surface);
   stroke-width: 3;
+}
+.gauge .tick.over {
+  fill: var(--warn);
+}
+.gauge .tick.bad {
+  fill: var(--neg);
 }
 .dial-label {
   position: absolute;
@@ -1666,7 +1667,7 @@ button.chip-button[aria-pressed="true"] {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border-radius: 14px;
+  border-radius: 12px;
   background: color-mix(in oklch, var(--pos) 11%, var(--surface));
 }
 .recap-wins ul {
@@ -1725,7 +1726,7 @@ button.chip-button[aria-pressed="true"] {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--text);
   text-decoration: none;
   background: var(--surface);

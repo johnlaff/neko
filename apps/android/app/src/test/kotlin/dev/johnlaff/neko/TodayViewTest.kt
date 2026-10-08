@@ -76,10 +76,10 @@ class TodayViewTest {
 
     @Test fun widgetAndTileCarryTheStreak() {
         val t = widgetText(view)
-        assertEquals("12 dias em dia", t.streak)
+        assertEquals("Planilha em dia · 12 dias", t.streak)
         assertEquals(7, t.week.size)
         val tile = dev.johnlaff.neko.tile.tileText(view)
-        assertEquals("12 dias em dia", tile.subtitle)
+        assertEquals("Planilha em dia · 12 dias", tile.subtitle)
         assertEquals(true, tile.active)
         val logged = view.copy(habit = view.habit!!.copy(editedToday = true))
         assertEquals(false, dev.johnlaff.neko.tile.tileText(logged).active)

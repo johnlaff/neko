@@ -100,7 +100,7 @@ data class MiaExchange(val pergunta: String, val reply: MiaReply)
 @Composable
 fun MiaButton(open: Boolean, onClick: () -> Unit) {
     val l = LocalLedger.current
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(12.dp)
     val turn by androidx.compose.animation.core.animateFloatAsState(if (open) 90f else 0f, label = "chevron")
     Row(
         Modifier.fillMaxWidth()
@@ -217,7 +217,7 @@ fun MiaPanel(
                     onClick = { send(typed) },
                     enabled = typed.isNotBlank() && !pending,
                     colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
-                    shape = RoundedCornerShape(50),
+                    shape = RoundedCornerShape(10.dp),
                 ) { Text("Enviar", style = MaterialTheme.typography.labelLarge) }
             }
         }

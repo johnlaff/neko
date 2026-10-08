@@ -12,7 +12,7 @@
         android:strokeWidth="6" />
     <path
         android:pathData="M36,64 A18,18 0 0 1 60.6,47.2"
-        android:strokeColor="#86D19F"
+        android:strokeColor="#7CBF96"
         android:strokeLineCap="round"
         android:strokeWidth="6" />
 </vector>

@@ -33,7 +33,12 @@ export const Streak = ({ habit }: { habit: Habit }) => (
       </ol>
       <span className="streak-text">
         <strong>{streakLabel(habit.streak)}</strong>
-        {habit.editedToday && <span>Hoje já lançado</span>}
+        {/* A new best run is a word on this line, not a card of its own. */}
+        {habit.record != null ? (
+          <span>Novo recorde</span>
+        ) : (
+          habit.editedToday && <span>Hoje já lançado</span>
+        )}
       </span>
       <IconChevron />
     </summary>

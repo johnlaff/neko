@@ -73,7 +73,7 @@ export const Gauge = ({
   total: number;
   mark: number;
   over: boolean;
-  /** Past the plan, not just ahead of pace: the arc takes the figure's red. */
+  /** Past the plan, not just ahead of pace: the dot takes the figure's red. */
   bad?: boolean;
 }) => {
   const share = total <= 0 ? 0 : clamp(value / total);
@@ -86,13 +86,13 @@ export const Gauge = ({
       <path className="track" d="M 12 100 A 88 88 0 0 1 188 100" pathLength={100} />
       {share > 0 && (
         <path
-          className={`fill${bad ? " bad" : over ? " over" : ""}`}
+          className="fill"
           d="M 12 100 A 88 88 0 0 1 188 100"
           pathLength={100}
           strokeDasharray={`${share * 100} 100`}
         />
       )}
-      <circle className="tick" cx={x} cy={y} r={6} />
+      <circle className={`tick${bad ? " bad" : over ? " over" : ""}`} cx={x} cy={y} r={6} />
     </svg>
   );
 };

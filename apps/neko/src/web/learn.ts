@@ -52,7 +52,7 @@ export const HABIT = {
 } as const;
 
 export const streakLabel = (streak: number) =>
-  streak === 0 ? "Comece hoje" : streak === 1 ? "1 dia em dia" : `${streak} dias em dia`;
+  streak === 0 ? "Comece hoje" : `Planilha em dia · ${streak} ${streak === 1 ? "dia" : "dias"}`;
 
 /** Mês's reserve panel, in the same words on the site and the app (ui/Learn.kt). */
 export const RESERVE = {

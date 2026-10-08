@@ -73,7 +73,11 @@ fun Streak(h: Habit) {
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(Learn.streakLabel(h.streak), style = MaterialTheme.typography.titleMedium)
-                if (h.editedToday) Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                // A new best run is a word on this line, not a card of its own (as on the site).
+                when {
+                    h.record != null -> Text("Novo recorde", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                    h.editedToday -> Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                }
             }
             Icon(
                 painterResource(R.drawable.ic_chevron_right),

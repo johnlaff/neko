@@ -52,7 +52,7 @@ data class WidgetText(
     val billDetail: String? = null,
     /** The next days with something on the sheet, for the tall widget. */
     val days: List<WidgetDay> = emptyList(),
-    /** "12 dias em dia" and this week as seven marks, for the tall widget; null without a streak. */
+    /** "Planilha em dia · 12 dias" and this week as seven marks, for the tall widget; null without a streak. */
     val streak: String? = null,
     val week: List<String> = emptyList(),
 )
@@ -88,7 +88,7 @@ val PREVIEW = WidgetText(
     "Hoje cabem", "R$ 148,00", "por dia · fecha 5 nov", false,
     "R$ 2.310,00", "de R$ 4.500,00 do plano",
     listOf(WidgetDay("Amanhã", "−R$ 120,00", false), WidgetDay("Sexta, 10 out", "+R$ 5.600,00", true)),
-    "5 dias em dia",
+    "Planilha em dia · 5 dias",
     listOf("edited", "edited", "rest", "edited", "edited", "today", "future"),
 )
 

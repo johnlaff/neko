@@ -203,7 +203,7 @@ private fun Skeleton() {
         }
         Box(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(8.dp)).then(block))
         Box(Modifier.fillMaxWidth(0.6f).height(14.dp).clip(RoundedCornerShape(8.dp)).then(block))
-        Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(50)).then(block))
+        Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(10.dp)).then(block))
     }
 }
 
@@ -250,7 +250,7 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     val l = LocalLedger.current
     val haptics = LocalHapticFeedback.current
     val rail = LocalRail.current
-    val shape = RoundedCornerShape(if (rail) 28.dp else 50.dp)
+    val shape = RoundedCornerShape(16.dp)
     // Tab names grow with the system text up to 130%: past that the four no longer fit one line,
     // and the screens above already carry the large text.
     val scale = LocalDensity.current.fontScale
@@ -269,7 +269,7 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
             maxLines = 1,
             softWrap = false,
             modifier = m
-                .background(pill, RoundedCornerShape(50))
+                .background(pill, RoundedCornerShape(12.dp))
                 .clickable(role = Role.Tab) {
                     if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                     onSelect(tab)
