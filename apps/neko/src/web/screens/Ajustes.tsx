@@ -78,7 +78,10 @@ const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[
     badMoney(x.daily) || badMoney(x.budget) || cards.some((c) => badDay(x.closing[c.name]));
   const commit = (next: Values) => {
     if (invalid(next)) return;
-    const body = payload(next, cards, initial.reviewed);
+    // Points hidden on Hoje since this form opened stay hidden: the latest list wins.
+    const reviewed =
+      queryClient.getQueryData<UserSettings>(["settings"])?.reviewed ?? initial.reviewed;
+    const body = payload(next, cards, reviewed);
     const json = JSON.stringify(body);
     if (json === saved.current) return;
     saved.current = json;
@@ -277,9 +280,13 @@ export const Ajustes = () => {
         </div>
       </section>
       <Devices />
-      <HowItWorks />
+      <HowItWorks reviewed={settings.data} />
       <section className="group" aria-label="Sessão">
         <div className="panel list">
+          <a className="setting link" href="/privacidade.html" target="_blank" rel="noreferrer">
+            Política de privacidade
+            <IconChevron />
+          </a>
           <button
             type="button"
             className="setting danger"
@@ -296,8 +303,18 @@ export const Ajustes = () => {
 };
 
 /** Every idea the tips teach, one tap each, for whoever skipped a tip or wants it again. */
-const HowItWorks = () => {
+const HowItWorks = ({ reviewed: s }: { reviewed: UserSettings }) => {
   const [reset, setReset] = useState(false);
+  const [restored, setRestored] = useState(false);
+  const queryClient = useQueryClient();
+  // Conferência points set aside on Hoje come back here, all at once, whenever wanted.
+  const restore = useMutation({
+    mutationFn: api.saveSettings,
+    onSuccess: (saved) => {
+      queryClient.setQueryData(["settings"], saved);
+      setRestored(true);
+    },
+  });
   return (
     <section className="group" aria-labelledby="g-learn">
       <h2 id="g-learn">Como funciona</h2>
@@ -312,6 +329,11 @@ const HowItWorks = () => {
             <p>{idea.body}</p>
           </details>
         ))}
+        {/* Only where there is a keyboard to press them. */}
+        <p className="learn-text keys">
+          Atalhos: <kbd>1</kbd> a <kbd>4</kbd> trocam de tela, <kbd>R</kbd> lê a planilha,{" "}
+          <kbd>L</kbd> abre o lançamento, <kbd>←</kbd> <kbd>→</kbd> trocam o mês.
+        </p>
         <button
           type="button"
           className="setting quiet"
@@ -323,6 +345,25 @@ const HowItWorks = () => {
         >
           {reset ? "As dicas voltam, uma por visita" : "Rever dicas"}
         </button>
+        {(s.reviewed.length > 0 || restored) && (
+          <button
+            type="button"
+            className="setting quiet"
+            disabled={restore.isPending || restored}
+            onClick={() => restore.mutate({ ...s, reviewed: [] })}
+          >
+            {restored
+              ? "Os pontos voltam em Hoje"
+              : restore.isPending
+                ? "Trazendo de volta…"
+                : "Mostrar de novo os pontos conferidos"}
+          </button>
+        )}
+        {restore.isError && (
+          <p className="setting-error" role="status">
+            Não salvou. Tente de novo.
+          </p>
+        )}
       </div>
     </section>
   );

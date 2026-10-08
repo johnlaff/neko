@@ -6,7 +6,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
@@ -109,19 +111,19 @@ fun Chip(text: String, tone: ChipTone) {
         ChipTone.Ok -> l.pos
         ChipTone.Warn -> l.warn
         ChipTone.Bad -> l.neg
-        ChipTone.Plain -> l.muted
+        ChipTone.Plain -> l.faint
     }
-    val shape = RoundedCornerShape(50)
-    Text(
-        text,
-        style = MaterialTheme.typography.labelMedium,
-        color = color,
-        maxLines = 1,
-        softWrap = false,
-        modifier = Modifier
-            .background(color.copy(alpha = 0.12f), shape)
+    // The site's `.chip`: one neutral pill, the tone only in a small dot before the words.
+    Row(
+        Modifier
+            .background(l.surface2, RoundedCornerShape(50))
             .padding(horizontal = 10.dp, vertical = 3.dp),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (tone != ChipTone.Plain) Box(Modifier.size(6.dp).background(color, CircleShape))
+        Text(text, style = MaterialTheme.typography.labelMedium, color = l.muted, maxLines = 1, softWrap = false)
+    }
 }
 
 /**
@@ -139,7 +141,8 @@ fun BigMoney(cents: Long, color: Color = LocalLedger.current.text) {
         Text(text, style = base, modifier = describe)
         return
     }
-    val small = base.copy(fontSize = 20.sp)
+    // Currency and cents stay muted whatever the tone, as on the site: only the integer takes it.
+    val small = base.copy(fontSize = 20.sp, color = LocalLedger.current.muted)
     val big = base.copy(fontSize = 48.sp, fontWeight = FontWeight.Medium)
     val int = m.groupValues[2]
     val digits = int.count { it.isDigit() }

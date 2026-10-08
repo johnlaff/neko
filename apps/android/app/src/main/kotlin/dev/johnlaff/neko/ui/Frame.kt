@@ -76,6 +76,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -151,12 +153,28 @@ fun <T> ScreenFrame(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(title, style = MaterialTheme.typography.displayLarge, modifier = Modifier.semantics { heading() })
+                        val at = v?.let(readAt).orEmpty()
+                        val offline = state.error == ReadError.Offline && v != null
                         val read = when {
-                            state.error == ReadError.Offline && v != null -> "Sem conexão. Esta é a última leitura"
-                            v != null && readAt(v).isNotEmpty() -> "Planilha lida ${readAtText(readAt(v))}"
+                            refreshing && at.isNotEmpty() -> "Lendo a planilha…"
+                            offline && at.isNotEmpty() -> "Sem conexão · Lida ${readAtText(at)}"
+                            offline -> "Sem conexão. Esta é a última leitura"
+                            at.isNotEmpty() -> "Planilha lida ${readAtText(at)}"
                             else -> null
                         }
-                        read?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
+                        // Offline is the one state the head must not let you miss: a solid dot before the words.
+                        read?.let {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                if (offline) Box(Modifier.size(8.dp).background(l.warn, CircleShape))
+                                Text(
+                                    it,
+                                    color = if (offline) l.warn else l.faint,
+                                    style = MaterialTheme.typography.labelMedium.let { s ->
+                                        if (offline) s.copy(fontWeight = FontWeight.SemiBold) else s
+                                    },
+                                )
+                            }
+                        }
                     }
                     trailing()
                 }
@@ -428,7 +446,7 @@ fun Columns(
                     val color = when {
                         c.picked -> l.text
                         c.faint -> l.border
-                        else -> l.faint.copy(alpha = 0.55f)
+                        else -> l.borderInput
                     }
                     Canvas(
                         Modifier.weight(1f).fillMaxSize()
@@ -437,12 +455,14 @@ fun Columns(
                     ) {
                         val zero = size.height * (top / span)
                         val h = size.height * (kotlin.math.abs(c.value) / span) * grow
-                        val y = if (c.value >= 0) zero - h else zero
+                        // A thin pill centred in its slot, as the site's `.columns .bar` (10px, round).
+                        val w = 10.dp.toPx().coerceAtMost(size.width)
+                        val bar = h.coerceAtLeast(2.dp.toPx())
                         drawRoundRect(
                             color,
-                            topLeft = Offset(size.width * 0.2f, y),
-                            size = androidx.compose.ui.geometry.Size(size.width * 0.6f, h.coerceAtLeast(2f)),
-                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f, 6f),
+                            topLeft = Offset((size.width - w) / 2, if (c.value >= 0) zero - bar else zero),
+                            size = androidx.compose.ui.geometry.Size(w, bar),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2, w / 2),
                         )
                     }
                 }
@@ -475,12 +495,29 @@ fun Columns(
     }
 }
 
+/** A save that did not go through, said where it was tried (the site's `.setting-error`). */
+@Composable
+fun SaveFailed() {
+    Text(
+        "Não salvou. Tente de novo.",
+        color = LocalLedger.current.neg,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(vertical = 8.dp).semantics { liveRegion = LiveRegionMode.Polite },
+    )
+}
+
 /** A small text action, like the site's text links. */
 @Composable
-fun TextAction(text: String, onClick: () -> Unit, color: Color = LocalLedger.current.muted, open: Boolean? = null) {
+fun TextAction(
+    text: String,
+    onClick: () -> Unit,
+    color: Color = LocalLedger.current.muted,
+    open: Boolean? = null,
+    enabled: Boolean = true,
+) {
     // A finger-sized target around a short line of text.
     Row(
-        Modifier.clickable(onClick = onClick).heightIn(min = 48.dp),
+        Modifier.clickable(enabled = enabled, onClick = onClick).heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {

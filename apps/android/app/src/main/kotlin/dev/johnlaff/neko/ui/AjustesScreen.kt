@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,9 +66,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.core.net.toUri
 import androidx.compose.ui.semantics.stateDescription
 import dev.johnlaff.neko.R
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** How long typing must pause before a typed field saves on its own, as on the site. */
 private const val TYPING_PAUSE = 1200L
@@ -102,7 +105,7 @@ class AjustesForm(v: AjustesView) {
         cards = cards.mapNotNull { c ->
             closing[c.name]?.trim()?.takeIf { it.isNotEmpty() }?.let { CardDays(c.name, it.toInt(), c.dueDay) }
         },
-        // Checked Conferência points are set on the site's Hoje; saving here keeps them.
+        // Checked Conferência points are set on Hoje; saving here keeps them.
         reviewed = reviewed,
     )
 
@@ -126,6 +129,7 @@ fun AjustesScreen(
     devices: DevicesList = DevicesList(),
     lock: LockSwitch = LockSwitch(),
     banks: BanksList = BanksList(),
+    restoreReviewed: (suspend () -> Boolean)? = null,
 ) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
@@ -183,9 +187,11 @@ fun AjustesScreen(
             }
         }
         devices.list?.takeIf { it.isNotEmpty() }?.let { item { Group("Aparelhos conectados") { Devices(devices) } } }
-        item { Group("Como funciona") { HowItWorks() } }
+        item { Group("Como funciona") { HowItWorks(view.settings.reviewed.size, restoreReviewed) } }
         item {
             Panel {
+                Privacy()
+                HorizontalDivider(color = LocalLedger.current.border)
                 ConfirmAction(
                     "Sair deste aparelho",
                     "Sair deste aparelho?",
@@ -653,6 +659,28 @@ private fun Cards(f: AjustesForm) {
     )
 }
 
+/** The privacy policy the Worker serves next to the site, opened in the browser. */
+@Composable
+private fun Privacy() {
+    val l = LocalLedger.current
+    val context = LocalContext.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "abrir no navegador", role = Role.Button) {
+                context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, PRIVACY_URL.toUri()))
+            }
+            .heightIn(min = 56.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Política de privacidade", modifier = Modifier.weight(1f))
+        Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = l.faint, modifier = Modifier.size(16.dp))
+    }
+}
+
+private val PRIVACY_URL = "${dev.johnlaff.neko.BuildConfig.NEKO_URL}/privacidade.html"
+
 /** A sign-out text action that asks first: undoing it means signing in again on that phone. */
 @Composable
 private fun ConfirmAction(action: String, question: String, detail: String, onConfirm: () -> Unit) {
@@ -678,7 +706,7 @@ private fun ConfirmAction(action: String, question: String, detail: String, onCo
 
 /** Every idea the tips teach, one tap each, for whoever skipped a tip or wants it again. */
 @Composable
-private fun HowItWorks() {
+private fun HowItWorks(reviewed: Int, restore: (suspend () -> Boolean)?) {
     val l = LocalLedger.current
     val context = LocalContext.current
     Text(Learn.INTRO, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
@@ -715,4 +743,31 @@ private fun HowItWorks() {
             reset = true
         }
     })
+    // Conferência points set aside on Hoje come back here, all at once, whenever wanted.
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
+    // Once back, the row stays and says so, as "Rever dicas" does; a second tap has nothing to do.
+    var restored by remember { mutableStateOf(false) }
+    if (restore != null && (reviewed > 0 || restored)) {
+        TextAction(
+            when {
+                restored -> "Os pontos voltam em Hoje"
+                busy -> "Trazendo de volta…"
+                else -> "Mostrar de novo os pontos conferidos"
+            },
+            {
+                if (!busy && !restored) {
+                    busy = true
+                    scope.launch {
+                        failed = !restore()
+                        restored = !failed
+                        busy = false
+                    }
+                }
+            },
+            enabled = !restored,
+        )
+    }
+    if (failed) SaveFailed()
 }

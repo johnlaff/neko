@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,7 +45,6 @@ import dev.johnlaff.neko.data.MonthItem
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.monthName
-import dev.johnlaff.neko.ui.Format.shortDate
 import dev.johnlaff.neko.ui.Format.signed
 import java.time.LocalDate
 
@@ -74,7 +72,7 @@ private fun bandColor(band: String): Color {
  * The site's termômetro (web/Thermo.tsx): the month as a calendar, one neutral tile per day with
  * the band of its balance as a stroke under the number. Days ahead are outlined because they are
  * a forecast; today is ringed. Tap a day to read what moved it. In the month of the next payday
- * it also says how much the flow lets you set aside that day.
+ * its legend also says how much the flow lets you set aside that day.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -151,19 +149,8 @@ fun Thermo(m: MonthItem, today: String, saving: Saving?) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(4.dp).background(l.muted, CircleShape))
                     Spacer(Modifier.width(6.dp))
-                    Text("Dia de guardar", color = l.faint, style = MaterialTheme.typography.labelSmall)
+                    Text("Dia de guardar · ${money(save.amount)}", color = l.faint, style = MaterialTheme.typography.labelSmall)
                 }
-            }
-        }
-        if (save != null) {
-            HorizontalDivider(color = l.border)
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Dá para guardar ${money(save.amount)} no dia $payday.", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    "Menor saldo até ${shortDate(save.until)}: ${money(save.leftAtLowest)}",
-                    color = l.muted,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
             }
         }
         Hint("mes", Learn.MES)
