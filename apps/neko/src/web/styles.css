@@ -1396,11 +1396,17 @@ button.text-link {
   }
 }
 
-/* Login: Neko himself is the brand mark */
+/* Login: the brand mark over the name */
 .login-mark {
   display: grid;
   justify-items: center;
-  gap: 8px;
+  gap: 20px;
+}
+.brand-mark {
+  color: var(--text);
+}
+.brand-eye {
+  fill: var(--accent);
 }
 .login-name {
   font: 500 3rem / 1 var(--serif);

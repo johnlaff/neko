@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -75,8 +76,8 @@ fun LoginScreen(onSignedIn: () -> Unit) {
         Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        BlinkingCat(Modifier.height(200.dp))
-        Spacer(Modifier.height(12.dp))
+        BrandMark(Modifier.width(88.dp))
+        Spacer(Modifier.height(20.dp))
         Text("Neko", style = MaterialTheme.typography.displayLarge, modifier = Modifier.semantics { heading() })
         Spacer(Modifier.height(8.dp))
         Text("Sua planilha, lida todo dia.", color = l.muted, style = MaterialTheme.typography.bodyLarge)
