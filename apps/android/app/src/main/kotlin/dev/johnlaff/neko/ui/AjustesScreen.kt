@@ -19,7 +19,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -219,7 +221,7 @@ private fun Reminders(r: RemindersSwitch) {
         Switch(
             checked = r.on,
             onCheckedChange = null,
-            colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
+            colors = switchColors(),
         )
     }
 }
@@ -265,7 +267,7 @@ private fun Lock(s: LockSwitch) {
             checked = s.on,
             onCheckedChange = null,
             enabled = s.on || s.unavailable == null,
-            colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
+            colors = switchColors(),
         )
     }
 }
@@ -567,9 +569,35 @@ private fun CardPicker(f: AjustesForm) {
     }
 }
 
+/** One switch look on every row, as the site's: off is a small muted thumb on a soft track. */
+@Composable
+private fun switchColors(): SwitchColors {
+    val l = LocalLedger.current
+    return SwitchDefaults.colors(
+        checkedTrackColor = l.accent,
+        checkedThumbColor = l.bg,
+        uncheckedTrackColor = l.surface2,
+        uncheckedThumbColor = l.muted,
+        uncheckedBorderColor = l.faint,
+    )
+}
+
+/** The switch column is as wide as its header, "Outra pessoa", so both line up. */
+private val OTHER_COLUMN = 84.dp
+private const val CLOSING_WIDTH = 76
+
 @Composable
 private fun Cards(f: AjustesForm) {
     val l = LocalLedger.current
+    // Column names over the controls, as on the site; with large text the controls stack and go without.
+    if (!stacked()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Cartão", Modifier.weight(1f), color = l.faint, style = MaterialTheme.typography.labelMedium)
+            Text("Outra pessoa", Modifier.width(OTHER_COLUMN), color = l.faint, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+            Spacer(Modifier.width(10.dp))
+            Text("Fecha dia", Modifier.width(CLOSING_WIDTH.dp), color = l.faint, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+        }
+    }
     f.cards.forEach { c ->
         val key = "closing-${c.name}"
         val bad = key in f.left && badDay(f.closing[c.name])
@@ -577,26 +605,28 @@ private fun Cards(f: AjustesForm) {
         val words: @Composable () -> Unit = {
             Text(c.name)
             Text(
-                if (bad) "Dia de 1 a 31" else "Vence dia ${c.dueDay}${if (other) " · De outra pessoa" else ""}",
+                if (bad) "Dia de 1 a 31" else "Vence dia ${c.dueDay}",
                 color = if (bad) l.neg else l.faint,
                 style = MaterialTheme.typography.labelMedium,
             )
         }
         val controls: @Composable () -> Unit = {
+            Box(Modifier.width(OTHER_COLUMN), contentAlignment = Alignment.Center) {
             Switch(
                 checked = other,
                 onCheckedChange = toggled { on ->
                     if (on) f.others += c.name else f.others -= c.name
                     f.now = true
                 },
-                colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
+                colors = switchColors(),
                 modifier = Modifier.semantics { contentDescription = "${c.name} é de outra pessoa" },
             )
+            }
             Spacer(Modifier.width(10.dp))
             Field(
                 f.closing[c.name] ?: "", { f.closing[c.name] = it }, { f.left += key; f.now = true },
                 placeholder = "≈ ${c.closingDay}", description = "Dia de fechamento do ${c.name}",
-                money = false, error = bad, width = 76,
+                money = false, error = bad, width = CLOSING_WIDTH,
             )
         }
         // With large text the name gets the whole width, and its controls go below it.
@@ -611,8 +641,13 @@ private fun Cards(f: AjustesForm) {
         }
     }
     Text(
-        "Ligue a chave nos cartões de outra pessoa: eles ficam fora do seu ritmo. O número é o dia em que a " +
-            "fatura fecha. Com ≈, é estimado: confira na fatura.",
+        // Stacked, the controls have no column names above them, so the sentence says what each one is.
+        if (stacked()) {
+            "Ligue a chave nos cartões de outra pessoa: eles ficam fora do seu ritmo. O número é o dia em que a " +
+                "fatura fecha. Com ≈, é estimado: confira na fatura."
+        } else {
+            "Cartões de outra pessoa ficam fora do seu ritmo. Dias com ≈ são estimados: confira na fatura."
+        },
         color = l.faint,
         style = MaterialTheme.typography.labelMedium,
     )

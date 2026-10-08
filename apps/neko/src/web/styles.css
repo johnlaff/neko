@@ -697,17 +697,19 @@ input.switch::before {
   position: absolute;
   inset: -9px -4px;
 }
+/* Off is a small muted thumb, as on Android; on, it grows into the accent track */
 input.switch::after {
   content: "";
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
+  top: 5px;
+  left: 5px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--muted);
   transition:
     translate 180ms ease-out,
+    scale 180ms ease-out,
     background-color 160ms ease-out;
 }
 input.switch:checked {
@@ -716,6 +718,7 @@ input.switch:checked {
 }
 input.switch:checked::after {
   translate: 18px 0;
+  scale: 1.25;
   background: var(--bg);
 }
 
