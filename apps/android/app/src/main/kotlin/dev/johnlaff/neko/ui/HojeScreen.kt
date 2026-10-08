@@ -17,6 +17,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,10 +44,26 @@ import dev.johnlaff.neko.ui.Format.shortDate
 import dev.johnlaff.neko.ui.Format.signed
 
 @Composable
-fun HojeScreen(state: TodayState, onRefresh: () -> Unit, onAjustes: () -> Unit) {
+fun HojeScreen(
+    state: TodayState,
+    onRefresh: () -> Unit,
+    onAjustes: () -> Unit,
+    simulate: Simulate? = null,
+    simulatorOpen: Boolean = false,
+) {
+    var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh) { v ->
         item { Hero(v) }
-        v.todayUrl?.let { url -> item { LancarButton(url) } }
+        val cs = v.canSpend.takeIf { simulate != null }
+        if (v.todayUrl != null || cs != null) {
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    v.todayUrl?.let { url -> LancarButton(url, Modifier.weight(1f)) }
+                    if (cs != null) SimulateButton(simulating, Modifier.weight(1f)) { simulating = !simulating }
+                }
+            }
+        }
+        if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
         if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         item { Upcoming(v) }
@@ -123,15 +143,27 @@ private fun Formula(cs: CanSpend, v: TodayView) {
 }
 
 @Composable
-private fun LancarButton(url: String) {
+private fun LancarButton(url: String, modifier: Modifier = Modifier) {
     val l = LocalLedger.current
     val context = LocalContext.current
     Button(
         onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
-        modifier = Modifier.fillMaxWidth().height(48.dp),
+        modifier = modifier.fillMaxWidth().height(48.dp),
         colors = ButtonDefaults.buttonColors(containerColor = l.surface2, contentColor = l.text),
         shape = RoundedCornerShape(14.dp),
-    ) { Text("+  Lançar na planilha", style = MaterialTheme.typography.labelLarge) }
+    ) { Text("+  Lançar", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
+}
+
+@Composable
+private fun SimulateButton(open: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val l = LocalLedger.current
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().height(48.dp).semantics { stateDescription = if (open) "Aberto" else "Fechado" },
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (open) l.muted else l.border),
+        shape = RoundedCornerShape(14.dp),
+    ) { Text("Simular compra", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
 }
 
 @Composable

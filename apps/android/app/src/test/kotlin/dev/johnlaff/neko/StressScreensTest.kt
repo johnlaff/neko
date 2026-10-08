@@ -13,6 +13,7 @@ import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
 import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.SaveState
+import dev.johnlaff.neko.ui.Simulator
 import dev.johnlaff.neko.ui.ScreenState
 import dev.johnlaff.neko.ui.Tab
 import java.io.File
@@ -69,7 +70,11 @@ class StressScreensTest {
     private fun path(name: String) = "screenshots/stress/$name.png"
 
     @Test fun hoje() = compose.shot(path("hoje"), night = true, Device.SmallLargeText, Tab.Hoje) {
-        HojeScreen(ScreenState(today), {}, {})
+        HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
+    }
+
+    @Test fun simular() = compose.shot(path("simular"), night = true, Device.SmallLargeText) {
+        Simulator(today.canSpend!!, Fakes.simulate, startTyped = "600,00", startCount = 3)
     }
 
     @Test fun faturas() = compose.shot(path("faturas"), night = true, Device.SmallLargeText, Tab.Faturas) {
@@ -77,10 +82,10 @@ class StressScreensTest {
     }
 
     @Test fun mes() = compose.shot(path("mes"), night = false, Device.SmallLargeText, Tab.Mes) {
-        MesScreen(ScreenState(months)) {}
+        MesScreen(ScreenState(months), Fakes.history) {}
     }
 
     @Test fun ajustes() = compose.shot(path("ajustes"), night = false, Device.SmallLargeText, Tab.Ajustes) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true))
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices)
     }
 }

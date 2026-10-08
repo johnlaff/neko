@@ -18,6 +18,7 @@ import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
 import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.SaveState
+import dev.johnlaff.neko.ui.Simulator
 import dev.johnlaff.neko.ui.ScreenState
 import dev.johnlaff.neko.ui.LoginScreen
 import dev.johnlaff.neko.ui.NekoTheme
@@ -57,12 +58,20 @@ class ScreenshotTest {
 
     @Test fun faturasLight() = shot("faturas-light", night = false) { FaturasScreen(ScreenState(invoices), {}, {}) }
 
-    @Test fun mesDark() = shot("mes-dark", night = true) { MesScreen(ScreenState(months)) {} }
+    @Test fun mesDark() = shot("mes-dark", night = true) { MesScreen(ScreenState(months), Fakes.history) {} }
 
-    @Test fun mesLight() = shot("mes-light", night = false) { MesScreen(ScreenState(months)) {} }
+    @Test fun mesLight() = shot("mes-light", night = false) { MesScreen(ScreenState(months), Fakes.history) {} }
+
+    @Test fun simularDark() = shot("simular-dark", night = true) {
+        Simulator(view.canSpend!!, Fakes.simulate, startTyped = "600,00", startCount = 3)
+    }
+
+    @Test fun simularLight() = shot("simular-light", night = false) {
+        HojeScreen(TodayState(view), {}, {}, Fakes.simulate, simulatorOpen = true)
+    }
 
     @Test fun ajustesDark() = shot("ajustes-dark", night = true) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true))
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices)
     }
 
     @Test fun loginDark() = shot("login-dark", night = true) { LoginScreen {} }
