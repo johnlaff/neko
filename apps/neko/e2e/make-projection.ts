@@ -68,7 +68,7 @@ for (let i = 0, d = START; i < DAYS; i++, d = addDays(d, 1)) {
     saida.push(item(azul(month), "Cartão Azul", "cartoes"));
     saida.push(item(between(300_00, 700_00), "Cartão Verde", "cartoes"));
   }
-  if (day === 20) saida.push(item(800_00, "Investimento", "investimentos"));
+  if (day === 20) saida.push(item(800_00, "Poupança", "reserva"));
   if (day === 12) entrada.push(item(between(300_00, 700_00), "Reembolso Cartão Verde", null));
   // Months after today only hold what is already known: bills and fixed costs, no diário.
   const past = d <= TODAY;

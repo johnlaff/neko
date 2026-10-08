@@ -58,7 +58,7 @@ export const streakLabel = (streak: number) =>
 export const RESERVE = {
   title: "Reserva de emergência",
   rule: "O método pede de 6 a 12 meses do custo de vida, guardados onde dá para sacar na hora.",
-  empty: "Linhas de Saída sob Investimento contam como guardado.",
+  empty: "Só contam como guardado as linhas de Saída sob o título Reserva nas notas.",
 } as const;
 
 /** Tenths of a month as "1,6 mês" or "2 meses". */
