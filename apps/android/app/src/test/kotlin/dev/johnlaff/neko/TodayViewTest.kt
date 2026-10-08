@@ -83,4 +83,10 @@ class TodayViewTest {
     @Test fun widgetAsksToSignInWithoutData() {
         assertEquals("Entrar", widgetText(null).figure)
     }
+
+    @Test fun widgetCatFollowsTheDay() {
+        assertEquals(dev.johnlaff.neko.ui.Pose.Sleeping, widgetText(null).pose)
+        assertEquals(dev.johnlaff.neko.ui.Pose.Sitting, widgetText(view.copy(habit = view.habit!!.copy(editedToday = false))).pose)
+        assertEquals(dev.johnlaff.neko.ui.Pose.Content, widgetText(view.copy(habit = view.habit!!.copy(editedToday = true))).pose)
+    }
 }
