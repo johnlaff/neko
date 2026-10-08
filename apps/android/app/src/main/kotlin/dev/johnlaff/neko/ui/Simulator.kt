@@ -27,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -120,6 +122,11 @@ fun Simulator(
         }
         Row(Modifier.fillMaxWidth()) {
             val fig = simFigure(cs, cycle)
+            // One firm buzz when a typed purchase tips the cycle over the plan, not on every keystroke.
+            val haptics = LocalHapticFeedback.current
+            LaunchedEffect(fig.over && cycle != null) {
+                if (fig.over && cycle != null) haptics.performHapticFeedback(HapticFeedbackType.Reject)
+            }
             Figure(fig.label, money(fig.amount), if (fig.over) l.neg else l.text, Modifier.weight(1f))
             if (sim != null && count > 1 && parcel != null) {
                 Figure("$count× de", money(parcel.amount), l.text, Modifier.weight(1f))
@@ -172,6 +179,7 @@ private fun Figure(label: String, value: String, color: androidx.compose.ui.grap
 @Composable
 private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
     val l = LocalLedger.current
+    val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(50)
     Text(
         text,
@@ -182,7 +190,10 @@ private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
             .minimumInteractiveComponentSize()
             .background(if (on) l.text else l.surface2, shape)
             .border(1.dp, if (on) l.text else l.border, shape)
-            .selectable(on, role = Role.RadioButton, onClick = onClick)
+            .selectable(on, role = Role.RadioButton) {
+                if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                onClick()
+            }
             .padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
