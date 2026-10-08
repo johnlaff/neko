@@ -23,8 +23,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.Fixed
 import dev.johnlaff.neko.data.HistoryView
@@ -91,13 +96,21 @@ internal fun ReservePanel(r: Reserve, year: YearTotals?) {
                 style = MaterialTheme.typography.labelLarge,
             )
         }
+        if (r.kept > 0) {
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = l.text, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)) { append(money(r.kept)) }
+                    append("  guardados na planilha")
+                },
+                color = l.muted,
+                style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+            )
+        }
         // Display only: kept over the 6-month goal, full past it.
         Meter(if (r.min <= 0) 0f else r.kept.toFloat() / r.min, color = l.accent)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LedgerLine(Learn.costLabel(r.costMonths), money(r.cost))
-            LedgerLine("6 meses", money(r.min))
-            LedgerLine("12 meses", money(r.max))
-            LedgerLine("Guardado na planilha", money(r.kept), total = true)
+            LedgerLine("Meta de 6 meses", money(r.min))
             if (year != null && year.saved > 0) {
                 LedgerLine("Em ${year.year}" + (year.savedShare?.let { " · $it% das entradas" } ?: ""), money(year.saved))
             }
