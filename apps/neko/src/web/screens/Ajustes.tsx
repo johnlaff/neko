@@ -232,7 +232,7 @@ const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[
         </div>
         <p className="footnote">
           Cartões de outra pessoa ficam fora do seu ritmo. Dias com ≈ são estimados: confira na
-          fatura e digite o dia certo.
+          fatura.
         </p>
       </section>
     </form>

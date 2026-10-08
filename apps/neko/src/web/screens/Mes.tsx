@@ -325,8 +325,8 @@ export const Mes = () => {
                       <dd className="total">{money(m.livingCost)}</dd>
                     </dl>
                     <p>
-                      Custo de vida é o que saiu sem contar o que foi guardado. É a base da reserva
-                      de emergência, que o método pede de 6 a 12 vezes maior.
+                      Custo de vida é o que saiu sem contar o que foi guardado. A reserva de
+                      emergência do método cobre de 6 a 12 meses desse custo.
                     </p>
                   </>
                 )}

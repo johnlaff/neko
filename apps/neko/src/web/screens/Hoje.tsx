@@ -64,7 +64,7 @@ const insightView = (i: Insight) => {
         tone: "warn",
         to: "/ajustes",
         title: `Qual dia fecha o ${i.card}?`,
-        detail: `Estimado em ${shortDate(i.closing)}. Toque para confirmar`,
+        detail: `Estimado em ${shortDate(i.closing)}. Confirme em Ajustes`,
       } as const;
     default:
       // A copy cached by an older version can carry a kind this one no longer knows.
@@ -122,8 +122,8 @@ const SaveCard = ({ save, today }: { save: Saving; today: string }) => {
                 : `${relativeDay(save.date, today)}: guardar ${money(save.amount)}`}
             </strong>
             <span>
-              {isToday ? "Entram" : "Vão entrar"} {money(save.income)}. Guardando, o menor saldo até{" "}
-              {shortDate(save.until)} fica em {money(save.leftAtLowest)}
+              {isToday ? "Entram" : "Vão entrar"} {money(save.income)}. Se guardar, o menor saldo
+              até {shortDate(save.until)} fica em {money(save.leftAtLowest)}
             </span>
           </span>
           <IconChevron />

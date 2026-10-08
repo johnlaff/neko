@@ -180,7 +180,7 @@ private fun Reminders(r: RemindersSwitch) {
             r.blocked -> "Permita as notificações do Neko no Android"
             // The site's browser push sends the same two reminders; both on would arrive twice.
             r.on -> "Às 8h e às 21h. Desligue os do site neste celular"
-            else -> "Quanto cabe às 8h, lançar o dia às 21h"
+            else -> "Às 8h, quanto cabe hoje. Às 21h, lançar o dia"
         },
         r.blocked,
         // The whole row is the switch: a bigger target, and TalkBack reads the label with the state.
@@ -455,8 +455,8 @@ private fun Cards(f: AjustesForm) {
         }
     }
     Text(
-        "O botão marca o cartão de outra pessoa, que fica fora do seu ritmo. O número é o dia em que a " +
-            "fatura fecha; com ≈ é estimado: confira na fatura e digite o dia certo.",
+        "Ligue a chave nos cartões de outra pessoa: eles ficam fora do seu ritmo. O número é o dia em que a " +
+            "fatura fecha. Com ≈, é estimado: confira na fatura.",
         color = l.faint,
         style = MaterialTheme.typography.labelMedium,
     )

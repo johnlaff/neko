@@ -7,16 +7,16 @@ import org.junit.Test
 /** Same strings as the site's format.ts for the same input. */
 class FormatTest {
     @Test fun money() {
-        assertEquals("R$ 0,00", Format.money(0))
-        assertEquals("R$ 1.234,56", Format.money(1_234_56))
-        assertEquals("R$ 1.000.000,05", Format.money(1_000_000_05))
-        assertEquals("−R$ 7,50", Format.money(-7_50))
+        assertEquals("R$\u00A00,00", Format.money(0))
+        assertEquals("R$\u00A01.234,56", Format.money(1_234_56))
+        assertEquals("R$\u00A01.000.000,05", Format.money(1_000_000_05))
+        assertEquals("−R$\u00A07,50", Format.money(-7_50))
     }
 
     @Test fun signed() {
-        assertEquals("+R$ 10,00", Format.signed(10_00, '+'))
-        assertEquals("−R$ 10,00", Format.signed(-10_00, '−'))
-        assertEquals("R$ 0,00", Format.signed(0, '+'))
+        assertEquals("+R$\u00A010,00", Format.signed(10_00, '+'))
+        assertEquals("−R$\u00A010,00", Format.signed(-10_00, '−'))
+        assertEquals("R$\u00A00,00", Format.signed(0, '+'))
     }
 
     @Test fun dates() {

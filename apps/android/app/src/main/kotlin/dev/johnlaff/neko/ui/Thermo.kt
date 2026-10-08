@@ -98,7 +98,7 @@ fun Thermo(m: MonthItem, today: String, saving: Saving?) {
                     )
                 }
             } else {
-                Text("Toque num dia", color = l.faint, style = MaterialTheme.typography.labelMedium)
+                Text("Escolha um dia", color = l.faint, style = MaterialTheme.typography.labelMedium)
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
