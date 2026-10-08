@@ -27,6 +27,17 @@ import {
 } from "./passkey.ts";
 import { backfillEdits, getProjection, monthEndHistory, pruneSnapshots } from "./pipeline.ts";
 import {
+  configured,
+  ensureWebhook,
+  HOOK_HEADER,
+  itemIds,
+  pluggy,
+  sameSecret,
+  syncAll,
+  syncItem,
+  WebhookEvent,
+} from "./pluggy.ts";
+import {
   eveningMessage,
   morningMessage,
   readFailedMessage,
@@ -128,6 +139,7 @@ app.use("/push/*", requireSession);
 app.use("/sessions", requireSession);
 app.use("/sessions/*", requireSession);
 app.use("/client-error", requireSession);
+app.use("/banks", requireSession);
 
 const ClientError = z.object({
   message: z.string().max(500),
@@ -188,6 +200,122 @@ app.delete("/sessions/:id", async (c) => {
     .run();
   return c.json({ ok: true });
 });
+
+/**
+ * Pluggy calls this when a linked bank has news. The body only names the item; the data is read
+ * from Pluggy's API, after answering, so the 10-second deadline never matters.
+ */
+app.post("/pluggy/webhook", async (c) => {
+  const secret = c.env.PLUGGY_WEBHOOK_SECRET ?? "";
+  if (!sameSecret(c.req.header(HOOK_HEADER) ?? "", secret))
+    return c.json({ error: "forbidden" }, 403);
+  const event = WebhookEvent.safeParse(await c.req.json().catch(() => null));
+  const itemId = event.success ? event.data.itemId : undefined;
+  if (itemId && configured(c.env) && (await itemIds(c.env.DB)).includes(itemId))
+    c.executionCtx.waitUntil(
+      syncItem(c.env.DB, pluggy(c.env, fetch), itemId, todayIn(new Date())).catch((error) =>
+        console.error("bank sync failed", itemId, error),
+      ),
+    );
+  return c.json({ ok: true });
+});
+
+const BankItems = z.object({
+  items: z
+    .array(
+      z.object({
+        itemId: z.string().trim().uuid(),
+        label: z.string().trim().min(1).max(40),
+      }),
+    )
+    .max(5),
+});
+
+interface BankRow {
+  item_id: string;
+  label: string;
+  synced_at: string | null;
+  error: string | null;
+}
+
+/** The linked banks, when each was last read, and the accounts and cards found in each. */
+app.get("/banks", async (c) => {
+  const items = (
+    await c.env.DB.prepare(
+      "SELECT item_id, label, synced_at, error FROM bank_item ORDER BY label",
+    ).all<BankRow>()
+  ).results;
+  const accounts = (
+    await c.env.DB.prepare(
+      "SELECT item_id, name, type, number, balance FROM bank_account ORDER BY name",
+    ).all<{ item_id: string; name: string; type: string; number: string | null; balance: number }>()
+  ).results;
+  return c.json({
+    configured: configured(c.env),
+    items: items.map((i) => ({
+      itemId: i.item_id,
+      label: i.label,
+      syncedAt: i.synced_at,
+      error: i.error,
+      accounts: accounts
+        .filter((a) => a.item_id === i.item_id)
+        .map((a) => ({
+          name: a.name,
+          card: a.type === "CREDIT",
+          last4: a.number?.slice(-4) ?? null,
+          balance: a.balance as Cents,
+        })),
+    })),
+  });
+});
+
+/** Replaces the list of linked banks, drops what was read from removed ones and reads the rest. */
+app.put("/banks", async (c) => {
+  const { items } = BankItems.parse(await c.req.json());
+  const keep = JSON.stringify(items.map((i) => i.itemId));
+  const db = c.env.DB;
+  await db.batch([
+    db
+      .prepare(
+        "DELETE FROM bank_txn WHERE account_id IN (SELECT id FROM bank_account WHERE item_id NOT IN (SELECT value FROM json_each(?)))",
+      )
+      .bind(keep),
+    db
+      .prepare(
+        "DELETE FROM bank_bill WHERE account_id IN (SELECT id FROM bank_account WHERE item_id NOT IN (SELECT value FROM json_each(?)))",
+      )
+      .bind(keep),
+    db
+      .prepare("DELETE FROM bank_account WHERE item_id NOT IN (SELECT value FROM json_each(?))")
+      .bind(keep),
+    db
+      .prepare("DELETE FROM bank_item WHERE item_id NOT IN (SELECT value FROM json_each(?))")
+      .bind(keep),
+    ...items.map((i) =>
+      db
+        .prepare(
+          "INSERT INTO bank_item (item_id, label) VALUES (?, ?) ON CONFLICT(item_id) DO UPDATE SET label = excluded.label",
+        )
+        .bind(i.itemId, i.label),
+    ),
+  ]);
+  if (configured(c.env)) c.executionCtx.waitUntil(bankSync(c.env));
+  return c.json({ ok: true });
+});
+
+/** Reads every linked bank and makes sure Pluggy knows where to send news. */
+const bankSync = async (env: Env) => {
+  if (!configured(env)) return;
+  const api = pluggy(env, fetch);
+  try {
+    if (env.SITE_URL && env.PLUGGY_WEBHOOK_SECRET)
+      await ensureWebhook(api, `${env.SITE_URL}/api/pluggy/webhook`, env.PLUGGY_WEBHOOK_SECRET);
+  } catch (error) {
+    console.error("pluggy webhook setup failed", error);
+  }
+  const failed = await syncAll(env.DB, api, todayIn(new Date()));
+  if (failed > 0) Sentry.captureMessage(`bank sync: ${failed} bank(s) failed`);
+};
 
 app.get("/projection", async (c) => c.json(await getProjection(c.env, todayIn(new Date()))));
 
@@ -277,6 +405,7 @@ app.delete("/push/subscription", async (c) => {
 /** Crons run in UTC; São Paulo is UTC−3 all year. */
 const MORNING = "0 11 * * *"; // 08:00
 const EVENING = "0 0 * * *"; // 21:00
+const BANKS = "0 9 * * *"; // 06:00, after Meu Pluggy's daily refresh and before "hoje cabem"
 
 /** Errors go to Sentry when SENTRY_DSN is set; without it the SDK stays off. */
 const sentry = (env: Env) => ({
@@ -299,6 +428,11 @@ export default Sentry.withSentry(sentry, {
    * and send "hoje cabem". 21:00: remind to log the day in the sheet, unless it already is.
    */
   async scheduled(event, env, ctx) {
+    if (event.cron === BANKS) {
+      // A safety net for webhooks Pluggy gave up on (it tries three times).
+      ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error)));
+      return;
+    }
     const run = async () => {
       let data: Awaited<ReturnType<typeof getProjection>>;
       try {
