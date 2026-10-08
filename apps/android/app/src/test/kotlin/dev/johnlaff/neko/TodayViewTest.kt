@@ -2,7 +2,9 @@ package dev.johnlaff.neko
 
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.json
+import dev.johnlaff.neko.data.SimulatedCycle
 import dev.johnlaff.neko.ui.Copy
+import dev.johnlaff.neko.ui.simFigure
 import dev.johnlaff.neko.widget.widgetText
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -24,6 +26,18 @@ class TodayViewTest {
         assertEquals("over", view.canSpend?.pace)
         assertEquals(2, view.upcoming.size)
         assertEquals(view.upcomingCount, view.upcoming.sumOf { it.items.size })
+    }
+
+    @Test fun simulatorOverThePlanSaysByHowMuchNotANegativePerDay() {
+        val cs = view.canSpend!!
+        // The fixture's card is over: before a value is typed the figure must not read "-R$ … por dia".
+        val before = simFigure(cs, null)
+        assertEquals("Passa do plano", before.label)
+        assertEquals(cs.overBy, before.amount)
+        assertTrue(before.over)
+        assertEquals("Sobra por dia", simFigure(cs.copy(perDay = 12_000), null).label)
+        assertEquals(30_000L, simFigure(cs, SimulatedCycle(-1_000, -30_000, cs.due)).amount)
+        assertEquals("Sobra por dia", simFigure(cs, SimulatedCycle(8_000, 80_000, cs.due)).label)
     }
 
     @Test fun readsTheStreak() {

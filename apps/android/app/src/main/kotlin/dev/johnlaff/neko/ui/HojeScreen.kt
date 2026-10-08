@@ -111,9 +111,10 @@ private fun Hero(v: TodayView) {
     val over = cs.pace == "over"
     var formula by remember { mutableStateOf(false) }
     Panel {
+        // Over the plan, the figure already says so in red: the chip would repeat it.
         PanelHead(cs.card) {
             when (cs.pace) {
-                "over" -> Chip("Acima do plano", ChipTone.Bad)
+                "over" -> Unit
                 "on-pace" -> Chip("No ritmo", ChipTone.Ok)
                 else -> Chip("Acima do ritmo", ChipTone.Warn)
             }
@@ -126,6 +127,7 @@ private fun Hero(v: TodayView) {
                 total = cs.budget,
                 mark = cs.paceExpected,
                 over = over || cs.paceGap < 0,
+                bad = over,
                 modifier = Modifier.fillMaxWidth(if (stacked) 0.6f else 0.86f).aspectRatio(2f),
             )
         }
@@ -138,7 +140,7 @@ private fun Hero(v: TodayView) {
                 BigMoney(if (over) cs.overBy else cs.perDay, if (over) l.neg else l.text)
                 Text(
                     when {
-                        over -> "no ciclo"
+                        over -> "neste ciclo"
                         cs.daysLeft == 1 -> "até a fatura fechar, hoje"
                         else -> "por dia"
                     },
@@ -148,17 +150,11 @@ private fun Hero(v: TodayView) {
             }
         }
         if (cs.daysLeft > 1) Chip("Fecha ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
-        Text(
-            if (formula) "Esconder a conta" else "Como calculei",
-            color = l.muted,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier
-                .clickable(onClickLabel = if (formula) "esconder a conta" else "mostrar a conta") { formula = !formula }
-                .semantics { stateDescription = if (formula) "Aberto" else "Fechado" }
-                .heightIn(min = 48.dp)
-                .wrapContentHeight(),
-        )
-        Reveal(formula) { Formula(cs, v) }
+        // The toggle and what it opens sit together: closed, the panel spends no gap on it.
+        Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
+            TextAction(if (formula) "Esconder a conta" else "Como calculei", { formula = !formula }, open = formula)
+            Reveal(formula) { Formula(cs, v) }
+        }
         Hint("hoje", Learn.HOJE)
     }
 }
@@ -385,8 +381,7 @@ private fun SaveCard(s: Saving, today: String) {
     val isToday = s.date == today
     Alert(
         if (isToday) "Hoje dá para guardar ${money(s.amount)}" else "${relativeDay(s.date, today)}: guardar ${money(s.amount)}",
-        "${if (isToday) "Entram" else "Vão entrar"} ${money(s.income)}. Se guardar, o menor saldo até " +
-            "${shortDate(s.until)} fica em ${money(s.leftAtLowest)}",
+        "Mesmo guardando, o dia mais apertado até ${shortDate(s.until)} fica com ${money(s.leftAtLowest)}",
         l.pos,
     )
 }
