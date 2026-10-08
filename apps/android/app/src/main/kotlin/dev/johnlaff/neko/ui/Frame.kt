@@ -1,6 +1,19 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -98,10 +111,47 @@ fun <T> ScreenFrame(
             }
             when {
                 v == null && state.error != null -> item { ErrorPanel(state, onRefresh) }
-                v == null -> item { Panel { Text("Lendo a planilha…", color = l.muted) } }
+                v == null -> item { Skeleton() }
                 else -> content(v)
             }
         }
+    }
+}
+
+/**
+ * While the first read is on its way: the shape of a screen (an arc, lines, a button) with a soft
+ * shimmer, the site's skeleton, instead of a sentence.
+ */
+@Composable
+private fun Skeleton() {
+    val l = LocalLedger.current
+    val shimmer = rememberInfiniteTransition(label = "skeleton")
+    val x by shimmer.animateFloat(-1f, 2f, infiniteRepeatable(tween(1600, easing = LinearEasing)), label = "x")
+    val glow = l.text.copy(alpha = 0.06f)
+    val block = Modifier.drawWithContent {
+        drawRect(l.surface2)
+        drawRect(
+            Brush.horizontalGradient(
+                listOf(Color.Transparent, glow, Color.Transparent),
+                startX = size.width * (x - 0.5f),
+                endX = size.width * (x + 0.5f),
+            ),
+        )
+    }
+    Panel(Modifier.semantics { contentDescription = "Lendo a planilha" }) {
+        Box(Modifier.fillMaxWidth(0.4f).height(14.dp).clip(RoundedCornerShape(8.dp)).then(block))
+        Canvas(Modifier.fillMaxWidth(0.7f).aspectRatio(2f).align(Alignment.CenterHorizontally)) {
+            val stroke = size.width * 0.07f
+            val r = (size.width - stroke) / 2
+            drawArc(
+                l.surface2, 180f, 180f, false, Offset(stroke / 2, stroke / 2),
+                androidx.compose.ui.geometry.Size(r * 2, r * 2),
+                style = Stroke(stroke, cap = StrokeCap.Round),
+            )
+        }
+        Box(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(8.dp)).then(block))
+        Box(Modifier.fillMaxWidth(0.6f).height(14.dp).clip(RoundedCornerShape(8.dp)).then(block))
+        Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(50)).then(block))
     }
 }
 
@@ -148,12 +198,14 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     ) {
         Tab.entries.forEach { tab ->
             val on = tab == current
+            val pill by animateColorAsState(if (on) l.surface2 else Color.Transparent, tween(200), label = "pill")
+            val ink by animateColorAsState(if (on) l.text else l.muted, tween(200), label = "ink")
             Text(
                 tab.label,
-                color = if (on) l.text else l.muted,
+                color = ink,
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium),
                 modifier = Modifier
-                    .background(if (on) l.surface2 else Color.Transparent, shape)
+                    .background(pill, shape)
                     .clickable(role = Role.Tab) {
                         if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                         onSelect(tab)
@@ -219,8 +271,9 @@ fun monogram(name: String): String {
 @Composable
 fun Meter(share: Float, modifier: Modifier = Modifier, color: Color = LocalLedger.current.muted) {
     val l = LocalLedger.current
+    val grow = arrival(600)
     Box(modifier.fillMaxWidth().height(4.dp).background(l.surface2, RoundedCornerShape(2.dp))) {
-        Box(Modifier.fillMaxWidth(share.coerceIn(0f, 1f)).height(4.dp).background(color, RoundedCornerShape(2.dp)))
+        Box(Modifier.fillMaxWidth(share.coerceIn(0f, 1f) * grow).height(4.dp).background(color, RoundedCornerShape(2.dp)))
     }
 }
 
@@ -246,7 +299,9 @@ fun Columns(items: List<Bar>, onSelect: (String) -> Unit, guide: Long? = null, m
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.fillMaxWidth().height(96.dp)) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                items.forEach { c ->
+                items.forEachIndexed { n, c ->
+                    // Columns grow from the zero line one after another, like the site's.
+                    val grow = arrival(520, delay = n * 35)
                     val color = when {
                         c.accent -> l.accent
                         c.faint -> l.border
@@ -258,7 +313,7 @@ fun Columns(items: List<Bar>, onSelect: (String) -> Unit, guide: Long? = null, m
                             .semantics { contentDescription = c.description; selected = c.accent },
                     ) {
                         val zero = size.height * (top / span)
-                        val h = size.height * (kotlin.math.abs(c.value) / span)
+                        val h = size.height * (kotlin.math.abs(c.value) / span) * grow
                         val y = if (c.value >= 0) zero - h else zero
                         drawRoundRect(
                             color,
