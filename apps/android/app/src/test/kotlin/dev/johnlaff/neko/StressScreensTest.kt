@@ -8,6 +8,7 @@ import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.OtherBill
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.ui.AjustesScreen
+import dev.johnlaff.neko.ui.RemindersSwitch
 import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
 import dev.johnlaff.neko.ui.MesScreen
@@ -80,6 +81,6 @@ class StressScreensTest {
     }
 
     @Test fun ajustes() = compose.shot(path("ajustes"), night = false, Device.SmallLargeText, Tab.Ajustes) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {})
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true))
     }
 }
