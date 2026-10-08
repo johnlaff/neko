@@ -2273,3 +2273,13 @@ button.setting.quiet:hover {
 .more-alerts[open] > summary {
   margin-bottom: 8px;
 }
+/* The share button sits at the end of the wins row; it wraps under the list on narrow screens */
+.recap-wins {
+  flex-wrap: wrap;
+}
+.recap-wins ul {
+  flex: 1 1 12rem;
+}
+.recap-wins .win-share {
+  margin-left: auto;
+}

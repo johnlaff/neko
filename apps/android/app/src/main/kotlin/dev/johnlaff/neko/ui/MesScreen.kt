@@ -180,7 +180,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             }
         }
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
-        WinsBox(m.wins.mapNotNull(Copy::win), 48.dp)
+        WinsBox(m.wins.mapNotNull(Copy::win), 48.dp, "${capitalize(monthName(m.month))} de ${m.year}")
         TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger })
         Reveal(ledger) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
