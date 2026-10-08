@@ -261,13 +261,8 @@ const Conference = ({
               : `${open.length} pontos`}
         </span>
       </div>
-      {open.length === 0 ? (
-        <p className="hint">
-          {issues.length === 0
-            ? "A planilha confere nos últimos 60 dias."
-            : "Nada novo. Os pontos que você já conferiu ficam escondidos."}
-        </p>
-      ) : (
+      {/* All clear is the title and its chip alone: a sentence saying so again only adds height. */}
+      {open.length > 0 && (
         <>
           <IssueList items={open} sheet={sheet} />
           {settings.data && (
