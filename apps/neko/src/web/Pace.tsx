@@ -12,6 +12,23 @@ const monthLabel = (year: number, month: number) =>
   `${capital(monthName(month)).slice(0, 3)} ${String(year).slice(2)}`;
 
 /** "E se eu comprar R$ X hoje, em N vezes?": the engine answers, the screen only formats. */
+/**
+ * The simulator's first figure: what is left per day, or by how much the cycle goes over the
+ * plan. Before a value is typed it speaks for the card as it is, which may already be over.
+ */
+export const simFigure = (
+  cs: Pick<CanSpend, "perDay" | "overBy">,
+  cycle: { perDay: Cents; remaining: Cents } | null,
+): { label: string; amount: Cents; over: boolean } => {
+  if (cycle === null)
+    return cs.perDay < 0
+      ? { label: "Passa do plano", amount: cs.overBy, over: true }
+      : { label: "Sobra por dia", amount: cs.perDay, over: false };
+  return cycle.perDay < 0
+    ? { label: "Passa do plano", amount: -cycle.remaining as Cents, over: true }
+    : { label: "Sobra por dia", amount: cycle.perDay, over: false };
+};
+
 export const Simulator = ({ cs, months }: { cs: CanSpend; months: readonly MonthView[] }) => {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -21,6 +38,7 @@ export const Simulator = ({ cs, months }: { cs: CanSpend; months: readonly Month
   const sim =
     amount && amount > 0 ? simulateInstallments(cs, months, amount as Cents, count) : null;
   const cycle = sim?.cycle ?? null;
+  const fig = simFigure(cs, cycle);
   const parcel = sim?.parcels[0];
   const last = sim?.parcels.at(-1)?.due;
   const red = sim?.firstNegative ?? null;
@@ -84,14 +102,8 @@ export const Simulator = ({ cs, months }: { cs: CanSpend; months: readonly Month
           </fieldset>
           <dl className="figures" aria-live="polite">
             <div>
-              <dt>{cycle && cycle.perDay < 0 ? "Passa do plano" : "Sobra por dia"}</dt>
-              <dd className={cycle && cycle.perDay < 0 ? "neg" : undefined}>
-                {cycle === null
-                  ? money(cs.perDay)
-                  : cycle.perDay >= 0
-                    ? money(cycle.perDay)
-                    : money(-cycle.remaining)}
-              </dd>
+              <dt>{fig.label}</dt>
+              <dd className={fig.over ? "neg" : undefined}>{money(fig.amount)}</dd>
             </div>
             {sim && count > 1 && parcel ? (
               <div className="end">

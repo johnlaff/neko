@@ -388,8 +388,7 @@ export const Mes = () => {
               }}
             >
               <div className="panel-head">
-                <h2>{past ? "Terminou com" : "Termina com"}</h2>
-                <span className="chip plain">{past ? "Fechado" : "Previsão"}</span>
+                <h2>{past ? "Terminou com" : "Deve terminar com"}</h2>
               </div>
               <div className="figure-stack">
                 <BigMoney cents={m.endSheet} tone={m.endSheet < 0 ? "neg" : "plain"} />
@@ -449,7 +448,7 @@ export const Mes = () => {
                       <dd>{signed(m.diario, "−")}</dd>
                     </>
                   )}
-                  <dt className="total">{past ? "Terminou com" : "Termina com"}</dt>
+                  <dt className="total">{past ? "Terminou com" : "Deve terminar com"}</dt>
                   <dd className={`total${m.endSheet < 0 ? " neg" : ""}`}>{money(m.endSheet)}</dd>
                 </dl>
                 {result !== null && (

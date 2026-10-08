@@ -167,7 +167,7 @@ private fun RowScope.Wheel(digit: Int, style: TextStyle, delay: Int) {
 
 /** Half-circle gauge: how much of the cycle budget is on the bill, with the pace tick on it. */
 @Composable
-fun Gauge(value: Long, total: Long, mark: Long, over: Boolean, modifier: Modifier = Modifier) {
+fun Gauge(value: Long, total: Long, mark: Long, over: Boolean, modifier: Modifier = Modifier, bad: Boolean = false) {
     val l = LocalLedger.current
     val target = if (total <= 0) 0f else (value.toFloat() / total).coerceIn(0f, 1f)
     val at = if (total <= 0) 0f else (mark.toFloat() / total).coerceIn(0f, 1f)
@@ -187,7 +187,7 @@ fun Gauge(value: Long, total: Long, mark: Long, over: Boolean, modifier: Modifie
         val topLeft = Offset(stroke / 2, stroke / 2)
         val style = Stroke(width = stroke, cap = StrokeCap.Round)
         drawArc(l.border, 180f, 180f, false, topLeft, box, style = style)
-        if (share > 0f) drawArc(if (over) l.warn else l.accent, 180f, 180f * share, false, topLeft, box, style = style)
+        if (share > 0f) drawArc(if (bad) l.neg else if (over) l.warn else l.accent, 180f, 180f * share, false, topLeft, box, style = style)
         val angle = Math.PI * (1 - at)
         val c = Offset(size.width / 2, stroke / 2 + r)
         val tick = Offset(c.x + r * cos(angle).toFloat(), c.y - r * sin(angle).toFloat())

@@ -162,8 +162,8 @@ const SaveCard = ({ save, today }: { save: Saving; today: string }) => {
                 : `${relativeDay(save.date, today)}: guardar ${money(save.amount)}`}
             </strong>
             <span>
-              {isToday ? "Entram" : "Vão entrar"} {money(save.income)}. Se guardar, o menor saldo
-              até {shortDate(save.until)} fica em {money(save.leftAtLowest)}
+              Mesmo guardando, o dia mais apertado até {shortDate(save.until)} fica com{" "}
+              {money(save.leftAtLowest)}
             </span>
           </span>
           <IconChevron />
@@ -442,9 +442,12 @@ export const Hoje = () => (
             <section className="panel hero today">
               <div className="panel-head">
                 <h2>{cs.card}</h2>
-                <span className={`chip ${over ? "bad" : cs.paceGap >= 0 ? "ok" : "warn"}`}>
-                  {over ? "Acima do plano" : cs.paceGap >= 0 ? "No ritmo" : "Acima do ritmo"}
-                </span>
+                {/* Over the plan, the figure already says so in red: the chip would repeat it. */}
+                {!over && (
+                  <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
+                    {cs.paceGap >= 0 ? "No ritmo" : "Acima do ritmo"}
+                  </span>
+                )}
               </div>
               <div className="dial">
                 <Gauge
@@ -452,13 +455,14 @@ export const Hoje = () => (
                   total={cs.budget}
                   mark={cs.paceExpected}
                   over={over || cs.paceGap < 0}
+                  bad={over}
                 />
                 <p className="dial-label">
                   <span className="caption">{over ? "Passou do plano" : "Hoje cabem"}</span>
                   <BigMoney cents={over ? cs.overBy : cs.perDay} tone={over ? "neg" : undefined} />
                   <span className="caption">
                     {over
-                      ? "no ciclo"
+                      ? "neste ciclo"
                       : cs.daysLeft === 1
                         ? "até a fatura fechar, hoje"
                         : "por dia"}

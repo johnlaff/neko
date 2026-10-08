@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.CanSpend
 import dev.johnlaff.neko.data.InstallmentSimulation
+import dev.johnlaff.neko.data.SimulatedCycle
 import dev.johnlaff.neko.ui.Format.capitalize
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.monthName
@@ -118,17 +119,8 @@ fun Simulator(
             } }
         }
         Row(Modifier.fillMaxWidth()) {
-            val over = cycle != null && cycle.perDay < 0
-            Figure(
-                if (over) "Passa do plano" else "Sobra por dia",
-                when {
-                    cycle == null -> money(cs.perDay)
-                    cycle.perDay >= 0 -> money(cycle.perDay)
-                    else -> money(-cycle.remaining)
-                },
-                if (over) l.neg else l.text,
-                Modifier.weight(1f),
-            )
+            val fig = simFigure(cs, cycle)
+            Figure(fig.label, money(fig.amount), if (fig.over) l.neg else l.text, Modifier.weight(1f))
             if (sim != null && count > 1 && parcel != null) {
                 Figure("$count× de", money(parcel.amount), l.text, Modifier.weight(1f))
             } else {
@@ -193,4 +185,17 @@ private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
             .selectable(on, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     )
+}
+
+internal data class SimFigure(val label: String, val amount: Long, val over: Boolean)
+
+/**
+ * The simulator's first figure: what is left per day, or by how much the cycle goes over the
+ * plan. Before a value is typed it speaks for the card as it is, which may already be over.
+ */
+internal fun simFigure(cs: CanSpend, cycle: SimulatedCycle?): SimFigure = when {
+    cycle == null && cs.perDay < 0 -> SimFigure("Passa do plano", cs.overBy, true)
+    cycle == null -> SimFigure("Sobra por dia", cs.perDay, false)
+    cycle.perDay < 0 -> SimFigure("Passa do plano", -cycle.remaining, true)
+    else -> SimFigure("Sobra por dia", cycle.perDay, false)
 }

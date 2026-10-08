@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -138,9 +139,9 @@ private fun MonthArrow(icon: Int, label: String, go: (() -> Unit)?) {
 private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     var ledger by remember(m.key) { mutableStateOf(false) }
-    val ends = if (m.past) "Terminou com" else "Termina com"
+    val ends = if (m.past) "Terminou com" else "Deve terminar com"
     Panel {
-        PanelHead(ends) { Chip(if (m.past) "Fechado" else "Previsão", ChipTone.Plain) }
+        PanelHead(ends)
         BigMoney(m.endSheet, if (m.endSheet < 0) l.neg else l.text)
         history?.let { Evolution(it) }
         Columns(
@@ -181,7 +182,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
         }
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         WinsBox(m.wins, 48.dp, "${capitalize(monthName(m.month))} de ${m.year}")
-        TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger })
+        TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger }, open = ledger)
         Reveal(ledger) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 LedgerLine("Começou com", money(m.startBalance))
@@ -236,9 +237,18 @@ private fun Evolution(h: HistoryView) {
 internal fun LedgerLine(label: String, value: String, color: androidx.compose.ui.graphics.Color = LocalLedger.current.text, total: Boolean = false) {
     val l = LocalLedger.current
     val style = if (total) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = if (total) l.text else l.muted, style = style)
-        Text(value, color = color, style = style)
+    // The label wraps and the value never does: with large text a long label used to squeeze the
+    // amount to one character per line. Past 1.5× the two stack instead.
+    if (LocalDensity.current.fontScale > 1.5f) {
+        Column(Modifier.fillMaxWidth()) {
+            Text(label, color = if (total) l.text else l.muted, style = style)
+            Text(value, color = color, style = style, softWrap = false)
+        }
+    } else {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(label, color = if (total) l.text else l.muted, style = style, modifier = Modifier.weight(1f))
+            Text(value, color = color, style = style, softWrap = false)
+        }
     }
 }
 
