@@ -325,8 +325,11 @@ private fun OutflowRow(o: Outflow, top: Long) {
                 // Display only: the line's amount scaled to the month's largest line.
                 Meter(if (top <= 0) 0f else o.amount.toFloat() / top)
                 if (change != 0L) {
+                    // The head already says what the arrows compare to; the words stay for TalkBack, as on the site.
+                    val said = "${money(kotlin.math.abs(change))} ${if (change > 0) "a mais" else "a menos"} que no mês anterior"
                     Text(
-                        "${if (change > 0) "▲" else "▼"} ${money(kotlin.math.abs(change))} ${if (change > 0) "a mais" else "a menos"}",
+                        "${if (change > 0) "▲" else "▼"} ${money(kotlin.math.abs(change))}",
+                        modifier = Modifier.semantics { contentDescription = said },
                         color = if (change > 0) l.neg else l.faint,
                         style = MaterialTheme.typography.labelMedium,
                     )
