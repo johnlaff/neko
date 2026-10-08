@@ -6,6 +6,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -44,6 +47,9 @@ import dev.johnlaff.neko.data.HabitDay
 
 private val LETTERS = listOf("D", "S", "T", "Q", "Q", "S", "S")
 private val NAMES = listOf("domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado")
+
+/** The marks explained once, in the marks themselves, so the row needs no memory. */
+private val LEGEND = listOf("edited" to "Lançado", "rest" to "Folga", "missed" to "Sem lançar")
 
 private fun stateLabel(state: String) = when (state) {
     "edited" -> "lançado"
@@ -90,6 +96,7 @@ fun Streak(h: Habit) {
         h.milestone?.let { MilestoneHaptic(it) }
         Reveal(open) {
             Text(Learn.HABIT_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            Legend()
             val extra = listOfNotNull(
                 h.lastWeek?.let { "Semana passada: $it de 7 dias lançados." },
                 if (h.best > h.streak) "Melhor sequência: ${h.best} dias." else null,
@@ -100,12 +107,32 @@ fun Streak(h: Habit) {
     }
 }
 
+/** Decorative for TalkBack: each day already says its state. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Legend() {
+    val l = LocalLedger.current
+    FlowRow(
+        Modifier.clearAndSetSemantics {},
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        LEGEND.forEach { (state, label) ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Mark(state, delay = 0, pop = false)
+                Text(label, color = l.muted, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
 @Composable
 private fun Week(week: List<HabitDay>) {
     val l = LocalLedger.current
     val description = week.mapIndexed { i, d -> "${NAMES.getOrElse(i) { "" }}: ${stateLabel(d.state)}" }.joinToString(", ")
     Row(
-        Modifier.semantics { contentDescription = "Esta semana. $description" },
+        // The day letters are drawn for the eye; TalkBack hears each day's name and state.
+        Modifier.clearAndSetSemantics { contentDescription = "Esta semana. $description" },
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         week.forEachIndexed { i, d ->
@@ -123,9 +150,9 @@ private fun Week(week: List<HabitDay>) {
 
 /** One day: filled when the sheet changed, dashed on a rest day, ringed for today. */
 @Composable
-private fun Mark(state: String, delay: Int) {
+private fun Mark(state: String, delay: Int, pop: Boolean = true) {
     val l = LocalLedger.current
-    var shown by rememberSaveable { mutableStateOf(state != "edited") }
+    var shown by rememberSaveable { mutableStateOf(!pop || state != "edited") }
     val scale = remember { Animatable(if (shown) 1f else 0.3f) }
     LaunchedEffect(Unit) {
         if (!shown) {

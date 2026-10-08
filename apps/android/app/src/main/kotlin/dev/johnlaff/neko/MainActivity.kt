@@ -130,6 +130,7 @@ class MainActivity : ComponentActivity() {
                                             simulateAsk = simulateAsk,
                                             mia = mia,
                                             askMia = model::askMia,
+                                            review = model::review,
                                             onScreen = { tela ->
                                                 go(when (tela) { "faturas" -> Tab.Faturas; "mes" -> Tab.Mes; else -> Tab.Hoje })
                                             },

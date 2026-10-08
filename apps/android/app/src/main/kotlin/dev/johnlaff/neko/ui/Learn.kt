@@ -29,7 +29,7 @@ import androidx.core.content.edit
  * screen the first time it has data, and the full list in Ajustes › Como funciona.
  */
 object Learn {
-    const val HOJE = "O arco é a fatura aberta perto do plano do ciclo. Ele muda quando você lança na planilha."
+    const val HOJE = "O arco é a fatura aberta perto do plano do ciclo."
     const val FATURAS = "Compra no cartão entra na planilha uma vez só: na fatura, no dia em que ela vence."
     const val MES = "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista."
 

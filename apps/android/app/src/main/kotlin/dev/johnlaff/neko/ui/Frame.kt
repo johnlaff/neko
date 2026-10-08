@@ -151,12 +151,28 @@ fun <T> ScreenFrame(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(title, style = MaterialTheme.typography.displayLarge, modifier = Modifier.semantics { heading() })
+                        val at = v?.let(readAt).orEmpty()
+                        val offline = state.error == ReadError.Offline && v != null
                         val read = when {
-                            state.error == ReadError.Offline && v != null -> "Sem conexão. Esta é a última leitura"
-                            v != null && readAt(v).isNotEmpty() -> "Planilha lida ${readAtText(readAt(v))}"
+                            refreshing && at.isNotEmpty() -> "Lendo a planilha…"
+                            offline && at.isNotEmpty() -> "Sem conexão · Lida ${readAtText(at)}"
+                            offline -> "Sem conexão. Esta é a última leitura"
+                            at.isNotEmpty() -> "Planilha lida ${readAtText(at)}"
                             else -> null
                         }
-                        read?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
+                        // Offline is the one state the head must not let you miss: a solid dot before the words.
+                        read?.let {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                if (offline) Box(Modifier.size(8.dp).background(l.warn, CircleShape))
+                                Text(
+                                    it,
+                                    color = if (offline) l.warn else l.faint,
+                                    style = MaterialTheme.typography.labelMedium.let { s ->
+                                        if (offline) s.copy(fontWeight = FontWeight.SemiBold) else s
+                                    },
+                                )
+                            }
+                        }
                     }
                     trailing()
                 }

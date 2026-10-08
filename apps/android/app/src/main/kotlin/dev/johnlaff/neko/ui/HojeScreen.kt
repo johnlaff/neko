@@ -46,6 +46,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,6 +59,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
+import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.data.MissingMovement
 import dev.johnlaff.neko.data.MonthRecap
@@ -87,6 +90,7 @@ fun HojeScreen(
     onMonth: (String?) -> Unit = { onScreen("mes") },
     miaOpen: Boolean = false,
     miaTalk: List<MiaExchange> = emptyList(),
+    review: Review? = null,
 ) {
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     var asking by rememberSaveable { mutableStateOf(miaOpen) }
@@ -116,7 +120,7 @@ fun HojeScreen(
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
-        item { Conference(v) }
+        item { Conference(v, review) }
         v.bankMissing?.takeIf { it.isNotEmpty() }?.let { m -> item { BankMissing(m) } }
     }
 }
@@ -456,13 +460,29 @@ private fun Day(d: UpcomingDay, today: String) {
     }
 }
 
+/** Sets Conferência points aside (hide) or brings them back; true once the settings saved. */
+typealias Review = suspend (keys: List<String>, hide: Boolean) -> Boolean
+
+/** A point's stable name, kept in settings once checked (shared/today.ts `issueKey`). */
+private fun issueKey(i: HealthIssue) = "${i.kind}|${i.date}|${i.ref.tab}!${i.ref.a1}"
+
+/**
+ * Sheet points the method says should hold but do not. Ones already checked can be set aside, so
+ * an old difference nobody will fix does not keep the panel yellow; a new one shows up again.
+ */
 @Composable
-private fun Conference(v: TodayView) {
+private fun Conference(v: TodayView, review: Review?) {
     val l = LocalLedger.current
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    // What the last tap hid, so it can come back with one more tap.
+    var justHid by rememberSaveable { mutableStateOf<List<String>?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    // The Worker leaves checked points out; until Hoje is read again, the ones just hidden stay out here.
+    val open = v.issues.filter { issueKey(it.issue) !in justHid.orEmpty() }
     Panel {
         PanelHead("Conferência") {
-            val n = v.issues.size
+            val n = open.size
             Chip(
                 when (n) {
                     0 -> "Tudo certo"
@@ -473,7 +493,7 @@ private fun Conference(v: TodayView) {
             )
         }
         // All clear is the title and its chip alone: a sentence saying so again only adds height.
-        v.issues.forEach { t ->
+        open.forEach { t ->
             val line = Copy.issue(t.issue)
             Column(
                 Modifier.fillMaxWidth()
@@ -487,6 +507,42 @@ private fun Conference(v: TodayView) {
                     Text(shortDate(t.issue.date), color = l.muted)
                 }
                 Text(line.detail, color = l.faint, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        if (review != null && open.isNotEmpty()) {
+            TextAction("Já conferi, esconder", {
+                if (!busy) {
+                    val keys = open.map { issueKey(it.issue) }
+                    busy = true
+                    scope.launch {
+                        if (review(keys, true)) justHid = keys
+                        busy = false
+                    }
+                }
+            }, l.accent)
+        }
+        val hid = justHid
+        if (review != null && open.isEmpty() && hid != null) {
+            Row(
+                Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    if (hid.size == 1) "1 ponto escondido." else "${hid.size} pontos escondidos.",
+                    color = l.muted,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                TextAction("Desfazer", {
+                    if (!busy) {
+                        busy = true
+                        scope.launch {
+                            if (review(hid, false)) justHid = null
+                            busy = false
+                        }
+                    }
+                }, l.accent)
             }
         }
     }

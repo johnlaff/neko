@@ -65,6 +65,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.core.net.toUri
 import androidx.compose.ui.semantics.stateDescription
 import dev.johnlaff.neko.R
 import kotlinx.coroutines.delay
@@ -102,7 +103,7 @@ class AjustesForm(v: AjustesView) {
         cards = cards.mapNotNull { c ->
             closing[c.name]?.trim()?.takeIf { it.isNotEmpty() }?.let { CardDays(c.name, it.toInt(), c.dueDay) }
         },
-        // Checked Conferência points are set on the site's Hoje; saving here keeps them.
+        // Checked Conferência points are set on Hoje; saving here keeps them.
         reviewed = reviewed,
     )
 
@@ -186,6 +187,8 @@ fun AjustesScreen(
         item { Group("Como funciona") { HowItWorks() } }
         item {
             Panel {
+                Privacy()
+                HorizontalDivider(color = LocalLedger.current.border)
                 ConfirmAction(
                     "Sair deste aparelho",
                     "Sair deste aparelho?",
@@ -652,6 +655,28 @@ private fun Cards(f: AjustesForm) {
         style = MaterialTheme.typography.labelMedium,
     )
 }
+
+/** The privacy policy the Worker serves next to the site, opened in the browser. */
+@Composable
+private fun Privacy() {
+    val l = LocalLedger.current
+    val context = LocalContext.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "abrir no navegador", role = Role.Button) {
+                context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, PRIVACY_URL.toUri()))
+            }
+            .heightIn(min = 56.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Política de privacidade", modifier = Modifier.weight(1f))
+        Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = l.faint, modifier = Modifier.size(16.dp))
+    }
+}
+
+private val PRIVACY_URL = "${dev.johnlaff.neko.BuildConfig.NEKO_URL}/privacidade.html"
 
 /** A sign-out text action that asks first: undoing it means signing in again on that phone. */
 @Composable

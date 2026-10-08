@@ -201,7 +201,9 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
      * Saves Ajustes whole, as the site does; the same settings twice in a row send nothing. The
      * latest call wins: a save still on its way is cancelled by a newer one.
      */
-    fun saveSettings(settings: UserSettings) {
+    fun saveSettings(form: UserSettings) {
+        // Conferência points are set aside on Hoje: the latest list wins over the one the form read.
+        val settings = form.copy(reviewed = (saved ?: _ajustes.value.view?.settings)?.reviewed ?: form.reviewed)
         if (settings == (saved ?: _ajustes.value.view?.settings)) return
         saved = settings
         saving?.cancel()
@@ -221,6 +223,30 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
                 if (e is ApiException && e.status == 401) signedOut() else _save.value = SaveState.Failed
             }
         }
+    }
+
+    /**
+     * Hoje › Conferência: sets points aside (hide) or brings them back, on the settings as the
+     * Worker has them now, since the site may have checked others. True once saved; Hoje is then
+     * read again, as the Worker filters the points it sends.
+     */
+    suspend fun review(keys: List<String>, hide: Boolean): Boolean {
+        val result = runCatching {
+            val s = neko.api.settings()
+            val reviewed = if (hide) (s.reviewed + keys).takeLast(300) else s.reviewed - keys.toSet()
+            neko.api.saveSettings(s.copy(reviewed = reviewed))
+        }
+        result.onSuccess { s ->
+            saved = s
+            _ajustes.update { st -> st.copy(view = st.view?.copy(settings = s)) }
+            _ajustes.value.view?.let { neko.caches.ajustes.write(it) }
+            refresh()
+        }
+        result.onFailure { e ->
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            if (e is ApiException && e.status == 401) signedOut()
+        }
+        return result.isSuccess
     }
 
     fun signedIn() {
