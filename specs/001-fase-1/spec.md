@@ -17,8 +17,12 @@ viram itens de saúde), e o "pode gastar hoje" faz sentido para o ciclo atual do
   Fechamento no mesmo mês se o dia de fechamento < dia de vencimento; senão, no mês anterior.
   Compra no dia do fechamento entra nessa fatura. Fechamento desconhecido = vencimento − 7 dias
   (marcado como estimado, ajustável).
-- Modo crédito: cada dia futuro com diário vazio gasta o diário previsto no cartão principal, e o
-  dinheiro sai no vencimento daquela fatura.
+- Sem previsão própria: o saldo de cada dia é o da planilha. Um mês à frente sem diário e sem
+  fatura do dono vira aviso ("ainda sem gastos previstos"), e o "dá para guardar" não olha além
+  dele, porque ali o saldo está alto demais.
+- Aviso de saldo negativo também quando o saldo de hoje já está abaixo de zero: diz quando volta
+  ao positivo e quanto falta no pior dia. O simulador de parcelas confere cada dia a partir da
+  primeira parcela, não só o fim do mês.
 - Diário previsto: ajuste do usuário; senão o maior entre a nota "previsão do diário" da planilha
   e a média real (cartões + diário) dos últimos 3 meses completos, arredondada para cima. O método
   manda usar a média real e não baixar a previsão para a planilha ficar verde.

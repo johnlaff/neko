@@ -182,4 +182,4 @@ data class SimulatedCycle(val perDay: Long, val remaining: Long, val due: String
 data class Parcel(val due: String, val amount: Long)
 
 @Serializable
-data class MonthEnd(val year: Int, val month: Int, val end: Long)
+data class MonthEnd(val year: Int, val month: Int, val end: Long, val date: String? = null)

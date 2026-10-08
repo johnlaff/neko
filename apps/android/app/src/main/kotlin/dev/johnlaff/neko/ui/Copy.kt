@@ -4,6 +4,7 @@ import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.ui.Format.capitalize
 import dev.johnlaff.neko.ui.Format.money
+import dev.johnlaff.neko.ui.Format.monthName
 import dev.johnlaff.neko.ui.Format.shortDate
 
 /** The site's wording for warnings and Conferência points (screens/Hoje.tsx), word for word. */
@@ -15,9 +16,17 @@ object Copy {
     /** Null for a kind this version does not know yet: it is skipped, not guessed. */
     fun insight(i: Insight): Line? = when (i.kind) {
         "goes-negative" -> Line(
-            "Saldo negativo a partir de ${shortDate(i.start ?: return null)}",
-            "No pior dia, ${shortDate(i.deepestDate ?: return null)}, faltam ${money(-(i.deepest ?: 0))}",
+            if (i.already == true) "Saldo negativo agora" else "Saldo negativo a partir de ${shortDate(i.start ?: return null)}",
+            if (i.already == true && i.until != null) {
+                "Positivo de novo em ${shortDate(i.until)}. No pior dia, faltam ${money(-(i.deepest ?: 0))}"
+            } else {
+                "No pior dia, ${shortDate(i.deepestDate ?: return null)}, faltam ${money(-(i.deepest ?: 0))}"
+            },
             Tone.Bad,
+        )
+        "no-spending-ahead" -> Line(
+            "${capitalize(monthName(i.month ?: return null))} ainda sem gastos previstos",
+            "Sem diário nem fatura, o saldo de lá parece maior do que será",
         )
         "bill-above-average" -> Line("Fatura acima do normal", "${i.card}: ${money(i.over ?: 0)} acima da média")
         "fixed-up" -> Line(

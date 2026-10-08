@@ -46,9 +46,9 @@ import dev.johnlaff.neko.ui.Format.signed
 import java.time.LocalDate
 
 private val BANDS = listOf(
-    "negative" to "Negativo",
-    "attention" to "Atenção",
-    "healthy" to "Saudável",
+    "negative" to "No vermelho",
+    "attention" to "Apertado",
+    "healthy" to "Folgado",
     "surplus" to "Sobrando",
 )
 private val WEEK = listOf("D", "S", "T", "Q", "Q", "S", "S")
@@ -87,7 +87,7 @@ fun Thermo(m: MonthItem, today: String, saving: Saving?) {
     val cells: List<Int?> = List(offset) { null } + m.days.map { it.day }
 
     Panel {
-        PanelHead("Termômetro") {
+        PanelHead("Saldo dia a dia") {
             if (shown != null) {
                 Row {
                     Text("${shown.day} $mon · ", color = l.faint, style = MaterialTheme.typography.labelMedium)
@@ -145,7 +145,7 @@ fun Thermo(m: MonthItem, today: String, saving: Saving?) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(4.dp).background(l.muted, CircleShape))
                     Spacer(Modifier.width(6.dp))
-                    Text("Dia de guardar", color = l.faint, style = MaterialTheme.typography.labelSmall)
+                    Text("Guardar", color = l.faint, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }

@@ -68,7 +68,7 @@ describe("reminders", () => {
   it("morning: on payday, says how much the method lets you set aside", () => {
     const saving = { date: "2026-10-04", amount: 2_150_00 };
     expect(morningMessage(response({ saving } as never))?.body).toBe(
-      "Até a fatura fechar em 3 nov. Faltam 15 dias. Dia de guardar: dá para separar R$ 2.150,00.",
+      "Até a fatura fechar em 3 nov. Faltam 15 dias. Hoje dá para guardar R$ 2.150,00.",
     );
     const later = { date: "2026-10-29", amount: 2_150_00 };
     expect(morningMessage(response({ saving: later } as never))?.body).toBe(

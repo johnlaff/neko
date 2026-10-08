@@ -67,6 +67,10 @@ data class Insight(
     val amount: Long? = null,
     val change: Long? = null,
     val closing: String? = null,
+    val already: Boolean? = null,
+    val until: String? = null,
+    val year: Int? = null,
+    val month: Int? = null,
 )
 
 @Serializable

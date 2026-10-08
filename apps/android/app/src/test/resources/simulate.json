@@ -41,7 +41,8 @@
   "lowest": {
     "year": 2026,
     "month": 10,
-    "end": 1823404
+    "end": 1713404,
+    "date": "2026-10-15"
   },
   "firstNegative": null
 }
