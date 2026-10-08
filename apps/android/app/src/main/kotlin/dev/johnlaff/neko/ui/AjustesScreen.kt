@@ -210,8 +210,6 @@ private fun Reminders(r: RemindersSwitch) {
         "Lembretes",
         when {
             r.blocked -> "Permita as notificações do Neko no Android"
-            // The site's browser push sends the same two reminders; both on would arrive twice.
-            r.on -> "Às 8h e às 21h. Desligue os do site neste celular"
             else -> "Às 8h, quanto cabe hoje. Às 21h, lançar o dia"
         },
         r.blocked,
@@ -233,7 +231,7 @@ private fun QuickTile() {
     val context = androidx.compose.ui.platform.LocalContext.current
     Setting(
         "Lançar nas configurações rápidas",
-        "Deslize a barra de notificações e abra o dia na planilha",
+        "Um atalho na barra de notificações",
         modifier = Modifier.clickable(onClickLabel = "adicionar") { dev.johnlaff.neko.tile.LancarTile.ask(context) },
     ) { Text("Adicionar", color = l.accent, style = MaterialTheme.typography.labelLarge) }
 }
@@ -471,7 +469,8 @@ private fun Setting(
         }
         return
     }
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    // A list row's height (56dp), so switch rows breathe like the rows with a field.
+    Row(modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) { words() }
         Spacer(Modifier.width(12.dp))
         control()
