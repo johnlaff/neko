@@ -6,6 +6,7 @@ import dev.johnlaff.neko.ui.Copy
 import dev.johnlaff.neko.widget.widgetText
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
@@ -31,6 +32,13 @@ class TodayViewTest {
         assertEquals(7, h.week.size)
         assertEquals("today", h.week[1].state)
         assertEquals(21, h.next)
+    }
+
+    @Test fun readsTheClosedMonth() {
+        val r = view.recap!!
+        assertEquals(9, r.month)
+        assertTrue(r.livingCost > 0)
+        assertTrue(r.top != null)
     }
 
     @Test fun widgetAndTileCarryTheStreak() {

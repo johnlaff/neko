@@ -23,7 +23,24 @@ data class TodayView(
     val issuesInWindow: Int = 0,
     val readAt: String = "",
     val habit: Habit? = null,
+    /** The month that just closed, in the first week of the next (engine recap.ts). */
+    val recap: MonthRecap? = null,
 )
+
+@Serializable
+data class MonthRecap(
+    val year: Int,
+    val month: Int,
+    val result: Long,
+    val saved: Long = 0,
+    val savedShare: Int? = null,
+    val livingCost: Long = 0,
+    val costChange: Long? = null,
+    val top: RecapTop? = null,
+)
+
+@Serializable
+data class RecapTop(val label: String, val amount: Long)
 
 /** Days the sheet changed, as a streak (engine habit.ts); one missed day a week is a rest day. */
 @Serializable

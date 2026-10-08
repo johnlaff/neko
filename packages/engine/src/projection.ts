@@ -13,6 +13,7 @@ import { type HealthIssue, missingBills, sheetHealth } from "./health.ts";
 import { firstUnplannedMonth, type Insight, insights } from "./insights.ts";
 import type { CellRef, Ledger, NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, divFloor, mul, sub, ZERO } from "./money.ts";
+import { type MonthRecap, monthRecap } from "./recap.ts";
 import { type Reserve, reserve, type YearTotals, yearTotals } from "./reserve.ts";
 import { type Saving, saveable } from "./savings.ts";
 import { type DayMove, type ThermoDay, thermometer } from "./thermometer.ts";
@@ -175,6 +176,8 @@ export interface Projection {
   readonly reserve: Reserve | null;
   /** The Economia tab: each year's entradas and what was kept, oldest first. */
   readonly years: readonly YearTotals[];
+  /** The month that just closed, during the first week of the next; null otherwise. */
+  readonly recap: MonthRecap | null;
 }
 
 const SERIES_DAYS = 60;
@@ -543,6 +546,7 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
         })),
     ),
     reserve: reserve(months, parts(today)),
+    recap: monthRecap(months, today),
     years: [...new Set(months.map((m) => m.year))]
       .sort((a, b) => a - b)
       .map((y) => yearTotals(months, y)),

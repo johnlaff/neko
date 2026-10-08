@@ -50,6 +50,8 @@ class ScreenshotTest {
     @Test fun hojeLight() = shot("hoje-light", night = false) { HojeScreen(TodayState(view), {}, {}) }
 
     /** The day the run reaches 21: the week's marks and the one card that celebrates it. */
+    @Test fun hojeResumo() = shot("hoje-resumo-dark", night = true) { dev.johnlaff.neko.ui.RecapPanel(view.recap!!) }
+
     @Test fun hojeMarco() = shot("hoje-marco-dark", night = true) {
         val h = view.habit!!
         val reached = h.copy(streak = 21, milestone = 21, editedToday = true, week = h.week.mapIndexed { i, d -> if (i == 1) d.copy(state = "edited") else d })

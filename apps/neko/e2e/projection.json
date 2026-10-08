@@ -10723,6 +10723,19 @@
       "kept": 1760000,
       "coveredTenths": 25
     },
+    "recap": {
+      "year": 2026,
+      "month": 9,
+      "result": 2764,
+      "saved": 80000,
+      "savedShare": 10,
+      "livingCost": 734972,
+      "costChange": 108139,
+      "top": {
+        "label": "Cartão Azul",
+        "amount": 361629
+      }
+    },
     "years": [
       {
         "year": 2025,
