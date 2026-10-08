@@ -22,6 +22,8 @@ export interface Env {
   PLUGGY_WEBHOOK_SECRET?: string;
   /** This site's public origin, for the webhook address registered at Pluggy. */
   SITE_URL?: string;
+  /** Key of the Console workspace "mia" (US$ 80 limit); absent, Mia stays off. */
+  ANTHROPIC_API_KEY?: string;
   /** Workers rate limiting for sign-in routes; absent in tests and local dev. */
   AUTH_LIMIT?: RateLimit;
 }
