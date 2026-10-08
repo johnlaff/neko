@@ -40,6 +40,20 @@ describe("reminders", () => {
     expect(withWeek(6, [{ date: "2026-09-27" }])).not.toMatch(/Semana passada/);
   });
 
+  it("morning: the day after a mark or a new best run, one line about it", () => {
+    const withHabit = (habit: object) =>
+      morningMessage({ ...response(), habit: { week: [], ...habit } } as never)?.body;
+    expect(withHabit({ milestone: 21, record: null, editedToday: false })).toMatch(
+      / Ontem você chegou a 21 dias seguidos de planilha\.$/,
+    );
+    expect(withHabit({ milestone: null, record: 10, editedToday: false })).toMatch(
+      / Ontem foi seu novo recorde: 11 dias seguidos\.$/,
+    );
+    // Logged already this morning: the mark is today's, and Hoje shows it.
+    expect(withHabit({ milestone: 21, record: null, editedToday: true })).not.toMatch(/Ontem/);
+    expect(withHabit({ milestone: null, record: null, editedToday: false })).not.toMatch(/Ontem/);
+  });
+
   it("morning: today's allowance on the usual card, opening Neko", () => {
     expect(morningMessage(response())).toEqual({
       title: "Hoje cabem R$ 176,66 no Visa",

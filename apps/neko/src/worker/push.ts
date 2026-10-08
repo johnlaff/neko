@@ -57,6 +57,16 @@ const weekDay = ({ projection: p, habit }: ProjectionResponse) =>
   habit?.lastWeek && habit.week[0]?.date === p.today
     ? ` Semana passada: ${habit.lastWeek} de 7 dias lançados.`
     : "";
+/**
+ * The morning after the run reached a mark or passed its best, one line says so: the card on
+ * Hoje celebrates it too, but the push is where a habit app earns the next day.
+ */
+const markDay = ({ habit }: ProjectionResponse) => {
+  if (!habit || habit.editedToday) return "";
+  if (habit.milestone) return ` Ontem você chegou a ${habit.milestone} dias seguidos de planilha.`;
+  if (habit.record) return ` Ontem foi seu novo recorde: ${habit.record + 1} dias seguidos.`;
+  return "";
+};
 // Intl puts a non-breaking space after R$; a plain space reads the same in a notification.
 const money = (c: Parameters<typeof formatBRL>[0]) => formatBRL(c).replace(/\s/g, " ");
 
@@ -73,13 +83,13 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
   if (cs.perDay < 0)
     return {
       title: `O ${cs.card} passou ${money(sub(cs.accumulated, cs.budget))} do plano do ciclo`,
-      body: `${closingText(cs)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}`,
+      body: `${closingText(cs)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
       url: "/",
       tag: "morning",
     };
   return {
     title: `Hoje cabem ${money(cs.perDay)} no ${cs.card}`,
-    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}`,
+    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
     url: "/",
     tag: "morning",
   };
