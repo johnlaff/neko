@@ -281,7 +281,11 @@ const Conference = ({
                 review.mutate({ ...s, reviewed }, { onSuccess: () => setJustHid(keys) });
               }}
             >
-              {review.isPending && !justHid ? "Escondendo…" : "Já conferi, esconder"}
+              {review.isPending
+                ? "Escondendo…"
+                : open.length === 1
+                  ? "Já conferi, esconder este"
+                  : `Já conferi, esconder os ${open.length}`}
             </button>
           )}
         </>

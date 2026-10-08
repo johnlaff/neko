@@ -1365,8 +1365,16 @@ button.text-link {
 }
 
 /* Desktop: the masthead keeps its row; on Hoje the dial takes the left half and what to do now
-   sits beside it, so the gauge never floats in an empty full-width card. */
+   sits beside it, so the gauge never floats in an empty full-width card. The dial card takes the
+   row's height and centres the dial, so a taller column beside it leaves no hole. */
 @media (min-width: 48rem) {
+  .hero.today.half {
+    align-self: stretch;
+    grid-template-rows: auto 1fr;
+  }
+  .hero.today.half > .dial {
+    align-self: center;
+  }
   .page {
     padding-top: 20px;
   }

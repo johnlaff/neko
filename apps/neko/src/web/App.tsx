@@ -61,7 +61,9 @@ const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 const onShortcut = (e: KeyboardEvent) => {
-  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || isTyping(e.target)) return;
+  // A widget that used the key itself (the Mês calendar's arrows) keeps it.
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.repeat || isTyping(e.target))
+    return;
   if (document.querySelector("dialog[open]")) return;
   const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
   const target = document.querySelector<HTMLElement>(`[aria-keyshortcuts="${CSS.escape(key)}"]`);

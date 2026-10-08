@@ -3,7 +3,7 @@ import { type CSSProperties, type KeyboardEvent, useRef, useState } from "react"
 import { RowAvatar } from "./CardAvatar.tsx";
 import { CategoryIcon } from "./CategoryIcon.tsx";
 import { ItemName } from "./Figures.tsx";
-import { money, monthName, shortDate, signed } from "./format.ts";
+import { money, monthName, signed } from "./format.ts";
 import { Hint } from "./Hint.tsx";
 import { IconCard, IconIncome, IconReceipt, IconToday } from "./icons.tsx";
 import { HINTS } from "./learn.ts";

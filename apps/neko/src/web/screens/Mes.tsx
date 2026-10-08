@@ -305,7 +305,7 @@ export const Mes = () => {
         // The sheet's own balance on the month's last day: a date, not a guess.
         const endLabel = past
           ? "Terminou com"
-          : `Saldo em ${shortDate(key(m.year, m.month) + `-${daysInMonth(m.year, m.month)}`)}`;
+          : `Saldo em ${shortDate(`${key(m.year, m.month)}-${daysInMonth(m.year, m.month)}`)}`;
         const year = p.months.filter((x) => x.year === m.year);
         // A projection cached offline by an older version has no outflows yet.
         const outflows = m.outflows ?? [];

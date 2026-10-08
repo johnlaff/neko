@@ -305,11 +305,15 @@ export const Ajustes = () => {
 /** Every idea the tips teach, one tap each, for whoever skipped a tip or wants it again. */
 const HowItWorks = ({ reviewed: s }: { reviewed: UserSettings }) => {
   const [reset, setReset] = useState(false);
+  const [restored, setRestored] = useState(false);
   const queryClient = useQueryClient();
   // Conferência points set aside on Hoje come back here, all at once, whenever wanted.
   const restore = useMutation({
     mutationFn: api.saveSettings,
-    onSuccess: (saved) => queryClient.setQueryData(["settings"], saved),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(["settings"], saved);
+      setRestored(true);
+    },
   });
   return (
     <section className="group" aria-labelledby="g-learn">
@@ -341,16 +345,18 @@ const HowItWorks = ({ reviewed: s }: { reviewed: UserSettings }) => {
         >
           {reset ? "As dicas voltam, uma por visita" : "Rever dicas"}
         </button>
-        {s.reviewed.length > 0 && (
+        {(s.reviewed.length > 0 || restored) && (
           <button
             type="button"
             className="setting quiet"
-            disabled={restore.isPending}
+            disabled={restore.isPending || restored}
             onClick={() => restore.mutate({ ...s, reviewed: [] })}
           >
-            {restore.isPending
-              ? "Trazendo de volta…"
-              : `Mostrar de novo os pontos conferidos (${s.reviewed.length})`}
+            {restored
+              ? "Os pontos voltam em Hoje"
+              : restore.isPending
+                ? "Trazendo de volta…"
+                : "Mostrar de novo os pontos conferidos"}
           </button>
         )}
         {restore.isError && (
