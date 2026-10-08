@@ -46,6 +46,10 @@ class TodayViewTest {
         assertEquals(listOf("3 meses seguidos no azul"), wins.mapNotNull(dev.johnlaff.neko.ui.Copy::win))
         assertEquals(null, dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("novo")))
         assertEquals("Mês no azul", dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("blue", months = 1)))
+        assertEquals(
+            "Recorde: guardou 34% das entradas, o maior até aqui",
+            dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("record", share = 34)),
+        )
     }
 
     @Test fun widgetAndTileCarryTheStreak() {
