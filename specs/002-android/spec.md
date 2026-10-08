@@ -22,6 +22,10 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
 - Bloqueio opcional (Ajustes › Neste celular): digital forte ou a senha do celular ao abrir o app e
   ao voltar depois de 5 minutos fora. Ligado, a prévia em Recentes some. Os lembretes mostram só o
   título na tela bloqueada.
+- Integração com o Android: tela de abertura do sistema até a sessão ser conhecida; atalhos no ícone
+  (Simular, Faturas, Mês e "Lançar", que abre a linha de hoje e muda todo dia); prévia gerada do
+  widget no seletor (Android 15+, com números inventados); toques hápticos do sistema no dock, nos
+  interruptores e ao puxar para atualizar.
 - `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
   agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
 - `GET /api/invoices`, `GET /api/months` e `GET /api/ajustes` (`apps/neko/src/shared/screens.ts`):

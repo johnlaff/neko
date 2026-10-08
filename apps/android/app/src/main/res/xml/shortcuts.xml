@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon: straight to a place. "Lançar" is added at run time, since today's
+     row in the sheet moves every day. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="simular"
+        android:enabled="true"
+        android:icon="@drawable/sc_glyph_simular"
+        android:shortcutShortLabel="@string/shortcut_simular"
+        android:shortcutLongLabel="@string/shortcut_simular_long">
+        <intent
+            android:action="dev.johnlaff.neko.SIMULAR"
+            android:targetPackage="dev.johnlaff.neko"
+            android:targetClass="dev.johnlaff.neko.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="faturas"
+        android:enabled="true"
+        android:icon="@drawable/sc_glyph_faturas"
+        android:shortcutShortLabel="@string/shortcut_faturas">
+        <intent
+            android:action="dev.johnlaff.neko.FATURAS"
+            android:targetPackage="dev.johnlaff.neko"
+            android:targetClass="dev.johnlaff.neko.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="mes"
+        android:enabled="true"
+        android:icon="@drawable/sc_glyph_mes"
+        android:shortcutShortLabel="@string/shortcut_mes">
+        <intent
+            android:action="dev.johnlaff.neko.MES"
+            android:targetPackage="dev.johnlaff.neko"
+            android:targetClass="dev.johnlaff.neko.MainActivity" />
+    </shortcut>
+</shortcuts>

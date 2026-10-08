@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -64,10 +66,15 @@ fun <T> ScreenFrame(
     content: LazyListScope.(T) -> Unit,
 ) {
     val l = LocalLedger.current
+    val haptics = LocalHapticFeedback.current
     val v = state.view
     PullToRefreshBox(
         isRefreshing = state.loading && v != null,
-        onRefresh = onRefresh,
+        onRefresh = {
+            // The pull let go past the line: a tick says the read started.
+            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+            onRefresh()
+        },
         modifier = Modifier.fillMaxSize().background(l.bg),
     ) {
         LazyColumn(
@@ -128,6 +135,7 @@ private fun ErrorPanel(state: ScreenState<*>, onRetry: () -> Unit) {
 @Composable
 fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     val l = LocalLedger.current
+    val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(50)
     Row(
         modifier
@@ -146,7 +154,10 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium),
                 modifier = Modifier
                     .background(if (on) l.surface2 else Color.Transparent, shape)
-                    .clickable(role = Role.Tab) { onSelect(tab) }
+                    .clickable(role = Role.Tab) {
+                        if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        onSelect(tab)
+                    }
                     .semantics { selected = on }
                     .padding(horizontal = 16.dp, vertical = 10.dp),
             )

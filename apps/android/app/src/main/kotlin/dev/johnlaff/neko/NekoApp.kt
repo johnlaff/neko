@@ -41,6 +41,7 @@ class NekoApp : Application() {
         api = Api(BuildConfig.NEKO_URL, client, cookies)
         today = TodayRepository(api, SealedFile(File(noBackupFilesDir, "today.json"), key))
         WidgetRefresh.schedule(this)
+        WidgetRefresh.publishPreview(this)
         Reminders.ensure(this)
     }
 }

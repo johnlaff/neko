@@ -47,10 +47,18 @@ fun widgetText(v: TodayView?): WidgetText {
     }
 }
 
+/** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
+val PREVIEW = WidgetText("Hoje cabem", "R$ 148,00", "por dia · fecha 5 nov", false)
+
 class TodayWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val view = (context.applicationContext as NekoApp).today.cached()
         provideContent { Content(widgetText(view)) }
+    }
+
+    /** The widget picker's picture (Android 15+): the real look with an invented figure. */
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        provideContent { Content(PREVIEW) }
     }
 
     @Composable
