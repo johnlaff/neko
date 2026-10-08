@@ -446,7 +446,7 @@ fun Columns(
                     val color = when {
                         c.picked -> l.text
                         c.faint -> l.border
-                        else -> l.faint.copy(alpha = 0.55f)
+                        else -> l.borderInput
                     }
                     Canvas(
                         Modifier.weight(1f).fillMaxSize()
@@ -455,12 +455,14 @@ fun Columns(
                     ) {
                         val zero = size.height * (top / span)
                         val h = size.height * (kotlin.math.abs(c.value) / span) * grow
-                        val y = if (c.value >= 0) zero - h else zero
+                        // A thin pill centred in its slot, as the site's `.columns .bar` (10px, round).
+                        val w = 10.dp.toPx().coerceAtMost(size.width)
+                        val bar = h.coerceAtLeast(2.dp.toPx())
                         drawRoundRect(
                             color,
-                            topLeft = Offset(size.width * 0.2f, y),
-                            size = androidx.compose.ui.geometry.Size(size.width * 0.6f, h.coerceAtLeast(2f)),
-                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f, 6f),
+                            topLeft = Offset((size.width - w) / 2, if (c.value >= 0) zero - bar else zero),
+                            size = androidx.compose.ui.geometry.Size(w, bar),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2, w / 2),
                         )
                     }
                 }
@@ -506,10 +508,16 @@ fun SaveFailed() {
 
 /** A small text action, like the site's text links. */
 @Composable
-fun TextAction(text: String, onClick: () -> Unit, color: Color = LocalLedger.current.muted, open: Boolean? = null) {
+fun TextAction(
+    text: String,
+    onClick: () -> Unit,
+    color: Color = LocalLedger.current.muted,
+    open: Boolean? = null,
+    enabled: Boolean = true,
+) {
     // A finger-sized target around a short line of text.
     Row(
-        Modifier.clickable(onClick = onClick).heightIn(min = 48.dp),
+        Modifier.clickable(enabled = enabled, onClick = onClick).heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {

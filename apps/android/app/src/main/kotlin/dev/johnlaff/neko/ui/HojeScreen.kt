@@ -520,17 +520,25 @@ private fun Conference(v: TodayView, review: Review?) {
             }
         }
         if (review != null && open.isNotEmpty()) {
-            TextAction(if (busy == true) "Escondendo…" else "Já conferi, esconder", {
-                if (busy == null) {
-                    val keys = open.map { issueKey(it.issue) }
-                    busy = true
-                    scope.launch {
-                        failed = !review(keys, true)
-                        if (!failed) justHid = keys
-                        busy = null
+            TextAction(
+                when {
+                    busy == true -> "Escondendo…"
+                    open.size == 1 -> "Já conferi, esconder este"
+                    else -> "Já conferi, esconder os ${open.size}"
+                },
+                {
+                    if (busy == null) {
+                        val keys = open.map { issueKey(it.issue) }
+                        busy = true
+                        scope.launch {
+                            failed = !review(keys, true)
+                            if (!failed) justHid = keys
+                            busy = null
+                        }
                     }
-                }
-            }, l.accent)
+                },
+                l.accent,
+            )
         }
         val hid = justHid
         if (review != null && open.isEmpty() && hid != null) {

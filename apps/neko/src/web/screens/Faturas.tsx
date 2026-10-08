@@ -66,7 +66,7 @@ export const Faturas = () => {
                   <CardAvatar name={c.card.name} />
                   <span className="name">
                     {c.card.name}
-                    {c.others && <span className="chip">De outra pessoa</span>}
+                    {c.others && <span className="chip plain">De outra pessoa</span>}
                     {c.reimbursed && <span className="chip plain">Reembolsada</span>}
                   </span>
                   <span className="value">{money(c.onSheet)}</span>

@@ -121,7 +121,7 @@ const OutflowRow = ({
       <span className="name">
         <ItemName text={o.label} />
         {fixed && <span className="sr-only">, fixo</span>}
-        {o.others && <span className="chip">De outra pessoa</span>}
+        {o.others && <span className="chip plain">De outra pessoa</span>}
         {fixed?.installment && <small className="meta">{installmentLine(fixed.installment)}</small>}
         {/* Display only: the bar is the line's amount scaled to the month's largest line. */}
         <span className="meter" aria-hidden="true">

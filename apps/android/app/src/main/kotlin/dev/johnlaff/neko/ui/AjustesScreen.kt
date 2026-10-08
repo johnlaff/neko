@@ -747,16 +747,27 @@ private fun HowItWorks(reviewed: Int, restore: (suspend () -> Boolean)?) {
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
-    if (restore != null && reviewed > 0) {
-        TextAction(if (busy) "Trazendo de volta…" else "Mostrar de novo os pontos conferidos ($reviewed)", {
-            if (!busy) {
-                busy = true
-                scope.launch {
-                    failed = !restore()
-                    busy = false
+    // Once back, the row stays and says so, as "Rever dicas" does; a second tap has nothing to do.
+    var restored by remember { mutableStateOf(false) }
+    if (restore != null && (reviewed > 0 || restored)) {
+        TextAction(
+            when {
+                restored -> "Os pontos voltam em Hoje"
+                busy -> "Trazendo de volta…"
+                else -> "Mostrar de novo os pontos conferidos"
+            },
+            {
+                if (!busy && !restored) {
+                    busy = true
+                    scope.launch {
+                        failed = !restore()
+                        restored = !failed
+                        busy = false
+                    }
                 }
-            }
-        })
+            },
+            enabled = !restored,
+        )
     }
     if (failed) SaveFailed()
 }
