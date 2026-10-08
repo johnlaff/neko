@@ -1,7 +1,9 @@
 package dev.johnlaff.neko.ui
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import dev.johnlaff.neko.NekoApp
 import dev.johnlaff.neko.data.ApiException
@@ -13,6 +15,8 @@ import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.UserSettings
+import dev.johnlaff.neko.data.Effects
+import dev.johnlaff.neko.data.Neko
 import dev.johnlaff.neko.shortcuts.Shortcuts
 import dev.johnlaff.neko.widget.WidgetRefresh
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,8 +47,7 @@ typealias TodayState = ScreenState<TodayView>
 /** How the Ajustes autosave went, for the chip next to the title. */
 enum class SaveState { Idle, Saving, Saved, Failed }
 
-class AppModel(app: Application) : AndroidViewModel(app) {
-    private val neko = app as NekoApp
+class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel() {
     private val _session = MutableStateFlow<Session>(Session.Checking)
     val session: StateFlow<Session> = _session
     private val _today = MutableStateFlow(TodayState())
@@ -86,8 +89,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refresh() = load(_today, { neko.today.refresh() }) { v ->
-        WidgetRefresh.redraw(getApplication())
-        Shortcuts.lancar(getApplication(), v.todayUrl)
+        effects.todayChanged(v)
         prefetch()
     }
 
@@ -221,8 +223,18 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         _save.value = SaveState.Idle
         saved = null
         _session.value = Session.SignedOut
-        WidgetRefresh.redraw(getApplication())
-        Shortcuts.lancar(getApplication(), null)
+        effects.todayChanged(null)
+    }
+}
+
+/** How the activity gets its AppModel: the app's one Neko, and the widget and shortcut effects. */
+val AppModelFactory = viewModelFactory {
+    initializer {
+        val app = this[APPLICATION_KEY] as NekoApp
+        AppModel(app.neko) { view ->
+            WidgetRefresh.redraw(app)
+            Shortcuts.lancar(app, view?.todayUrl)
+        }
     }
 }
 

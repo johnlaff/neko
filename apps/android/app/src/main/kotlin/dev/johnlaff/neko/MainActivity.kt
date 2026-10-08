@@ -38,6 +38,7 @@ import dev.johnlaff.neko.security.AppLock
 import dev.johnlaff.neko.shortcuts.Launch
 import dev.johnlaff.neko.shortcuts.launchFor
 import dev.johnlaff.neko.ui.AppModel
+import dev.johnlaff.neko.ui.AppModelFactory
 import dev.johnlaff.neko.ui.Dock
 import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
@@ -53,7 +54,7 @@ import dev.johnlaff.neko.ui.Session
 import dev.johnlaff.neko.ui.Tab
 
 class MainActivity : ComponentActivity() {
-    private val model: AppModel by viewModels()
+    private val model: AppModel by viewModels { AppModelFactory }
     private val clock get() = (application as NekoApp).lock
     /** The app lock is waiting: nothing but the lock screen is drawn. */
     private var locked by mutableStateOf(false)
