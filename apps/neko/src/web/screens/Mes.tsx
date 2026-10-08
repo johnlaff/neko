@@ -179,8 +179,16 @@ const FixedPanel = ({
  * The method's emergency reserve: cost of living times 6 to 12 months, against what the sheet
  * shows as kept, plus the year's Economia (the sheet's tab of the same name).
  */
-const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined }) => (
-  <section className="panel reserve">
+const ReservePanel = ({
+  r,
+  year,
+  half,
+}: {
+  r: Reserve;
+  year: YearTotals | undefined;
+  half: boolean;
+}) => (
+  <section className={`panel reserve${half ? " half" : ""}`}>
     <div className="panel-head">
       <h2>{RESERVE.title}</h2>
       <span className="meta">
@@ -244,6 +252,16 @@ export const Mes = () => {
         const result = moved(m) ? (m.result ?? null) : null;
         // Saída under an "Investimento:" header; missing on caches from before it existed.
         const saved = m.saved ?? 0;
+        // Panels below the hero pair up side by side on wide screens; with an odd count the last
+        // one spans the row, so no panel leaves a hole next to it. The termômetro is always half.
+        const panels = [
+          (m.days ?? []).length > 0 && "thermo",
+          outflows.length > 0 && "outflows",
+          fixed.length > 0 && "fixed",
+          p.reserve && "reserve",
+        ].filter((x): x is string => typeof x === "string");
+        const last = panels.length % 2 === 1 && panels.length > 1 ? panels.at(-1) : undefined;
+        const halves = new Set(panels.filter((x) => x !== last));
         return (
           <>
             <div className="month-nav">
@@ -387,18 +405,22 @@ export const Mes = () => {
             {outflows.length > 0 && (
               <Outflows
                 items={outflows}
-                half={fixed.length > 0}
+                half={halves.has("outflows")}
                 before={monthName(m.month === 1 ? 12 : m.month - 1)}
               />
             )}
 
             {fixed.length > 0 && (
-              <FixedPanel items={fixed} total={m.fixedTotal ?? 0} half={outflows.length > 0} />
+              <FixedPanel items={fixed} total={m.fixedTotal ?? 0} half={halves.has("fixed")} />
             )}
 
             {/* Missing on projections cached before it existed. */}
             {p.reserve && (
-              <ReservePanel r={p.reserve} year={p.years?.find((y) => y.year === m.year)} />
+              <ReservePanel
+                r={p.reserve}
+                year={p.years?.find((y) => y.year === m.year)}
+                half={halves.has("reserve")}
+              />
             )}
           </>
         );

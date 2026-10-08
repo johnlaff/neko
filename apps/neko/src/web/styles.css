@@ -1346,6 +1346,15 @@ button.text-link {
     grid-area: formula;
     align-self: start;
   }
+  /* Over the plan there are no figures beside the dial: one column, nothing floating. */
+  .hero.today:not(:has(> .figures)) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "head"
+      "dial"
+      "chips"
+      "formula";
+  }
 }
 @media (min-width: 48rem) {
   .form,
@@ -1632,6 +1641,9 @@ button.chip-button[aria-pressed="true"] {
 }
 .alert.good {
   --tone: var(--pos);
+}
+.alert.ask {
+  --tone: var(--muted);
 }
 .alert-icon {
   display: grid;
@@ -1981,7 +1993,7 @@ button.ghost.small {
 }
 
 /* One-time tip: the idea behind the number above it, then gone for good */
-.hint {
+.tip {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1990,13 +2002,13 @@ button.ghost.small {
   border-radius: 12px;
   background: var(--pill-active);
 }
-.hint-text {
+.tip-text {
   flex: 1;
   margin: 0;
   font-size: 0.875rem;
   color: var(--muted);
 }
-.hint-ok {
+.tip-ok {
   flex: none;
 }
 /* Como funciona: a short list of ideas, each one tap away */

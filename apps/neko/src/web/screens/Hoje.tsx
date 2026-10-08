@@ -79,7 +79,8 @@ const insightView = (i: Insight) => {
       } as const;
     case "closing-estimated":
       return {
-        tone: "warn",
+        // A setup question, not a warning: color stays for real deviations.
+        tone: "ask",
         to: "/ajustes",
         title: `Qual dia fecha o ${i.card}?`,
         detail: `Estimado em ${shortDate(i.closing)}. Confirme em Ajustes`,
