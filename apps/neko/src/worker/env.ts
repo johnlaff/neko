@@ -15,6 +15,13 @@ export interface Env {
   ANDROID_PACKAGE?: string;
   /** SHA-256 fingerprints of the app's signing certificates, comma-separated. */
   ANDROID_CERT_SHA256?: string;
+  /** Meu Pluggy application keys (Worker secrets); absent, Open Finance stays off. */
+  PLUGGY_CLIENT_ID?: string;
+  PLUGGY_CLIENT_SECRET?: string;
+  /** Sent back by Pluggy in a header on every webhook, proving the call came from it. */
+  PLUGGY_WEBHOOK_SECRET?: string;
+  /** This site's public origin, for the webhook address registered at Pluggy. */
+  SITE_URL?: string;
   /** Workers rate limiting for sign-in routes; absent in tests and local dev. */
   AUTH_LIMIT?: RateLimit;
 }

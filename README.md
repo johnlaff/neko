@@ -34,7 +34,8 @@ local runs. In production they are Worker secrets (`wrangler secret put`).
 ## Configuration
 
 - Worker secrets: `SHEET_ID`, `ALLOWED_EMAILS`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SESSION_SECRET`,
-  `VAPID_PRIVATE_KEY`. `wrangler.jsonc` vars hold only public values (`GOOGLE_CLIENT_ID`,
+  `VAPID_PRIVATE_KEY`, and for Open Finance (optional) `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`,
+  `PLUGGY_WEBHOOK_SECRET`. `wrangler.jsonc` vars hold only public values (`GOOGLE_CLIENT_ID`,
   `SENTRY_DSN`, `VAPID_PUBLIC_KEY`, the Android package and certificate fingerprints).
 - User settings live in D1 and are edited in the app (Ajustes): diário per day, usual card, cycle
   budget, each card's closing day, cards paid by someone else.
