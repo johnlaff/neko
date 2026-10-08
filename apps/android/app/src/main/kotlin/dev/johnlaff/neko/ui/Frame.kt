@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -193,6 +194,7 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
             .padding(bottom = 12.dp)
             .background(l.surface, shape)
             .border(1.dp, l.border, shape)
+            .selectableGroup()
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {

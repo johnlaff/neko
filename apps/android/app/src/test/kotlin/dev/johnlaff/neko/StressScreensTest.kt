@@ -73,6 +73,14 @@ class StressScreensTest {
         HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
     }
 
+    @Test fun hojeHugeText() = compose.shot(path("hoje-200"), night = false, Device.HugeText, Tab.Hoje) {
+        HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
+    }
+
+    @Test fun ajustesHugeText() = compose.shot(path("ajustes-200"), night = true, Device.HugeText, Tab.Ajustes) {
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices)
+    }
+
     @Test fun simular() = compose.shot(path("simular"), night = true, Device.SmallLargeText) {
         Simulator(today.canSpend!!, Fakes.simulate, startTyped = "600,00", startCount = 3)
     }

@@ -1,5 +1,7 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -101,14 +103,14 @@ fun Simulator(
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.border),
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Valor da compra" },
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             PRESETS.forEach { v -> Choice("$v", typed == "$v,00") {
                 typing = false
                 typed = "$v,00"
             } }
         }
         Text("Parcelas", color = l.muted, style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             PARCELS.forEach { n -> Choice(if (n == 1) "À vista" else "$n×", count == n) {
                 typing = false
                 count = n
@@ -183,7 +185,7 @@ private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .background(if (on) l.text else l.surface2, shape)
             .border(1.dp, if (on) l.text else l.border, shape)
-            .clickable(role = Role.RadioButton, onClick = onClick)
+            .selectable(on, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
