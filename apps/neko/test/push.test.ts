@@ -65,6 +65,25 @@ describe("reminders", () => {
       "Até a fatura fechar em 3 nov. Faltam 15 dias.",
     );
   });
+  it("morning: on the 1st, celebrates what the closed month achieved", () => {
+    const recap = {
+      month: 9,
+      wins: [
+        { kind: "blue", months: 3 },
+        { kind: "kept", share: 25 },
+      ],
+    };
+    expect(morningMessage(response({ today: "2026-10-01", recap } as never))?.body).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias. Setembro fechou: 3 meses seguidos no azul.",
+    );
+    expect(morningMessage(response({ today: "2026-10-02", recap } as never))?.body).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias.",
+    );
+    expect(
+      morningMessage(response({ today: "2026-10-01", recap: { month: 9, wins: [] } } as never))
+        ?.body,
+    ).toBe("Até a fatura fechar em 3 nov. Faltam 15 dias.");
+  });
   it("morning: on payday, says how much the method lets you set aside", () => {
     const saving = { date: "2026-10-04", amount: 2_150_00 };
     expect(morningMessage(response({ saving } as never))?.body).toBe(

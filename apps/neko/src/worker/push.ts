@@ -3,6 +3,7 @@ import { formatBRL, sub } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import { sheetCellUrl } from "../shared/sheet.ts";
 import type { ProjectionResponse } from "../shared/types.ts";
+import { winText } from "../shared/wins.ts";
 import { IDLE_DAYS } from "./auth.ts";
 import type { Env } from "./env.ts";
 
@@ -30,6 +31,27 @@ const redDay = (p: ProjectionResponse["projection"]) => {
 /** On payday, the method's saving (see engine `saveable`) is the one thing worth doing first. */
 const savingDay = (p: ProjectionResponse["projection"]) =>
   p.saving && p.saving.date === p.today ? ` Hoje dá para guardar ${money(p.saving.amount)}.` : "";
+const MONTH_NAMES = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+/** On the 1st, the month that just closed earns one line when it achieved something. */
+const winsDay = (p: ProjectionResponse["projection"]) => {
+  const r = p.recap;
+  const first = r?.wins[0];
+  if (!r || !first || !p.today.endsWith("-01")) return "";
+  return ` ${MONTH_NAMES[r.month - 1]} fechou: ${winText(first).replace(/^./, (c) => c.toLowerCase())}.`;
+};
 // Intl puts a non-breaking space after R$; a plain space reads the same in a notification.
 const money = (c: Parameters<typeof formatBRL>[0]) => formatBRL(c).replace(/\s/g, " ");
 
@@ -45,13 +67,13 @@ export const morningMessage = ({ projection: p }: ProjectionResponse): Reminder 
   if (cs.perDay < 0)
     return {
       title: `O ${cs.card} passou ${money(sub(cs.accumulated, cs.budget))} do plano do ciclo`,
-      body: `${closingText(cs)}${redDay(p)}${savingDay(p)}`,
+      body: `${closingText(cs)}${redDay(p)}${savingDay(p)}${winsDay(p)}`,
       url: "/",
       tag: "morning",
     };
   return {
     title: `Hoje cabem ${money(cs.perDay)} no ${cs.card}`,
-    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${redDay(p)}${savingDay(p)}`,
+    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${redDay(p)}${savingDay(p)}${winsDay(p)}`,
     url: "/",
     tag: "morning",
   };
