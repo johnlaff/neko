@@ -22,7 +22,25 @@ data class TodayView(
     val issues: List<TodayIssue> = emptyList(),
     val issuesInWindow: Int = 0,
     val readAt: String = "",
+    val habit: Habit? = null,
 )
+
+/** Days the sheet changed, as a streak (engine habit.ts); one missed day a week is a rest day. */
+@Serializable
+data class Habit(
+    val streak: Int,
+    val best: Int,
+    val editedToday: Boolean,
+    /** Sunday to Saturday of this week. */
+    val week: List<HabitDay>,
+    val milestone: Int? = null,
+    val next: Int? = null,
+    val since: String? = null,
+)
+
+/** `state` is "edited", "rest", "missed", "today" or "future". */
+@Serializable
+data class HabitDay(val date: String, val state: String)
 
 @Serializable
 data class CanSpend(

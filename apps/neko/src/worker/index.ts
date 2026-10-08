@@ -25,7 +25,7 @@ import {
   verifyAuthentication,
   verifyRegistration,
 } from "./passkey.ts";
-import { getProjection, monthEndHistory, pruneSnapshots } from "./pipeline.ts";
+import { backfillEdits, getProjection, monthEndHistory, pruneSnapshots } from "./pipeline.ts";
 import {
   eveningMessage,
   morningMessage,
@@ -310,7 +310,11 @@ export default Sentry.withSentry(sentry, {
         return;
       }
       if (event.cron === MORNING) {
-        await Promise.all([pruneSnapshots(env.DB), pruneSessions(env.DB)]);
+        await Promise.all([
+          pruneSnapshots(env.DB),
+          pruneSessions(env.DB),
+          backfillEdits(env).catch((error) => console.error("revision backfill failed", error)),
+        ]);
         const morning = morningMessage(data);
         if (morning) await sendReminder(env, morning);
       } else if (event.cron === EVENING) {

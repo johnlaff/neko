@@ -1,5 +1,8 @@
 import {
   cents,
+  editDay,
+  type Habit,
+  habit,
   inferCards,
   inferDailyForecast,
   type LocalDate,
@@ -22,7 +25,7 @@ import type {
   UserSettings,
 } from "../shared/types.ts";
 import type { Env } from "./env.ts";
-import { accessToken, fileVersion, spreadsheet, tabs } from "./google.ts";
+import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./google.ts";
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
@@ -44,6 +47,20 @@ export const checkedAt = (r: ProjectionResponse, at: Date): ProjectionResponse =
 export const getProjection = async (env: Env, today: LocalDate): Promise<ProjectionResponse> => {
   const token = await accessToken(env.GOOGLE_SERVICE_ACCOUNT_JSON);
   const file = await fileVersion(env.SHEET_ID, token);
+  await recordEdits(env.DB, [file.modifiedTime]);
+  const withHabit = async (r: ProjectionResponse): Promise<ProjectionResponse> => ({
+    ...r,
+    habit: await loadHabit(env.DB, today),
+  });
+  return withHabit(await readProjection(env, today, token, file));
+};
+
+const readProjection = async (
+  env: Env,
+  today: LocalDate,
+  token: string,
+  file: { version: string; modifiedTime: string },
+): Promise<ProjectionResponse> => {
   const settings = await loadSettings(env.DB);
   const hash = `${PIPELINE_VERSION}:${await settingsHash(settings)}`;
   const version = `${file.version}`;
@@ -151,4 +168,55 @@ export const pruneSnapshots = async (db: D1Database): Promise<void> => {
       "UPDATE snapshot SET projection = '{}' WHERE id NOT IN (SELECT MAX(id) FROM snapshot GROUP BY today) AND projection != '{}' AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-2 days')",
     )
     .run();
+};
+
+/** Long enough for the 365-day milestone and the best run of the year. */
+const HABIT_WINDOW = 400;
+const EDITS_KEY = "sheet_edits";
+
+/**
+ * The São Paulo days the sheet changed, newest last, kept as one settings row. Before the first
+ * edit Neko records, the projections already cached say when the sheet changed on earlier days.
+ */
+const loadEditDays = async (db: D1Database): Promise<LocalDate[] | null> => {
+  const row = await db
+    .prepare("SELECT value FROM setting WHERE key = ?")
+    .bind(EDITS_KEY)
+    .first<{ value: string }>();
+  return row ? (JSON.parse(row.value) as LocalDate[]) : null;
+};
+
+const cachedEditTimes = async (db: D1Database): Promise<string[]> => {
+  const { results } = await db
+    .prepare(
+      "SELECT DISTINCT json_extract(projection, '$.sheet.modifiedTime') AS t FROM snapshot WHERE projection != '{}' AND json_extract(projection, '$.sheet.modifiedTime') IS NOT NULL",
+    )
+    .all<{ t: string }>();
+  return results.map((r) => r.t);
+};
+
+/** Adds Drive edit instants to the record; writes only when a new day shows up. */
+export const recordEdits = async (db: D1Database, times: readonly string[]): Promise<void> => {
+  const known = await loadEditDays(db);
+  const before = known ?? (await cachedEditTimes(db)).map(editDay);
+  const days = [...new Set([...before, ...times.map(editDay)])].sort().slice(-HABIT_WINDOW);
+  if (known && days.length === known.length && days.every((d, i) => d === known[i])) return;
+  await db
+    .prepare(
+      "INSERT INTO setting (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')",
+    )
+    .bind(EDITS_KEY, JSON.stringify(days))
+    .run();
+};
+
+export const loadHabit = async (db: D1Database, today: LocalDate): Promise<Habit> =>
+  habit((await loadEditDays(db)) ?? [], today);
+
+/**
+ * Drive keeps the sheet's revision history: it fills in the days the sheet changed before Neko
+ * watched it, and any edit that a later one hid between two checks. Best effort, once a day.
+ */
+export const backfillEdits = async (env: Env): Promise<void> => {
+  const token = await accessToken(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  await recordEdits(env.DB, await revisionTimes(env.SHEET_ID, token));
 };

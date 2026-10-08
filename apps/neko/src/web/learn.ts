@@ -34,3 +34,19 @@ export const IDEAS: readonly { readonly title: string; readonly body: string }[]
     body: "Antes de investir, junte de 6 a 12 meses do seu custo de vida.",
   },
 ];
+
+/** Hoje's streak, in the same words on the site and the app (ui/Learn.kt). */
+export const HABIT = {
+  rule: "Conta os dias em que a planilha mudou. Uma folga por semana não quebra a sequência.",
+  milestones: {
+    7: "Uma semana inteira com a planilha em dia.",
+    21: "Três semanas: lançar já faz parte do seu dia.",
+    66: "66 dias é o tempo médio para um hábito se firmar.",
+    100: "Cem dias de planilha em dia.",
+    200: "Duzentos dias: o método virou rotina.",
+    365: "Um ano inteiro de planilha em dia.",
+  } as Record<number, string>,
+} as const;
+
+export const streakLabel = (streak: number) =>
+  streak === 0 ? "Comece hoje" : streak === 1 ? "1 dia em dia" : `${streak} dias em dia`;

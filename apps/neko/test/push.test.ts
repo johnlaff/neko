@@ -78,6 +78,16 @@ describe("reminders", () => {
   it("evening: stays quiet when today's diário is already on the sheet", () => {
     expect(eveningMessage(response({ todayLogged: true }))).toBeNull();
   });
+  it("evening: stays quiet once the sheet changed today", () => {
+    const r = { ...response(), habit: { editedToday: true, streak: 4 } } as never;
+    expect(eveningMessage(r)).toBeNull();
+  });
+  it("evening: states the run as a fact when there is one", () => {
+    const r = { ...response(), habit: { editedToday: false, streak: 12 } } as never;
+    expect(eveningMessage(r)?.body).toBe(
+      "Abre a planilha direto no dia 4 out. Você está há 12 dias em dia.",
+    );
+  });
   it("sends nothing when there is no card to talk about", () => {
     expect(morningMessage(response({ canSpend: null }))).toBeNull();
   });

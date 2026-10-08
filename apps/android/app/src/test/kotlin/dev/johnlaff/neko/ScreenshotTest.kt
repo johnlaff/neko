@@ -49,6 +49,13 @@ class ScreenshotTest {
 
     @Test fun hojeLight() = shot("hoje-light", night = false) { HojeScreen(TodayState(view), {}, {}) }
 
+    /** The day the run reaches 21: the week's marks and the one card that celebrates it. */
+    @Test fun hojeMarco() = shot("hoje-marco-dark", night = true) {
+        val h = view.habit!!
+        val reached = h.copy(streak = 21, milestone = 21, editedToday = true, week = h.week.mapIndexed { i, d -> if (i == 1) d.copy(state = "edited") else d })
+        HojeScreen(TodayState(view.copy(habit = reached)), {}, {})
+    }
+
     private fun <T> read(file: String, s: kotlinx.serialization.KSerializer<T>): T =
         json.decodeFromString(s, File("src/test/resources/$file").readText())
 
