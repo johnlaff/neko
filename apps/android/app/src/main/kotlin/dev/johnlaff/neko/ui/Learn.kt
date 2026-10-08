@@ -138,7 +138,7 @@ fun Hint(id: String, text: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Mascot(Pose.MiaThinking, Modifier.height(52.dp))
+        ThinkingMia(Modifier.height(52.dp))
         Text(text, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(vertical = 8.dp))
         TextAction("Entendi", { Hints.dismiss(context, id) }, l.text)
     }

@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { Mascot } from "./Mascot.tsx";
+import miaStill from "./assets/mascots/mia-pensando.webp";
+import miaAlive from "./assets/mascots/mia-pensando-viva.webp";
 
 /**
  * One-time tips that teach the idea behind a number the first time it shows up, then leave for
@@ -63,7 +64,11 @@ export const Hint = ({ id, children }: { id: string; children: string }) => {
   if (!show) return null;
   return (
     <aside className="tip" aria-label="Dica da Mia">
-      <Mascot pose="miaThinking" height={52} className="tip-cat" />
+      {/* Mia blinks and sways her tail while she thinks; still for whoever asked for less motion. */}
+      <picture className="tip-cat">
+        <source srcSet={miaStill} media="(prefers-reduced-motion: reduce)" />
+        <img className="mascot" src={miaAlive} width={32} height={52} alt="" decoding="async" />
+      </picture>
       <p className="tip-text">{children}</p>
       <button type="button" className="ghost small tip-ok" onClick={() => dismissHint(id)}>
         Entendi
