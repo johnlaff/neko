@@ -345,9 +345,12 @@ const Days = ({ days, today }: { days: readonly UpcomingDay[]; today: string }) 
       <section key={d.date} className="day" aria-label={relativeDay(d.date, today)}>
         <header className="day-head">
           <h3>{relativeDay(d.date, today)}</h3>
-          <span className={d.net > 0 ? "pos" : undefined}>
-            {signed(Math.abs(d.net), d.net > 0 ? "+" : "−")}
-          </span>
+          {/* The day's total only adds up more than one line; with one, it repeated the row. */}
+          {d.items.length > 1 && (
+            <span className={d.net > 0 ? "pos" : undefined}>
+              {signed(Math.abs(d.net), d.net > 0 ? "+" : "−")}
+            </span>
+          )}
         </header>
         <ul className="rows lead">
           {d.items.map((u) => {

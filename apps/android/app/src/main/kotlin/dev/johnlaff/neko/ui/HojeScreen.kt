@@ -6,6 +6,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -423,26 +424,37 @@ private fun Upcoming(v: TodayView) {
 @Composable
 private fun Day(d: UpcomingDay, today: String) {
     val l = LocalLedger.current
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(relativeDay(d.date, today), color = l.muted, style = MaterialTheme.typography.labelLarge)
-            Text(
-                signed(kotlin.math.abs(d.net), if (d.net > 0) '+' else '−'),
-                color = if (d.net > 0) l.pos else l.muted,
-                style = MaterialTheme.typography.labelLarge,
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // A band names the day, as on the site; its total only when it adds up more than one line.
+        Row(
+            Modifier.fillMaxWidth().background(l.surface2, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(relativeDay(d.date, today), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
+            if (d.items.size > 1) {
+                Text(
+                    signed(kotlin.math.abs(d.net), if (d.net > 0) '+' else '−'),
+                    color = if (d.net > 0) l.pos else l.muted,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
         }
         d.items.forEach { u ->
             val income = u.kind == "income"
-            Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    u.description.ifBlank { "Sem descrição" },
-                    modifier = Modifier.weight(1f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(signed(u.amount, if (income) '+' else '−'), color = if (income) l.pos else l.text)
-            }
+            ListRow(
+                name = u.description.ifBlank { "Sem descrição" },
+                value = signed(u.amount, if (income) '+' else '−'),
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+                avatar = "",
+                avatarIcon = when (u.kind) {
+                    "income" -> R.drawable.ic_income
+                    "card" -> R.drawable.ic_card
+                    else -> R.drawable.ic_receipt
+                },
+                card = u.description.takeIf { u.kind == "card" },
+                valueColor = if (income) l.pos else l.text,
+                accent = income,
+            )
         }
     }
 }
