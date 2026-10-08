@@ -270,6 +270,11 @@ const ReservePanel = ({
         {r.kept > 0 ? `${coveredLabel(r.coveredTenths)} de 6` : "Nada guardado ainda"}
       </span>
     </div>
+    {r.kept > 0 && (
+      <p className="reserve-kept">
+        <strong>{money(r.kept)}</strong> guardados na planilha
+      </p>
+    )}
     {/* Display only: kept over the 6-month goal, full past it. */}
     <span className="meter" aria-hidden="true">
       <span style={{ width: `${Math.min(100, (r.kept / r.min) * 100)}%` }} />
@@ -277,12 +282,8 @@ const ReservePanel = ({
     <dl className="ledger">
       <dt>{costLabel(r.costMonths)}</dt>
       <dd>{money(r.cost)}</dd>
-      <dt>6 meses</dt>
+      <dt>Meta de 6 meses</dt>
       <dd>{money(r.min)}</dd>
-      <dt>12 meses</dt>
-      <dd>{money(r.max)}</dd>
-      <dt className="total">Guardado na planilha</dt>
-      <dd className="total">{money(r.kept)}</dd>
       {year && year.saved > 0 && (
         <>
           <dt>
