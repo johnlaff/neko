@@ -91,13 +91,3 @@ fun ColumnScope.Reveal(visible: Boolean, content: @Composable () -> Unit) {
     }
 }
 
-/** A small hop into place once, for the cat that celebrates a milestone (the site's `hop`). */
-@Composable
-fun Modifier.hop(): Modifier {
-    val t = arrival(900, 200)
-    return graphicsLayer {
-        // Up past the rest point, then back: a sine over the arrival's 0 → 1.
-        translationY = (1f - t) * 6.dp.toPx() - kotlin.math.sin(t * Math.PI).toFloat() * 5.dp.toPx()
-        alpha = (t * 3f).coerceAtMost(1f)
-    }
-}

@@ -125,7 +125,7 @@ private fun Hero(v: TodayView) {
     val cs = v.canSpend
     if (cs == null) {
         Panel {
-            Mascot(Pose.Searching, Modifier.height(96.dp))
+            QuietMark(64.dp)
             Text("Nenhum cartão na planilha", style = MaterialTheme.typography.headlineSmall)
             Text("O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.", color = l.muted)
         }
@@ -239,7 +239,7 @@ private fun Alert(
     detail: String,
     color: androidx.compose.ui.graphics.Color,
     onClick: (() -> Unit)? = null,
-    lead: (@Composable () -> Unit)? = null,
+    good: Boolean = false,
     action: (@Composable () -> Unit)? = null,
 ) {
     val l = LocalLedger.current
@@ -248,10 +248,10 @@ private fun Alert(
         Modifier.fillMaxWidth()
             .appear()
             .semantics(mergeDescendants = true) {}
-            // Calm rows: only the dot carries the status color. A celebration (with its cat) keeps
-            // a light wash of green, the one alert that is good news rather than a task.
+            // Calm rows: only the dot carries the status color. A celebration keeps a light wash
+            // of green, the one alert that is good news rather than a task.
             .then(
-                if (lead != null) Modifier.background(color.copy(alpha = 0.10f), shape)
+                if (good) Modifier.background(color.copy(alpha = 0.10f), shape)
                 else Modifier.background(l.surface, shape).border(1.dp, l.border, shape),
             )
             .clip(shape)
@@ -259,8 +259,7 @@ private fun Alert(
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (lead != null) lead()
-        else Box(Modifier.size(8.dp).background(color, CircleShape))
+        Box(Modifier.size(8.dp).background(color, CircleShape))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -281,7 +280,7 @@ private fun MilestoneCard(title: String, text: String, days: Int) {
         title,
         text,
         l.pos,
-        lead = { CelebratingCat(Modifier.height(56.dp).hop()) },
+        good = true,
         action = { ShareButton(title, listOf(text), "Compartilhar: $title") },
     )
 }
@@ -316,9 +315,9 @@ private fun Insights(v: TodayView, onAjustes: () -> Unit) {
 
 private const val ShownAlerts = 2
 
-/** A month's wins in words, next to Neko celebrating: the recap on Hoje and a closed Mês. */
+/** A month's wins in words: the recap on Hoje and a closed Mês. */
 @Composable
-internal fun WinsBox(all: List<dev.johnlaff.neko.data.Win>, cat: Dp, title: String) {
+internal fun WinsBox(all: List<dev.johnlaff.neko.data.Win>, title: String) {
     val wins = all.mapNotNull(Copy::win)
     val share = all.mapNotNull(Copy::winShare)
     if (wins.isEmpty()) return
@@ -328,12 +327,8 @@ internal fun WinsBox(all: List<dev.johnlaff.neko.data.Win>, cat: Dp, title: Stri
             .background(l.pos.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
             .padding(horizontal = 14.dp, vertical = 6.dp),
     ) {
-        Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
-            CelebratingCat(Modifier.height(cat).hop())
-            Spacer(Modifier.width(12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                wins.forEach { Text(it, color = l.text, style = MaterialTheme.typography.titleSmall) }
-            }
+        Column(Modifier.fillMaxWidth().padding(top = 8.dp).semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            wins.forEach { Text(it, color = l.text, style = MaterialTheme.typography.titleSmall) }
         }
         // The picture carries the wins only, never an amount (share/WinCard.kt).
         Box(Modifier.align(Alignment.End).padding(bottom = 6.dp)) {
@@ -379,7 +374,7 @@ internal fun RecapPanel(r: MonthRecap, onMonth: () -> Unit = {}) {
         PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou") {
             TextAction("Ver o mês", onMonth, color = l.accent)
         }
-        WinsBox(r.wins, 64.dp, "${Format.capitalize(Format.monthName(r.month))} de ${r.year}")
+        WinsBox(r.wins, "${Format.capitalize(Format.monthName(r.month))} de ${r.year}")
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LedgerLine(
                 if (r.result < 0) "Faltou" else "Sobrou",

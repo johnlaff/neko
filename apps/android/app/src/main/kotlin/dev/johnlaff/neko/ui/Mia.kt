@@ -113,7 +113,7 @@ fun MiaButton(open: Boolean, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Mascot(Pose.MiaTeaching, Modifier.height(40.dp))
+        MiaMark(40.dp)
         Column(Modifier.weight(1f)) {
             Text("Perguntar à Mia", style = MaterialTheme.typography.titleMedium)
             Text("Respostas com os números da sua planilha", color = l.muted, style = MaterialTheme.typography.bodyMedium)

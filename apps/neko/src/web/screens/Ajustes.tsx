@@ -2,12 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, type UserSettings } from "../api.ts";
 import { Banks } from "../Banks.tsx";
+import { BrandMark } from "../BrandMark.tsx";
 import { Devices } from "../Devices.tsx";
 import { toCents } from "../format.ts";
 import { resetHints } from "../Hint.tsx";
 import { IconChevron } from "../icons.tsx";
 import { IDEAS, LEARN_INTRO } from "../learn.ts";
-import { Mascot } from "../Mascot.tsx";
 import { Reminders } from "../Reminders.tsx";
 import { ErrorBlock, Skeleton, useProjection } from "../useProjection.tsx";
 
@@ -302,9 +302,9 @@ const HowItWorks = () => {
     <section className="group" aria-labelledby="g-learn">
       <h2 id="g-learn">Como funciona</h2>
       <div className="panel list learn">
-        {/* Mia is the one who gives the tips, so the full list opens with her, book in paw. */}
+        {/* Mia gives the tips, so the full list opens with her mark. */}
         <div className="learn-head">
-          <Mascot pose="miaTeaching" height={72} />
+          <BrandMark width={48} className="mia-mark" />
           <p className="learn-text">{LEARN_INTRO}</p>
         </div>
         {IDEAS.map((idea) => (

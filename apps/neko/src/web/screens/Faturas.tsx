@@ -2,12 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { institutionOf } from "../../shared/institutions.ts";
 import type { BankView } from "../../shared/types.ts";
+import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { capitalize, closesIn, days, money, monthName, shortDate } from "../format.ts";
 import { Hint } from "../Hint.tsx";
 import { HINTS } from "../learn.ts";
-import { Mascot } from "../Mascot.tsx";
 import { WithProjection } from "../useProjection.tsx";
 
 const shortMonth = (iso: string) => capitalize(monthName(Number(iso.slice(5, 7))).slice(0, 3));
@@ -59,7 +59,7 @@ export const Faturas = () => {
         if (p.cards.length === 0)
           return (
             <section className="page-head empty-cards">
-              <Mascot pose="searching" height={96} />
+              <BrandMark width={64} className="quiet-mark" />
               <h1>Nenhuma fatura</h1>
               <p className="muted">
                 O Neko procura cartões nas notas de Saída, debaixo de CARTÕES.

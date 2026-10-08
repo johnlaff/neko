@@ -19,6 +19,7 @@
   --accent-tint: color-mix(in oklch, var(--accent) 14%, transparent);
   --pos: #86d19f;
   --warn: #e7b765;
+  --mia: #e0a85a;
   --neg: #f08f78;
   --skeleton: #1d1b19;
   --pill-active: color-mix(in oklch, var(--text) 13%, transparent);
@@ -42,6 +43,7 @@
     --accent: #2a7548;
     --pos: #2a7548;
     --warn: #96580b;
+    --mia: #a8661a;
     --neg: #b0412b;
     --skeleton: #e9e6e0;
     --pill-active: color-mix(in oklch, var(--text) 9%, transparent);
@@ -848,9 +850,6 @@ input.switch:checked::after {
   text-align: center;
   padding-block: 32px;
   gap: 10px;
-}
-.state-cat {
-  margin-bottom: 2px;
 }
 .panel.state h1 {
   font: 600 1.125rem / 1.3 var(--sans);
@@ -1678,9 +1677,6 @@ button.chip-button[aria-pressed="true"] {
   list-style: none;
   font-weight: 550;
 }
-.recap-wins .milestone-cat {
-  margin-block: -12px -10px;
-}
 /* Mês: a closed month's wins, between its figures and the extrato */
 .month-wins {
   margin-top: 12px;
@@ -2267,48 +2263,36 @@ button.setting.quiet:hover {
   }
 }
 
-/* Mascots: Neko and Mia, transparent pictures that never take a tap or a reading turn */
-.mascot {
-  display: block;
-  flex: none;
-  max-width: 100%;
-  height: auto;
-  user-select: none;
-  pointer-events: none;
-}
 .page-head.empty-cards {
   justify-items: center;
   text-align: center;
 }
-.tip-cat {
-  align-self: flex-end;
-  margin-block: -6px -10px;
+/* The brand mark where a cat used to stand: quiet, in the faint ink, on empty and error states */
+.quiet-mark {
+  color: var(--faint);
+}
+.quiet-mark .brand-eye {
+  fill: var(--faint);
+}
+/* Mia wears the same mark with her amber eyes */
+.mia-mark .brand-eye {
+  fill: var(--mia);
+}
+/* A tip opens with a small "i", the one sign that this is an explanation */
+.tip-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  color: var(--muted);
+  font: italic 600 0.75rem / 1 var(--serif);
 }
 /* A celebration keeps a light wash of green: the one alert that is good news, not a task */
 .alert.milestone {
   background: color-mix(in oklch, var(--pos) 9%, var(--surface));
-}
-.alert.milestone .milestone-cat {
-  margin-block: -14px -10px;
-}
-@media (prefers-reduced-motion: no-preference) {
-  /* A small hop into place once: the cat that celebrates a milestone */
-  .milestone-cat {
-    animation: hop 900ms 200ms cubic-bezier(0.3, 0.7, 0.3, 1) both;
-  }
-  @keyframes hop {
-    0% {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    45% {
-      opacity: 1;
-      transform: translateY(-5px);
-    }
-    100% {
-      transform: none;
-    }
-  }
 }
 
 /* Hoje: two warnings in view, the rest behind one quiet line */

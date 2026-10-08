@@ -74,7 +74,7 @@ dinheiro escrito pelo modelo nunca chega à tela.
   - `POST /api/mia`: `{pergunta, historico}` → `{texto, valores}`.
 
   Ambas exigem sessão.
-- **Telas (web e Android 1:1):** "Perguntar à Mia" no Hoje abre a conversa, com a Mia (mascote)
+- **Telas (web e Android 1:1):** "Perguntar à Mia" no Hoje abre a conversa, com a marca da Mia (o traço do Neko de olhos âmbar)
   no topo, sugestões de pergunta de um catálogo fixo e a resposta com os valores formatados.
   Enquanto as tools rodam, uma linha diz o que a Mia está lendo ("Lendo setembro…"). Sem a chave,
   o botão não aparece.

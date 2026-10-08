@@ -13,12 +13,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { api } from "../api.ts";
+import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
 import { IconCard, IconChevron, IconChevronLeft, IconReceipt, IconRepeat } from "../icons.tsx";
 import { costLabel, coveredLabel, RESERVE } from "../learn.ts";
-import { Mascot } from "../Mascot.tsx";
 import { Thermo } from "../Thermo.tsx";
 import { WithProjection } from "../useProjection.tsx";
 import { Wins } from "../Wins.tsx";
@@ -290,7 +290,7 @@ export const Mes = () => {
         if (!m)
           return (
             <section className="page-head empty-cards">
-              <Mascot pose="searching" height={96} />
+              <BrandMark width={64} className="quiet-mark" />
               <p className="muted">A planilha não tem meses para mostrar.</p>
             </section>
           );
@@ -401,7 +401,7 @@ export const Mes = () => {
                   <strong>{money(saved)}</strong>
                 </p>
               )}
-              <Wins wins={wins} year={m.year} month={m.month} cat={48} className="month-wins" />
+              <Wins wins={wins} year={m.year} month={m.month} className="month-wins" />
               <details className="formula">
                 <summary>
                   <IconChevron />
