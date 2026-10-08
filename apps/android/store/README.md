@@ -17,9 +17,11 @@ Todas usam dados inventados das capturas do Roborazzi; nenhuma tem números reai
   quanto ainda cabe no cartão, as faturas antes de chegarem e como o mês está andando. Ele só
   lê: a planilha continua sendo a fonte da verdade, e você segue lançando nela.
 
-## Mascotes
+## Marca
 
-Neko (rajado marrom, cachecol jade) e Mia (creme, óculos dourados) vêm dos dois gatos do dono,
-em estilo de animação 3D. As poses transparentes ficam em `apps/neko/src/web/assets/mascots/`
-e em `app/src/main/res/drawable-nodpi/mascot_*`; o gato piscando do login é um WebP animado
-(`res/raw/neko_piscando.webp`), parado quando o aparelho pede menos movimento.
+O ícone é uma linha de saldo do mês que vira gato: começa embaixo, sobe em duas orelhas (os
+picos do mês), segura um platô e termina mais alta (o mês fecha com sobra). As pupilas em fenda
+fazem dele um gato, não um "M". A linha passa das bordas, o mês anterior e o próximo, então
+qualquer máscara do launcher só a encurta. O desenho mora em
+`app/src/main/res/drawable/ic_launcher_foreground.xml` (e `ic_launcher_monochrome.xml` para o
+ícone temático) e em `apps/neko/src/web/BrandMark.tsx`; os PNGs do site e desta ficha saem dele.

@@ -43,13 +43,6 @@ fun Mascot(pose: Pose, modifier: Modifier = Modifier) {
     Image(painterResource(pose.res), null, modifier.aspectRatio(pose.ratio))
 }
 
-/**
- * The login cat: Neko sits and blinks slowly, the cat way of saying "you are safe here".
- */
-@Composable
-fun BlinkingCat(modifier: Modifier = Modifier) =
-    LivingCat(R.raw.neko_piscando, R.drawable.mascot_neko_piscando_parado, 190f / 300f, modifier)
-
 /** Mia over a tip: she blinks and her tail sways while she thinks it through. */
 @Composable
 fun ThinkingMia(modifier: Modifier = Modifier) =

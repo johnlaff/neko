@@ -2,9 +2,7 @@ import { startAuthentication, startRegistration } from "@simplewebauthn/browser"
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, api } from "./api.ts";
-import blinking from "./assets/mascots/neko-piscando.webp";
-import still from "./assets/mascots/neko-piscando-parado.webp";
-import { LivingCat } from "./Mascot.tsx";
+import { BrandMark } from "./BrandMark.tsx";
 
 interface Gis {
   accounts: {
@@ -76,11 +74,6 @@ const GoogleButton = ({
   return <div ref={button} />;
 };
 
-/** Neko sits and blinks slowly, the cat way of saying "you are safe here". */
-const LoginCat = () => (
-  <LivingCat still={still} alive={blinking} width={152} height={240} className="login-cat" />
-);
-
 export const Login = () => {
   const config = useQuery({ queryKey: ["config"], queryFn: api.config });
   const queryClient = useQueryClient();
@@ -123,7 +116,7 @@ export const Login = () => {
   return (
     <main className="center login">
       <div className="login-mark">
-        <LoginCat />
+        <BrandMark />
         <h1 className="login-name">Neko</h1>
       </div>
       {invite ? (

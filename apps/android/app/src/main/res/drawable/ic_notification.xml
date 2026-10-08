@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Neko's head as a flat silhouette: the status bar shows small icons in one color only. -->
+<!-- The brand mark cropped to its middle: the status bar shows small icons in one color only. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M4,10.5 L4.6,3 L9.6,7 Q12,6.3 14.4,7 L19.4,3 L20,10.5 Q21,13 20,15.5 Q18,21 12,21 Q6,21 4,15.5 Q3,13 4,10.5 Z M7.6,13.8 a1.4,1.6 0 1,0 2.8,0 a1.4,1.6 0 1,0 -2.8,0 Z M13.6,13.8 a1.4,1.6 0 1,0 2.8,0 a1.4,1.6 0 1,0 -2.8,0 Z M11,16.6 L13,16.6 L12,17.7 Z" />
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+    <group
+        android:translateX="-17"
+        android:translateY="-22">
+        <path
+            android:pathData="M0,78 L30,78 L35,37 L48,50 L58,50 L71,37 L76,66 L108,66"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M43.7,61.5 a2.8,6 0 1,0 5.6,0 a2.8,6 0 1,0 -5.6,0 Z M56.7,61.5 a2.8,6 0 1,0 5.6,0 a2.8,6 0 1,0 -5.6,0 Z" />
+    </group>
 </vector>
