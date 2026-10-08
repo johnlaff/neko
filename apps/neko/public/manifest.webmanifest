@@ -35,5 +35,35 @@
       "name": "Mês",
       "url": "/mes"
     }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/wide-hoje.webp",
+      "sizes": "1280x800",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Hoje no computador"
+    },
+    {
+      "src": "/screenshots/phone-1-hoje.webp",
+      "sizes": "540x960",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Quanto cabe hoje no cartão"
+    },
+    {
+      "src": "/screenshots/phone-2-faturas.webp",
+      "sizes": "540x960",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "As faturas antes de chegarem"
+    },
+    {
+      "src": "/screenshots/phone-3-mes.webp",
+      "sizes": "540x960",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "O mês inteiro, dia a dia"
+    }
   ]
 }

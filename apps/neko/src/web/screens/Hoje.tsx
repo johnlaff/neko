@@ -6,11 +6,11 @@ import {
   type MonthRecap,
   type Saving,
   type UpcomingDay,
-  type Win,
 } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { HEALTH_DAYS, issueKey, SAVE_LEAD } from "../../shared/today.ts";
+import { winText } from "../../shared/wins.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
@@ -94,7 +94,26 @@ const insightView = (i: Insight) => {
 };
 
 /** Only problems worth acting on; nothing at all when everything is calm. */
-const Insights = ({ items }: { items: readonly Insight[] }) => (
+/** Warnings in view at once; the rest wait behind one quiet line, most important first. */
+const SHOWN_ALERTS = 2;
+
+const Insights = ({ items }: { items: readonly Insight[] }) => {
+  const known = items.filter((i) => insightView(i) !== null);
+  const rest = known.slice(SHOWN_ALERTS);
+  return (
+    <>
+      <AlertList items={known.slice(0, SHOWN_ALERTS)} />
+      {rest.length > 0 && (
+        <details className="more-alerts">
+          <summary>{rest.length === 1 ? "Mais 1 aviso" : `Mais ${rest.length} avisos`}</summary>
+          <AlertList items={rest} />
+        </details>
+      )}
+    </>
+  );
+};
+
+const AlertList = ({ items }: { items: readonly Insight[] }) => (
   <ul className="alerts" aria-label="Avisos">
     {items.map((i) => {
       const v = insightView(i);
@@ -336,13 +355,6 @@ const splitDays = (days: readonly UpcomingDay[]) => {
  * The month that just closed, in the first week of the next: how it ended, what it kept, what it
  * cost to live and where most of it went. A plain panel: it informs, it does not warn.
  */
-const winText = (w: Win) => {
-  if (w.kind === "blue")
-    return w.months === 1 ? "Mês no azul" : `${w.months} meses seguidos no azul`;
-  if (w.kind === "kept") return "Bateu a meta de guardar 20% das entradas";
-  return `A reserva já cobre ${w.months === 1 ? "1 mês" : `${w.months} meses`} de custo de vida`;
-};
-
 const RecapPanel = ({ r }: { r: MonthRecap }) => {
   const name = monthName(r.month);
   const before = monthName(r.month === 1 ? 12 : r.month - 1);
