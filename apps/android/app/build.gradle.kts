@@ -25,7 +25,7 @@ android {
         minSdk = 28
         targetSdk = 37
         versionCode = (System.getenv("NEKO_VERSION_CODE") ?: "1").toInt()
-        versionName = "0.4.0"
+        versionName = "0.5.0"
         buildConfigField("String", "NEKO_URL", "\"https://neko.joaoaraxaiba.workers.dev\"")
     }
 
@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
     implementation(libs.work.runtime)
+    implementation(libs.androidx.splashscreen)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)

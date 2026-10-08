@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -169,7 +171,7 @@ private fun Reminders(r: RemindersSwitch) {
     ) {
         Switch(
             checked = r.on,
-            onCheckedChange = r.onChange,
+            onCheckedChange = toggled(r.onChange),
             colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
             modifier = Modifier.semantics { contentDescription = "Lembretes neste celular" },
         )
@@ -197,7 +199,7 @@ private fun Lock(s: LockSwitch) {
     ) {
         Switch(
             checked = s.on,
-            onCheckedChange = s.onChange,
+            onCheckedChange = toggled(s.onChange),
             enabled = s.on || s.unavailable == null,
             colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
             modifier = Modifier.semantics { contentDescription = "Bloqueio com digital ou senha" },
@@ -241,6 +243,16 @@ private fun Devices(d: DevicesList) {
             }
         }
         if (others > 1) TextAction("Sair dos outros $others aparelhos", d.onEndOthers, l.neg)
+    }
+}
+
+/** A switch's change with the system's on/off tick, as Android's own settings do. */
+@Composable
+private fun toggled(onChange: (Boolean) -> Unit): (Boolean) -> Unit {
+    val haptics = LocalHapticFeedback.current
+    return { on ->
+        haptics.performHapticFeedback(if (on) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+        onChange(on)
     }
 }
 
@@ -359,7 +371,7 @@ private fun Cards(f: AjustesForm) {
             }
             Switch(
                 checked = other,
-                onCheckedChange = { on ->
+                onCheckedChange = toggled { on ->
                     if (on) f.others += c.name else f.others -= c.name
                     f.now = true
                 },
