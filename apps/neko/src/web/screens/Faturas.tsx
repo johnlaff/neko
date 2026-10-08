@@ -4,6 +4,7 @@ import { BigMoney, Columns } from "../Figures.tsx";
 import { capitalize, days, money, monthName, shortDate } from "../format.ts";
 import { Hint } from "../Hint.tsx";
 import { HINTS } from "../learn.ts";
+import { Mascot } from "../Mascot.tsx";
 import { WithProjection } from "../useProjection.tsx";
 
 /** Two letters for a card's avatar: "Mercado Pago" → "MP", "Amazon" → "AM". */
@@ -62,7 +63,8 @@ export const Faturas = () => {
         const halvesBefore = (usual && p.history.length > 0 ? 1 : 0) + (mine.length > 1 ? 1 : 0);
         if (p.cards.length === 0)
           return (
-            <section className="page-head">
+            <section className="page-head empty-cards">
+              <Mascot pose="searching" height={96} />
               <h1>Nenhuma fatura</h1>
               <p className="muted">
                 O Neko procura cartões nas notas de Saída, debaixo de CARTÕES.

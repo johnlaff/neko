@@ -498,7 +498,7 @@ export const Hoje = () => (
             </section>
           ) : (
             <section className="page-head empty-cards">
-              <Mascot pose="sitting" height={96} />
+              <Mascot pose="searching" height={96} />
               <h2>Nenhum cartão na planilha</h2>
               <p className="muted">
                 O Neko procura faturas nas notas de Saída, debaixo de uma linha CARTÕES.

@@ -7,6 +7,7 @@ import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
 import { IconCard, IconChevron, IconChevronLeft, IconReceipt, IconRepeat } from "../icons.tsx";
 import { costLabel, coveredLabel, RESERVE } from "../learn.ts";
+import { Mascot } from "../Mascot.tsx";
 import { Thermo } from "../Thermo.tsx";
 import { WithProjection } from "../useProjection.tsx";
 
@@ -239,7 +240,13 @@ export const Mes = () => {
         const at = picked === null ? -1 : keys.indexOf(picked);
         const idx = at >= 0 ? at : Math.max(nowIdx, 0);
         const m = p.months[idx];
-        if (!m) return <p className="muted">A planilha não tem meses para mostrar.</p>;
+        if (!m)
+          return (
+            <section className="page-head empty-cards">
+              <Mascot pose="searching" height={96} />
+              <p className="muted">A planilha não tem meses para mostrar.</p>
+            </section>
+          );
         const name = monthName(m.month);
         const past = idx < nowIdx;
         const year = p.months.filter((x) => x.year === m.year);
