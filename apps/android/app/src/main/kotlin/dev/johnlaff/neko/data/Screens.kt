@@ -57,6 +57,8 @@ data class MonthsView(
     val readAt: String = "",
     val current: String? = null,
     val months: List<MonthItem> = emptyList(),
+    /** Next payday's saving: the termômetro marks its day in that month. */
+    val saving: Saving? = null,
 )
 
 @Serializable
@@ -75,6 +77,8 @@ data class MonthItem(
     val outflows: List<Outflow> = emptyList(),
     val fixed: List<Fixed> = emptyList(),
     val fixedTotal: Long = 0,
+    /** The termômetro: each day's balance and band, with what moved it. */
+    val days: List<ThermoDay> = emptyList(),
 )
 
 @Serializable
@@ -125,3 +129,52 @@ data class CardConfig(
     val closingDay: Int,
     val closingEstimated: Boolean = false,
 )
+
+/** One day of the termômetro; `band` is "negative", "attention", "healthy" or "surplus". */
+@Serializable
+data class ThermoDay(
+    val day: Int,
+    val balance: Long,
+    val band: String,
+    /** After today: a forecast, not what happened. */
+    val future: Boolean = false,
+    val moves: List<DayMove> = emptyList(),
+)
+
+/** What moved a day's balance; `kind` is "income", "bill", "card" or "diario". */
+@Serializable
+data class DayMove(val kind: String, val description: String = "", val amount: Long)
+
+/** GET /api/history: this month's end as read along the month; `delta` is how much it moved. */
+@Serializable
+data class HistoryView(val points: List<HistoryPoint> = emptyList(), val delta: Long? = null)
+
+@Serializable
+data class HistoryPoint(val today: String, val monthEndProjected: Long)
+
+/** One signed-in device, as GET /api/sessions lists them (the current one first). */
+@Serializable
+data class Device(
+    val id: String,
+    val device: String,
+    val lastSeenAt: String = "",
+    val current: Boolean = false,
+)
+
+/** GET /api/simulate: a purchase today on the usual card, in parcels (engine/installments.ts). */
+@Serializable
+data class InstallmentSimulation(
+    val cycle: SimulatedCycle,
+    val parcels: List<Parcel> = emptyList(),
+    val lowest: MonthEnd? = null,
+    val firstNegative: MonthEnd? = null,
+)
+
+@Serializable
+data class SimulatedCycle(val perDay: Long, val remaining: Long, val due: String)
+
+@Serializable
+data class Parcel(val due: String, val amount: Long)
+
+@Serializable
+data class MonthEnd(val year: Int, val month: Int, val end: Long)

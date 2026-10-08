@@ -61,6 +61,22 @@ class Api(
 
     suspend fun reminders(): RemindersView = json.decodeFromString(call("/reminders"))
 
+    suspend fun history(): HistoryView = json.decodeFromString(call("/history"))
+
+    suspend fun sessions(): List<Device> = json.decodeFromString(call("/sessions"))
+
+    suspend fun endSession(id: String) {
+        call("/sessions/${java.net.URLEncoder.encode(id, "UTF-8")}", method = "DELETE")
+    }
+
+    suspend fun endOtherSessions() {
+        call("/sessions/others", method = "DELETE")
+    }
+
+    /** Null when the sheet has no usual card to put the purchase on. */
+    suspend fun simulate(amount: Long, count: Int): InstallmentSimulation? =
+        json.decodeFromString(call("/simulate?amount=$amount&count=$count"))
+
     suspend fun saveSettings(settings: UserSettings): UserSettings {
         val body = json.encodeToString(UserSettings.serializer(), settings).toRequestBody(jsonType)
         return json.decodeFromString(call("/settings", body, "PUT"))
