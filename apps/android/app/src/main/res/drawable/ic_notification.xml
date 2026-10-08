@@ -1,24 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The launcher's gauge, cropped to fill the status bar's small icon. -->
+<!-- Neko's head as a flat silhouette: the status bar shows small icons in one color only. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="512"
-    android:viewportHeight="512">
-    <group
-        android:pivotX="256"
-        android:pivotY="256"
-        android:scaleX="1.6"
-        android:scaleY="1.6"
-        android:translateX="48"
-        android:translateY="13">
-        <path
-            android:pathData="M106,318 A150,150 0 0 1 311.2,178.5"
-            android:strokeColor="#FFFFFF"
-            android:strokeLineCap="round"
-            android:strokeWidth="40" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M246.6,168.3 m-22,0 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0" />
-    </group>
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M4,10.5 L4.6,3 L9.6,7 Q12,6.3 14.4,7 L19.4,3 L20,10.5 Q21,13 20,15.5 Q18,21 12,21 Q6,21 4,15.5 Q3,13 4,10.5 Z M7.6,13.8 a1.4,1.6 0 1,0 2.8,0 a1.4,1.6 0 1,0 -2.8,0 Z M13.6,13.8 a1.4,1.6 0 1,0 2.8,0 a1.4,1.6 0 1,0 -2.8,0 Z M11,16.6 L13,16.6 L12,17.7 Z" />
 </vector>
