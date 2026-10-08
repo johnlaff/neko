@@ -144,7 +144,7 @@ class ScreenshotTest {
         )
     }
 
-    @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Já no banco") {
+    @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Faturas no banco") {
         FaturasScreen(ScreenState(invoices), {}, {})
     }
 

@@ -211,7 +211,7 @@ export const Faturas = () => {
 const BankBills = ({ bank }: { bank: BankView }) => (
   <section className="panel">
     <div className="panel-head">
-      <h2>Já no banco</h2>
+      <h2>Faturas no banco</h2>
       {bank.syncedAt && <span className="meta">Lido {shortDate(bank.syncedAt.slice(0, 10))}</span>}
     </div>
     {bank.checks.length === 0 ? (
@@ -233,7 +233,11 @@ const BankBills = ({ bank }: { bank: BankView }) => (
             <span className="value">{money(c.bank)}</span>
             <span className="meta">
               Planilha {money(c.sheet)}
-              {c.parcels > 0 ? ` · ${money(c.parcels)} em parcelas` : ""}
+              {c.parcels > 0 && c.parcels === c.bank
+                ? " · Só parcelas"
+                : c.parcels > 0
+                  ? ` · Parcelas ${money(c.parcels)}`
+                  : ""}
             </span>
           </li>
         ))}
