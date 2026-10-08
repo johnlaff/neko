@@ -1377,12 +1377,12 @@ button.text-link {
 
 /* Motion: figures arrive once, quickly, and stay still after */
 .gauge .fill {
-  animation: draw 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: draw 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 .gauge .tick {
   transform-box: fill-box;
   transform-origin: center;
-  animation: appear 300ms ease-out 600ms both;
+  animation: appear 300ms ease-out 480ms both;
 }
 .columns .bar {
   transform-origin: bottom;
@@ -1758,7 +1758,7 @@ button.chip-button[aria-pressed="true"] {
   inset: 0 0 auto;
   display: flex;
   flex-direction: column;
-  transition: translate 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: translate 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .big-money .int .wheel .wheel-strip > span {
   height: 1em;
@@ -1770,10 +1770,10 @@ button.chip-button[aria-pressed="true"] {
   }
 }
 .wheel:nth-last-child(2) .wheel-strip {
-  transition-delay: 40ms;
+  transition-delay: 30ms;
 }
 .wheel:nth-last-child(3) .wheel-strip {
-  transition-delay: 80ms;
+  transition-delay: 60ms;
 }
 
 /* Tab changes: the screen slides a little toward the tab's side of the dock while the

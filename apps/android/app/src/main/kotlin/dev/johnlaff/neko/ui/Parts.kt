@@ -131,7 +131,7 @@ fun BigMoney(cents: Long, color: Color = LocalLedger.current.text) {
         int.forEach { ch ->
             if (ch.isDigit()) {
                 val fromRight = digits - 1 - seen++
-                Wheel(ch.digitToInt(), big, delay = minOf(fromRight, 2) * 40)
+                Wheel(ch.digitToInt(), big, delay = minOf(fromRight, 2) * 30)
             } else {
                 Text(ch.toString(), style = big, modifier = Modifier.alignByBaseline())
             }
@@ -144,7 +144,7 @@ fun BigMoney(cents: Long, color: Color = LocalLedger.current.text) {
 @Composable
 private fun RowScope.Wheel(digit: Int, style: TextStyle, delay: Int) {
     val roll = remember { Animatable(0f) }
-    LaunchedEffect(digit) { roll.animateTo(digit.toFloat(), tween(700, delay, Motion.Enter)) }
+    LaunchedEffect(digit) { roll.animateTo(digit.toFloat(), tween(480, delay, Motion.Enter)) }
     val measurer = rememberTextMeasurer()
     val strip = remember(style, measurer) { (0..9).map { measurer.measure(it.toString(), style) } }
     Text(
