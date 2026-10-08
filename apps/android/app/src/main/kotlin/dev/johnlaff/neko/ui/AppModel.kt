@@ -15,6 +15,9 @@ import dev.johnlaff.neko.data.Device
 import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.InstallmentSimulation
 import dev.johnlaff.neko.data.InvoicesView
+import dev.johnlaff.neko.data.MiaAsk
+import dev.johnlaff.neko.data.MiaReply
+import dev.johnlaff.neko.data.MiaStatus
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.UserSettings
@@ -69,6 +72,8 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
     val devices: StateFlow<List<Device>?> = _devices
     private val _banks = MutableStateFlow<BanksView?>(null)
     val banks: StateFlow<BanksView?> = _banks
+    private val _mia = MutableStateFlow<MiaStatus?>(null)
+    val mia: StateFlow<MiaStatus?> = _mia
     private val _save = MutableStateFlow(SaveState.Idle)
     val save: StateFlow<SaveState> = _save
 
@@ -96,6 +101,7 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
     fun refresh() = load(_today, { neko.today.refresh() }) { v ->
         effects.todayChanged(v)
         prefetch()
+        side { _mia.value = neko.api.mia() }
     }
 
     private var prefetched = false
@@ -158,6 +164,9 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
         neko.api.endOtherSessions()
         _devices.value = neko.api.sessions()
     }
+
+    /** Hoje's "Perguntar à Mia"; the Worker runs the tools and checks the answer. */
+    suspend fun askMia(ask: MiaAsk): MiaReply = neko.api.askMia(ask)
 
     /** Hoje's simulator; the Worker does the math, as for every other figure. */
     suspend fun simulate(amount: Long, count: Int): InstallmentSimulation? = neko.api.simulate(amount, count)
@@ -238,6 +247,7 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
         _history.value = null
         _devices.value = null
         _banks.value = null
+        _mia.value = null
         _save.value = SaveState.Idle
         saved = null
         _session.value = Session.SignedOut

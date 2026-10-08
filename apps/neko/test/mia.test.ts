@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { localDate, type Projection } from "@neko/engine";
 import { describe, expect, it } from "vitest";
@@ -219,5 +219,25 @@ describe("routes", () => {
       {} as ExecutionContext,
     );
     expect(res.status).toBe(401);
+  });
+});
+
+/**
+ * The Android app parses this reply in its unit tests (ScreensContractTest), so both sides agree
+ * on the value fields. UPDATE_CONTRACT=1 rewrites it after an intended change.
+ */
+describe("android contract", () => {
+  it("matches a reply with a total, a difference and a percent", async () => {
+    const api = fakeApi({
+      [HAIKU]: [
+        { content: [tool("comparar_meses", { a: "2026-08", b: "2026-09" })] },
+        { content: [answer("Entraram {{v2}} em setembro: {{v3}} a mais, ou {{v4}}.")] },
+      ],
+    });
+    const reply = await askMia(api.deps, P, TODAY, ask("Entrou mais em setembro?"));
+    expect(Object.keys(reply.valores)).toEqual(["v2", "v3", "v4"]);
+    const path = join(import.meta.dirname, "../../android/app/src/test/resources/mia.json");
+    if (process.env.UPDATE_CONTRACT) writeFileSync(path, `${JSON.stringify(reply, null, 2)}\n`);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual(reply);
   });
 });
