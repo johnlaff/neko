@@ -165,8 +165,8 @@ button.icon svg {
 .dock a:hover {
   color: var(--text);
 }
+/* The current tab is ink on its pill: green keeps meaning "good", never just "here" */
 .dock a[aria-current="page"] {
-  --icon: var(--accent);
   color: var(--text);
   background: var(--pill-active);
 }

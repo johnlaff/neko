@@ -88,7 +88,7 @@ const insightView = (i: Insight) => {
         tone: "ask",
         to: "/ajustes",
         title: `Qual dia fecha o ${i.card}?`,
-        detail: `Estimado em ${shortDate(i.closing)}. Confirme em Ajustes`,
+        detail: `Fecha ≈ ${shortDate(i.closing)}. Confirme em Ajustes`,
       } as const;
     default:
       // A copy cached by an older version can carry a kind this one no longer knows.
