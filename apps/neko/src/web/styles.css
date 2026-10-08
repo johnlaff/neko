@@ -2377,14 +2377,26 @@ a.mia-value {
 .mia-status:empty {
   display: none;
 }
+/* One row that slides sideways on a phone; wrapped, the questions stacked one per line */
 .mia-suggest {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  /* The last chip fades out at the edge, a hint that the row goes on */
+  mask-image: linear-gradient(to right, #000 88%, transparent);
 }
 .mia-suggest > button.chip-button {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
   padding: 0 14px;
+}
+@media (min-width: 720px) {
+  .mia-suggest {
+    flex-wrap: wrap;
+    mask-image: none;
+  }
 }
 form.mia-form {
   display: flex;

@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollToNode
@@ -174,7 +174,8 @@ class ScreenshotTest {
         compose.setContent {
             NekoTheme { Box(Modifier.background(MaterialTheme.colorScheme.background)) { content() } }
         }
-        scrollTo?.let { compose.onNode(hasScrollAction()).performScrollToNode(hasText(it)) }
+        // The screen's list, not a row that slides sideways inside it (Mia's suggestions).
+        scrollTo?.let { compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(it)) }
         compose.onRoot().captureRoboImage("screenshots/$name.png")
     }
 }
