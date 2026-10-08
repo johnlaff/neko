@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed icon: the brand mark in one color (ic_launcher_foreground without the green eyes). -->
+<!--
+  The brand mark: a month's balance line that turns into a cat. It starts low on the left,
+  rises into two ears (the month's peaks), holds a plateau and ends higher on the right (the
+  month closes with money left over). Slit pupils make it a cat, not an "M". The line runs past
+  both edges, the month before and the next, so any launcher mask only shortens it. Everything
+  else sits inside the 66dp safe circle. Same drawing as web/BrandMark.tsx.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -8,12 +14,12 @@
     <group android:translateY="-3">
         <path
             android:pathData="M-10,78 L30,78 L35,37 L48,50 L58,50 L71,37 L76,66 L118,66"
-            android:strokeColor="#FFFFFFFF"
+            android:strokeColor="#F3F2EF"
             android:strokeWidth="6"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
-            android:fillColor="#FFFFFFFF"
+            android:fillColor="#7CBF96"
             android:pathData="M44.1,61.5 a2.4,5.5 0 1,0 4.8,0 a2.4,5.5 0 1,0 -4.8,0 Z M57.1,61.5 a2.4,5.5 0 1,0 4.8,0 a2.4,5.5 0 1,0 -4.8,0 Z" />
     </group>
 </vector>

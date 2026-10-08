@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -106,8 +105,6 @@ object Reminders {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            // Neko's face beside the text; the lock-screen version below stays plain.
-            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.notif_neko))
             .setContentTitle(r.title)
             .setContentText(r.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(r.body))
