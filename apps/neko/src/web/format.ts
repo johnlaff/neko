@@ -36,6 +36,14 @@ export const weekday = (iso: string) => WEEKDAYS[new Date(`${iso}T12:00:00Z`).ge
 
 export const days = (n: number) => (n === 1 ? "1 dia" : `${n} dias`);
 
+/** The usual card's closing, from `closesInDays`, which counts today: 1 is today, 2 tomorrow. */
+export const closesIn = (closesInDays: number) =>
+  closesInDays <= 1
+    ? "Fecha hoje"
+    : closesInDays === 2
+      ? "Fecha amanhã"
+      : `Fecha em ${days(closesInDays - 1)}`;
+
 export { sheetCellUrl } from "../shared/sheet.ts";
 
 const LONG_WEEKDAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];

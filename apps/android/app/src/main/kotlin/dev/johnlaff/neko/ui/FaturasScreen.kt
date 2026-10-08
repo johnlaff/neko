@@ -52,9 +52,9 @@ private fun shortMonth(iso: String) = capitalize(monthName(iso.substring(5, 7).t
 @Composable
 private fun UsualPanel(u: UsualBill) {
     Panel {
-        PanelHead(u.card) {
+        PanelHead(u.card, card = u.card) {
             Chip(
-                if (u.closesInDays <= 1) "Fecha hoje" else "Fecha em ${days(u.closesInDays)}",
+                Format.closesIn(u.closesInDays),
                 if (u.closesInDays <= 3) ChipTone.Warn else ChipTone.Ok,
             )
         }

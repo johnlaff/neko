@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { institutionOf } from "../../shared/institutions.ts";
 import type { BankView } from "../../shared/types.ts";
 import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
-import { capitalize, days, money, monthName, shortDate } from "../format.ts";
+import { capitalize, closesIn, days, money, monthName, shortDate } from "../format.ts";
 import { Hint } from "../Hint.tsx";
 import { HINTS } from "../learn.ts";
 import { Mascot } from "../Mascot.tsx";
@@ -78,11 +79,13 @@ export const Faturas = () => {
             {usual && (
               <section className="panel hero">
                 <div className="panel-head">
-                  <h2>{usual.card.name}</h2>
+                  <h2 className="with-mark">
+                    {/* The bank's mark only: two letters next to the name would just repeat it. */}
+                    {institutionOf(usual.card.name) && <CardAvatar name={usual.card.name} />}
+                    {usual.card.name}
+                  </h2>
                   <span className={`chip ${usual.closesInDays <= 3 ? "warn" : "ok"}`}>
-                    {usual.closesInDays <= 1
-                      ? "Fecha hoje"
-                      : `Fecha em ${days(usual.closesInDays)}`}
+                    {closesIn(usual.closesInDays)}
                   </span>
                 </div>
                 <BigMoney cents={usual.onSheet} tone="plain" />

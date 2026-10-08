@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -68,7 +69,13 @@ fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
 /** Title on the left, a chip or a count on the right; the chip drops below when both don't fit. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PanelHead(title: String, trailing: @Composable () -> Unit = {}) {
+fun PanelHead(
+    title: String,
+    /** A card's name: when it names a known bank, its mark sits before the title. */
+    card: String? = null,
+    trailing: @Composable () -> Unit = {},
+) {
+    val bank = card?.let(::institutionOf)
     // A wide chip ("R$ 1.023,02 abaixo da média") used to squeeze the title to "His…" on a small
     // phone; wrapping keeps both whole.
     FlowRow(
@@ -77,7 +84,18 @@ fun PanelHead(title: String, trailing: @Composable () -> Unit = {}) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(end = 8.dp).semantics { heading() })
+        Row(Modifier.padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (bank != null) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.size(28.dp).background(Color(bank.bg), androidx.compose.foundation.shape.CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(bank.mark), contentDescription = null, tint = Color(bank.fg), modifier = Modifier.size(17.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+            }
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+        }
         trailing()
     }
 }
