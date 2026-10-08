@@ -116,13 +116,25 @@ export const Faturas = () => {
                     </span>
                   )}
                 </div>
-                <p className="figure-line">
-                  <span className="muted">
-                    {shortMonth(shown.key)}
-                    {shown.open ? ", aberta" : ""}
-                  </span>
-                  <strong>{money(shown.amount)}</strong>
-                </p>
+                {/* The open bill is already the hero's number: until a bar is picked, the line
+                    shows the average the bars are read against. */}
+                {picked === null && p.historyAverage !== null ? (
+                  <p className="figure-line">
+                    <span className="muted">
+                      <i className="key dashed" />
+                      Média
+                    </span>
+                    <strong>{money(p.historyAverage)}</strong>
+                  </p>
+                ) : (
+                  <p className="figure-line">
+                    <span className="muted">
+                      {shortMonth(shown.key)}
+                      {shown.open ? ", aberta" : ""}
+                    </span>
+                    <strong>{money(shown.amount)}</strong>
+                  </p>
+                )}
                 <Columns
                   label={`Faturas do ${usual.card.name}`}
                   selected={shown.key}
@@ -136,12 +148,6 @@ export const Faturas = () => {
                     tone: b.key === shown.key ? "accent" : undefined,
                   }))}
                 />
-                {p.historyAverage !== null && (
-                  <p className="hint">
-                    <i className="key dashed" />
-                    Média {money(p.historyAverage)}
-                  </p>
-                )}
               </section>
             )}
 
