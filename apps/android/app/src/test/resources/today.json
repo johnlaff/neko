@@ -142,5 +142,19 @@
         "months": 3
       }
     ]
-  }
+  },
+  "bankMissing": [
+    {
+      "date": "2026-10-03",
+      "amount": -4250,
+      "description": "PIX FEIRA DO BAIRRO",
+      "line": "R$ 42,50 - PIX FEIRA DO BAIRRO"
+    },
+    {
+      "date": "2026-10-04",
+      "amount": 15000,
+      "description": "PIX RECEBIDO ANA",
+      "line": "R$ 150,00 - PIX RECEBIDO ANA"
+    }
+  ]
 }

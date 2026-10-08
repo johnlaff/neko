@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollToNode
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.json
@@ -105,13 +108,34 @@ class ScreenshotTest {
         AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true))
     }
 
+    // The bank's parts sit at the end of each screen: scrolled there, as the owner would.
+    @Test fun bancoHojeLight() = shot("banco-hoje-light", night = false, scrollTo = "Fora da planilha") {
+        HojeScreen(TodayState(view), {}, {})
+    }
+
+    @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Já no banco") {
+        FaturasScreen(ScreenState(invoices), {}, {})
+    }
+
+    @Test fun bancoAjustesLight() = shot("banco-ajustes-light", night = false, scrollTo = "Bancos") {
+        AjustesScreen(
+            ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices,
+            LockSwitch(on = true), Fakes.banks,
+        )
+    }
+
     @Test fun loadingDark() = shot("carregando-dark", night = true) { HojeScreen(TodayState(loading = true), {}, {}) }
 
     @Test fun lockLight() = shot("lock-light", night = false) { LockScreen {} }
 
     @Test fun loginDark() = shot("login-dark", night = true) { LoginScreen {} }
 
-    private fun shot(name: String, night: Boolean, content: @androidx.compose.runtime.Composable () -> Unit) {
+    private fun shot(
+        name: String,
+        night: Boolean,
+        scrollTo: String? = null,
+        content: @androidx.compose.runtime.Composable () -> Unit,
+    ) {
         // Each screen shows its own first-time tip, whatever the test before it showed.
         dev.johnlaff.neko.ui.Hints.reset(org.robolectric.RuntimeEnvironment.getApplication())
         org.robolectric.RuntimeEnvironment.setQualifiers(if (night) "+night" else "+notnight")
@@ -119,6 +143,7 @@ class ScreenshotTest {
         compose.setContent {
             NekoTheme { Box(Modifier.background(MaterialTheme.colorScheme.background)) { content() } }
         }
+        scrollTo?.let { compose.onNode(hasScrollAction()).performScrollToNode(hasText(it)) }
         compose.onRoot().captureRoboImage("screenshots/$name.png")
     }
 }

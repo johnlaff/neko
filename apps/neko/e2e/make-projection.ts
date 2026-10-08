@@ -6,6 +6,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   addDays,
+  billChecks,
   type CellValue,
   cents,
   type DayRow,
@@ -17,6 +18,7 @@ import {
   type NoteItem,
   parts,
   project,
+  unmatchedMovements,
 } from "../../../packages/engine/src/index.ts";
 import type { ProjectionResponse } from "../src/shared/types.ts";
 
@@ -101,6 +103,44 @@ const projection = project(rows, TODAY, {
   othersCards: ["Cartão Verde"],
 });
 
+/** An invented bank: the usual card's next bills and a few account movements, two of them new. */
+const bankLine = (
+  amount: number,
+  billMonth: string,
+  description: string,
+  n?: number,
+  of?: number,
+) => ({
+  card: "Cartão Azul",
+  amount: cents(amount),
+  billMonth,
+  description,
+  installment: n ?? null,
+  installments: of ?? null,
+});
+const bank = {
+  syncedAt: "2026-10-05T09:00:00.000Z",
+  checks: billChecks(
+    rows,
+    cards,
+    [
+      bankLine(1_640_00, "2026-11", "Compras do ciclo"),
+      bankLine(450_00, "2026-11", "LOJA DE MÓVEIS PARC 03/06", 3, 6),
+      bankLine(129_90, "2026-11", "FONE PARC 01/03", 1, 3),
+    ],
+    TODAY,
+  ),
+  missing: unmatchedMovements(
+    rows,
+    [
+      { date: localDate("2026-10-05"), amount: cents(5_600_00), description: "SALARIO" },
+      { date: localDate("2026-10-03"), amount: cents(-42_50), description: "PIX FEIRA DO BAIRRO" },
+      { date: localDate("2026-10-04"), amount: cents(150_00), description: "PIX RECEBIDO ANA" },
+    ],
+    TODAY,
+  ),
+};
+
 const response: ProjectionResponse = {
   projection,
   daily: { value: dailyForecast, source: "inferred", sheetNote: null, inferred: dailyForecast },
@@ -117,6 +157,7 @@ const response: ProjectionResponse = {
     Array.from({ length: 13 }, (_, i) => addDays(TODAY, i - 13)).filter((d) => d !== "2026-09-30"),
     TODAY,
   ),
+  bank,
 };
 
 writeFileSync(

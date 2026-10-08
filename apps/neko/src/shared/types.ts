@@ -1,4 +1,4 @@
-import type { CardConfig, Cents, Habit, Projection } from "@neko/engine";
+import type { BankMovement, BillCheck, CardConfig, Cents, Habit, Projection } from "@neko/engine";
 import { z } from "zod";
 
 /** Shared by the Worker and the web app; no runtime-specific types here. */
@@ -35,6 +35,18 @@ export interface ProjectionResponse {
    * projection; absent from copies saved before it existed.
    */
   readonly habit?: Habit;
+  /** Bank against sheet (specs/003-open-finance); absent with no bank linked. */
+  readonly bank?: BankView | null;
+}
+
+/** Only divergences: the bank never changes a balance, a bill or the projection. */
+export interface BankView {
+  /** Last time any linked bank was read; null before the first read. */
+  readonly syncedAt: string | null;
+  /** Future bills of the cards tied to a sheet name, with the parcels already owed. */
+  readonly checks: readonly BillCheck[];
+  /** Account movements with no line in the sheet, oldest first. */
+  readonly missing: readonly BankMovement[];
 }
 
 export interface HistoryPoint {
@@ -67,7 +79,43 @@ export const UserSettings = z.object({
     .default([]),
   /** Cards someone else pays (e.g. a partner's), left out of your spending pace. */
   othersCards: z.array(z.string().min(1)).default([]),
+  /** Each bank card to its name in the sheet; a null number covers the whole card account. */
+  bankCards: z
+    .array(
+      z.object({
+        accountId: z.string().min(1).max(64),
+        cardNumber: z
+          .string()
+          .regex(/^\d{4}$/)
+          .nullable(),
+        card: z.string().min(1).max(60),
+      }),
+    )
+    .max(20)
+    .default([]),
   /** Conferência points already checked (see `issueKey`), hidden from Hoje. */
   reviewed: z.array(z.string().min(1).max(120)).max(300).default([]),
 });
 export type UserSettings = z.infer<typeof UserSettings>;
+
+/** Ajustes › Bancos: the linked banks, what each one has, and how its cards map to the sheet. */
+export interface BanksResponse {
+  /** False until the Pluggy keys are set on the Worker. */
+  readonly configured: boolean;
+  readonly cards: UserSettings["bankCards"];
+  readonly items: readonly {
+    readonly itemId: string;
+    readonly label: string;
+    readonly syncedAt: string | null;
+    readonly error: string | null;
+    readonly accounts: readonly {
+      readonly id: string;
+      readonly name: string;
+      readonly card: boolean;
+      readonly last4: string | null;
+      readonly balance: Cents;
+      /** Last four digits of each physical card seen on this card account. */
+      readonly cardNumbers: readonly string[];
+    }[];
+  }[];
+}

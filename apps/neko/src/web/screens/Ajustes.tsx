@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, type UserSettings } from "../api.ts";
+import { Banks } from "../Banks.tsx";
 import { Devices } from "../Devices.tsx";
 import { toCents } from "../format.ts";
 import { resetHints } from "../Hint.tsx";
@@ -35,7 +36,11 @@ const badDay = (s: string | undefined) =>
   s.trim() !== "" &&
   !(Number(s) >= 1 && Number(s) <= 31 && Number.isInteger(Number(s)));
 
-const payload = (v: Values, cards: readonly Card[], reviewed: readonly string[]): UserSettings => ({
+const payload = (
+  v: Values,
+  cards: readonly Card[],
+  reviewed: readonly string[],
+): Omit<UserSettings, "bankCards"> => ({
   dailyForecast: toCents(v.daily),
   cycleBudget: toCents(v.budget),
   usualCard: v.usualCard || null,
@@ -264,6 +269,7 @@ export const Ajustes = () => {
   return (
     <>
       <Form initial={settings.data} cards={projection.data.cardsKnown} />
+      <Banks sheetCards={projection.data.cardsKnown.map((c) => c.name)} />
       <section className="group" aria-labelledby="g-device">
         <h2 id="g-device">Neste aparelho</h2>
         <div className="panel list">

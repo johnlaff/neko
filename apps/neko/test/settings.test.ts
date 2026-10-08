@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { settingsHash, UserSettings } from "../src/worker/settings.ts";
+import { keepBankCards, settingsHash, UserSettings } from "../src/worker/settings.ts";
 
 describe("settings", () => {
   it("keeps checked Conferência points out of the projection cache key", async () => {
@@ -9,5 +9,15 @@ describe("settings", () => {
     expect(await settingsHash({ ...base, othersCards: ["Verde"] })).not.toBe(
       await settingsHash(base),
     );
+  });
+
+  it("a form that does not send the bank cards keeps the saved ones", () => {
+    const cards = [{ accountId: "a", cardNumber: null, card: "Visa" }];
+    const current = UserSettings.parse({ bankCards: cards });
+    expect(keepBankCards({ othersCards: ["Verde"] }, current)).toMatchObject({
+      othersCards: ["Verde"],
+      bankCards: cards,
+    });
+    expect(keepBankCards({ bankCards: [] }, current).bankCards).toEqual([]);
   });
 });
