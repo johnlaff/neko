@@ -240,7 +240,13 @@ private fun Insights(v: TodayView, onAjustes: () -> Unit) {
             val line = Copy.insight(i) ?: return@forEach
             // A guessed closing day is fixed in Ajustes, one tap away.
             val open = if (i.kind == "closing-estimated") onAjustes else null
-            Alert(line.title, line.detail, if (line.tone == Copy.Tone.Bad) l.neg else l.warn, open)
+            // A setup question, not a warning: color stays for real deviations, as on the site.
+            val tone = when {
+                line.tone == Copy.Tone.Bad -> l.neg
+                i.kind == "closing-estimated" -> l.muted
+                else -> l.warn
+            }
+            Alert(line.title, line.detail, tone, open)
         }
     }
 }
