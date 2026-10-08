@@ -183,12 +183,23 @@ const Outflows = ({
   const top = items[0]?.amount ?? 0;
   const shown = items.slice(0, OUTFLOWS_SHOWN);
   const rest = items.slice(OUTFLOWS_SHOWN);
+  const compared = items.some((o) => o.change != null && o.change !== 0);
   return (
     <section className={`panel${half ? " half" : ""}`}>
       <div className="panel-head">
         <h2>Para onde foi</h2>
         <span className="meta">
-          {items.length === 1 ? "1 destino" : `${items.length} destinos`}
+          {/* The arrows' legend lives here, not in a line of its own under the list. */}
+          {compared ? (
+            <>
+              <span aria-hidden="true">▲▼ </span>
+              Comparado a {before}
+            </>
+          ) : items.length === 1 ? (
+            "1 destino"
+          ) : (
+            `${items.length} destinos`
+          )}
         </span>
       </div>
       <OutflowRows items={shown} fixed={fixed} top={top} trend={trend} />
@@ -205,12 +216,6 @@ const Outflows = ({
         <p className="hint fixed-sum">
           <IconRepeat />
           Fixos somam {money(fixedTotal)} no mês
-        </p>
-      )}
-      {items.some((o) => o.change != null && o.change !== 0) && (
-        <p className="hint">
-          <span aria-hidden="true">▲▼ </span>
-          Comparado a {before}
         </p>
       )}
     </section>
