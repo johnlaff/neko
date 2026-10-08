@@ -7,6 +7,7 @@ import {
   lazyRouteComponent,
   Outlet,
   RouterProvider,
+  useRouterState,
 } from "@tanstack/react-router";
 import { Fragment, lazy, Suspense, useEffect } from "react";
 import { api } from "./api.ts";
@@ -44,18 +45,32 @@ const prefetchScreens = () => {
 // Signing in happens once per device, so its WebAuthn code loads only when the login shows.
 const Login = lazy(() => import("./Login.tsx").then((m) => ({ default: m.Login })));
 
-/** Brand, when the sheet was read, and a way to read it again: the same on every screen. */
+const TITLES: Record<string, string> = {
+  "/": "Hoje",
+  "/faturas": "Faturas",
+  "/mes": "Mês",
+  "/ajustes": "Ajustes",
+};
+
+/**
+ * The screen's name, when the sheet was read and a way to read it again: the same head as the
+ * Android app, on every screen. The brand lives in the icon and the tab, not over every screen.
+ */
 const Masthead = () => {
   const q = useProjection();
   const hidden = useValuesHidden();
+  const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <header className="masthead">
-      <span className="brand">Neko</span>
-      {q.data && (
-        <span className={`chip ${q.data.offline ? "warn" : "ok"}`} role="status">
-          {q.data.offline ? "Sem conexão" : "Lida"} {readAtLabel(q.data.sheet.readAt)}
-        </span>
-      )}
+      <div className="masthead-title">
+        <h1>{TITLES[path] ?? "Neko"}</h1>
+        {q.data && (
+          <p className={q.data.offline ? "read warn" : "read"} role="status">
+            {q.data.offline ? "Sem conexão · Lida" : "Planilha lida"}{" "}
+            {readAtLabel(q.data.sheet.readAt)}
+          </p>
+        )}
+      </div>
       <button
         type="button"
         className="icon"

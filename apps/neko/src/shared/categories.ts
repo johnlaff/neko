@@ -1,0 +1,309 @@
+/**
+ * What a sheet line is about, read from its description, so each line gets an icon you know at a
+ * glance (a house for the rent, a cap for the college) instead of one receipt for every bill.
+ * Display only: it never changes a figure. The sheet has no category column, so the words below
+ * are the common Brazilian names for each kind of expense; a line that matches none keeps the
+ * generic icon. Order matters: the first match wins.
+ *
+ * `icon` is one stroke path on a 24px grid (1.75 stroke, round caps), drawn the same way by the
+ * site (web/CategoryIcon.tsx) and the Android app (ui/Categories.kt, which reads these cases).
+ */
+export const CATEGORIES = [
+  {
+    slug: "salario",
+    words: [
+      "salario",
+      "ordenado",
+      "holerite",
+      "adiantamento",
+      "plr",
+      "decimo terceiro",
+      "ferias",
+      "bonus",
+      "freela",
+      "freelance",
+    ],
+    icon: "M4.5 7.5h15A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5V9a1.5 1.5 0 0 1 1.5-1.5zM9 7.5v-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 12.5h18",
+  },
+  {
+    slug: "poupanca",
+    words: [
+      "poupanca",
+      "reserva",
+      "investimento",
+      "investimentos",
+      "previdencia",
+      "tesouro",
+      "cdb",
+      "aporte",
+      "caixinha",
+    ],
+    icon: "M5 12c0-3.6 3.1-6 7.3-6 3 0 5.4 1.2 6.6 3.2h1.6v4h-1.4c-.5 1.2-1.4 2.2-2.6 2.9V19h-2.5v-2.2c-.6.1-1.3.2-2 .2s-1.4-.1-2-.2V19H7.5v-3.1C6 14.9 5 13.6 5 12zM10 8.8h3.5M16 11h.01M5 12H3.5",
+  },
+  {
+    slug: "transporte",
+    words: [
+      "uber",
+      "99",
+      "taxi",
+      "onibus",
+      "metro",
+      "gasolina",
+      "combustivel",
+      "etanol",
+      "posto",
+      "estacionamento",
+      "pedagio",
+      "ipva",
+      "licenciamento",
+      "carro",
+      "moto",
+      "oficina",
+      "auto",
+    ],
+    icon: "M4 16.5V12l1.8-4.6a1.5 1.5 0 0 1 1.4-.9h9.6a1.5 1.5 0 0 1 1.4.9L20 12v4.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 12h16M7.5 17.5v2M16.5 17.5v2M7.5 14.5h1M15.5 14.5h1",
+  },
+  {
+    slug: "casa",
+    words: [
+      "aluguel",
+      "condominio",
+      "iptu",
+      "moradia",
+      "financiamento",
+      "casa",
+      "apartamento",
+      "imobiliaria",
+    ],
+    icon: "M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z",
+  },
+  {
+    slug: "luz",
+    words: [
+      "luz",
+      "energia",
+      "eletricidade",
+      "cemig",
+      "enel",
+      "copel",
+      "celpe",
+      "coelba",
+      "cpfl",
+      "equatorial",
+      "neoenergia",
+    ],
+    icon: "M13 3 5 13.5h6L10 21l8-10.5h-6z",
+  },
+  {
+    slug: "agua",
+    words: [
+      "agua",
+      "saneamento",
+      "esgoto",
+      "copasa",
+      "sabesp",
+      "cedae",
+      "sanepar",
+      "embasa",
+      "daae",
+      "codau",
+    ],
+    icon: "M12 3.5c3.5 4.2 6 7.5 6 10.5a6 6 0 0 1-12 0c0-3 2.5-6.3 6-10.5z",
+  },
+  {
+    slug: "gas",
+    words: ["gas", "botijao", "comgas"],
+    icon: "M12 2.5c.8 3.3 5.5 5.5 5.5 11a5.5 5.5 0 0 1-11 0c0-3 1.8-4.8 3-6 .3 1.8 1.2 3 2.4 3.6.6-3 .6-5.8.1-8.6z",
+  },
+  {
+    slug: "internet",
+    words: ["internet", "wifi", "wi fi", "fibra", "banda larga", "provedor"],
+    icon: "M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0M12 19.5h.01",
+  },
+  {
+    slug: "celular",
+    words: ["celular", "telefone", "vivo", "tim", "claro", "recarga"],
+    icon: "M8 2.5h8A1.5 1.5 0 0 1 17.5 4v16a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 20V4A1.5 1.5 0 0 1 8 2.5zM11 18h2",
+  },
+  {
+    slug: "estudo",
+    words: [
+      "faculdade",
+      "uniube",
+      "universidade",
+      "escola",
+      "colegio",
+      "curso",
+      "cursos",
+      "ingles",
+      "aula",
+      "aulas",
+      "pos",
+      "mba",
+      "livro",
+      "livros",
+      "educacao",
+      "estudo",
+      "estudos",
+    ],
+    icon: "M2.5 9 12 4.5 21.5 9 12 13.5zM6.5 11v4.5c1.5 1.5 3.5 2.5 5.5 2.5s4-1 5.5-2.5V11M21.5 9v5",
+  },
+  {
+    slug: "academia",
+    words: [
+      "academia",
+      "gym",
+      "smart fit",
+      "smartfit",
+      "crossfit",
+      "pilates",
+      "natacao",
+      "treino",
+      "personal",
+    ],
+    icon: "M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11",
+  },
+  {
+    slug: "saude",
+    words: [
+      "saude",
+      "plano de saude",
+      "unimed",
+      "amil",
+      "hapvida",
+      "bradesco saude",
+      "sulamerica",
+      "farmacia",
+      "drogaria",
+      "remedio",
+      "remedios",
+      "medico",
+      "consulta",
+      "dentista",
+      "exame",
+      "exames",
+      "psicologo",
+      "terapia",
+      "hospital",
+    ],
+    icon: "M12 20s-8-4.8-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 2.5C20 15.2 12 20 12 20zM7.5 12.5h2.5l1.5-2.5 2 4 1.5-1.5h1.5",
+  },
+  {
+    slug: "mercado",
+    words: [
+      "mercado",
+      "supermercado",
+      "feira",
+      "hortifruti",
+      "sacolao",
+      "acougue",
+      "padaria",
+      "atacadao",
+      "assai",
+      "carrefour",
+      "compras do mes",
+    ],
+    icon: "M3.5 9.5h17l-1.8 9a1.5 1.5 0 0 1-1.5 1.2H6.8a1.5 1.5 0 0 1-1.5-1.2zM8 9.5l3-6M16 9.5l-3-6M9 13v3.5M12 13v3.5M15 13v3.5",
+  },
+  {
+    slug: "comida",
+    words: [
+      "restaurante",
+      "ifood",
+      "lanche",
+      "lanchonete",
+      "pizza",
+      "delivery",
+      "almoco",
+      "jantar",
+      "rappi",
+      "cafe",
+    ],
+    icon: "M7 3v18M4.5 3v5a2.5 2.5 0 0 0 5 0V3M17 21V3c-2 1-3.5 3.5-3.5 7v3H17",
+  },
+  {
+    slug: "assinatura",
+    words: [
+      "netflix",
+      "spotify",
+      "youtube",
+      "disney",
+      "prime video",
+      "hbo",
+      "max",
+      "globoplay",
+      "deezer",
+      "icloud",
+      "google one",
+      "chatgpt",
+      "claude",
+      "assinatura",
+      "assinaturas",
+      "streaming",
+      "apple",
+    ],
+    icon: "M4.5 5.5h15A1.5 1.5 0 0 1 21 7v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17V7a1.5 1.5 0 0 1 1.5-1.5zM10 9.5v5l4.5-2.5z",
+  },
+  {
+    slug: "pet",
+    words: ["pet", "petshop", "racao", "veterinario", "vet", "gato", "gatos", "cachorro", "areia"],
+    icon: "M12 13c-2.5 0-5 3-5 5a2 2 0 0 0 2 2c1.2 0 2-.6 3-.6s1.8.6 3 .6a2 2 0 0 0 2-2c0-2-2.5-5-5-5zM4.5 10.5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0M8 7a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0M13 7a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0M16.5 10.5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0",
+  },
+  {
+    slug: "imposto",
+    words: ["imposto", "impostos", "darf", "irpf", "inss", "mei", "receita federal"],
+    icon: "M3.5 20.5h17M4.5 9.5h15L12 4zM6.5 9.5v8M10 9.5v8M14 9.5v8M17.5 9.5v8",
+  },
+  {
+    slug: "seguro",
+    words: ["seguro", "seguros"],
+    icon: "M12 3.5 19 6v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z",
+  },
+  {
+    slug: "viagem",
+    words: ["viagem", "viagens", "passagem", "passagens", "hotel", "airbnb", "voo", "hospedagem"],
+    icon: "M21 3 3 10.5l7 2.5 2.5 7zM10 13l4.5-4.5",
+  },
+  {
+    slug: "beleza",
+    words: ["cabelo", "cabeleireiro", "barbearia", "barbeiro", "salao", "manicure", "estetica"],
+    icon: "M3.5 6.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0M3.5 17.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0M8 8l12 10M8 16 20 6",
+  },
+  {
+    slug: "roupa",
+    words: ["roupa", "roupas", "vestuario", "calcado", "calcados", "tenis", "sapato"],
+    icon: "M8.5 3.5 4 6l1.5 4 2-1v11.5h9V9l2 1L20 6l-4.5-2.5a3.5 3.5 0 0 1-7 0z",
+  },
+  {
+    slug: "compras",
+    words: [
+      "compras",
+      "shopping",
+      "loja",
+      "magalu",
+      "shopee",
+      "shein",
+      "aliexpress",
+      "presente",
+      "presentes",
+    ],
+    icon: "M5.5 7.5h13l1 13h-15zM9 10V6.5a3 3 0 0 1 6 0V10",
+  },
+] as const;
+
+export type Category = (typeof CATEGORIES)[number];
+
+/** Lowercase words without accents: "Água/Esgoto" → " agua esgoto ". */
+const words = (s: string) =>
+  ` ${s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()} `;
+
+/** The kind of expense a line's description names, by whole words only ("Luz" yes, "Luzia" no). */
+export const categoryOf = (description: string): Category | null => {
+  const w = words(description);
+  return CATEGORIES.find((c) => c.words.some((word) => w.includes(` ${word} `))) ?? null;
+};

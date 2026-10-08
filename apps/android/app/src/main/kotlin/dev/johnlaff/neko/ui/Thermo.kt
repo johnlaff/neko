@@ -1,5 +1,7 @@
 package dev.johnlaff.neko.ui
 
+import dev.johnlaff.neko.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -196,7 +199,7 @@ private fun DayTile(
                     else -> Modifier
                 },
             )
-            .clickable {
+            .clickable(role = Role.Button) {
                 if (!picked) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                 onClick()
             }
@@ -252,6 +255,13 @@ private fun Moves(moves: List<DayMove>) {
                     "diario" -> "D"
                     else -> name.take(1).uppercase()
                 },
+                // Entries and bills show what they are about, as on the site; card and diário keep theirs.
+                avatarIcon = when (m.kind) {
+                    "income" -> R.drawable.ic_income
+                    "card", "diario" -> null
+                    else -> R.drawable.ic_receipt
+                },
+                avatarVector = if (m.kind == "card" || m.kind == "diario") null else categoryIcon(m.description),
                 card = name.takeIf { m.kind == "card" },
                 valueColor = if (income) l.pos else l.text,
                 accent = income,

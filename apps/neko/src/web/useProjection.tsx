@@ -47,7 +47,7 @@ export const ErrorBlock = ({
 }) => (
   <section className="panel state" role="alert">
     <BrandMark width={64} className="quiet-mark" />
-    <h1>{title}</h1>
+    <h2>{title}</h2>
     <p className="muted">{text}</p>
     <button type="button" className="ghost" onClick={retry} disabled={busy}>
       {busy ? "Tentando…" : "Tentar de novo"}

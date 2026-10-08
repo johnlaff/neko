@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, type UserSettings } from "../api.ts";
 import { Banks } from "../Banks.tsx";
-import { BrandMark } from "../BrandMark.tsx";
 import { Devices } from "../Devices.tsx";
 import { toCents } from "../format.ts";
 import { resetHints } from "../Hint.tsx";
@@ -111,12 +110,13 @@ const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[
         commit(v);
       }}
     >
-      <header className="page-head row">
-        <h1>Ajustes</h1>
-        <span role="status" className={`chip ${save.isError ? "bad" : save.isPending ? "" : "ok"}`}>
-          {save.isIdle ? "" : save.isError ? "Não salvou" : save.isPending ? "Salvando…" : "Salvo"}
-        </span>
-      </header>
+      {/* The screen's name is in the masthead; saving shows beside the first group's title. */}
+      <span
+        role="status"
+        className={`chip save-status ${save.isError ? "bad" : save.isPending ? "" : "ok"}`}
+      >
+        {save.isIdle ? "" : save.isError ? "Não salvou" : save.isPending ? "Salvando…" : "Salvo"}
+      </span>
 
       <section className="group" aria-labelledby="g-forecast">
         <h2 id="g-forecast">Ritmo</h2>
@@ -127,7 +127,7 @@ const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[
               <span className={shows("daily", badMoney(v.daily)) ? "sub error" : "sub"}>
                 {shows("daily", badMoney(v.daily))
                   ? "Use um valor como 177,00"
-                  : "Vazio usa a planilha"}
+                  : "Em branco, vem da planilha"}
               </span>
             </span>
             <span className="affix">
@@ -145,7 +145,7 @@ const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[
           <label className="setting">
             <span className="label">
               Cartão principal
-              <span className="sub">O do ritmo em Hoje</span>
+              <span className="sub">O que aparece em Hoje</span>
             </span>
             <select
               value={v.usualCard}
@@ -165,14 +165,14 @@ const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[
               <span className={shows("budget", badMoney(v.budget)) ? "sub error" : "sub"}>
                 {shows("budget", badMoney(v.budget))
                   ? "Use um valor como 5.000,00"
-                  : "Vazio usa diário × dias"}
+                  : "Em branco, diário × dias do ciclo"}
               </span>
             </span>
             <span className="affix">
               <span aria-hidden="true">R$</span>
               <input
                 inputMode="decimal"
-                placeholder="Auto"
+                placeholder="Automático"
                 value={v.budget}
                 aria-invalid={shows("budget", badMoney(v.budget))}
                 onChange={(e) => change({ budget: e.target.value })}
@@ -302,11 +302,7 @@ const HowItWorks = () => {
     <section className="group" aria-labelledby="g-learn">
       <h2 id="g-learn">Como funciona</h2>
       <div className="panel list learn">
-        {/* Mia gives the tips, so the full list opens with her mark. */}
-        <div className="learn-head">
-          <BrandMark width={48} className="mia-mark" />
-          <p className="learn-text">{LEARN_INTRO}</p>
-        </div>
+        <p className="learn-text">{LEARN_INTRO}</p>
         {IDEAS.map((idea) => (
           <details key={idea.title} className="formula">
             <summary>
@@ -325,7 +321,7 @@ const HowItWorks = () => {
             setReset(true);
           }}
         >
-          {reset ? "As dicas voltam aos poucos" : "Rever dicas"}
+          {reset ? "As dicas voltam, uma por visita" : "Rever dicas"}
         </button>
       </div>
     </section>

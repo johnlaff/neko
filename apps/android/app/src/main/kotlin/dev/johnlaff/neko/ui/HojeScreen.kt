@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -49,11 +51,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
+import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.data.MissingMovement
 import dev.johnlaff.neko.data.MonthRecap
 import dev.johnlaff.neko.data.Saving
@@ -79,6 +83,8 @@ fun HojeScreen(
     askMia: AskMia? = null,
     /** Opens the screen a value of Mia's came from: "hoje", "faturas" or "mes". */
     onScreen: (String) -> Unit = {},
+    /** Opens Mês on a month ("2025-10"), or on the current one for null, as the site's alerts do. */
+    onMonth: (String?) -> Unit = { onScreen("mes") },
     miaOpen: Boolean = false,
     miaTalk: List<MiaExchange> = emptyList(),
 ) {
@@ -90,7 +96,8 @@ fun HojeScreen(
         val cs = v.canSpend.takeIf { simulate != null }
         if (v.todayUrl != null || cs != null) {
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Both buttons take the taller one's height when large text wraps a label.
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     v.todayUrl?.let { url -> LancarButton(url, Modifier.weight(1f)) }
                     if (cs != null) SimulateButton(simulating, Modifier.weight(1f)) { simulating = !simulating }
                 }
@@ -102,7 +109,10 @@ fun HojeScreen(
             if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk) }
         }
         v.habit?.let { h -> item { Streak(h) } }
-        if (v.insights.isNotEmpty()) item { Insights(v, onAjustes) }
+        // Over the plan, the red figure already says the bill is high: no second card (as on the site).
+        val over = (v.canSpend?.perDay ?: 0) < 0
+        val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
+        if (insights.isNotEmpty()) item { Insights(insights, onAjustes, { onScreen("faturas") }, onMonth) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
@@ -119,7 +129,7 @@ private fun Hero(v: TodayView) {
         Panel {
             QuietMark(64.dp)
             Text("Nenhum cartão na planilha", style = MaterialTheme.typography.headlineSmall)
-            Text("As faturas vêm das notas de Saída, debaixo de uma linha CARTÕES.", color = l.muted)
+            Text(Learn.CARDS_COME_FROM, color = l.muted)
         }
         return
     }
@@ -197,7 +207,7 @@ private fun LancarButton(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Button(
         onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
-        modifier = modifier.fillMaxWidth().height(48.dp),
+        modifier = modifier.fillMaxWidth().fillMaxHeight().heightIn(min = 48.dp),
         // The one filled button on the screen, as on the site: logging is the method's daily act.
         colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
         shape = RoundedCornerShape(10.dp),
@@ -209,7 +219,7 @@ private fun LancarButton(url: String, modifier: Modifier = Modifier) {
             modifier = Modifier.size(ButtonDefaults.IconSize),
         )
         androidx.compose.foundation.layout.Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-        Text("Lançar", color = l.bg, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        Text("Lançar", color = l.bg, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
@@ -218,11 +228,11 @@ private fun SimulateButton(open: Boolean, modifier: Modifier, onClick: () -> Uni
     val l = LocalLedger.current
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(48.dp).semantics { stateDescription = if (open) "Aberto" else "Fechado" },
+        modifier = modifier.fillMaxWidth().fillMaxHeight().heightIn(min = 48.dp).semantics { stateDescription = if (open) "Aberto" else "Fechado" },
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = androidx.compose.foundation.BorderStroke(1.dp, if (open) l.muted else l.border),
         shape = RoundedCornerShape(10.dp),
-    ) { Text("Simular compra", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
+    ) { Text("Simular compra", style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center) }
 }
 
 @Composable
@@ -258,16 +268,27 @@ private fun Alert(
 }
 
 @Composable
-private fun Insights(v: TodayView, onAjustes: () -> Unit) {
+private fun Insights(
+    insights: List<Insight>,
+    onAjustes: () -> Unit,
+    onFaturas: () -> Unit,
+    onMonth: (String?) -> Unit,
+) {
     val l = LocalLedger.current
     // Two warnings in view, the rest behind one quiet line, most important first (as on the site).
-    val known = v.insights.mapNotNull { i -> Copy.insight(i)?.let { i to it } }
+    val known = insights.mapNotNull { i -> Copy.insight(i)?.let { i to it } }
     var more by rememberSaveable { mutableStateOf(false) }
     val rest = known.size - ShownAlerts
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         (if (more) known else known.take(ShownAlerts)).forEach { (i, line) ->
-            // A guessed closing day is fixed in Ajustes, one tap away.
-            val open = if (i.kind == "closing-estimated") onAjustes else null
+            // Each warning opens where to look next, as on the site; a guessed closing day is fixed in Ajustes.
+            val open: () -> Unit = when (i.kind) {
+                "closing-estimated" -> onAjustes
+                "bill-above-average" -> onFaturas
+                "goes-negative" -> { { onMonth(i.start?.take(7)) } }
+                "no-spending-ahead" -> { { onMonth(if (i.year != null && i.month != null) "${i.year}-${i.month.toString().padStart(2, '0')}" else null) } }
+                else -> { { onMonth(null) } }
+            }
             // A setup question, not a warning: color stays for real deviations, as on the site.
             val tone = when {
                 line.tone == Copy.Tone.Bad -> l.neg
@@ -370,8 +391,9 @@ private fun SaveCard(s: Saving, today: String) {
     val l = LocalLedger.current
     val isToday = s.date == today
     Alert(
-        if (isToday) "Hoje dá para guardar ${money(s.amount)}" else "${relativeDay(s.date, today)}: guardar ${money(s.amount)}",
-        "Mesmo guardando, o dia mais apertado até ${shortDate(s.until)} fica com ${money(s.leftAtLowest)}",
+        if (isToday) "Na conta, dá para guardar ${money(s.amount)} hoje"
+        else "${relativeDay(s.date, today)}: dá para guardar ${money(s.amount)}",
+        "Depois de guardar, menor saldo até ${shortDate(s.until)}: ${money(s.leftAtLowest)}",
         l.pos,
     )
 }
@@ -383,7 +405,7 @@ private fun Upcoming(v: TodayView) {
         PanelHead("Próximos 7 dias") {
             if (v.upcomingCount > 0) Text("${v.upcomingCount} itens", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        if (v.upcoming.isEmpty()) Text("Nada lançado para esta semana.", color = l.muted)
+        if (v.upcoming.isEmpty()) Text("Nada lançado nos próximos 7 dias.", color = l.muted)
         v.upcoming.forEach { Day(it, v.today) }
     }
 }
@@ -424,6 +446,8 @@ private fun Day(d: UpcomingDay, today: String) {
                     "card" -> R.drawable.ic_card
                     else -> R.drawable.ic_receipt
                 },
+                // What the line is about, when its words say so (as on the site); a card keeps its mark.
+                avatarVector = if (u.kind == "card") null else categoryIcon(u.description),
                 card = u.description.takeIf { u.kind == "card" },
                 valueColor = if (income) l.pos else l.text,
                 accent = income,
@@ -492,7 +516,7 @@ private fun BankMissing(items: List<MissingMovement>) {
                     }
                     .padding(vertical = 4.dp),
             ) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(Format.bankText(m.description), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         signed(m.amount, if (m.amount > 0) '+' else '−'),
@@ -509,7 +533,7 @@ private fun BankMissing(items: List<MissingMovement>) {
             }
         }
         Text(
-            "Toque para copiar a linha da nota. O banco não muda a planilha.",
+            "Toque em um para copiar a linha da nota. O Neko não altera a planilha.",
             color = l.muted,
             style = MaterialTheme.typography.bodyMedium,
         )
