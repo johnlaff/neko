@@ -47,6 +47,10 @@ class TodayViewTest {
         assertEquals(null, dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("novo")))
         assertEquals("Mês no azul", dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("blue", months = 1)))
         assertEquals(
+            "Faturas do cartão menores que as do mês anterior",
+            dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("cards-down")),
+        )
+        assertEquals(
             "Recorde: guardou 34% das entradas, o maior até aqui",
             dev.johnlaff.neko.ui.Copy.win(dev.johnlaff.neko.data.Win("record", share = 34)),
         )
