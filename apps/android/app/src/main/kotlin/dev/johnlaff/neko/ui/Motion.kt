@@ -19,7 +19,11 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 
@@ -35,11 +39,20 @@ object Motion {
     val Enter = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
 }
 
-/** 0 → 1 once, after [delay] ms: the progress a bar or arc draws with. */
+/**
+ * 0 → 1 once, after [delay] ms: the progress a bar or arc draws with. Once per place: back on a
+ * tab, or scrolled back into view, the figure is already there instead of drawing again.
+ */
 @Composable
 fun arrival(duration: Int, delay: Int = 0): Float {
-    val a = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { a.animateTo(1f, tween(duration, delay, Motion.Settle)) }
+    var done by rememberSaveable { mutableStateOf(false) }
+    val a = remember { Animatable(if (done) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        if (!done) {
+            a.animateTo(1f, tween(duration, delay, Motion.Settle))
+            done = true
+        }
+    }
     return a.value
 }
 

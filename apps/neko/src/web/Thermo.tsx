@@ -163,12 +163,15 @@ export const Thermo = ({
       </fieldset>
       {picked !== null && shown && <Moves key={shown.day} moves={shown.moves ?? []} />}
       <ul className="thermo-legend" aria-hidden="true">
-        {(Object.keys(BAND_LABEL) as Band[]).map((b) => (
-          <li key={b}>
-            <i className={`swatch ${b}`} />
-            {BAND_LABEL[b]}
-          </li>
-        ))}
+        {/* Only the colors this month uses: the legend explains what is on screen, nothing more. */}
+        {(Object.keys(BAND_LABEL) as Band[])
+          .filter((b) => days.some((d) => d.band === b))
+          .map((b) => (
+            <li key={b}>
+              <i className={`swatch ${b}`} />
+              {BAND_LABEL[b]}
+            </li>
+          ))}
         {save && (
           <li>
             <i className="swatch dot" />
