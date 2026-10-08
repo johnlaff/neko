@@ -41,7 +41,7 @@ object Copy {
         )
         "no-spending-ahead" -> Line(
             "${capitalize(monthName(i.month ?: return null))} ainda sem gastos previstos",
-            "Sem diário nem fatura, o saldo de lá parece maior do que será",
+            "Sem diário nem fatura lançados, esse saldo ainda está alto",
         )
         "bill-above-average" -> Line("Fatura acima do normal", "${i.card}: ${money(i.over ?: 0)} acima da média")
         "fixed-up" -> Line(

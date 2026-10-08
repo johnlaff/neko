@@ -7,7 +7,7 @@ import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { capitalize, closesIn, days, money, monthName, shortDate } from "../format.ts";
 import { Hint } from "../Hint.tsx";
-import { HINTS } from "../learn.ts";
+import { CARDS_COME_FROM, HINTS } from "../learn.ts";
 import { WithProjection } from "../useProjection.tsx";
 
 const shortMonth = (iso: string) => capitalize(monthName(Number(iso.slice(5, 7))).slice(0, 3));
@@ -60,8 +60,8 @@ export const Faturas = () => {
           return (
             <section className="page-head empty-cards">
               <BrandMark width={64} className="quiet-mark" />
-              <h1>Nenhuma fatura</h1>
-              <p className="muted">Os cartões vêm das notas de Saída, debaixo de CARTÕES.</p>
+              <h2>Nenhuma fatura</h2>
+              <p className="muted">{CARDS_COME_FROM}</p>
             </section>
           );
         const bars = usual
@@ -73,7 +73,6 @@ export const Faturas = () => {
         const shown = bars.find((b) => b.key === picked) ?? bars.at(-1);
         return (
           <>
-            <h1 className="sr-only">Faturas</h1>
             {usual && (
               <section className="panel hero">
                 <div className="panel-head">
@@ -83,6 +82,8 @@ export const Faturas = () => {
                     {usual.card.name}
                   </h2>
                   <span className={`chip ${usual.closesInDays <= 3 ? "warn" : "ok"}`}>
+                    {/* An estimated day says so, as everywhere else: ≈ */}
+                    {usual.card.closingEstimated && "≈ "}
                     {closesIn(usual.closesInDays)}
                   </span>
                 </div>
@@ -143,7 +144,7 @@ export const Faturas = () => {
                     label: shortMonth(b.key),
                     value: b.amount,
                     description: `${shortMonth(b.key)}${b.open ? ", fatura aberta" : ""}: ${money(b.amount)}`,
-                    tone: b.key === shown.key ? "accent" : undefined,
+                    tone: b.key === shown.key ? "ink" : undefined,
                   }))}
                 />
               </section>
@@ -238,7 +239,7 @@ const BankBills = ({ bank }: { bank: BankView }) => (
             <span className="meta">
               Planilha {money(c.sheet)}
               {c.parcels > 0 && c.parcels === c.bank
-                ? " · Só parcelas"
+                ? " · Banco: só parcelas"
                 : c.parcels > 0
                   ? ` · Parcelas ${money(c.parcels)}`
                   : ""}

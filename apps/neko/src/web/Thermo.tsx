@@ -1,6 +1,7 @@
 import type { Band, DayMove, Saving, ThermoDay } from "@neko/engine";
 import { type CSSProperties, type KeyboardEvent, useRef, useState } from "react";
 import { RowAvatar } from "./CardAvatar.tsx";
+import { CategoryIcon } from "./CategoryIcon.tsx";
 import { ItemName } from "./Figures.tsx";
 import { money, monthName, shortDate, signed } from "./format.ts";
 import { Hint } from "./Hint.tsx";
@@ -37,7 +38,11 @@ const Moves = ({ moves }: { moves: readonly DayMove[] }) =>
               card={m.kind === "card" ? m.description : null}
               className={`avatar${income ? " pos" : ""}`}
             >
-              <Icon />
+              {m.kind === "card" || m.kind === "diario" ? (
+                <Icon />
+              ) : (
+                <CategoryIcon text={m.description} fallback={<Icon />} />
+              )}
             </RowAvatar>
             <span className="name">
               <ItemName text={moveName(m)} />

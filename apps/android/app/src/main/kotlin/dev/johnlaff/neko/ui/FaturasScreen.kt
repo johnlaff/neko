@@ -34,7 +34,7 @@ fun FaturasScreen(state: ScreenState<InvoicesView>, onRefresh: () -> Unit, onAju
                 Panel {
                     QuietMark(64.dp)
                     Text("Nenhuma fatura", style = MaterialTheme.typography.headlineSmall)
-                    Text("Os cartões vêm das notas de Saída, debaixo de CARTÕES.", color = LocalLedger.current.muted)
+                    Text(Learn.CARDS_COME_FROM, color = LocalLedger.current.muted)
                 }
             }
             return@ScreenFrame
@@ -53,8 +53,9 @@ private fun shortMonth(iso: String) = capitalize(monthName(iso.substring(5, 7).t
 private fun UsualPanel(u: UsualBill) {
     Panel {
         PanelHead(u.card, card = u.card) {
+            // An estimated day says so, as everywhere else: ≈
             Chip(
-                Format.closesIn(u.closesInDays),
+                (if (u.closingEstimated) "≈ " else "") + Format.closesIn(u.closesInDays),
                 if (u.closesInDays <= 3) ChipTone.Warn else ChipTone.Ok,
             )
         }
@@ -109,7 +110,7 @@ private fun History(v: InvoicesView) {
                     label = shortMonth(b.due),
                     value = b.amount,
                     description = "${shortMonth(b.due)}${if (b.open) ", fatura aberta" else ""}: ${money(b.amount)}",
-                    accent = b.due == shown.due,
+                    picked = b.due == shown.due,
                 )
             },
             onSelect = { picked = it },
@@ -186,7 +187,7 @@ private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
                 avatar = monogram(c.card),
                 card = c.card,
                 meta = "Planilha ${money(c.sheet)}" + when {
-                    c.parcels > 0 && c.parcels == c.bank -> " · Só parcelas"
+                    c.parcels > 0 && c.parcels == c.bank -> " · Banco: só parcelas"
                     c.parcels > 0 -> " · Parcelas ${money(c.parcels)}"
                     else -> ""
                 },

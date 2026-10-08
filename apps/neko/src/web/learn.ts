@@ -8,8 +8,11 @@ export const HINTS = {
   mes: "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista.",
 } as const;
 
-/** Opens Ajustes › Como funciona, next to Mia. */
-export const LEARN_INTRO = "Tudo o que a Mia ensina nas dicas, num lugar só.";
+/** Opens Ajustes › Como funciona. */
+export const LEARN_INTRO = "Todas as dicas do app, num lugar só.";
+
+/** Where cards come from, when the sheet has none: Hoje and Faturas say it the same way. */
+export const CARDS_COME_FROM = "Os cartões vêm das notas de Saída, abaixo da linha CARTÕES.";
 
 export const IDEAS: readonly { readonly title: string; readonly body: string }[] = [
   {

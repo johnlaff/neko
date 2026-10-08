@@ -28,6 +28,8 @@ data class Ledger(
     val surface: Color,
     val surface2: Color,
     val border: Color,
+    /** A text field's edge: 3:1 against the page, as WCAG 1.4.11 asks (the site's --border-input). */
+    val borderInput: Color,
     val text: Color,
     val muted: Color,
     val faint: Color,
@@ -41,14 +43,14 @@ data class Ledger(
 
 val DarkLedger = Ledger(
     bg = Color(0xFF0F0E0D), surface = Color(0xFF161514), surface2 = Color(0xFF201E1C),
-    border = Color(0xFF2A2826), text = Color(0xFFFAFAF9), muted = Color(0xFFBAB5AD),
+    border = Color(0xFF2A2826), borderInput = Color(0xFF6B665F), text = Color(0xFFFAFAF9), muted = Color(0xFFBAB5AD),
     faint = Color(0xFF938E86), accent = Color(0xFF7CBF96), pos = Color(0xFF7CBF96),
     warn = Color(0xFFE7B765), neg = Color(0xFFF08F78), mia = Color(0xFFE0A85A),
 )
 
 val LightLedger = Ledger(
     bg = Color(0xFFF6F5F1), surface = Color(0xFFFFFEFC), surface2 = Color(0xFFEEECE7),
-    border = Color(0xFFE2DFD8), text = Color(0xFF1C1A17), muted = Color(0xFF57534E),
+    border = Color(0xFFE2DFD8), borderInput = Color(0xFF8A857D), text = Color(0xFF1C1A17), muted = Color(0xFF57534E),
     faint = Color(0xFF6D6861), accent = Color(0xFF2A6B47), pos = Color(0xFF2A6B47),
     warn = Color(0xFF96580B), neg = Color(0xFFB0412B), mia = Color(0xFFA8661A),
 )
@@ -71,7 +73,7 @@ fun NekoTheme(content: @Composable () -> Unit) {
     val scheme = (if (dark) darkColorScheme() else lightColorScheme()).copy(
         primary = l.accent, onPrimary = l.bg, background = l.bg, onBackground = l.text,
         surface = l.surface, onSurface = l.text, surfaceVariant = l.surface2,
-        onSurfaceVariant = l.muted, outline = l.border, error = l.neg,
+        onSurfaceVariant = l.muted, outline = l.borderInput, error = l.neg,
     )
     // Tabular figures everywhere, as on the site: amounts line up in columns and do not jiggle.
     val base = TextStyle(fontFamily = Geist, color = l.text, fontFeatureSettings = "tnum")

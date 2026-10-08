@@ -1,4 +1,5 @@
 import {
+  daysInMonth,
   type Fixed,
   fixedOf,
   type MonthView,
@@ -15,6 +16,7 @@ import { useRef, useState } from "react";
 import { api } from "../api.ts";
 import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
+import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
 import { IconCard, IconChevron, IconChevronLeft, IconReceipt, IconRepeat } from "../icons.tsx";
@@ -66,7 +68,7 @@ const Trend = ({ points, label }: { points: readonly TrendPoint[]; label: string
           label: capitalize(monthName(p.month).slice(0, 3)),
           value: p.amount,
           description: `${capitalize(monthName(p.month))}: ${money(p.amount)}`,
-          tone: key(p.year, p.month) === picked ? "accent" : undefined,
+          tone: key(p.year, p.month) === picked ? "ink" : undefined,
         }))}
       />
       {shown && (
@@ -110,7 +112,11 @@ const OutflowRow = ({
         onClick={() => setOpen(!open)}
       />
       <RowAvatar card={o.kind === "card" ? o.label : null}>
-        {o.kind === "card" ? <IconCard /> : fixed ? <IconRepeat /> : <IconReceipt />}
+        {o.kind === "card" ? (
+          <IconCard />
+        ) : (
+          <CategoryIcon text={o.label} fallback={fixed ? <IconRepeat /> : <IconReceipt />} />
+        )}
       </RowAvatar>
       <span className="name">
         <ItemName text={o.label} />
@@ -296,6 +302,10 @@ export const Mes = () => {
           );
         const name = monthName(m.month);
         const past = idx < nowIdx;
+        // The sheet's own balance on the month's last day: a date, not a guess.
+        const endLabel = past
+          ? "Terminou com"
+          : `Saldo em ${shortDate(key(m.year, m.month) + `-${daysInMonth(m.year, m.month)}`)}`;
         const year = p.months.filter((x) => x.year === m.year);
         // A projection cached offline by an older version has no outflows yet.
         const outflows = m.outflows ?? [];
@@ -329,9 +339,9 @@ export const Mes = () => {
               >
                 <IconChevronLeft />
               </button>
-              <h1 aria-live="polite">
+              <h2 aria-live="polite">
                 {capitalize(name)} {m.year}
-              </h1>
+              </h2>
               <button
                 type="button"
                 className="icon"
@@ -361,7 +371,7 @@ export const Mes = () => {
               }}
             >
               <div className="panel-head">
-                <h2>{past ? "Terminou com" : "Deve terminar com"}</h2>
+                <h2>{endLabel}</h2>
               </div>
               <div className="figure-stack">
                 <BigMoney cents={m.endSheet} tone={m.endSheet < 0 ? "neg" : "plain"} />
@@ -378,15 +388,13 @@ export const Mes = () => {
                     label: capitalize(monthName(x.month).charAt(0)),
                     value: x.endSheet,
                     description: `${capitalize(monthName(x.month))}: ${money(x.endSheet)}`,
-                    tone: k === key(m.year, m.month) ? "accent" : k > nowKey ? "faint" : undefined,
+                    tone: k === key(m.year, m.month) ? "ink" : k > nowKey ? "faint" : undefined,
                   };
                 })}
               />
               {result !== null && (
                 <p className="figure-line performance">
-                  <span className="muted">
-                    {result < 0 ? "Falta" : "Sobra"} {past ? "do mês" : "prevista"}
-                  </span>
+                  <span className="muted">{result < 0 ? "Falta" : "Sobra"} no mês</span>
                   <strong className={result > 0 ? "pos" : result < 0 ? "neg" : undefined}>
                     {money(Math.abs(result))}
                   </strong>
@@ -421,7 +429,7 @@ export const Mes = () => {
                       <dd>{signed(m.diario, "−")}</dd>
                     </>
                   )}
-                  <dt className="total">{past ? "Terminou com" : "Deve terminar com"}</dt>
+                  <dt className="total">{endLabel}</dt>
                   <dd className={`total${m.endSheet < 0 ? " neg" : ""}`}>{money(m.endSheet)}</dd>
                 </dl>
                 {result !== null && (
