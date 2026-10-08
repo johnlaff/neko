@@ -2,6 +2,8 @@ package dev.johnlaff.neko.ui
 
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalDensity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,6 +53,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
+import dev.johnlaff.neko.data.MissingMovement
 import dev.johnlaff.neko.data.MonthRecap
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
@@ -99,6 +102,7 @@ fun HojeScreen(
         v.recap?.let { r -> item { RecapPanel(r) } }
         item { Upcoming(v) }
         item { Conference(v) }
+        v.bankMissing?.takeIf { it.isNotEmpty() }?.let { m -> item { BankMissing(m) } }
     }
 }
 
@@ -479,5 +483,53 @@ private fun Conference(v: TodayView) {
                 Text(line.detail, color = l.faint, style = MaterialTheme.typography.labelMedium)
             }
         }
+    }
+}
+
+/**
+ * What moved in the account and has no line in the sheet yet (as on the site). Neko never writes
+ * the sheet: a tap copies the line as the day's note wants it, and the owner pastes it there.
+ */
+@Composable
+private fun BankMissing(items: List<MissingMovement>) {
+    val l = LocalLedger.current
+    val context = LocalContext.current
+    var copied by remember { mutableStateOf<Int?>(null) }
+    Panel {
+        PanelHead("Fora da planilha") {
+            Chip(if (items.size == 1) "1 movimento" else "${items.size} movimentos", ChipTone.Warn)
+        }
+        items.forEachIndexed { i, m ->
+            Column(
+                Modifier.fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clickable(onClickLabel = "copiar a linha da nota", role = Role.Button) {
+                        context.getSystemService(ClipboardManager::class.java)
+                            ?.setPrimaryClip(ClipData.newPlainText("Neko", m.line))
+                        copied = i
+                    }
+                    .padding(vertical = 4.dp),
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(m.description, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        signed(m.amount, if (m.amount > 0) '+' else '−'),
+                        color = if (m.amount > 0) l.pos else l.text,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+                Text(
+                    if (copied == i) "Linha copiada. Cole na nota do dia"
+                    else "${shortDate(m.date)} · ${if (m.amount > 0) "Entrada" else "Saída"}",
+                    color = l.faint,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+        Text(
+            "Toque para copiar a linha da nota. O banco não muda a planilha.",
+            color = l.muted,
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }

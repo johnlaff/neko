@@ -3,6 +3,7 @@ package dev.johnlaff.neko.data
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -82,6 +83,19 @@ class Api(
         return json.decodeFromString(call("/settings", body, "PUT"))
     }
 
+    suspend fun banks(): BanksView = json.decodeFromString(call("/banks"))
+
+    /** Replaces the linked banks; the Worker reads the new ones in the background. */
+    suspend fun saveBanks(items: List<BankLink>) {
+        val body = json.encodeToString(BanksBody.serializer(), BanksBody(items)).toRequestBody(jsonType)
+        call("/banks", body, "PUT")
+    }
+
+    suspend fun saveBankCards(cards: List<BankCard>) {
+        val body = json.encodeToString(BankCardsBody.serializer(), BankCardsBody(cards)).toRequestBody(jsonType)
+        call("/banks/cards", body, "PUT")
+    }
+
     /** WebAuthn request options, as JSON for Credential Manager. */
     suspend fun passkeyLoginOptions(): String = call("/passkey/login/options", JsonObject(emptyMap()).asBody())
 
@@ -96,3 +110,9 @@ class Api(
         cookies.clear()
     }
 }
+
+@Serializable
+private data class BanksBody(val items: List<BankLink>)
+
+@Serializable
+private data class BankCardsBody(val cards: List<BankCard>)

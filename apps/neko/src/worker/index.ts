@@ -8,6 +8,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
 import { ajustesView, invoicesView, monthsView, simulateView } from "../shared/screens.ts";
 import { todayView } from "../shared/today.ts";
+import type { BanksResponse } from "../shared/types.ts";
 import { assetLinks } from "./android.ts";
 import {
   endSession,
@@ -44,7 +45,7 @@ import {
   remindersView,
   sendReminder,
 } from "./push.ts";
-import { loadSettings, saveSettings, UserSettings } from "./settings.ts";
+import { keepBankCards, loadSettings, saveSettings, UserSettings } from "./settings.ts";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
@@ -140,6 +141,7 @@ app.use("/sessions", requireSession);
 app.use("/sessions/*", requireSession);
 app.use("/client-error", requireSession);
 app.use("/banks", requireSession);
+app.use("/banks/*", requireSession);
 
 const ClientError = z.object({
   message: z.string().max(500),
@@ -247,11 +249,27 @@ app.get("/banks", async (c) => {
   ).results;
   const accounts = (
     await c.env.DB.prepare(
-      "SELECT item_id, name, type, number, balance FROM bank_account ORDER BY name",
-    ).all<{ item_id: string; name: string; type: string; number: string | null; balance: number }>()
+      "SELECT id, item_id, name, type, number, balance FROM bank_account ORDER BY name",
+    ).all<{
+      id: string;
+      item_id: string;
+      name: string;
+      type: string;
+      number: string | null;
+      balance: number;
+    }>()
   ).results;
-  return c.json({
+  // The physical cards seen on each card account: the holder's and any additional one.
+  const numbers = (
+    await c.env.DB.prepare(
+      "SELECT DISTINCT account_id, card_number FROM bank_txn WHERE card_number IS NOT NULL",
+    ).all<{ account_id: string; card_number: string }>()
+  ).results;
+  const last4 = (s: string) => s.replace(/\D/g, "").slice(-4);
+  const settings = await loadSettings(c.env.DB);
+  const body: BanksResponse = {
     configured: configured(c.env),
+    cards: settings.bankCards,
     items: items.map((i) => ({
       itemId: i.item_id,
       label: i.label,
@@ -260,13 +278,33 @@ app.get("/banks", async (c) => {
       accounts: accounts
         .filter((a) => a.item_id === i.item_id)
         .map((a) => ({
+          id: a.id,
           name: a.name,
           card: a.type === "CREDIT",
           last4: a.number?.slice(-4) ?? null,
           balance: a.balance as Cents,
+          cardNumbers: [
+            ...new Set(
+              numbers
+                .filter((n) => n.account_id === a.id)
+                .map((n) => last4(n.card_number))
+                .filter((n) => n.length === 4),
+            ),
+          ].sort(),
         })),
     })),
-  });
+  };
+  return c.json(body);
+});
+
+/** Ties each bank card to its name in the sheet, so its bills can be checked against it. */
+app.put("/banks/cards", async (c) => {
+  const { cards } = z
+    .object({ cards: UserSettings.shape.bankCards.unwrap() })
+    .parse(await c.req.json());
+  const settings = await loadSettings(c.env.DB);
+  await saveSettings(c.env.DB, { ...settings, bankCards: cards });
+  return c.json({ ok: true });
 });
 
 /** Replaces the list of linked banks, drops what was read from removed ones and reads the rest. */
@@ -370,7 +408,7 @@ app.get("/history", async (c) => {
 app.get("/settings", async (c) => c.json(await loadSettings(c.env.DB)));
 
 app.put("/settings", async (c) => {
-  const settings = UserSettings.parse(await c.req.json());
+  const settings = keepBankCards(await c.req.json(), await loadSettings(c.env.DB));
   await saveSettings(c.env.DB, settings);
   return c.json(settings);
 });

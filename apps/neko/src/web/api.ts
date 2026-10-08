@@ -5,13 +5,14 @@ import type {
   RegistrationResponseJSON,
 } from "@simplewebauthn/browser";
 import type {
+  BanksResponse,
   DailySource,
   HistoryResponse,
   ProjectionResponse,
   UserSettings,
 } from "../shared/types.ts";
 
-export type { DailySource, HistoryResponse, ProjectionResponse, UserSettings };
+export type { BanksResponse, DailySource, HistoryResponse, ProjectionResponse, UserSettings };
 
 /** A browser signed in to this account; `current` is the one asking. */
 export interface Device {
@@ -92,6 +93,12 @@ export const api = {
   // A Worker older than the screen (mid-deploy, or a stale cache) can leave out a newer field.
   settings: () =>
     request<UserSettings>("/settings").then((s) => ({ ...s, reviewed: s.reviewed ?? [] })),
-  saveSettings: (s: UserSettings) =>
+  /** Without `bankCards` the Worker keeps the saved ones (they are set from Ajustes › Bancos). */
+  saveSettings: (s: Omit<UserSettings, "bankCards"> & Partial<Pick<UserSettings, "bankCards">>) =>
     request<UserSettings>("/settings", { method: "PUT", body: JSON.stringify(s) }),
+  banks: () => request<BanksResponse>("/banks"),
+  saveBanks: (items: readonly { itemId: string; label: string }[]) =>
+    request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
+  saveBankCards: (cards: UserSettings["bankCards"]) =>
+    request<{ ok: true }>("/banks/cards", { method: "PUT", body: JSON.stringify({ cards }) }),
 };

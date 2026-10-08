@@ -10887,5 +10887,38 @@
     "next": 21,
     "since": "2026-09-22",
     "lastWeek": 6
+  },
+  "bank": {
+    "syncedAt": "2026-10-05T09:00:00.000Z",
+    "checks": [
+      {
+        "card": "Cartão Azul",
+        "due": "2026-11-12",
+        "bank": 221990,
+        "parcels": 57990,
+        "sheet": 283807,
+        "gap": -61817
+      },
+      {
+        "card": "Cartão Azul",
+        "due": "2026-12-12",
+        "bank": 57990,
+        "parcels": 57990,
+        "sheet": 370432,
+        "gap": -312442
+      }
+    ],
+    "missing": [
+      {
+        "date": "2026-10-03",
+        "amount": -4250,
+        "description": "PIX FEIRA DO BAIRRO"
+      },
+      {
+        "date": "2026-10-04",
+        "amount": 15000,
+        "description": "PIX RECEBIDO ANA"
+      }
+    ]
   }
 }

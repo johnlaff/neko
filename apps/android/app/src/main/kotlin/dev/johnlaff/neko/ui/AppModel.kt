@@ -8,6 +8,9 @@ import androidx.lifecycle.viewModelScope
 import dev.johnlaff.neko.NekoApp
 import dev.johnlaff.neko.data.ApiException
 import dev.johnlaff.neko.data.AjustesView
+import dev.johnlaff.neko.data.BankCard
+import dev.johnlaff.neko.data.BankLink
+import dev.johnlaff.neko.data.BanksView
 import dev.johnlaff.neko.data.Device
 import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.InstallmentSimulation
@@ -64,6 +67,8 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
     /** Devices signed in, for Ajustes; null until read. */
     private val _devices = MutableStateFlow<List<Device>?>(null)
     val devices: StateFlow<List<Device>?> = _devices
+    private val _banks = MutableStateFlow<BanksView?>(null)
+    val banks: StateFlow<BanksView?> = _banks
     private val _save = MutableStateFlow(SaveState.Idle)
     val save: StateFlow<SaveState> = _save
 
@@ -118,6 +123,7 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
         Tab.Ajustes -> {
             load(_ajustes, { neko.api.ajustes().also { neko.caches.ajustes.write(it) } })
             readDevices()
+            side { _banks.value = neko.api.banks() }
         }
     }
 
@@ -135,6 +141,17 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
     fun endSession(id: String) = side {
         neko.api.endSession(id)
         _devices.value = neko.api.sessions()
+    }
+
+    /** Ajustes › Bancos: the Worker reads a newly linked bank in the background. */
+    fun saveBanks(items: List<BankLink>) = side {
+        neko.api.saveBanks(items)
+        _banks.value = neko.api.banks()
+    }
+
+    fun saveBankCards(cards: List<BankCard>) = side {
+        neko.api.saveBankCards(cards)
+        _banks.value = neko.api.banks()
     }
 
     fun endOtherSessions() = side {
@@ -220,6 +237,7 @@ class AppModel(private val neko: Neko, private val effects: Effects) : ViewModel
         _ajustes.value = ScreenState()
         _history.value = null
         _devices.value = null
+        _banks.value = null
         _save.value = SaveState.Idle
         saved = null
         _session.value = Session.SignedOut

@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.johnlaff.neko.data.BankBills
 import dev.johnlaff.neko.data.BillBar
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.UsualBill
@@ -42,6 +43,7 @@ fun FaturasScreen(state: ScreenState<InvoicesView>, onRefresh: () -> Unit, onAju
         if (v.history.isNotEmpty()) item { History(v) }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v, onAjustes) }
         if (v.others.isNotEmpty() || v.empty.isNotEmpty()) item { Others(v) }
+        v.bank?.let { b -> item { BankBills(b, onAjustes) } }
     }
 }
 
@@ -151,6 +153,33 @@ private fun Others(v: InvoicesView) {
         }
         if (v.empty.isNotEmpty()) {
             Text("Sem compras: ${v.empty.joinToString(", ")}.", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+/**
+ * The next bills as the bank already has them (as on the site): purchases so far plus the parcels
+ * still owed, next to what the sheet expects. Only a bill already above the sheet gets color.
+ */
+@Composable
+private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
+    val l = LocalLedger.current
+    Panel {
+        PanelHead("Já no banco") {
+            b.syncedAt?.let { Text("Lido ${shortDate(it.take(10))}", color = l.faint, style = MaterialTheme.typography.labelMedium) }
+        }
+        if (b.bills.isEmpty()) {
+            Text("Nenhuma fatura futura dos cartões ligados.", color = l.muted)
+            TextAction("Ligar cartões em Ajustes", onAjustes)
+        }
+        b.bills.forEach { c ->
+            ListRow(
+                name = "${c.card} · ${shortMonth(c.due)}",
+                value = money(c.bank),
+                avatar = monogram(c.card),
+                meta = "Planilha ${money(c.sheet)}" + if (c.parcels > 0) " · ${money(c.parcels)} em parcelas" else "",
+                chips = { if (c.gap > 0) Chip("${money(c.gap)} acima da planilha", ChipTone.Warn) },
+            )
         }
     }
 }

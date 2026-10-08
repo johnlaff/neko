@@ -15,7 +15,13 @@ const call = (path: string, init?: RequestInit) =>
 
 describe("api", () => {
   it("every finance route needs a session", async () => {
-    for (const path of ["/api/projection", "/api/history", "/api/settings"]) {
+    for (const path of [
+      "/api/projection",
+      "/api/history",
+      "/api/settings",
+      "/api/banks",
+      "/api/banks/cards",
+    ]) {
       expect((await call(path)).status).toBe(401);
     }
   });

@@ -440,13 +440,24 @@ details.formula dl + p {
   margin-left: 4px;
   vertical-align: -2px;
 }
-.rows a.row-link {
+.rows a.row-link,
+.rows button.row-link {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 2px 16px;
   text-decoration: none;
   min-height: 44px;
+}
+.rows button.row-link {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 .row-link .name {
   white-space: normal;
@@ -2296,4 +2307,31 @@ button.setting.quiet:hover {
 }
 .recap-wins .win-share {
   margin-left: auto;
+}
+
+/* Linked banks in Ajustes: each bank, its cards tied to the sheet below it, then a way to add one. */
+.banks {
+  margin: 0;
+  list-style: none;
+}
+.panel.list.banks > li {
+  border-bottom: 1px solid var(--border);
+}
+.panel.list.banks > li:last-child {
+  border-bottom: 0;
+}
+.banks .setting {
+  border-bottom: 0;
+}
+.banks .setting.nested {
+  min-height: 52px;
+  padding-left: 12px;
+}
+.banks .setting.nested .label {
+  font-weight: 400;
+}
+form.setting.bank-add > input {
+  flex: 1 1 8rem;
+  min-height: 44px;
+  padding: 6px 10px;
 }

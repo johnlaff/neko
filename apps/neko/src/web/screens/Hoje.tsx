@@ -9,7 +9,9 @@ import {
 } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { HEALTH_DAYS, issueKey, SAVE_LEAD } from "../../shared/today.ts";
+import { useState } from "react";
+import { HEALTH_DAYS, issueKey, noteLine, SAVE_LEAD } from "../../shared/today.ts";
+import type { BankView } from "../../shared/types.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
@@ -286,6 +288,53 @@ const Conference = ({
   );
 };
 
+/**
+ * What moved in the account and has no line in the sheet yet. Neko never writes the sheet: a tap
+ * copies the line as the day's note wants it, and the owner pastes it there.
+ */
+const BankMissing = ({ bank }: { bank: BankView }) => {
+  const [copied, setCopied] = useState<number | null>(null);
+  if (bank.missing.length === 0) return null;
+  return (
+    <section className="panel half" aria-labelledby="h-bank-missing">
+      <div className="panel-head">
+        <h2 id="h-bank-missing">Fora da planilha</h2>
+        <span className="chip warn">
+          {bank.missing.length === 1 ? "1 movimento" : `${bank.missing.length} movimentos`}
+        </span>
+      </div>
+      <ul className="rows">
+        {bank.missing.map((m, i) => (
+          <li key={`${m.date}-${m.amount}-${m.description}`}>
+            <button
+              type="button"
+              className="row-link"
+              onClick={() =>
+                navigator.clipboard?.writeText(noteLine(m)).then(
+                  () => setCopied(i),
+                  () => {},
+                )
+              }
+            >
+              <span className="name">{m.description}</span>
+              <span className={`value ${m.amount > 0 ? "pos" : ""}`}>
+                {m.amount > 0 ? "+" : "−"}
+                {money(Math.abs(m.amount))}
+              </span>
+              <span className="meta" aria-live="polite">
+                {copied === i
+                  ? "Linha copiada. Cole na nota do dia"
+                  : `${shortDate(m.date)} · ${m.amount > 0 ? "Entrada" : "Saída"}`}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="hint">Toque para copiar a linha da nota. O banco não muda a planilha.</p>
+    </section>
+  );
+};
+
 /** Days shown before "Ver mais": whole days only, until about this many items. */
 const UPCOMING_SHOWN = 4;
 
@@ -412,7 +461,7 @@ const MilestoneCard = ({ title, text }: { title: string; text: string }) => (
 
 export const Hoje = () => (
   <WithProjection>
-    {({ projection: p, sheet, daily, habit }) => {
+    {({ projection: p, sheet, daily, habit, bank }) => {
       const cs = p.canSpend;
       const todayUrl = p.todayRef
         ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
@@ -549,6 +598,7 @@ export const Hoje = () => (
           </section>
 
           <Conference issues={issues} sheet={sheet} />
+          {bank && <BankMissing bank={bank} />}
         </>
       );
     }}
