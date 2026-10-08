@@ -1,6 +1,7 @@
 package dev.johnlaff.neko
 
 import dev.johnlaff.neko.data.AjustesView
+import dev.johnlaff.neko.data.InstallmentSimulation
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.json
@@ -30,6 +31,15 @@ class ScreensContractTest {
         assertEquals("2026-10", now.key)
         assertTrue(now.outflows.isNotEmpty())
         assertTrue(v.months.first().past)
+        assertTrue(now.days.isNotEmpty())
+        assertTrue(now.days.all { it.band in setOf("negative", "attention", "healthy", "surplus") })
+    }
+
+    @Test fun simulate() {
+        val v = json.decodeFromString<InstallmentSimulation>(text("simulate.json"))
+        assertEquals(3, v.parcels.size)
+        assertEquals(60_000L, v.parcels.sumOf { it.amount })
+        assertEquals(null, v.firstNegative)
     }
 
     @Test fun ajustes() {

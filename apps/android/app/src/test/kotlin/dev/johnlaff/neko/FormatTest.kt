@@ -39,4 +39,14 @@ class FormatTest {
         assertEquals("0,05", Format.fromCents(5))
         assertEquals("", Format.fromCents(null))
     }
+
+    @Test fun lastUsed() {
+        val zone = java.time.ZoneId.systemDefault()
+        val now = java.time.LocalDate.of(2026, 10, 8)
+        fun at(d: java.time.LocalDate) = d.atTime(12, 0).atZone(zone).toInstant().toString()
+        assertEquals("Usado hoje", dev.johnlaff.neko.ui.lastUsed(at(now), now))
+        assertEquals("Usado ontem", dev.johnlaff.neko.ui.lastUsed(at(now.minusDays(1)), now))
+        assertEquals("Usado há 12 dias", dev.johnlaff.neko.ui.lastUsed(at(now.minusDays(12)), now))
+        assertEquals("Usado antes", dev.johnlaff.neko.ui.lastUsed("ontem", now))
+    }
 }

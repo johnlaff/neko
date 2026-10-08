@@ -34,6 +34,7 @@ import dev.johnlaff.neko.ui.LocalLedger
 import dev.johnlaff.neko.ui.LoginScreen
 import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.NekoTheme
+import dev.johnlaff.neko.ui.DevicesList
 import dev.johnlaff.neko.ui.RemindersSwitch
 import dev.johnlaff.neko.ui.Session
 import dev.johnlaff.neko.ui.Tab
@@ -68,7 +69,7 @@ class MainActivity : ComponentActivity() {
                             when (tab) {
                                 Tab.Hoje -> {
                                     val today by model.today.collectAsStateWithLifecycle()
-                                    HojeScreen(today, model::refresh) { go(Tab.Ajustes) }
+                                    HojeScreen(today, model::refresh, { go(Tab.Ajustes) }, model::simulate)
                                 }
                                 Tab.Faturas -> {
                                     val invoices by model.invoices.collectAsStateWithLifecycle()
@@ -76,14 +77,17 @@ class MainActivity : ComponentActivity() {
                                 }
                                 Tab.Mes -> {
                                     val months by model.months.collectAsStateWithLifecycle()
-                                    MesScreen(months) { model.refresh(Tab.Mes) }
+                                    val history by model.history.collectAsStateWithLifecycle()
+                                    MesScreen(months, history) { model.refresh(Tab.Mes) }
                                 }
                                 Tab.Ajustes -> {
                                     val ajustes by model.ajustes.collectAsStateWithLifecycle()
                                     val save by model.save.collectAsStateWithLifecycle()
+                                    val devices by model.devices.collectAsStateWithLifecycle()
                                     AjustesScreen(
                                         ajustes, save, { model.refresh(Tab.Ajustes) }, model::saveSettings, model::logout,
                                         remindersSwitch(),
+                                        DevicesList(devices, model::endSession, model::endOtherSessions),
                                     )
                                 }
                             }

@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import dev.johnlaff.neko.NekoApp
 import dev.johnlaff.neko.data.ApiException
 import dev.johnlaff.neko.data.AjustesView
+import dev.johnlaff.neko.data.Device
+import dev.johnlaff.neko.data.HistoryView
+import dev.johnlaff.neko.data.InstallmentSimulation
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.TodayView
@@ -51,6 +54,12 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     val months: StateFlow<ScreenState<MonthsView>> = _months
     private val _ajustes = MutableStateFlow(ScreenState<AjustesView>())
     val ajustes: StateFlow<ScreenState<AjustesView>> = _ajustes
+    /** How this month's end moved since its first reading, under Mês's figure; null until read. */
+    private val _history = MutableStateFlow<HistoryView?>(null)
+    val history: StateFlow<HistoryView?> = _history
+    /** Devices signed in, for Ajustes; null until read. */
+    private val _devices = MutableStateFlow<List<Device>?>(null)
+    val devices: StateFlow<List<Device>?> = _devices
     private val _save = MutableStateFlow(SaveState.Idle)
     val save: StateFlow<SaveState> = _save
 
@@ -75,9 +84,39 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     fun refresh(tab: Tab) = when (tab) {
         Tab.Hoje -> refresh()
         Tab.Faturas -> load(_invoices, { neko.api.invoices() })
-        Tab.Mes -> load(_months, { neko.api.months() })
-        Tab.Ajustes -> load(_ajustes, { neko.api.ajustes() })
+        Tab.Mes -> {
+            load(_months, { neko.api.months() })
+            side { _history.value = neko.api.history() }
+        }
+        Tab.Ajustes -> {
+            load(_ajustes, { neko.api.ajustes() })
+            readDevices()
+        }
     }
+
+    /** A read that only adds to a screen: when it fails, the screen just goes without it. */
+    private fun side(read: suspend () -> Unit) {
+        viewModelScope.launch {
+            runCatching { read() }.onFailure { e ->
+                if (e is ApiException && e.status == 401) signedOut()
+            }
+        }
+    }
+
+    private fun readDevices() = side { _devices.value = neko.api.sessions() }
+
+    fun endSession(id: String) = side {
+        neko.api.endSession(id)
+        _devices.value = neko.api.sessions()
+    }
+
+    fun endOtherSessions() = side {
+        neko.api.endOtherSessions()
+        _devices.value = neko.api.sessions()
+    }
+
+    /** Hoje's simulator; the Worker does the math, as for every other figure. */
+    suspend fun simulate(amount: Long, count: Int): InstallmentSimulation? = neko.api.simulate(amount, count)
 
     private fun <T> load(
         state: MutableStateFlow<ScreenState<T>>,
@@ -149,6 +188,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         _invoices.value = ScreenState()
         _months.value = ScreenState()
         _ajustes.value = ScreenState()
+        _history.value = null
+        _devices.value = null
         _save.value = SaveState.Idle
         saved = null
         _session.value = Session.SignedOut

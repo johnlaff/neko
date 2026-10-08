@@ -1,4 +1,4 @@
-import { historyDelta, todayIn } from "@neko/engine";
+import { type Cents, historyDelta, MAX_INSTALLMENTS, todayIn } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import * as Sentry from "@sentry/cloudflare";
 import { Hono, type MiddlewareHandler } from "hono";
@@ -6,7 +6,7 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
-import { ajustesView, invoicesView, monthsView } from "../shared/screens.ts";
+import { ajustesView, invoicesView, monthsView, simulateView } from "../shared/screens.ts";
 import { todayView } from "../shared/today.ts";
 import { assetLinks } from "./android.ts";
 import {
@@ -122,6 +122,7 @@ app.use("/months", requireSession);
 app.use("/ajustes", requireSession);
 app.use("/reminders", requireSession);
 app.use("/history", requireSession);
+app.use("/simulate", requireSession);
 app.use("/settings", requireSession);
 app.use("/push/*", requireSession);
 app.use("/sessions", requireSession);
@@ -214,6 +215,18 @@ app.get("/ajustes", async (c) => {
     loadSettings(c.env.DB),
   ]);
   return c.json(ajustesView(data, settings));
+});
+
+const Purchase = z.object({
+  amount: z.coerce.number().int().positive().max(100_000_000_00),
+  count: z.coerce.number().int().min(1).max(MAX_INSTALLMENTS),
+});
+
+/** Hoje's purchase simulator for the Android app: amount in cents, count of parcels. */
+app.get("/simulate", async (c) => {
+  const { amount, count } = Purchase.parse(c.req.query());
+  const data = await getProjection(c.env, todayIn(new Date()));
+  return c.json(simulateView(data, amount as Cents, count));
 });
 
 /** Today's 08:00 and 21:00 reminders, for the Android app to show itself (see push.ts). */

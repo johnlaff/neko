@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.CardConfig
 import dev.johnlaff.neko.data.CardDays
+import dev.johnlaff.neko.data.Device
 import dev.johnlaff.neko.data.UserSettings
 import dev.johnlaff.neko.ui.Format.fromCents
 import dev.johnlaff.neko.ui.Format.toCents
@@ -95,6 +96,7 @@ fun AjustesScreen(
     onSave: (UserSettings) -> Unit,
     onLogout: () -> Unit,
     reminders: RemindersSwitch = RemindersSwitch(),
+    devices: DevicesList = DevicesList(),
 ) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
@@ -129,6 +131,7 @@ fun AjustesScreen(
         item { Group("Ritmo") { Pace(f, view.dailyAuto) } }
         if (f.cards.isNotEmpty()) item { Group("Cartões") { Cards(f) } }
         item { Group("Lembretes") { Reminders(reminders) } }
+        devices.list?.takeIf { it.isNotEmpty() }?.let { item { Group("Aparelhos conectados") { Devices(devices) } } }
         item {
             Panel {
                 TextAction("Sair deste aparelho", onLogout, LocalLedger.current.neg)
@@ -164,6 +167,45 @@ private fun Reminders(r: RemindersSwitch) {
             colors = SwitchDefaults.colors(checkedTrackColor = l.accent, checkedThumbColor = l.bg),
             modifier = Modifier.semantics { contentDescription = "Lembretes neste celular" },
         )
+    }
+}
+
+/** Where Neko is signed in, with a way to sign any other device out; null until read. */
+data class DevicesList(
+    val list: List<Device>? = null,
+    val onEnd: (String) -> Unit = {},
+    val onEndOthers: () -> Unit = {},
+)
+
+/** "Usado hoje", "Usado ontem", "Usado há 12 dias", from this phone's own clock. */
+fun lastUsed(iso: String, now: java.time.LocalDate = java.time.LocalDate.now()): String {
+    val day = runCatching { java.time.Instant.parse(iso).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
+        .getOrNull() ?: return "Usado antes"
+    val diff = java.time.temporal.ChronoUnit.DAYS.between(day, now)
+    return when {
+        diff <= 0 -> "Usado hoje"
+        diff == 1L -> "Usado ontem"
+        else -> "Usado há $diff dias"
+    }
+}
+
+@Composable
+private fun Devices(d: DevicesList) {
+    val l = LocalLedger.current
+    val list = d.list ?: return
+    val others = list.count { !it.current }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        list.forEach { device ->
+            Setting(device.device, if (device.current) "Este aparelho" else lastUsed(device.lastSeenAt)) {
+                if (!device.current) {
+                    TextButton(
+                        onClick = { d.onEnd(device.id) },
+                        modifier = Modifier.semantics { contentDescription = "Sair do ${device.device}" },
+                    ) { Text("Sair", color = l.muted) }
+                }
+            }
+        }
+        if (others > 1) TextAction("Sair dos outros $others aparelhos", d.onEndOthers, l.neg)
     }
 }
 
