@@ -202,6 +202,8 @@ export const Mes = () => {
         // and meaningless on months the sheet has no lines for.
         const moved = (x: MonthView) => x.entrada !== 0 || x.saida !== 0 || x.diario !== 0;
         const result = moved(m) ? (m.result ?? null) : null;
+        // Saída under an "Investimento:" header; missing on caches from before it existed.
+        const saved = m.saved ?? 0;
         return (
           <>
             <div className="month-nav">
@@ -278,6 +280,15 @@ export const Mes = () => {
                   </strong>
                 </p>
               )}
+              {saved > 0 && (
+                <p className="figure-line">
+                  <span className="muted">
+                    Guardado
+                    {m.savedShare !== null && ` · ${m.savedShare}% das entradas`}
+                  </span>
+                  <strong>{money(saved)}</strong>
+                </p>
+              )}
               <details className="formula">
                 <summary>
                   <IconChevron />
@@ -306,6 +317,18 @@ export const Mes = () => {
                     {result < 0 ? "desceu" : "subiu"} no mês. Dinheiro guardado também sai da conta,
                     então um mês em que você economizou pode aparecer como prejuízo.
                   </p>
+                )}
+                {saved > 0 && (
+                  <>
+                    <dl className="ledger">
+                      <dt className="total">Custo de vida</dt>
+                      <dd className="total">{money(m.livingCost)}</dd>
+                    </dl>
+                    <p>
+                      Custo de vida é o que saiu sem contar o que foi guardado. É a base da reserva
+                      de emergência, que o método pede de 6 a 12 vezes maior.
+                    </p>
+                  </>
                 )}
               </details>
             </section>

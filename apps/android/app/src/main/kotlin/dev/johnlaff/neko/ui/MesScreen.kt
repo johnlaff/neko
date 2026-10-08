@@ -115,6 +115,15 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                 )
             }
         }
+        if (m.saved > 0) {
+            Row(
+                Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Guardado" + (m.savedShare?.let { " · $it% das entradas" } ?: ""), color = l.muted)
+                Text(money(m.saved), style = MaterialTheme.typography.titleMedium)
+            }
+        }
         TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger })
         Reveal(ledger) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -129,6 +138,15 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                 Text(
                     "${if (r < 0) "Prejuízo" else "Lucro"} é quanto o saldo ${if (r < 0) "desceu" else "subiu"} no mês. " +
                         "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer como prejuízo.",
+                    color = l.muted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (m.saved > 0) {
+                LedgerLine("Custo de vida", money(m.livingCost), total = true)
+                Text(
+                    "Custo de vida é o que saiu sem contar o que foi guardado. É a base da reserva de emergência, " +
+                        "que o método pede de 6 a 12 vezes maior.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                 )

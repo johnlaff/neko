@@ -25,7 +25,7 @@ android {
         minSdk = 28
         targetSdk = 37
         versionCode = (System.getenv("NEKO_VERSION_CODE") ?: "1").toInt()
-        versionName = "0.10.0"
+        versionName = "0.11.0"
         buildConfigField("String", "NEKO_URL", "\"https://neko.joaoaraxaiba.workers.dev\"")
     }
 
