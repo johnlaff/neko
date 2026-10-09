@@ -11,9 +11,19 @@ import type { Cents } from "./money.ts";
  * - `conta`: a fixed bill paid from the account.
  * - `investimento`: money put in an investment that is not the reserve, like a pension.
  * - `reserva`: money moved to the emergency reserve (the only lines counted as savings).
+ * - `resgate`: money back from the reserve, an Entrada under `Reserva:`.
+ * - `saida`: any other money out, a plain Saída line (a difference the bank shows, say).
  * - `cartao`: a credit card purchase, which only touches the account on the bill's due date.
  */
-export type EntryKind = "entrada" | "diario" | "conta" | "investimento" | "reserva" | "cartao";
+export type EntryKind =
+  | "entrada"
+  | "diario"
+  | "conta"
+  | "investimento"
+  | "reserva"
+  | "resgate"
+  | "saida"
+  | "cartao";
 
 export interface EntryInput {
   readonly kind: EntryKind;
@@ -57,6 +67,8 @@ const SINGLE: Record<Exclude<EntryKind, "cartao">, Pick<Placement, "column" | "s
   conta: { column: "saida", section: "contas" },
   investimento: { column: "saida", section: "investimento" },
   reserva: { column: "saida", section: "reserva" },
+  resgate: { column: "entrada", section: "reserva" },
+  saida: { column: "saida", section: null },
 };
 
 /**

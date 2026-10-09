@@ -1,7 +1,7 @@
-import type { CardConfig } from "@neko/engine";
+import { type CardConfig, localDate } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import { UserSettings } from "../src/shared/types.ts";
-import { type BankRows, bankInput, bankVersion, loadBank } from "../src/worker/bank.ts";
+import { type BankRows, bankInput, bankVersion, bankView, loadBank } from "../src/worker/bank.ts";
 import { sqliteD1 } from "./d1.ts";
 
 // Invented bank: ids, names and amounts are made up (public repo).
@@ -108,5 +108,51 @@ describe("settings", () => {
     expect(() =>
       UserSettings.parse({ bankCards: [{ accountId: "a", cardNumber: "12", card: "X" }] }),
     ).toThrow();
+  });
+});
+
+describe("Para lançar from the bank rows", () => {
+  it("leaves a pending movement waiting and words each item in the sheet's terms", async () => {
+    const { ledger } = await import("../../../packages/engine/test/builders.ts");
+    const days = ledger("2026-10-01", 92, 100000);
+    const settings = UserSettings.parse({ bankCards: map });
+    const view = bankView(
+      {
+        ...rows,
+        itemRows: [{ item_id: "i", label: "Banco A", synced_at: "2026-10-08T09:00:00.000Z" }],
+        accounts: [
+          { id: "conta", type: "BANK", item_id: "i", balance: 103010 },
+          { id: "cartao", type: "CREDIT", item_id: "i" },
+        ],
+        txns: [
+          txn({ id: "p1", amount: 5000, type: "CREDIT", description: "PIX RECEBIDO" }),
+          txn({ id: "p2", amount: -1990, description: "PADARIA" }),
+          txn({ id: "p3", amount: -700, description: "MERCADO", status: "PENDING" }),
+        ],
+      },
+      days,
+      cards,
+      settings,
+      localDate("2026-10-08"),
+    );
+    expect(view?.queue?.map((i) => [i.key, i.kind, i.title, i.options[0]?.lines])).toEqual([
+      [
+        "mov:p1",
+        "entrada",
+        "PIX RECEBIDO",
+        [{ label: "Entrada de 05/10", before: 0, after: 5000 }],
+      ],
+      ["mov:p2", "diario", "PADARIA", [{ label: "Diário de 05/10", before: 0, after: 1990 }]],
+    ]);
+    expect(view?.queue?.[1]?.bank).toEqual([
+      { date: "2026-10-05", amount: -1990, description: "PADARIA" },
+    ]);
+    expect(view?.saldo).toEqual({
+      date: "2026-10-07",
+      sheet: 100000,
+      bank: 103010,
+      diff: 3010,
+      stale: [],
+    });
   });
 });

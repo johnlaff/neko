@@ -40,6 +40,9 @@ export interface Device {
   current: boolean;
 }
 
+/** Settings the Ajustes form does not send; the Worker keeps them. */
+export type KeptSetting = "bankCards" | "accountUse" | "savedOrigins" | "writing";
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -110,8 +113,8 @@ export const api = {
   // A Worker older than the screen (mid-deploy, or a stale cache) can leave out a newer field.
   settings: () =>
     request<UserSettings>("/settings").then((s) => ({ ...s, reviewed: s.reviewed ?? [] })),
-  /** Without `bankCards` the Worker keeps the saved ones (they are set from Ajustes › Bancos). */
-  saveSettings: (s: Omit<UserSettings, "bankCards"> & Partial<Pick<UserSettings, "bankCards">>) =>
+  /** Fields set elsewhere (Bancos, Para lançar) are kept by the Worker when left out. */
+  saveSettings: (s: Omit<UserSettings, KeptSetting> & Partial<Pick<UserSettings, KeptSetting>>) =>
     request<UserSettings>("/settings", { method: "PUT", body: JSON.stringify(s) }),
   banks: () => request<BanksResponse>("/banks"),
   saveBanks: (items: readonly { itemId: string; label: string }[]) =>

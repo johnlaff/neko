@@ -1,7 +1,7 @@
 import { billOnSheet, type CardConfig, cycleForDueMonth, normalizeName } from "./cards.ts";
 import { diffDays, type LocalDate } from "./date.ts";
-import type { Ledger, NoteItem } from "./ledger.ts";
-import { add, type Cents, sub, ZERO } from "./money.ts";
+import type { Column, Ledger, NoteItem } from "./ledger.ts";
+import { add, type Cents, cents, sub, ZERO } from "./money.ts";
 
 /**
  * Open Finance, read-only (specs/003-open-finance). The bank never changes a balance or a bill:
@@ -141,6 +141,8 @@ export interface BankMovement {
   readonly description: string;
   /** The bank account it happened in, so a move between two of the owner's accounts is seen. */
   readonly account?: string;
+  /** The bank's id for it, so a decision about it (launched, ignored) sticks. */
+  readonly id?: string;
 }
 
 /** How far apart the two sides of a move between the owner's accounts may be dated. */
@@ -152,37 +154,80 @@ const BILL_PAYMENT = /gastos cart[aã]o|pagamento (de )?fatura|pagto\.? fatura/i
 /** How far apart the bank's date and the sheet's day may be, as in Actual Budget's matching. */
 export const MATCH_DAYS = 7;
 
+/** One line of the sheet a movement can stand for, signed like the movement. */
+export interface SheetLine {
+  readonly date: LocalDate;
+  readonly column: Column;
+  readonly section: string | null;
+  readonly description: string;
+  readonly amount: Cents;
+}
+
 /** The sheet's lines of one column; a cell without a note counts as one line of its total. */
-const sheetLines = (cell: { amount: Cents; items: readonly NoteItem[] }): Cents[] =>
-  cell.items.length > 0 ? cell.items.map((i) => i.amount) : cell.amount === 0 ? [] : [cell.amount];
+const sheetLines = (
+  date: LocalDate,
+  column: Column,
+  cell: { amount: Cents; items: readonly NoteItem[] },
+): SheetLine[] => {
+  const sign = column === "entrada" ? 1 : -1;
+  const items =
+    cell.items.length > 0
+      ? cell.items
+      : cell.amount === 0
+        ? []
+        : [{ amount: cell.amount, description: "", section: null }];
+  return items
+    .filter((i) => i.amount !== 0)
+    .map((i) => ({
+      date,
+      column,
+      section: i.section,
+      description: i.description,
+      amount: cents(sign * i.amount),
+    }));
+};
+
+export interface Matching {
+  /** Movements up to today the sheet should have: no transfers, no card bill payments. */
+  readonly open: readonly BankMovement[];
+  /** Those with no sheet line, oldest first. */
+  readonly unmatched: readonly BankMovement[];
+  /** Each movement and the one sheet line it was matched to. */
+  readonly pairs: readonly { readonly movement: BankMovement; readonly line: SheetLine }[];
+  /** Sheet lines no movement took (card bills aside: no movement pays them one by one). */
+  readonly free: readonly SheetLine[];
+  /** Money moved between two linked accounts: what left one and came into the other. */
+  readonly transfers: readonly { readonly out: BankMovement; readonly in: BankMovement }[];
+}
 
 /**
- * Movements up to today with no sheet line of the same amount, same direction, within
- * MATCH_DAYS. Each sheet line answers for one movement only, the closest in date first; what is
- * left may still be two lines of one sheet day added up. Money moved between two linked accounts (the same amount out of one and into another within
+ * The bank's account movements against the sheet. A movement matches a sheet line of the same
+ * amount, same direction, within MATCH_DAYS; each sheet line answers for one movement only, the
+ * closest in date first; what is left may still be two lines of one sheet day added up. Money
+ * moved between two linked accounts (the same amount out of one and into another within
  * TRANSFER_DAYS, or both sides with the same text in one account) and card bill payments never
  * reach the sheet as such, so they are left out.
  */
-export const unmatchedMovements = (
+export const matchMovements = (
   ledger: Ledger,
   movements: readonly BankMovement[],
   today: LocalDate,
-): BankMovement[] => {
-  const pool = ledger.flatMap((r) => [
-    ...sheetLines(r.entrada).map((amount) => ({ date: r.date, amount, used: false })),
-    ...sheetLines(r.saida).map((amount) => ({
-      date: r.date,
-      amount: sub(ZERO, amount),
-      used: false,
-    })),
-  ]);
-  const transfers = new Set<BankMovement>();
+): Matching => {
+  const pool = ledger.flatMap((r) =>
+    [
+      ...sheetLines(r.date, "entrada", r.entrada),
+      ...sheetLines(r.date, "saida", r.saida),
+      ...sheetLines(r.date, "diario", r.diario),
+    ].map((line) => ({ line, used: false })),
+  );
+  const transfers: { out: BankMovement; in: BankMovement }[] = [];
+  const moved = new Set<BankMovement>();
   const outs = movements.filter((m) => m.amount < 0);
   for (const m of movements) {
     if (m.amount <= 0 || m.account === undefined) continue;
     const other = outs.find(
       (o) =>
-        !transfers.has(o) &&
+        !moved.has(o) &&
         o.account !== undefined &&
         o.amount === -m.amount &&
         Math.abs(diffDays(o.date, m.date)) <= TRANSFER_DAYS &&
@@ -190,28 +235,34 @@ export const unmatchedMovements = (
         (o.account !== m.account || o.description === m.description),
     );
     if (!other) continue;
-    transfers.add(m);
-    transfers.add(other);
+    moved.add(m);
+    moved.add(other);
+    transfers.push({ out: other, in: m });
   }
   const open = movements.filter(
     (m) =>
       diffDays(m.date, today) >= 0 &&
       m.amount !== 0 &&
-      !transfers.has(m) &&
+      !moved.has(m) &&
       !(m.amount < 0 && BILL_PAYMENT.test(m.description)),
   );
   const candidates = open
     .flatMap((m) =>
       pool
-        .filter((p) => p.amount === m.amount && Math.abs(diffDays(p.date, m.date)) <= MATCH_DAYS)
-        .map((p) => ({ m, p, distance: Math.abs(diffDays(p.date, m.date)) })),
+        .filter(
+          (p) =>
+            p.line.amount === m.amount && Math.abs(diffDays(p.line.date, m.date)) <= MATCH_DAYS,
+        )
+        .map((p) => ({ m, p, distance: Math.abs(diffDays(p.line.date, m.date)) })),
     )
     .sort((a, b) => a.distance - b.distance);
+  const pairs: { movement: BankMovement; line: SheetLine }[] = [];
   const matched = new Set<BankMovement>();
   for (const { m, p } of candidates) {
     if (matched.has(m) || p.used) continue;
     p.used = true;
     matched.add(m);
+    pairs.push({ movement: m, line: p.line });
   }
   // One transfer can pay two lines of the same day: R$ 1.123,51 for "car 1.006,51" and "pharmacy 117,00".
   for (const m of open) {
@@ -219,18 +270,31 @@ export const unmatchedMovements = (
     const near = pool.filter(
       (p) =>
         !p.used &&
-        Math.sign(p.amount) === Math.sign(m.amount) &&
-        Math.abs(diffDays(p.date, m.date)) <= MATCH_DAYS,
+        Math.sign(p.line.amount) === Math.sign(m.amount) &&
+        Math.abs(diffDays(p.line.date, m.date)) <= MATCH_DAYS,
     );
     const pair = near.flatMap((a, i) =>
       near
         .slice(i + 1)
-        .filter((b) => b.date === a.date && a.amount + b.amount === m.amount)
+        .filter((b) => b.line.date === a.line.date && a.line.amount + b.line.amount === m.amount)
         .map((b) => [a, b] as const),
     )[0];
     if (!pair) continue;
     for (const p of pair) p.used = true;
     matched.add(m);
   }
-  return open.filter((m) => !matched.has(m)).sort((a, b) => a.date.localeCompare(b.date));
+  return {
+    open,
+    unmatched: open.filter((m) => !matched.has(m)).sort((a, b) => a.date.localeCompare(b.date)),
+    pairs,
+    free: pool.filter((p) => !p.used).map((p) => p.line),
+    transfers,
+  };
 };
+
+/** Movements up to today with no sheet line; see `matchMovements`. */
+export const unmatchedMovements = (
+  ledger: Ledger,
+  movements: readonly BankMovement[],
+  today: LocalDate,
+): BankMovement[] => [...matchMovements(ledger, movements, today).unmatched];
