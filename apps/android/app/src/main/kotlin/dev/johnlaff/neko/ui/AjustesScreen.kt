@@ -88,6 +88,7 @@ class AjustesForm(v: AjustesView) {
     var usual by mutableStateOf(v.settings.usualCard ?: "")
     val closing = mutableStateMapOf<String, String>().apply { v.settings.cards.forEach { put(it.name, it.closingDay.toString()) } }
     val others = mutableStateListOf<String>().apply { addAll(v.settings.othersCards) }
+    var writing by mutableStateOf(v.settings.writing ?: true)
     /** Fields left at least once: only those say they are wrong. */
     val left = mutableStateListOf<String>()
     /** Set by a switch, a picker or leaving a field: save without waiting for typing to stop. */
@@ -107,6 +108,7 @@ class AjustesForm(v: AjustesView) {
         },
         // Checked Conferência points are set on Hoje; saving here keeps them.
         reviewed = reviewed,
+        writing = writing,
     )
 
     init {
@@ -166,6 +168,7 @@ fun AjustesScreen(
         val f = form ?: return@ScreenFrame
         item { Group("Ritmo") { Pace(f, view.dailyAuto) } }
         if (f.cards.isNotEmpty()) item { Group("Cartões") { Cards(f) } }
+        item { Group("Planilha") { Writing(f) } }
         banks.view?.takeIf { it.configured || it.items.isNotEmpty() }?.let { b ->
             item {
                 Column {
@@ -229,6 +232,21 @@ private fun Reminders(r: RemindersSwitch) {
             onCheckedChange = null,
             colors = switchColors(),
         )
+    }
+}
+
+/** The writing kill switch (specs/005-lancamentos): off, Neko only shows; nothing is written. */
+@Composable
+private fun Writing(f: AjustesForm) {
+    Setting(
+        "Lançar pelo Neko",
+        if (f.writing) "Grava só quando você toca em Lançar" else "Desligado, o Neko só mostra e não grava",
+        modifier = Modifier.toggleable(f.writing, role = Role.Switch, onValueChange = toggled {
+            f.writing = it
+            f.now = true
+        }),
+    ) {
+        Switch(checked = f.writing, onCheckedChange = null, colors = switchColors())
     }
 }
 

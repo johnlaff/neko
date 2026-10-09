@@ -272,6 +272,7 @@ export const Ajustes = () => {
   return (
     <>
       <Form initial={settings.data} cards={projection.data.cardsKnown} />
+      <Writing settings={settings.data} />
       <Banks sheetCards={projection.data.cardsKnown.map((c) => c.name)} />
       <section className="group" aria-labelledby="g-device">
         <h2 id="g-device">Neste aparelho</h2>
@@ -299,6 +300,47 @@ export const Ajustes = () => {
         </div>
       </section>
     </>
+  );
+};
+
+/** The writing kill switch (specs/005-lancamentos): off, Neko only shows; nothing is written. */
+const Writing = ({ settings: s }: { settings: UserSettings }) => {
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: api.saveSettings,
+    onSuccess: (saved) => {
+      queryClient.setQueryData(["settings"], saved);
+      queryClient.invalidateQueries({ queryKey: ["projection"] });
+    },
+  });
+  const on = save.isPending ? !s.writing : s.writing;
+  return (
+    <section className="group" aria-labelledby="g-writing">
+      <h2 id="g-writing">Planilha</h2>
+      <div className="panel list">
+        <label className="setting">
+          <span className="label">
+            Lançar pelo Neko
+            <span className={save.isError ? "sub error" : "sub"}>
+              {save.isError
+                ? "Não salvou. Tente de novo"
+                : on
+                  ? "Grava só quando você toca em Lançar"
+                  : "Desligado, o Neko só mostra e não grava"}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            className="switch"
+            aria-checked={on}
+            checked={on}
+            disabled={save.isPending}
+            onChange={(e) => save.mutate({ ...s, writing: e.target.checked })}
+          />
+        </label>
+      </div>
+    </section>
   );
 };
 

@@ -125,8 +125,16 @@ class ScreenshotTest {
     }
 
     // The bank's parts sit at the end of each screen: scrolled there, as the owner would.
-    @Test fun bancoHojeLight() = shot("banco-hoje-light", night = false, scrollTo = "Fora da planilha") {
-        HojeScreen(TodayState(view), {}, {})
+    @Test fun bancoHojeLight() = shot("banco-hoje-light", night = false, scrollTo = "Para lançar") {
+        HojeScreen(TodayState(view), {}, {}, launcher = Fakes.launcher)
+    }
+
+    @Test fun saldoHojeDark() = shot("saldo-hoje-dark", night = true, scrollTo = "Para lançar") {
+        HojeScreen(TodayState(view.copy(queue = emptyList())), {}, {}, launcher = Fakes.launcher)
+    }
+
+    @Test fun lancarDark() = shot("lancar-dark", night = true) {
+        HojeScreen(TodayState(view.copy(entryCards = listOf("Cartão Azul"))), {}, {}, launcher = Fakes.launcher, launchOpen = true)
     }
 
     @Test fun miaHojeLight() = shot("mia-hoje-light", night = false, scrollTo = "Perguntar à Mia") {

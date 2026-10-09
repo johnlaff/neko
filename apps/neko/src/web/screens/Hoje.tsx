@@ -10,15 +10,13 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { HEALTH_DAYS, issueKey, noteLine, SAVE_LEAD } from "../../shared/today.ts";
-import type { BankView } from "../../shared/types.ts";
+import { HEALTH_DAYS, issueKey, SAVE_LEAD } from "../../shared/today.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
 import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
 import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney, Gauge, ItemName } from "../Figures.tsx";
 import {
-  bankText,
   capitalize,
   days,
   money,
@@ -37,6 +35,7 @@ import {
   IconPlus,
   IconReceipt,
 } from "../icons.tsx";
+import { LaunchToast, ManualLaunch, ParaLancar } from "../Launch.tsx";
 import { CARDS_COME_FROM, HINTS } from "../learn.ts";
 import { Mia } from "../Mia.tsx";
 import { Simulator } from "../Pace.tsx";
@@ -319,53 +318,6 @@ const Conference = ({
   );
 };
 
-/**
- * What moved in the account and has no line in the sheet yet. Neko never writes the sheet: a tap
- * copies the line as the day's note wants it, and the owner pastes it there.
- */
-const BankMissing = ({ bank }: { bank: BankView }) => {
-  const [copied, setCopied] = useState<number | null>(null);
-  if (bank.missing.length === 0) return null;
-  return (
-    <section className="panel" aria-labelledby="h-bank-missing">
-      <div className="panel-head">
-        <h2 id="h-bank-missing">Fora da planilha</h2>
-        <span className="chip warn">
-          {bank.missing.length === 1 ? "1 movimento" : `${bank.missing.length} movimentos`}
-        </span>
-      </div>
-      <ul className="rows">
-        {bank.missing.map((m, i) => (
-          <li key={`${m.date}-${m.amount}-${m.description}`}>
-            <button
-              type="button"
-              className="row-link"
-              onClick={() =>
-                navigator.clipboard?.writeText(noteLine(m)).then(
-                  () => setCopied(i),
-                  () => {},
-                )
-              }
-            >
-              <span className="name">{bankText(m.description)}</span>
-              <span className={`value ${m.amount > 0 ? "pos" : ""}`}>
-                {m.amount > 0 ? "+" : "−"}
-                {money(Math.abs(m.amount))}
-              </span>
-              <span className="meta" aria-live="polite">
-                {copied === i
-                  ? "Linha copiada. Cole na nota do dia"
-                  : `${shortDate(m.date)} · ${m.amount > 0 ? "Entrada" : "Saída"}`}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <p className="hint">Escolha um para copiar a linha da nota. O Neko não altera a planilha.</p>
-    </section>
-  );
-};
-
 /** Days shown before "Ver mais": whole days only, until about this many items. */
 const UPCOMING_SHOWN = 4;
 
@@ -470,7 +422,7 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
  */
 export const Hoje = () => (
   <WithProjection>
-    {({ projection: p, sheet, daily, habit, bank }) => {
+    {({ projection: p, sheet, daily, habit, bank, writing, cardsKnown }) => {
       const cs = p.canSpend;
       const todayUrl = p.todayRef
         ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
@@ -550,18 +502,25 @@ export const Hoje = () => (
           {/* Beside the dial on wide screens: what to do now, then what to look at. */}
           <div className={cs ? "half stack" : "stack"}>
             <div className="quick">
-              {todayUrl && (
-                <a
-                  className="button"
-                  href={todayUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-keyshortcuts="L"
-                  title="Lançar na planilha (L)"
-                >
-                  <IconPlus />
-                  Lançar
-                </a>
+              {writing ? (
+                <ManualLaunch
+                  cards={cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name)}
+                  today={p.today}
+                />
+              ) : (
+                todayUrl && (
+                  <a
+                    className="button"
+                    href={todayUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-keyshortcuts="L"
+                    title="Lançar na planilha (L)"
+                  >
+                    <IconPlus />
+                    Lançar
+                  </a>
+                )
               )}
               {cs && <Simulator cs={cs} months={p.months} />}
               <Mia />
@@ -607,9 +566,10 @@ export const Hoje = () => (
 
           {/* One column beside Próximos on wide screens, so a short Conferência leaves no hole. */}
           <div className="half stack">
+            {bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />}
             <Conference issues={issues} sheet={sheet} />
-            {bank && <BankMissing bank={bank} />}
           </div>
+          <LaunchToast />
         </>
       );
     }}

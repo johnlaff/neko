@@ -26,6 +26,7 @@ import dev.johnlaff.neko.data.Effects
 import dev.johnlaff.neko.data.Neko
 import dev.johnlaff.neko.shortcuts.Shortcuts
 import dev.johnlaff.neko.widget.WidgetRefresh
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -197,6 +198,30 @@ class AppModel(
     fun endOtherSessions() = side {
         neko.api.endOtherSessions()
         _devices.value = neko.api.sessions()
+    }
+
+    /** Para lançar and Lançar à mão; each answer reads Hoje again, which drops what was done. */
+    val launcher = object : Launcher {
+        override suspend fun launch(draft: JsonObject, key: String?): String {
+            val fingerprints = neko.api.preview(draft)
+            val r = neko.api.launch(java.util.UUID.randomUUID().toString(), draft, fingerprints, key)
+            if (r.state != "done") throw ApiException(422, "write", r.error ?: "Não gravou. A planilha ficou como estava.")
+            readToday(shown = false)
+            return r.entryId
+        }
+
+        override suspend fun undo(id: String): Boolean =
+            (neko.api.undo(id).state == "undone").also { readToday(shown = false) }
+
+        override suspend fun ignore(key: String) {
+            neko.api.ignore(key)
+            readToday(shown = false)
+        }
+
+        override suspend fun account(account: String, use: String) {
+            neko.api.accountUse(account, use)
+            readToday(shown = false)
+        }
     }
 
     /** Hoje's "Perguntar à Mia"; the Worker runs the tools and checks the answer. */

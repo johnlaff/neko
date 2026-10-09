@@ -133,6 +133,7 @@ class MainActivity : ComponentActivity() {
                                             mia = mia,
                                             askMia = model::askMia,
                                             review = model::review,
+                                            launcher = model.launcher,
                                             onScreen = { tela ->
                                                 go(when (tela) { "faturas" -> Tab.Faturas; "mes" -> Tab.Mes; else -> Tab.Hoje })
                                             },

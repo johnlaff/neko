@@ -198,6 +198,8 @@ data class UserSettings(
     val cards: List<CardDays> = emptyList(),
     val othersCards: List<String> = emptyList(),
     val reviewed: List<String> = emptyList(),
+    /** Lançar pelo Neko; left out (null), the Worker keeps it as it is. */
+    val writing: Boolean? = null,
 )
 
 @Serializable

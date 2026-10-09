@@ -60,7 +60,9 @@ export const getProjection = async (env: Env, today: LocalDate): Promise<Project
     recordEdits(env.DB, [file.modifiedTime]).then(() => loadHabit(env.DB, today)),
     readProjection(env, today, file.token, file, settings, bank),
   ]);
-  return { ...response, habit };
+  // Fresh on every read, like the streak: switching writing off must hide the buttons at once.
+  const writing = settings.writing && Boolean(env.NEKO_WRITER_SERVICE_ACCOUNT_JSON);
+  return { ...response, habit, writing };
 };
 
 const readProjection = async (

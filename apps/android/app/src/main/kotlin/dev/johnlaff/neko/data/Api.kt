@@ -6,7 +6,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -105,6 +110,37 @@ class Api(
     suspend fun saveBankCards(cards: List<BankCard>) {
         val body = json.encodeToString(BankCardsBody.serializer(), BankCardsBody(cards)).toRequestBody(jsonType)
         call("/banks/cards", body, "PUT")
+    }
+
+    /** The cells' fingerprints as they are now: the launch refuses if any changed since. */
+    suspend fun preview(draft: JsonObject): List<String> {
+        val body = JsonObject(mapOf("draft" to draft))
+        val parts = json.parseToJsonElement(call("/entries/preview", body.asBody())).jsonObject["parts"]
+        return parts?.jsonArray?.map { it.jsonObject["fingerprint"]!!.jsonPrimitive.content } ?: emptyList()
+    }
+
+    suspend fun launch(id: String, draft: JsonObject, fingerprints: List<String>, key: String?): LaunchResult {
+        val body = buildJsonObject {
+            put("id", id)
+            put("draft", draft)
+            put("fingerprints", JsonArray(fingerprints.map(::JsonPrimitive)))
+            if (key != null) put("key", key)
+        }
+        return json.decodeFromString(call("/entries", body.asBody()))
+    }
+
+    suspend fun undo(id: String): LaunchResult =
+        json.decodeFromString(call("/entries/$id/undo", JsonObject(emptyMap()).asBody()))
+
+    suspend fun ignore(key: String) {
+        call("/queue/ignore", buildJsonObject { put("key", key) }.asBody())
+    }
+
+    suspend fun accountUse(account: String, use: String) {
+        call("/queue/account", buildJsonObject {
+            put("account", account)
+            put("use", use)
+        }.asBody())
     }
 
     suspend fun mia(): MiaStatus = json.decodeFromString(call("/mia"))
