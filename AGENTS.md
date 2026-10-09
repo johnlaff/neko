@@ -8,8 +8,12 @@ invented data like `apps/neko/e2e/make-projection.ts`), and never commit keys.
 
 - The owner's real sheet copy lives outside Git; `NEKO_REAL_SHEET=<path> pnpm test` runs the
   real-sheet acceptance test against it. `SHEET_ID` and `ALLOWED_EMAILS` are Worker secrets.
-- Neko never writes to the sheet. Only the read-only service account (`GOOGLE_SERVICE_ACCOUNT_JSON`)
-  goes into Worker secrets. Any other Google key never enters this repo or its secrets.
+- Neko writes to the sheet only through the entries feature (`specs/005-lancamentos`), only when the
+  owner taps an action, and only Entrada/Saída/Diário cells that `checkCell` fully understands, via
+  `planCellEdit`. Never Data, Saldo, headers or other tabs, and nothing automatic (bank, Mia, cron).
+  Until Fase 1 ships, no code path writes. Reads use the read-only service account
+  (`GOOGLE_SERVICE_ACCOUNT_JSON`); writes will use a separate `neko-writer` account. Any other Google
+  key never enters this repo or its secrets.
 - Money is integer cents (`Cents`), dates are civil `LocalDate` strings, time zone
   `America/Sao_Paulo` lives in `packages/engine/src/date.ts` only. The engine never reads the clock.
 - Finance rules live in `packages/engine` with tests (TDD). The Worker and UI only orchestrate and
