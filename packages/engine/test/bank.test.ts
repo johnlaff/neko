@@ -66,6 +66,46 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     ]);
   });
 
+  it("counts a closed bill by its total, even when the bank listed only part of it", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [line(25000, "2026-11"), line(12000, "2026-12", { installment: 1, installments: 2 })],
+      today,
+      [{ card: "Visa", billMonth: "2026-11", total: cents(30000) }],
+    );
+    expect(checks.map((c) => [c.due, c.bank, c.gap])).toEqual([
+      ["2026-11-10", 30000, 0],
+      ["2026-12-10", 12000, 12000],
+    ]);
+  });
+
+  it("knows a parcel the bank lists ahead with a shorter text or a rounded value", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [
+        line(1820, "2026-11", {
+          description: "MERCADOLIVRE*MERCADOLI",
+          installment: 3,
+          installments: 4,
+        }),
+        line(1820, "2026-12", {
+          description: "MERCADOLIVRE*MERC",
+          installment: 4,
+          installments: 4,
+        }),
+        line(3198, "2026-11", { description: "LOJA X", installment: 1, installments: 2 }),
+        line(3196, "2026-12", { description: "LOJA X", installment: 2, installments: 2 }),
+      ],
+      today,
+    );
+    expect(checks.map((c) => [c.due, c.bank])).toEqual([
+      ["2026-11-10", 5018],
+      ["2026-12-10", 5016],
+    ]);
+  });
+
   it("leaves out bills the sheet does not reach yet", () => {
     const checks = billChecks(
       days,
@@ -109,10 +149,11 @@ describe("account movements the sheet does not have", () => {
     "2026-10-07": { saida: cell(4990) },
   });
   const today = localDate("2026-10-15");
-  const mov = (date: string, amount: number, description = "x"): BankMovement => ({
+  const mov = (date: string, amount: number, description = "x", account = "a"): BankMovement => ({
     date: localDate(date),
     amount: cents(amount),
     description,
+    account,
   });
 
   it("matches by exact amount within 7 days, each sheet line used once", () => {
@@ -142,5 +183,42 @@ describe("account movements the sheet does not have", () => {
   it("an entrada never pays for a saída of the same amount", () => {
     const missing = unmatchedMovements(days, [mov("2026-10-05", 148424, "DEVOLUÇÃO")], today);
     expect(missing).toHaveLength(1);
+  });
+
+  it("leaves out money moved between the owner's own accounts", () => {
+    const missing = unmatchedMovements(
+      days,
+      [
+        mov("2026-10-04", -1392874, "PIX ENVIADO", "banco"),
+        mov("2026-10-04", 1392874, "PIX RECEBIDO", "carteira"),
+        mov("2026-10-05", -2000, "PIX ENVIADO", "banco"),
+        mov("2026-10-05", 2000, "DEVOLUÇÃO", "banco"),
+        mov("2026-10-06", -3000, "TRANSF POUP PARA C/C", "banco"),
+        mov("2026-10-06", 3000, "TRANSF POUP PARA C/C", "banco"),
+      ],
+      today,
+    );
+    expect(missing.map((m) => m.description)).toEqual(["PIX ENVIADO", "DEVOLUÇÃO"]);
+  });
+
+  it("leaves out the payment of a card bill, which the bills already check", () => {
+    const missing = unmatchedMovements(
+      days,
+      [
+        mov("2026-10-12", -596851, "GASTOS CARTAO DE CREDITO - DOCTO: 1"),
+        mov("2026-10-02", -19689, "Pagamento efetuado - Pagamento Fatura"),
+      ],
+      today,
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it("takes one movement for two lines of the same sheet day", () => {
+    const two = ledger("2026-10-01", 20, 0, {
+      "2026-10-07": {
+        entrada: cell(275651, [item(100651, "Carro"), item(11700, "Remédio"), item(163300, "Gio")]),
+      },
+    });
+    expect(unmatchedMovements(two, [mov("2026-10-07", 112351, "PIX RECEBIDO")], today)).toEqual([]);
   });
 });

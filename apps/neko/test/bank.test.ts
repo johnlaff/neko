@@ -14,7 +14,6 @@ const txn = (over: Partial<BankRows["txns"][number]>): BankRows["txns"][number] 
   installment: null,
   installments: null,
   bill_id: null,
-  bill_month: null,
   card_number: null,
   ...over,
 });
@@ -39,9 +38,9 @@ const rows: BankRows = {
     }),
     txn({ account_id: "cartao", amount: 700, card_number: "1111" }),
   ],
-  bills: [{ id: "b1", due_date: "2026-10-12" }],
+  bills: [{ id: "b1", account_id: "cartao", due_date: "2026-10-12", total: 98000 }],
 };
-// Closes on the 29th, due on the 12th: Pluggy forecasts the closing month.
+// Closes on the 29th, due on the 12th: a purchase on Oct 5 lands on the bill due Nov 12.
 const cards: CardConfig[] = ["Visa", "Visa Gio"].map((name) => ({
   name,
   closingDay: 29,
@@ -54,16 +53,24 @@ const map: UserSettings["bankCards"] = [
 ];
 
 describe("bank rows to the engine", () => {
-  it("signs by type, names each card line by its number, then by its account, and dates it by due month", () => {
+  it("signs by type, names each card line by its number, then by its account, and dates it by the card's cycle", () => {
     const { lines, movements } = bankInput(rows, map, cards);
     expect(movements.map((m) => [m.description, m.amount])).toEqual([
       ["PIX RECEBIDO", 5000],
       ["PADARIA", -1990],
     ]);
     expect(lines.map((l) => [l.card, l.amount, l.billMonth])).toEqual([
-      ["Visa", 12000, "2026-12"],
-      ["Visa Gio", 3000, "2026-12"],
+      ["Visa", 12000, "2026-11"],
+      ["Visa Gio", 3000, "2026-11"],
       ["Visa", -500, "2026-10"],
+      ["Visa", 700, "2026-11"],
+    ]);
+  });
+
+  it("gives a closed bill's total only when its account is one card in the sheet", () => {
+    expect(bankInput(rows, map, cards).closed).toEqual([]);
+    expect(bankInput(rows, map.slice(0, 1), cards).closed).toEqual([
+      { card: "Visa", billMonth: "2026-10", total: 98000 },
     ]);
   });
 
