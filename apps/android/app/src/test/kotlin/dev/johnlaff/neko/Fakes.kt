@@ -61,4 +61,12 @@ object Fakes {
         json.decodeFromString(InstallmentSimulation.serializer(), File("src/test/resources/simulate.json").readText())
 
     val simulate: suspend (Long, Int) -> InstallmentSimulation? = { _, _ -> simulation }
+
+    /** Launches nothing: the prints only draw Para lançar and Lançar à mão. */
+    val launcher = object : dev.johnlaff.neko.ui.Launcher {
+        override suspend fun launch(draft: kotlinx.serialization.json.JsonObject, key: String?) = "e"
+        override suspend fun undo(id: String) = true
+        override suspend fun ignore(key: String) = Unit
+        override suspend fun account(account: String, use: String) = Unit
+    }
 }

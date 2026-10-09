@@ -272,7 +272,7 @@ export const Ajustes = () => {
   return (
     <>
       <Form initial={settings.data} cards={projection.data.cardsKnown} />
-      <Writing settings={settings.data} ready={projection.data.writing ?? false} />
+      <Writing settings={settings.data} />
       <Banks sheetCards={projection.data.cardsKnown.map((c) => c.name)} />
       <section className="group" aria-labelledby="g-device">
         <h2 id="g-device">Neste aparelho</h2>
@@ -304,7 +304,7 @@ export const Ajustes = () => {
 };
 
 /** The writing kill switch (specs/005-lancamentos): off, Neko only shows; nothing is written. */
-const Writing = ({ settings: s, ready }: { settings: UserSettings; ready: boolean }) => {
+const Writing = ({ settings: s }: { settings: UserSettings }) => {
   const queryClient = useQueryClient();
   const save = useMutation({
     mutationFn: api.saveSettings,
@@ -324,11 +324,9 @@ const Writing = ({ settings: s, ready }: { settings: UserSettings; ready: boolea
             <span className={save.isError ? "sub error" : "sub"}>
               {save.isError
                 ? "Não salvou. Tente de novo"
-                : !on
-                  ? "Desligado, o Neko só mostra e não grava"
-                  : ready
-                    ? "Grava só quando você toca em Lançar"
-                    : "Ligado, mas o Neko ainda não tem acesso para gravar"}
+                : on
+                  ? "Grava só quando você toca em Lançar"
+                  : "Desligado, o Neko só mostra e não grava"}
             </span>
           </span>
           <input

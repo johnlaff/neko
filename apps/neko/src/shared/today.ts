@@ -84,11 +84,7 @@ export interface TodayView {
   readonly entryCards: readonly string[];
 }
 
-export const todayView = (
-  r: ProjectionResponse,
-  reviewed: readonly string[],
-  writing = false,
-): TodayView => {
+export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): TodayView => {
   const p = r.projection;
   const cellUrl = (tab: string, a1: string) => sheetCellUrl(r.sheet.id, r.sheet.tabs[tab], a1);
   const since = addDays(p.today, -HEALTH_DAYS);
@@ -120,7 +116,7 @@ export const todayView = (
     bankMissing: r.bank ? r.bank.missing.map((m) => ({ ...m, line: noteLine(m) })) : null,
     queue: r.bank ? (r.bank.queue ?? []) : null,
     saldo: saldoView(r.bank?.saldo),
-    writing,
+    writing: r.writing ?? false,
     entryCards: r.cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name),
   };
 };

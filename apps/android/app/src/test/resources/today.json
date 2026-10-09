@@ -243,6 +243,6 @@
       "description": "Diferença do banco"
     }
   },
-  "writing": false,
+  "writing": true,
   "entryCards": []
 }

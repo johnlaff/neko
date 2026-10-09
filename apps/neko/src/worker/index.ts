@@ -417,7 +417,7 @@ app.get("/today", async (c) => {
     getProjection(c.env, todayIn(new Date())),
     loadSettings(c.env.DB),
   ]);
-  return c.json(todayView(data, settings.reviewed, data.writing ?? false));
+  return c.json(todayView(data, settings.reviewed));
 });
 
 /** Faturas, Mês and Ajustes ready to draw, for the Android app (see shared/screens.ts). */
