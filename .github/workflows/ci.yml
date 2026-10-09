@@ -27,6 +27,29 @@ jobs:
       - run: pnpm --filter @neko/app exec playwright install --with-deps chromium
       - run: pnpm --filter @neko/app e2e
 
+  # The entry writer against Google, on the "Neko Teste" sheet (specs/005-lancamentos, Fase 1).
+  # One run at a time across branches: two runs writing the same test cells would trip each
+  # other's checks. Without the secrets (forks), the tests skip themselves.
+  sheet-writer:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: neko-test-sheet
+      cancel-in-progress: false
+    env:
+      NEKO_WRITER_SERVICE_ACCOUNT_JSON: ${{ secrets.NEKO_WRITER_SERVICE_ACCOUNT_JSON }}
+      NEKO_TEST_SHEET_ID: ${{ secrets.NEKO_TEST_SHEET_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Contract tests on the test sheet
+        working-directory: apps/neko
+        run: pnpm exec vitest run test/sheet-writer.contract.test.ts
+
   deploy:
     needs: check
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
