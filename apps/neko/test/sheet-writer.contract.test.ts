@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { cents, fromReais, localDate, type Placement } from "@neko/engine";
 import { SHEET_MAP } from "@neko/sheet-reader";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { accessToken, WRITE_SCOPES } from "../src/worker/google.ts";
 import {
   commitEntry,
@@ -27,7 +27,9 @@ const available = key !== "" && sheetId !== "";
 const d = localDate;
 const at = (date: string, column: Placement["column"]) => ({ date: d(date), column });
 
-describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () => {
+describe.runIf(available)("writer on the test sheet", { timeout: 300_000 }, () => {
+  // Sheets allows 60 reads a minute and each test reads about 20 times: keep a pace.
+  beforeEach(() => new Promise((r) => setTimeout(r, 15_000)), 20_000);
   let api: SheetsApi;
   const sheets = async () => {
     api ??= googleSheets(sheetId, await accessToken(key, Date.now(), WRITE_SCOPES));
@@ -128,6 +130,122 @@ describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () =>
         target: "card",
       },
       (b) => b.replace("R$ 0,00 - Cartão B", "R$ 19,90 - Cartão B"),
+    );
+  });
+
+  /** Puts a cell as the test sheet's script made it, in case an earlier run died halfway. */
+  const reset = async (p: ReturnType<typeof at>, formula: string | null, note: string) => {
+    const s = await sheets();
+    const l = locate(p);
+    const { sheetId: tabId } = await s.readRow(l.tab, l.row, l.block);
+    await s.writeCell(tabId, l.row, l.col, formula === null ? {} : { formulaValue: formula }, note);
+  };
+
+  /** Several cells at once (a move), each checked against its own preview, then undone. */
+  const roundTripMany = async (placements: Placement[], expectNotes: ((b: string) => string)[]) => {
+    const s = await sheets();
+    const db = sqliteD1() as unknown as D1Database;
+    const id = randomUUID();
+    const before = await Promise.all(placements.map(read));
+    const preview = await previewEntry(s, placements);
+    const done = await commitEntry(
+      db,
+      s,
+      id,
+      placements,
+      preview.map((p) => p.fingerprint),
+    );
+    expect(done.state, JSON.stringify(done)).toBe("done");
+    for (const [i, p] of placements.entries()) {
+      const after = await read(p);
+      const plan = preview[i];
+      expect(after.cell.userEnteredValue?.formulaValue).toBe(plan?.formula || undefined);
+      expect(after.cell.note ?? "").toBe(expectNotes[i]?.(before[i]?.cell.note ?? ""));
+      // Saldo carries forward: a day's Saldo moves by every change on or before it.
+      const moved = placements.reduce((sum, q, j) => {
+        const pj = preview[j];
+        const sign = q.column === "entrada" ? 1 : -1;
+        return q.date <= p.date ? sum + sign * ((pj?.after ?? 0) - (pj?.before ?? 0)) : sum;
+      }, 0);
+      expect(after.saldo - (before[i]?.saldo ?? 0)).toBe(moved);
+    }
+    expect((await undoEntry(db, s, id)).state).toBe("undone");
+    for (const [i, p] of placements.entries()) {
+      const undone = await read(p);
+      expect(undone.cell.userEnteredValue).toEqual(before[i]?.cell.userEnteredValue);
+      expect(undone.cell.note ?? "").toBe(before[i]?.cell.note ?? "");
+    }
+  };
+
+  it("changes the value of a planned salary", async () => {
+    await reset(at("2026-02-05", "entrada"), "=SUM(4000)", "R$ 4.000,00 - Salário");
+    await roundTripMany(
+      [
+        {
+          ...at("2026-02-05", "entrada"),
+          section: null,
+          description: "Salário",
+          target: "line",
+          was: cents(400000),
+          amount: cents(412345),
+        },
+      ],
+      [(b) => b.replace("R$ 4.000,00 - Salário", "R$ 4.123,45 - Salário")],
+    );
+  });
+
+  it("removes a bill line from CONTAS", async () => {
+    await reset(
+      at("2026-03-10", "saida"),
+      "=SUM(1200+150,5+300)",
+      "CONTAS\nR$ 1.200,00 - Aluguel\nR$ 150,50 - Luz\n\nCARTÕES\nR$ 300,00 - Cartão A",
+    );
+    await roundTripMany(
+      [
+        {
+          ...at("2026-03-10", "saida"),
+          section: "contas",
+          description: "Luz",
+          target: "line",
+          was: cents(15050),
+          amount: cents(0),
+        },
+      ],
+      [(b) => b.replace("R$ 150,50 - Luz\n", "")],
+    );
+  });
+
+  it("moves the salary to the day before, emptying its old cell", async () => {
+    const line = { section: null, description: "Salário", target: "line" } as const;
+    await reset(at("2026-01-05", "entrada"), "=SUM(4000)", "R$ 4.000,00 - Salário");
+    await reset(at("2026-01-04", "entrada"), null, "");
+    await roundTripMany(
+      [
+        { ...at("2026-01-05", "entrada"), ...line, was: cents(400000), amount: cents(0) },
+        { ...at("2026-01-04", "entrada"), ...line, amount: cents(400000) },
+      ],
+      [() => "", () => "R$ 4.000,00 - Salário"],
+    );
+  });
+
+  it("sets a card's line on its bill to a lower total", async () => {
+    await reset(
+      at("2026-09-10", "saida"),
+      "=SUM(1200+150,5+300)",
+      "CONTAS\nR$ 1.200,00 - Aluguel\nR$ 150,50 - Luz\n\nCARTÕES\nR$ 300,00 - Cartão A",
+    );
+    await roundTripMany(
+      [
+        {
+          ...at("2026-09-10", "saida"),
+          section: "cartoes",
+          description: "Cartão A",
+          target: "card",
+          was: cents(30000),
+          amount: cents(29999),
+        },
+      ],
+      [(b) => b.replace("R$ 300,00 - Cartão A", "R$ 299,99 - Cartão A")],
     );
   });
 

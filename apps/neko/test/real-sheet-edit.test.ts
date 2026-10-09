@@ -4,6 +4,7 @@ import {
   type ApiCell,
   type ApiSpreadsheet,
   checkCell,
+  parseNote,
   planCellEdit,
   SHEET_MAP,
 } from "@neko/sheet-reader";
@@ -110,6 +111,29 @@ describe.runIf(available)("writer dry run on the real sheet", () => {
           // A note may list the same name twice (e.g. once in CONTAS, once in CARTÕES): refusing
           // is fine, a wrong edit is not, and planCellEdit throws on any inconsistent result.
           if (p.ok) planned++;
+        }
+      }
+    }
+    expect(planned).toBeGreaterThan(0);
+  });
+
+  it("can change and remove every line of every understood cell", () => {
+    let planned = 0;
+    for (const c of cells) {
+      if (!checkCell(c.cell).ok) continue;
+      for (const item of parseNote(c.cell?.note).items) {
+        if (item.description === "" || /^r\$/i.test(item.description)) continue;
+        for (const amount of [cents(0), cents(item.amount + 1)]) {
+          if (amount === item.amount) continue;
+          const p = planCellEdit(c.cell, {
+            amount,
+            was: item.amount,
+            description: item.description,
+            section: item.section,
+            target: "line",
+          });
+          expect(p.ok, `${c.a1} ${item.description} → ${amount}`).toBe(true);
+          planned++;
         }
       }
     }

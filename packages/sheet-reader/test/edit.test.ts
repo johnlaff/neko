@@ -239,6 +239,94 @@ describe("planCellEdit: a card purchase", () => {
   });
 });
 
+const change = (
+  was: number,
+  amount: number,
+  description: string,
+  section: string | null = null,
+): EditOp => ({ was: cents(was), amount: cents(amount), description, section, target: "line" });
+const setCard = (was: number, amount: number, description: string): EditOp => ({
+  ...card(amount, description),
+  was: cents(was),
+});
+
+describe("planCellEdit: changing a line already there", () => {
+  const salary = "R$ 9.000,00 - Salário\nR$ 50,00 - Rendimento";
+
+  it("gives a line a new value, keeping its text and the other lines", () => {
+    const p = plan(sumCell("=SUM(9000+50)", 9050, salary), change(900000, 912345, "salário"));
+    expect(p.formula).toBe("=SUM(9123,45+50)");
+    expect(p.note).toBe("R$ 9.123,45 - Salário\nR$ 50,00 - Rendimento");
+    expect([p.before, p.after]).toEqual([905000, 917345]);
+  });
+
+  it("removes a line and its term", () => {
+    const p = plan(sumCell("=SUM(9000+50)", 9050, salary), change(5000, 0, "Rendimento"));
+    expect(p.formula).toBe("=SUM(9000)");
+    expect(p.note).toBe("R$ 9.000,00 - Salário");
+    expect(p.after).toBe(900000);
+  });
+
+  it("empties the cell when the last line goes", () => {
+    const p = plan(sumCell("=SUM(42,4)", 42.4, "R$ 42,40 - Padaria"), change(4240, 0, "Padaria"));
+    expect([p.formula, p.note, p.after]).toEqual(["", "", 0]);
+    const n = plan(
+      {
+        userEnteredValue: { numberValue: 20 },
+        effectiveValue: { numberValue: 20 },
+        note: "R$ 20,00 - x",
+      },
+      change(2000, 0, "x"),
+    );
+    expect([n.formula, n.note]).toEqual(["", ""]);
+  });
+
+  it("drops a section header left with no lines, and the blank line before it", () => {
+    const p = plan(
+      sumCell("=SUM(100+215,43)", 315.43, "R$ 100,00 - Mercado\n\nCONTAS\nR$ 215,43 - Luz"),
+      change(21543, 0, "Luz", "contas"),
+    );
+    expect(p.note).toBe("R$ 100,00 - Mercado");
+    expect(p.formula).toBe("=SUM(100)");
+    const q = plan(
+      sumCell("=SUM(215,43+50)", 265.43, "CONTAS\nR$ 215,43 - Luz\n\nCARTÕES\nR$ 50,00 - Banco X"),
+      change(21543, 0, "Luz", "contas"),
+    );
+    expect(q.note).toBe("CARTÕES\nR$ 50,00 - Banco X");
+  });
+
+  it("only takes the line in its own section, with the value it was seen with", () => {
+    const cell = sumCell("=SUM(10+10)", 20, "R$ 10,00 - Luz\n\nCONTAS\nR$ 10,00 - Luz");
+    expect(plan(cell, change(1000, 1500, "Luz", "contas")).note).toBe(
+      "R$ 10,00 - Luz\n\nCONTAS\nR$ 15,00 - Luz",
+    );
+    expect(planCellEdit(cell, change(1100, 1500, "Luz", "contas"))).toMatchObject({ ok: false });
+    expect(planCellEdit(cell, change(1000, 1500, "Água"))).toMatchObject({ ok: false });
+  });
+
+  it("sets a card line to the bill's total, lower or higher, and creates it when missing", () => {
+    const bill = sumCell("=SUM(410+20)", 430, "CARTÕES\nR$ 410,00 - Inter\nR$ 20,00 - Itaú");
+    expect(plan(bill, setCard(41000, 45290, "Inter")).note).toBe(
+      "CARTÕES\nR$ 452,90 - Inter\nR$ 20,00 - Itaú",
+    );
+    expect(plan(bill, setCard(41000, 40999, "Inter")).formula).toBe("=SUM(409,99+20)");
+    const zero = plan(bill, setCard(2000, 0, "Itaú"));
+    expect([zero.formula, zero.note]).toEqual([
+      "=SUM(410)",
+      "CARTÕES\nR$ 410,00 - Inter\nR$ 0,00 - Itaú",
+    ]);
+    expect(plan(bill, setCard(0, 1000, "Nubank")).note).toBe(
+      "CARTÕES\nR$ 410,00 - Inter\nR$ 20,00 - Itaú\nR$ 10,00 - Nubank",
+    );
+  });
+
+  it("refuses when the card line no longer holds what was seen", () => {
+    const bill = sumCell("=SUM(410)", 410, "CARTÕES\nR$ 410,00 - Inter");
+    expect(planCellEdit(bill, setCard(40000, 45290, "Inter"))).toMatchObject({ ok: false });
+    expect(planCellEdit(bill, setCard(41000, 41000, "Inter"))).toMatchObject({ ok: false });
+  });
+});
+
 describe("planCellEdit: refusals", () => {
   it("never edits a cell it does not understand, and never takes bad input", () => {
     expect(planCellEdit(sumCell("=SUM(10+10)", 20, "R$ 20,00 - x"), line(100, "y")).ok).toBe(false);
@@ -341,6 +429,60 @@ describe("properties", () => {
           note: p.note,
         }).ok,
       ).toBe(true);
+    }
+  });
+
+  it("a change touches exactly one line, and the cell stays consistent", () => {
+    const r = rng(11);
+    const pick = <T>(xs: readonly T[]) => xs[Math.floor(r() * xs.length)] as T;
+    const headers: Record<string, string> = { contas: "CONTAS", cartoes: "CARTÕES" };
+    for (let run = 0; run < 400; run++) {
+      const items = Array.from({ length: 1 + Math.floor(r() * 5) }, (_, i) => ({
+        amount: 1 + Math.floor(r() * 500_000),
+        description: `Item ${i}`,
+        section: pick([null, "contas", "cartoes"] as const),
+      }));
+      const block = (s: string | null) =>
+        items
+          .filter((i) => i.section === s)
+          .map((i) => `${noteAmount(cents(i.amount))} - ${i.description}`);
+      const note = [
+        block(null).join("\n"),
+        ...(["contas", "cartoes"] as const)
+          .filter((s) => block(s).length > 0)
+          .map((s) => [headers[s], ...block(s)].join("\n")),
+      ]
+        .filter((b) => b !== "")
+        .join(pick(["\n\n", "\n"]));
+      const total = items.reduce((a, i) => a + i.amount, 0);
+      const terms = [...items].sort(() => r() - 0.5).map((i) => formulaTerm(cents(i.amount)));
+      const cell = sumCell(`=SUM(${terms.join(pick(["+", "\n+"]))})`, total / 100, note);
+      const target = pick(items);
+      const to = r() < 0.4 ? 0 : 1 + Math.floor(r() * 500_000);
+      if (to === target.amount) continue;
+      const p = plan(
+        cell,
+        target.section === "cartoes"
+          ? setCard(target.amount, to, target.description)
+          : change(target.amount, to, target.description, target.section),
+      );
+      expect(p.after).toBe(total - target.amount + to);
+      const after = parseNote(p.note).items;
+      for (const i of items.filter((x) => x !== target))
+        expect(after).toContainEqual({ ...i, amount: cents(i.amount) });
+      const kept = after.find((i) => i.description === target.description);
+      if (to === 0 && target.section !== "cartoes") expect(kept).toBeUndefined();
+      else expect(kept?.amount).toBe(to);
+      const reread = checkCell(
+        p.formula === ""
+          ? { note: p.note }
+          : {
+              userEnteredValue: { formulaValue: p.formula },
+              effectiveValue: { numberValue: p.after / 100 },
+              note: p.note,
+            },
+      );
+      expect(reread).toMatchObject({ ok: true, total: p.after });
     }
   });
 });

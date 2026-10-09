@@ -3,8 +3,8 @@ import { type ApiCell, a1, checkCell, planCellEdit, SHEET_MAP } from "@neko/shee
 import { z } from "zod";
 
 /**
- * Writes entries into the sheet (specs/005-lancamentos, Fase 1). Each placement changes one
- * Entrada/Saída/Diário cell exactly as the owner would type it. The Sheets API has no
+ * Writes entries into the sheet (specs/005-lancamentos). Each placement adds, changes or removes
+ * one line of an Entrada/Saída/Diário cell exactly as the owner would type it. The Sheets API has no
  * compare-and-set and cannot restore a revision, so safety lives here:
  * - the cell is re-read right before writing and must still be the one the preview showed;
  * - the journal row (D1 `entry_op`) is written first, with the cell as it was;
@@ -59,20 +59,32 @@ const RowResponse = z.object({
     .min(1),
 });
 
+/** Tries after a 429, waiting 1, 2, 4, 8, 16, 32 and 60 seconds: two minutes in all. */
+const RETRIES = 7;
+
 /** The real Sheets API, with a token of the neko-writer account (`WRITE_SCOPES`). */
 export const googleSheets = (
   spreadsheetId: string,
   token: string,
   f: typeof fetch = fetch,
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
 ): SheetsApi => {
   const base = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`;
   const call = async (url: string, init?: RequestInit) => {
-    const res = await f(url, {
-      ...init,
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-    });
-    if (!res.ok) throw new WriteError(`Google respondeu ${res.status}: ${await res.text()}`);
-    return res.json();
+    // Sheets allows 60 reads and 60 writes a minute: a busy minute answers 429, so wait and retry.
+    for (let attempt = 0; ; attempt++) {
+      const res = await f(url, {
+        ...init,
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      });
+      if (res.status === 429 && attempt < RETRIES) {
+        await res.body?.cancel();
+        await wait(Math.min(60_000, 1000 * 2 ** attempt));
+        continue;
+      }
+      if (!res.ok) throw new WriteError(`Google respondeu ${res.status}: ${await res.text()}`);
+      return res.json();
+    }
   };
   return {
     async readRow(tab, row, firstCol) {
@@ -231,6 +243,8 @@ export interface CommitResult {
   readonly entryId: string;
   readonly state: "done" | "failed" | "undone";
   readonly parts: readonly { address: string; before: Cents; after: Cents; state: string }[];
+  /** Why a part failed, in words the owner can act on. */
+  readonly error?: string;
 }
 
 const isAfter = (cell: ApiCell | undefined, op: Pick<OpRow, "after_total" | "after_note">) => {
@@ -274,9 +288,11 @@ const result = async (db: D1Database, entryId: string): Promise<CommitResult> =>
     : ops.every((o) => o.state === "undone")
       ? "undone"
       : "done";
+  const error = ops.find((o) => o.state === "failed")?.error ?? undefined;
   return {
     entryId,
     state,
+    ...(error ? { error } : {}),
     parts: ops.map((o) => ({
       address: `${o.tab}!${o.cell}`,
       before: cents(o.before_total),
@@ -369,13 +385,14 @@ export const commitEntry = async (
 
     let error: string | null = null;
     try {
-      await api.writeCell(sheetId, at.row, at.col, { formulaValue: edit.formula }, edit.note);
+      const value = edit.formula === "" ? {} : { formulaValue: edit.formula };
+      await api.writeCell(sheetId, at.row, at.col, value, edit.note);
       const back = await api.readRow(at.tab, at.row, at.block);
       const written = back.cells[SHEET_MAP.offsets[p.column]];
       if (!isAfter(written, { after_total: edit.after, after_note: edit.note }))
         error = `${at.address} não ficou como planejado`;
-      else if (saldoOf(back.cells) - saldoBefore !== signed(p.column, p.amount))
-        error = `o Saldo de ${p.date} não mudou ${p.amount / 100} reais`;
+      else if (saldoOf(back.cells) - saldoBefore !== signed(p.column, edit.after - edit.before))
+        error = `o Saldo de ${p.date} não mudou ${(edit.after - edit.before) / 100} reais`;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
