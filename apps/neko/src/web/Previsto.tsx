@@ -59,17 +59,17 @@ export const PrevistoSetting = ({
   const [left, setLeft] = useState(false);
   const bad = left && typed.trim() !== "" && (amount === null || amount <= 0);
   const actions = useRef<HTMLDivElement>(null);
-  // The form opens below the switch and grows (Como calculei opening, the error): whenever its
-  // size changes, keep its buttons above the dock.
+  // The form or the off confirmation opens below the switch and grows (Como calculei opening, a
+  // wrong value, a failure): whenever its size changes, keep its buttons above the dock.
   const form = useRef<HTMLFormElement>(null);
+  const off = useRef<HTMLElement>(null);
   useEffect(() => {
-    const el = form.current;
-    if (open !== "on" || !el) return;
+    const el = open === "on" ? form.current : open === "off" ? off.current : null;
+    if (!el) return;
     const keep = new ResizeObserver(() => nearest(actions.current));
     keep.observe(el);
     return () => keep.disconnect();
   }, [open]);
-  const off = useRef<HTMLElement>(null);
   useEffect(() => {
     if (open === "off") {
       off.current?.focus({ preventScroll: true });
@@ -207,7 +207,12 @@ export const PrevistoSetting = ({
             >
               {run.isPending ? "Gravando…" : p.on ? "Trocar" : "Preencher"}
             </button>
-            <button type="button" className="ghost" onClick={close}>
+            <button
+              type="button"
+              className="ghost"
+              aria-disabled={run.isPending}
+              onClick={() => run.isPending || close()}
+            >
               Cancelar
             </button>
           </div>
@@ -229,7 +234,7 @@ export const PrevistoSetting = ({
               {failure(run.error)}
             </p>
           )}
-          <div className="actions">
+          <div className="actions" ref={actions}>
             <button
               type="button"
               aria-disabled={run.isPending}
@@ -237,7 +242,12 @@ export const PrevistoSetting = ({
             >
               {run.isPending ? "Apagando…" : "Apagar o previsto"}
             </button>
-            <button type="button" className="ghost" onClick={close}>
+            <button
+              type="button"
+              className="ghost"
+              aria-disabled={run.isPending}
+              onClick={() => run.isPending || close()}
+            >
               Cancelar
             </button>
           </div>

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -112,6 +113,10 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
                 supportingText = if (bad) ({ Text("Use um valor como 95,00") }) else null,
                 textStyle = MaterialTheme.typography.headlineSmall,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    left = true
+                    amount?.takeIf { it > 0 && !busy }?.let(::submit)
+                }),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
                 modifier = Modifier.fillMaxWidth().onFocusChanged {
                     if (focused && !it.isFocused) left = true
@@ -137,7 +142,7 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
                 filled = true,
                 enabled = amount != null && amount > 0 && !busy,
             ) { amount?.let { submit(it) } }
-            Small("Cancelar", filled = false, onClick = onClose)
+            Small("Cancelar", filled = false, enabled = !busy, onClick = onClose)
         }
     }
 }
