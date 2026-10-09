@@ -38,6 +38,8 @@ const Transaction = z.object({
   date: z.string(),
   description: z.string(),
   amount: z.number(),
+  currencyCode: z.string().nullish(),
+  amountInAccountCurrency: z.number().nullish(),
   type: z.string(),
   status: z.string().nullish(),
   providerId: z.string().nullish(),
@@ -70,6 +72,15 @@ export const WebhookEvent = z.object({ event: z.string(), itemId: z.string().opt
 export type Fetch = typeof fetch;
 
 /** Reais with two decimals to integer cents, refusing anything that is not money. */
+/**
+ * A purchase abroad comes in its own currency (USD 10,00); the bill charges it in reais, converted,
+ * and that is what the sheet holds.
+ */
+const inReais = (t: z.infer<typeof Transaction>): number =>
+  t.currencyCode && t.currencyCode !== "BRL" && t.amountInAccountCurrency != null
+    ? t.amountInAccountCurrency
+    : t.amount;
+
 export const toCents = (reais: number): number => {
   const c = Math.round(reais * 100);
   if (!Number.isSafeInteger(c)) throw new RangeError(`not money: ${reais}`);
@@ -219,7 +230,7 @@ export const syncItem = async (
               a.id,
               civilDate(t.date),
               card?.purchaseDate ? civilDate(card.purchaseDate) : null,
-              toCents(t.amount),
+              toCents(inReais(t)),
               t.type,
               t.status ?? null,
               t.description,
