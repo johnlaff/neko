@@ -26,7 +26,10 @@ const useSetPrevisto = (onDone: () => void) => {
     onSuccess: (r) => {
       showToast({
         entryId: r.entryId,
-        text: r.value > 0 ? "Diário previsto na planilha" : "Previsto apagado da planilha",
+        text:
+          r.value > 0
+            ? `Diário previsto: ${money(r.value)} por dia`
+            : "Previsto apagado da planilha",
       });
       onDone();
       queryClient.invalidateQueries();

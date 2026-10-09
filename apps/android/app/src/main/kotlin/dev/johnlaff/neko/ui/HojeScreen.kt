@@ -127,7 +127,7 @@ fun HojeScreen(
             if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk) }
         }
         v.habit?.let { h -> item { Streak(h) } }
-        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto na planilha"; undo = it } }
+        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
         val over = (v.canSpend?.perDay ?: 0) < 0
         val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
