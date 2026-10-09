@@ -1,10 +1,12 @@
 import {
+  addDays,
   type BankCardLine,
   type BankMovement,
   billChecks,
   type CardConfig,
+  type ClosedBill,
   cents,
-  dueMonthOfClosing,
+  cycleContaining,
   type Ledger,
   type LocalDate,
   localDate,
@@ -32,13 +34,14 @@ export interface BankTxnRow {
   readonly installment: number | null;
   readonly installments: number | null;
   readonly bill_id: string | null;
-  readonly bill_month: string | null;
   readonly card_number: string | null;
 }
 
 export interface BankBillRow {
   readonly id: string;
+  readonly account_id: string;
   readonly due_date: string;
+  readonly total: number;
 }
 
 export interface BankRows {
@@ -68,10 +71,9 @@ const signed = (t: BankTxnRow): number =>
   t.type === "CREDIT" ? Math.abs(t.amount) : -Math.abs(t.amount);
 
 /**
- * The bill a card line lands on, by due month. A closed bill knows its due date; an open one only
- * has Pluggy's `billForecastDate`, which is the month the bill closes (a card closing on the 29th
- * and due on the 12th forecasts September for the bill due in October), so the card's days turn it
- * into the due month.
+ * The bill a card line lands on, by due month. A closed bill knows its due date. For the rest the
+ * card's own cycle decides from the line's date: Pluggy's `billForecastDate` means a different
+ * month at each bank (the closing month at one, the purchase month at another), so it is not used.
  */
 export const bankInput = (
   rows: BankRows,
@@ -89,7 +91,7 @@ export const bankInput = (
       const days = card ? config.get(normalizeName(card)) : undefined;
       const month =
         (t.bill_id ? billMonth.get(t.bill_id) : undefined) ??
-        (t.bill_month && days ? dueMonthOfClosing(days, t.bill_month) : undefined);
+        (days ? cycleContaining(days, localDate(t.date)).due.slice(0, 7) : undefined);
       if (!card || !month) continue;
       lines.push({
         card,
@@ -105,10 +107,24 @@ export const bankInput = (
         date: localDate(t.date),
         amount: cents(signed(t)),
         description: t.description,
+        account: t.account_id,
       });
   }
-  return { lines, movements };
+  // A closed bill's total is final, though the bank may leave a line or two out of the list. It
+  // stands for the bill when the whole account is one card in the sheet; holder and additional
+  // split it by their lines, so theirs stay summed.
+  const closed: ClosedBill[] = rows.bills.flatMap((b) => {
+    const names = new Set(map.filter((m) => m.accountId === b.account_id).map((m) => m.card));
+    const [card] = names;
+    return names.size === 1 && card
+      ? [{ card, billMonth: b.due_date.slice(0, 7), total: cents(b.total) }]
+      : [];
+  });
+  return { lines, movements, closed };
 };
+
+/** How far back a bank movement missing from the sheet is still shown. */
+export const MISSING_DAYS = 40;
 
 /** Bank against sheet for the response; null with no bank linked. */
 export const bankView = (
@@ -119,11 +135,15 @@ export const bankView = (
   today: LocalDate,
 ): BankView | null => {
   if (!rows) return null;
-  const { lines, movements } = bankInput(rows, settings.bankCards, cards);
+  const { lines, movements, closed } = bankInput(rows, settings.bankCards, cards);
   return {
     syncedAt: rows.syncedAt,
-    checks: billChecks(ledger, cards, lines, today),
-    missing: unmatchedMovements(ledger, movements, today),
+    checks: billChecks(ledger, cards, lines, today, closed),
+    // The last MISSING_DAYS only, so an old gap does not stay on Hoje forever; the account id
+    // stays on the server.
+    missing: unmatchedMovements(ledger, movements, today)
+      .filter((m) => m.date >= addDays(today, -MISSING_DAYS))
+      .map(({ account: _, ...m }) => m),
   };
 };
 
@@ -141,10 +161,10 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       db.prepare("SELECT id, type FROM bank_account").all<BankAccountRow>(),
       db
         .prepare(
-          "SELECT account_id, date, amount, type, description, installment, installments, bill_id, bill_month, card_number FROM bank_txn ORDER BY date, id",
+          "SELECT account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",
         )
         .all<BankTxnRow>(),
-      db.prepare("SELECT id, due_date FROM bank_bill").all<BankBillRow>(),
+      db.prepare("SELECT id, account_id, due_date, total FROM bank_bill").all<BankBillRow>(),
     ]);
     return {
       items: items.n,

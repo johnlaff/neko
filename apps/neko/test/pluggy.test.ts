@@ -135,7 +135,7 @@ describe("bank sync", () => {
     });
     expect(db.sqlite.prepare("SELECT total FROM bank_bill").get()).toEqual({ total: 150099 });
     expect(calls.filter((c) => c.startsWith("POST /auth"))).toHaveLength(1);
-    expect(calls).toContain("GET /v2/transactions?accountId=acc-card&dateFrom=2026-08-29");
+    expect(calls).toContain("GET /v2/transactions?accountId=acc-card&dateFrom=2026-07-25");
     const item = db.sqlite.prepare("SELECT synced_at, error FROM bank_item").get() as {
       synced_at: string | null;
       error: string | null;
