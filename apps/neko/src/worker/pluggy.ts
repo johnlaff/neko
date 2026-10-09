@@ -8,8 +8,11 @@ import type { Env } from "./env.ts";
  */
 
 const API = "https://api.pluggy.ai";
-/** Days re-read on each sync: past the longest card cycle, so late postings and deletions land. */
-export const SYNC_DAYS = 40;
+/**
+ * Days re-read on each sync: a closed bill not yet due started up to about 45 days ago, so this
+ * covers all of it, plus late postings and deletions.
+ */
+export const SYNC_DAYS = 75;
 export const HOOK_HEADER = "x-neko-hook";
 
 const Auth = z.object({ apiKey: z.string().min(1) });
@@ -211,7 +214,7 @@ export const syncItem = async (
       );
       for (const t of txns) {
         const card = t.creditCardMetadata;
-        // The month the bill closes, not the one it is due; bank.ts turns it into the due month.
+        // Kept as Pluggy sends it; bank.ts dates each line by the card's cycle instead.
         const month = card?.billForecastDate?.slice(0, 7);
         stmts.push(
           db

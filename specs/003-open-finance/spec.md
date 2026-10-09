@@ -55,7 +55,10 @@ de saldo, fatura e projeção continuam vindo só da planilha.
 - **Casamento banco × planilha (engine, `bank.ts`):** um movimento da conta casa com uma linha da
   planilha quando o valor e a direção são iguais e a data fica a até 7 dias, como no Actual Budget.
   Cada linha da planilha responde por um movimento só, o mais próximo primeiro. O que sobra vira
-  "não está na planilha" (`unmatchedMovements`).
+  "não está na planilha" (`unmatchedMovements`). Antes disso saem as transferências entre contas
+  do próprio dono (mesmo valor saindo de uma e entrando noutra em até 2 dias) e os pagamentos de
+  fatura de cartão, que as faturas já conferem. Um Pix pode pagar duas linhas do mesmo dia da
+  planilha somadas. A tela mostra só os últimos 40 dias.
 - **Faturas (engine, `billChecks`):** para cada fatura futura de um cartão que a planilha conhece,
   soma o que o banco já pôs nela (compras e parcelas, com estornos descontados e sem o pagamento da
   fatura anterior) e compara com a linha da planilha no vencimento. Cada cartão do banco é ligado ao
@@ -63,9 +66,11 @@ de saldo, fatura e projeção continuam vindo só da planilha.
 - **Parcelas futuras (engine):** a soma por cartão e por fatura usa `installmentNumber`,
   `totalInstallments` e `billForecastDate`. O Open Finance não liga as parcelas de uma mesma compra,
   então a compra é reconhecida por descrição, valor da parcela e total de parcelas. O
-  `billForecastDate` traz o mês em que a fatura fecha, não o do vencimento (cartão que fecha dia 29
-  e vence dia 12 diz setembro para a fatura de outubro); o Neko usa o vencimento da fatura fechada e,
-  na aberta, converte pelo dia de fechamento e de vencimento do cartão. Nada disso
+  `billForecastDate` muda de sentido de banco para banco (mês de fechamento num, mês da compra
+  noutro), então não é usado: a compra cai na fatura fechada que o banco indica (`billId`) ou, sem
+  ela, no ciclo do cartão pela data. Fatura já fechada vale pelo total do banco quando a conta é um
+  cartão só na planilha (titular e adicional seguem pela soma das linhas). Parcela futura que o banco
+  já lista com texto encurtado ou centavo de arredondamento diferente conta uma vez só. Nada disso
   entra no saldo. A tela mostra "já comprometido" ao lado do que a planilha prevê e avisa a diferença.
 - **Telas (web e Android 1:1, mesma API):**
   - Faturas: por cartão, "Parcelas já compradas" por mês vindas do banco, e a diferença para a
