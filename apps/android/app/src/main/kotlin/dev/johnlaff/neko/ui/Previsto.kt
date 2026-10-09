@@ -63,12 +63,12 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
     var left by rememberSaveable { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
     val bad = left && typed.isNotBlank() && (amount == null || amount <= 0)
-    // The form grows (Como calculei, the error): once it has, keep its buttons in sight and clear
+    // The form grows (Como calculei, a wrong value, a failure): once it has, keep its buttons in sight and clear
     // of the floating dock.
     val buttons = remember { BringIntoViewRequester() }
     var buttonsSize by remember { mutableStateOf(IntSize.Zero) }
     val dock = with(LocalDensity.current) { (if (LocalRail.current) 0.dp else DOCK_ROOM).toPx() }
-    LaunchedEffect(formula, bad) {
+    LaunchedEffect(formula, bad, error) {
         delay(260)
         buttons.bringIntoView(Rect(0f, 0f, buttonsSize.width.toFloat(), buttonsSize.height + dock))
     }

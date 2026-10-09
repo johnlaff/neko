@@ -76,17 +76,23 @@ export const PrevistoSetting = ({
       nearest(off.current);
     }
   }, [open]);
-  // The pressed button was disabled while writing; on a failure, focus goes to the reason.
+  // On a failure, focus goes to the reason.
   const failed = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     if (run.isError) failed.current?.focus({ preventScroll: true });
   }, [run.isError]);
-  // Closing puts focus back on the switch, not on the page.
+  // Closing puts focus back on the switch, not on the page, once the switch takes it again.
   const toggle = useRef<HTMLInputElement>(null);
+  const refocus = useRef(false);
   const close = () => {
+    refocus.current = true;
     setOpen(null);
-    toggle.current?.focus({ preventScroll: true });
   };
+  useEffect(() => {
+    if (open !== null || run.isPending || !refocus.current) return;
+    refocus.current = false;
+    toggle.current?.focus({ preventScroll: true });
+  }, [open, run.isPending]);
   const start = () => {
     const value = p.on ? p.value : (p.suggestion?.perDay ?? 0);
     setTyped(value > 0 ? reais(value) : "");
@@ -140,7 +146,7 @@ export const PrevistoSetting = ({
           onSubmit={(e) => {
             e.preventDefault();
             setLeft(true);
-            if (amount !== null && amount > 0) run.mutate(amount);
+            if (amount !== null && amount > 0 && !run.isPending) run.mutate(amount);
           }}
         >
           {s && (
@@ -193,7 +199,12 @@ export const PrevistoSetting = ({
             </p>
           )}
           <div className="actions" ref={actions}>
-            <button type="submit" disabled={amount === null || amount <= 0 || run.isPending}>
+            {/* aria-disabled while writing keeps focus on the button, so Gravando… is read */}
+            <button
+              type="submit"
+              disabled={amount === null || amount <= 0}
+              aria-disabled={run.isPending}
+            >
               {run.isPending ? "Gravando…" : p.on ? "Trocar" : "Preencher"}
             </button>
             <button type="button" className="ghost" onClick={close}>
@@ -219,7 +230,11 @@ export const PrevistoSetting = ({
             </p>
           )}
           <div className="actions">
-            <button type="button" disabled={run.isPending} onClick={() => run.mutate(0)}>
+            <button
+              type="button"
+              aria-disabled={run.isPending}
+              onClick={() => run.isPending || run.mutate(0)}
+            >
               {run.isPending ? "Apagando…" : "Apagar o previsto"}
             </button>
             <button type="button" className="ghost" onClick={close}>
@@ -261,13 +276,18 @@ export const PrevistoReview = ({ previsto: p }: { previsto: PrevistoView | undef
           <button
             type="button"
             className="small"
-            disabled={busy}
-            onClick={() => change.mutate(r.real)}
+            aria-disabled={busy}
+            onClick={() => busy || change.mutate(r.real)}
           >
             {change.isPending ? "Trocando…" : `Trocar para ${money(r.real)}`}
           </button>
         )}
-        <button type="button" className="ghost small" disabled={busy} onClick={() => keep.mutate()}>
+        <button
+          type="button"
+          className="ghost small"
+          aria-disabled={busy}
+          onClick={() => busy || keep.mutate()}
+        >
           Manter {money(p.value)}
         </button>
       </div>

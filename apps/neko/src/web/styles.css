@@ -512,7 +512,8 @@ button:hover {
 button:active {
   scale: 0.98;
 }
-button:disabled {
+button:disabled,
+button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: default;
 }
