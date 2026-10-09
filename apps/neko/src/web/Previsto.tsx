@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { PrevistoView } from "../shared/types.ts";
 import { api } from "./api.ts";
 import { money, shortDate, toCents } from "./format.ts";
@@ -14,6 +14,8 @@ import { showToast } from "./Launch.tsx";
 
 const reais = (c: number) => (c / 100).toFixed(2).replace(".", ",");
 
+const nearest = (el: Element | null) => el?.scrollIntoView({ block: "nearest" });
+
 const useSetPrevisto = (onDone: () => void) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -27,9 +29,7 @@ const useSetPrevisto = (onDone: () => void) => {
       showToast({
         entryId: r.entryId,
         text:
-          r.value > 0
-            ? `Diário previsto: ${money(r.value)} por dia`
-            : "Previsto apagado da planilha",
+          r.value > 0 ? `Diário previsto: ${money(r.value)} por dia` : "Diário previsto desligado",
       });
       onDone();
       queryClient.invalidateQueries();
@@ -53,11 +53,50 @@ export const PrevistoSetting = ({
   const id = useId();
   const [open, setOpen] = useState<"on" | "off" | null>(null);
   const [typed, setTyped] = useState("");
-  const run = useSetPrevisto(() => setOpen(null));
+  const run = useSetPrevisto(() => close());
   const amount = toCents(typed);
+  // As in Ritmo, a wrong value is pointed out once you leave the field, not while typing.
+  const [left, setLeft] = useState(false);
+  const bad = left && typed.trim() !== "" && (amount === null || amount <= 0);
+  const actions = useRef<HTMLDivElement>(null);
+  // The form or the off confirmation opens below the switch and grows (Como calculei opening, a
+  // wrong value, a failure): whenever its size changes, keep its buttons above the dock.
+  const form = useRef<HTMLFormElement>(null);
+  const off = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = open === "on" ? form.current : open === "off" ? off.current : null;
+    if (!el) return;
+    const keep = new ResizeObserver(() => nearest(actions.current));
+    keep.observe(el);
+    return () => keep.disconnect();
+  }, [open]);
+  useEffect(() => {
+    if (open === "off") {
+      off.current?.focus({ preventScroll: true });
+      nearest(off.current);
+    }
+  }, [open]);
+  // On a failure, focus goes to the reason.
+  const failed = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (run.isError) failed.current?.focus({ preventScroll: true });
+  }, [run.isError]);
+  // Closing puts focus back on the switch, not on the page, once the switch takes it again.
+  const toggle = useRef<HTMLInputElement>(null);
+  const refocus = useRef(false);
+  const close = () => {
+    refocus.current = true;
+    setOpen(null);
+  };
+  useEffect(() => {
+    if (open !== null || run.isPending || !refocus.current) return;
+    refocus.current = false;
+    toggle.current?.focus({ preventScroll: true });
+  }, [open, run.isPending]);
   const start = () => {
     const value = p.on ? p.value : (p.suggestion?.perDay ?? 0);
     setTyped(value > 0 ? reais(value) : "");
+    setLeft(false);
     run.reset();
     setOpen("on");
   };
@@ -79,6 +118,7 @@ export const PrevistoSetting = ({
         </span>
         <input
           type="checkbox"
+          ref={toggle}
           role="switch"
           className="switch"
           aria-checked={p.on}
@@ -100,11 +140,13 @@ export const PrevistoSetting = ({
       )}
       {open === "on" && (
         <form
+          ref={form}
           className="sim entry previsto"
           aria-label="Diário previsto"
           onSubmit={(e) => {
             e.preventDefault();
-            if (amount !== null && amount > 0) run.mutate(amount);
+            setLeft(true);
+            if (amount !== null && amount > 0 && !run.isPending) run.mutate(amount);
           }}
         >
           {s && (
@@ -136,23 +178,41 @@ export const PrevistoSetting = ({
               autoComplete="off"
               placeholder="0,00"
               value={typed}
+              aria-invalid={bad}
+              aria-describedby={bad ? `${id}-e` : undefined}
               onChange={(e) => setTyped(e.target.value)}
+              onBlur={() => setLeft(true)}
             />
           </span>
+          {bad && (
+            <p id={`${id}-e`} className="hint error">
+              Use um valor como 95,00
+            </p>
+          )}
           <p className="hint">
             Cada dia de hoje até dezembro de {p.lastYear} recebe esse valor no Diário, com a nota
             Previsto. O que você escreveu no Diário fica como está.
           </p>
           {run.isError && (
-            <p className="setting-error" role="alert">
+            <p className="setting-error" role="alert" tabIndex={-1} ref={failed}>
               {failure(run.error)}
             </p>
           )}
-          <div className="actions">
-            <button type="submit" disabled={amount === null || amount <= 0 || run.isPending}>
+          <div className="actions" ref={actions}>
+            {/* aria-disabled while writing keeps focus on the button, so Gravando… is read */}
+            <button
+              type="submit"
+              disabled={amount === null || amount <= 0}
+              aria-disabled={run.isPending}
+            >
               {run.isPending ? "Gravando…" : p.on ? "Trocar" : "Preencher"}
             </button>
-            <button type="button" className="ghost" onClick={() => setOpen(null)}>
+            <button
+              type="button"
+              className="ghost"
+              aria-disabled={run.isPending}
+              onClick={() => run.isPending || close()}
+            >
               Cancelar
             </button>
           </div>
@@ -163,22 +223,31 @@ export const PrevistoSetting = ({
           className="sim entry previsto"
           aria-label="Desligar o Diário previsto"
           tabIndex={-1}
-          // A screen reader reads what turning it off does, not just the switch.
-          ref={(el) => el?.focus()}
+          // Focused on open: a screen reader reads what turning it off does, not just the switch.
+          ref={off}
         >
           <p className="hint">
             O previsto sai dos dias que vêm. O que você escreveu no Diário fica como está.
           </p>
           {run.isError && (
-            <p className="setting-error" role="alert">
+            <p className="setting-error" role="alert" tabIndex={-1} ref={failed}>
               {failure(run.error)}
             </p>
           )}
-          <div className="actions">
-            <button type="button" disabled={run.isPending} onClick={() => run.mutate(0)}>
+          <div className="actions" ref={actions}>
+            <button
+              type="button"
+              aria-disabled={run.isPending}
+              onClick={() => run.isPending || run.mutate(0)}
+            >
               {run.isPending ? "Apagando…" : "Apagar o previsto"}
             </button>
-            <button type="button" className="ghost" onClick={() => setOpen(null)}>
+            <button
+              type="button"
+              className="ghost"
+              aria-disabled={run.isPending}
+              onClick={() => run.isPending || close()}
+            >
               Cancelar
             </button>
           </div>
@@ -217,13 +286,18 @@ export const PrevistoReview = ({ previsto: p }: { previsto: PrevistoView | undef
           <button
             type="button"
             className="small"
-            disabled={busy}
-            onClick={() => change.mutate(r.real)}
+            aria-disabled={busy}
+            onClick={() => busy || change.mutate(r.real)}
           >
             {change.isPending ? "Trocando…" : `Trocar para ${money(r.real)}`}
           </button>
         )}
-        <button type="button" className="ghost small" disabled={busy} onClick={() => keep.mutate()}>
+        <button
+          type="button"
+          className="ghost small"
+          aria-disabled={busy}
+          onClick={() => busy || keep.mutate()}
+        >
           Manter {money(p.value)}
         </button>
       </div>

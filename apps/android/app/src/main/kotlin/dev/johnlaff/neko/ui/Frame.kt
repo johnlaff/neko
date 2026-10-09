@@ -88,7 +88,7 @@ import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.ui.Format.shortDate
 
 /** Room under the last panel so the floating dock never covers it. */
-private val DOCK_ROOM = 88.dp
+internal val DOCK_ROOM = 88.dp
 
 /** The widest a screen's column gets, as on the site. */
 private val MAX_WIDTH = 640.dp

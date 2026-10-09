@@ -123,8 +123,8 @@ internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, onCli
     else OutlinedButton(
         onClick, Modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
-        border = BorderStroke(1.dp, l.borderInput),
-    ) { Text(text, color = l.text, style = MaterialTheme.typography.labelLarge) }
+        border = BorderStroke(1.dp, if (enabled) l.borderInput else l.borderInput.copy(alpha = 0.5f)),
+    ) { Text(text, color = if (enabled) l.text else l.text.copy(alpha = 0.5f), style = MaterialTheme.typography.labelLarge) }
 }
 
 @Composable
