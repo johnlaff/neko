@@ -40,5 +40,13 @@ const KEPT = ["bankCards", "accountUse", "savedOrigins", "writing"] as const;
 export const keepBankCards = (body: unknown, current: UserSettings): UserSettings => {
   const b = z.record(z.string(), z.unknown()).parse(body);
   const kept = Object.fromEntries(KEPT.filter((k) => !(k in b)).map((k) => [k, current[k]]));
-  return UserSettings.parse({ ...b, ...kept });
+  const next = UserSettings.parse({ ...b, ...kept });
+  // The Diário previsto changes only through its own route, which writes the sheet with it: its
+  // value is then the one on the days ahead.
+  return {
+    ...next,
+    previstoSince: current.previstoSince,
+    previstoUndo: current.previstoUndo,
+    ...(current.previstoSince !== null ? { dailyForecast: current.dailyForecast } : {}),
+  };
 };

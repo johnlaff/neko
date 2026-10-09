@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import type { PrevistoView } from "../../shared/types.ts";
 import { api, type KeptSetting, type UserSettings } from "../api.ts";
 import { Banks } from "../Banks.tsx";
 import { Devices } from "../Devices.tsx";
-import { toCents } from "../format.ts";
+import { money, toCents } from "../format.ts";
 import { resetHints } from "../Hint.tsx";
 import { IconChevron } from "../icons.tsx";
+import { LaunchToast } from "../Launch.tsx";
 import { IDEAS, LEARN_INTRO } from "../learn.ts";
+import { PrevistoSetting } from "../Previsto.tsx";
 import { Reminders } from "../Reminders.tsx";
 import { ErrorBlock, Skeleton, useProjection } from "../useProjection.tsx";
 
@@ -57,7 +60,16 @@ const payload = (
  * field when it loses focus or a moment after typing stops (closing the app mid-edit keeps it).
  * Invalid fields say so in place and are not sent.
  */
-const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[] }) => {
+const Form = ({
+  initial,
+  cards,
+  previsto,
+}: {
+  initial: UserSettings;
+  cards: readonly Card[];
+  /** With the Diário previsto on, its value per day: it lives in Planilha and the month sets the pace. */
+  previsto: number | null;
+}) => {
   const queryClient = useQueryClient();
   const projection = useProjection();
   const [v, setV] = useState<Values>({
@@ -124,27 +136,38 @@ const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[
       <section className="group" aria-labelledby="g-forecast">
         <h2 id="g-forecast">Ritmo</h2>
         <div className="panel list">
-          <label className="setting">
-            <span className="label">
-              Diário
-              <span className={shows("daily", badMoney(v.daily)) ? "sub error" : "sub"}>
-                {shows("daily", badMoney(v.daily))
-                  ? "Use um valor como 177,00"
-                  : "Em branco, vem da planilha"}
+          {previsto !== null && (
+            <div className="setting">
+              <span className="label">
+                Diário
+                <span className="sub">Pelo Diário previsto, em Planilha</span>
               </span>
-            </span>
-            <span className="affix">
-              <span aria-hidden="true">R$</span>
-              <input
-                inputMode="decimal"
-                placeholder={auto}
-                value={v.daily}
-                aria-invalid={shows("daily", badMoney(v.daily))}
-                onChange={(e) => change({ daily: e.target.value })}
-                onBlur={() => blur("daily")}
-              />
-            </span>
-          </label>
+              <span>{money(previsto)}</span>
+            </div>
+          )}
+          {previsto === null && (
+            <label className="setting">
+              <span className="label">
+                Diário
+                <span className={shows("daily", badMoney(v.daily)) ? "sub error" : "sub"}>
+                  {shows("daily", badMoney(v.daily))
+                    ? "Use um valor como 177,00"
+                    : "Em branco, vem da planilha"}
+                </span>
+              </span>
+              <span className="affix">
+                <span aria-hidden="true">R$</span>
+                <input
+                  inputMode="decimal"
+                  placeholder={auto}
+                  value={v.daily}
+                  aria-invalid={shows("daily", badMoney(v.daily))}
+                  onChange={(e) => change({ daily: e.target.value })}
+                  onBlur={() => blur("daily")}
+                />
+              </span>
+            </label>
+          )}
           <label className="setting">
             <span className="label">
               Cartão principal
@@ -162,27 +185,29 @@ const Form = ({ initial, cards }: { initial: UserSettings; cards: readonly Card[
               ))}
             </select>
           </label>
-          <label className="setting">
-            <span className="label">
-              Plano por ciclo
-              <span className={shows("budget", badMoney(v.budget)) ? "sub error" : "sub"}>
-                {shows("budget", badMoney(v.budget))
-                  ? "Use um valor como 5.000,00"
-                  : "Em branco, diário × dias do ciclo"}
+          {previsto === null && (
+            <label className="setting">
+              <span className="label">
+                Plano por ciclo
+                <span className={shows("budget", badMoney(v.budget)) ? "sub error" : "sub"}>
+                  {shows("budget", badMoney(v.budget))
+                    ? "Use um valor como 5.000,00"
+                    : "Em branco, diário × dias do ciclo"}
+                </span>
               </span>
-            </span>
-            <span className="affix">
-              <span aria-hidden="true">R$</span>
-              <input
-                inputMode="decimal"
-                placeholder="Automático"
-                value={v.budget}
-                aria-invalid={shows("budget", badMoney(v.budget))}
-                onChange={(e) => change({ budget: e.target.value })}
-                onBlur={() => blur("budget")}
-              />
-            </span>
-          </label>
+              <span className="affix">
+                <span aria-hidden="true">R$</span>
+                <input
+                  inputMode="decimal"
+                  placeholder="Automático"
+                  value={v.budget}
+                  aria-invalid={shows("budget", badMoney(v.budget))}
+                  onChange={(e) => change({ budget: e.target.value })}
+                  onBlur={() => blur("budget")}
+                />
+              </span>
+            </label>
+          )}
         </div>
       </section>
 
@@ -271,8 +296,12 @@ export const Ajustes = () => {
 
   return (
     <>
-      <Form initial={settings.data} cards={projection.data.cardsKnown} />
-      <Writing settings={settings.data} />
+      <Form
+        initial={settings.data}
+        cards={projection.data.cardsKnown}
+        previsto={projection.data.previsto?.on ? projection.data.previsto.value : null}
+      />
+      <Writing settings={settings.data} previsto={projection.data.previsto} />
       <Banks sheetCards={projection.data.cardsKnown.map((c) => c.name)} />
       <section className="group" aria-labelledby="g-device">
         <h2 id="g-device">Neste aparelho</h2>
@@ -299,12 +328,19 @@ export const Ajustes = () => {
           </button>
         </div>
       </section>
+      <LaunchToast />
     </>
   );
 };
 
 /** The writing kill switch (specs/005-lancamentos): off, Neko only shows; nothing is written. */
-const Writing = ({ settings: s }: { settings: UserSettings }) => {
+const Writing = ({
+  settings: s,
+  previsto,
+}: {
+  settings: UserSettings;
+  previsto: PrevistoView | undefined;
+}) => {
   const queryClient = useQueryClient();
   const save = useMutation({
     mutationFn: api.saveSettings,
@@ -339,6 +375,7 @@ const Writing = ({ settings: s }: { settings: UserSettings }) => {
             onChange={(e) => save.mutate({ ...s, writing: e.target.checked })}
           />
         </label>
+        {previsto && <PrevistoSetting previsto={previsto} writing={on} />}
       </div>
     </section>
   );

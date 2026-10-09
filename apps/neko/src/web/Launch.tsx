@@ -18,7 +18,7 @@ const UNDO_MS = 10_000;
 type Toast = { readonly entryId: string | null; readonly text: string } | null;
 let toast: Toast = null;
 const listeners = new Set<() => void>();
-const showToast = (t: Toast) => {
+export const showToast = (t: Toast) => {
   toast = t;
   for (const f of listeners) f();
 };
@@ -68,7 +68,7 @@ export const LaunchToast = () => {
     onSuccess: (r) => {
       showToast({
         entryId: null,
-        text: r.state === "undone" ? "Desfeito" : "A célula mudou depois. Desfaça na planilha",
+        text: r.state === "undone" ? "Desfeito" : "A planilha mudou depois. Desfaça por lá",
       });
       queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
@@ -340,7 +340,8 @@ const Row = ({
         </fieldset>
       )}
       {option && option.lines.length > 0 && <Lines lines={option.lines} />}
-      {adjusting && draft && draft.type !== "card" ? (
+      {item.note && <p className="hint">{item.note}</p>}
+      {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
         <EntryForm
           draft={draft}
           today={today}
@@ -405,24 +406,26 @@ const Row = ({
           {message(error)}
         </p>
       )}
-      <details className="formula">
-        <summary>
-          <IconChevron />O banco mostrou
-        </summary>
-        <ul className="q-bank">
-          {item.bank.map((m) => (
-            <li key={`${m.date}|${m.amount}|${m.description}`}>
-              <span>
-                {shortDate(m.date)} · {bankText(m.description)}
-              </span>
-              <span className={m.amount > 0 ? "pos" : undefined}>
-                {m.amount > 0 ? "+" : "−"}
-                {money(Math.abs(m.amount))}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </details>
+      {item.bank.length > 0 && (
+        <details className="formula">
+          <summary>
+            <IconChevron />O banco mostrou
+          </summary>
+          <ul className="q-bank">
+            {item.bank.map((m) => (
+              <li key={`${m.date}|${m.amount}|${m.description}`}>
+                <span>
+                  {shortDate(m.date)} · {bankText(m.description)}
+                </span>
+                <span className={m.amount > 0 ? "pos" : undefined}>
+                  {m.amount > 0 ? "+" : "−"}
+                  {money(Math.abs(m.amount))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </li>
   );
 };

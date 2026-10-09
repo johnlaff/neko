@@ -39,6 +39,7 @@ import { LaunchToast, ManualLaunch, ParaLancar } from "../Launch.tsx";
 import { CARDS_COME_FROM, HINTS } from "../learn.ts";
 import { Mia } from "../Mia.tsx";
 import { Simulator } from "../Pace.tsx";
+import { PrevistoReview } from "../Previsto.tsx";
 import { Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
 import { Wins } from "../Wins.tsx";
@@ -221,7 +222,7 @@ const IssueList = ({
             <span className="value muted">
               {shortDate(i.date)}
               <IconExternal />
-              <span className="sr-only">, abre a célula {i.ref.a1} na planilha</span>
+              <span className="sr-only">, abre o dia na planilha</span>
             </span>
             <span className="meta">{t.detail}</span>
           </a>
@@ -422,7 +423,7 @@ const RecapPanel = ({ r }: { r: MonthRecap }) => {
  */
 export const Hoje = () => (
   <WithProjection>
-    {({ projection: p, sheet, daily, habit, bank, writing, cardsKnown }) => {
+    {({ projection: p, sheet, daily, habit, bank, writing, cardsKnown, previsto }) => {
       const cs = p.canSpend;
       const todayUrl = p.todayRef
         ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
@@ -431,17 +432,20 @@ export const Hoje = () => (
       const since = addDays(p.today, -HEALTH_DAYS);
       const issues = p.health.filter((i) => i.date >= since).reverse();
       const over = cs !== null && cs.perDay < 0;
+      // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
+      const month = cs?.mode === "month";
       const [shown, rest] = splitDays(groupUpcomingByDay(p.upcoming));
       return (
         <>
           {cs ? (
             <section className="panel hero today half">
               <div className="panel-head">
-                <h2>{cs.card}</h2>
-                {/* Over the plan, the figure already says so in red: the chip would repeat it. */}
-                {!over && (
+                <h2>{month ? `Diário de ${monthName(Number(p.today.slice(5, 7)))}` : cs.card}</h2>
+                {/* Over the plan, the figure already says so in red, and behind the Diário the line
+                    under it says by how much: the chip would repeat either. */}
+                {!over && !(month && cs.daysBehind > 0) && (
                   <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
-                    {cs.paceGap >= 0 ? "No ritmo" : "Acima do ritmo"}
+                    {cs.paceGap >= 0 ? "No ritmo" : month ? "Acima do previsto" : "Acima do ritmo"}
                   </span>
                 )}
               </div>
@@ -458,17 +462,28 @@ export const Hoje = () => (
                   <BigMoney cents={over ? cs.overBy : cs.perDay} tone={over ? "neg" : undefined} />
                   <span className="caption">
                     {over
-                      ? "neste ciclo"
+                      ? month
+                        ? "neste mês"
+                        : "neste ciclo"
                       : cs.daysLeft === 1
-                        ? "até a fatura fechar, hoje"
+                        ? month
+                          ? "até o mês acabar, hoje"
+                          : "até a fatura fechar, hoje"
                         : "por dia"}
                   </span>
                 </p>
               </div>
+              {/* How far ahead of the Diário the month went, in days without spending. */}
+              {month && cs.daysBehind > 0 && !over && (
+                <p className="behind">
+                  {money(-cs.paceGap)} acima do previsto. Uns {days(cs.daysBehind)} sem gastar e
+                  você volta ao previsto.
+                </p>
+              )}
               {cs.daysLeft > 1 && (
                 <div className="chips">
                   <span className="chip plain">
-                    Fecha {shortDate(cs.closing)} · {days(cs.daysLeft)}
+                    {month ? "Até" : "Fecha"} {shortDate(cs.closing)} · {days(cs.daysLeft)}
                   </span>
                 </div>
               )}
@@ -477,19 +492,35 @@ export const Hoje = () => (
                   <IconChevron />
                   Como calculei
                 </summary>
-                <p>
-                  {money(cs.budget)}{" "}
-                  {cs.budgetSource === "diario"
-                    ? `de diário no ciclo (${money(p.dailyForecast)} por dia, ${dailySourceText(daily.source)})`
-                    : "planejados para o ciclo"}{" "}
-                  menos {money(cs.accumulated)} na fatura, dividido por {days(cs.daysLeft)}.
-                </p>
-                <p>
-                  O ponto no arco é o ritmo de hoje: a fatura está {money(Math.abs(cs.paceGap))}{" "}
-                  {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
-                </p>
+                {month ? (
+                  <>
+                    <p>
+                      {money(cs.budget)} de Diário previsto no mês ({money(p.dailyForecast)} por
+                      dia) menos {money(cs.accumulated)} gastos até ontem nos seus cartões e no Pix,
+                      como o banco mostra, dividido por {days(cs.daysLeft)}.
+                    </p>
+                    <p>
+                      O ponto no arco é o previsto até ontem: o mês está{" "}
+                      {money(Math.abs(cs.paceGap))} {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p>
+                      {money(cs.budget)}{" "}
+                      {cs.budgetSource === "diario"
+                        ? `de diário no ciclo (${money(p.dailyForecast)} por dia, ${dailySourceText(daily.source)})`
+                        : "planejados para o ciclo"}{" "}
+                      menos {money(cs.accumulated)} na fatura, dividido por {days(cs.daysLeft)}.
+                    </p>
+                    <p>
+                      O ponto no arco é o ritmo de hoje: a fatura está {money(Math.abs(cs.paceGap))}{" "}
+                      {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
+                    </p>
+                  </>
+                )}
               </details>
-              <Hint id="hoje">{HINTS.hoje}</Hint>
+              <Hint id="hoje">{month ? HINTS.hojeMes : HINTS.hoje}</Hint>
             </section>
           ) : (
             <section className="page-head empty-cards">
@@ -526,6 +557,7 @@ export const Hoje = () => (
               <Mia />
             </div>
             {habit && <Streak habit={habit} />}
+            <PrevistoReview previsto={previsto} />
 
             {/* Over the plan, the red figure already says the bill is high: no second card. */}
             <Insights

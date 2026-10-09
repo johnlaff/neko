@@ -1,7 +1,11 @@
 import {
+  addDays,
   type CardConfig,
+  type CellDraft,
+  cents,
   type Draft,
   EntryError,
+  type LocalDate,
   localDate,
   MAX_INSTALLMENTS,
   type Placement,
@@ -14,7 +18,14 @@ import type { AppEnv, Env } from "./env.ts";
 import { accessToken, WRITE_SCOPES } from "./google.ts";
 import { getProjection } from "./pipeline.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
-import { commitEntry, googleSheets, previewEntry, undoEntry, WriteError } from "./writer.ts";
+import {
+  commitEntry,
+  googleSheets,
+  previewEntry,
+  undoEntry,
+  WriteError,
+  writeForecast,
+} from "./writer.ts";
 
 /**
  * Launching into the sheet (specs/005-lancamentos, Fase 2): preview, launch, undo, and the answers
@@ -74,6 +85,11 @@ export const DraftSchema = z.discriminatedUnion("type", [
       .max(30)
       .optional(),
   }),
+  z.object({
+    type: z.literal("forecast"),
+    value: Money,
+    days: z.array(Day).min(1).max(800),
+  }),
 ]);
 
 const Preview = z.object({ draft: DraftSchema });
@@ -112,7 +128,7 @@ const writerApi = async (env: Env) => {
   return googleSheets(env.SHEET_ID, await accessToken(key, Date.now(), WRITE_SCOPES));
 };
 
-const place = (draft: Draft, cards: readonly CardConfig[]): Placement[] => {
+const place = (draft: CellDraft, cards: readonly CardConfig[]): Placement[] => {
   try {
     return placeDraft(draft, cards);
   } catch (e) {
@@ -142,10 +158,12 @@ entries.use(async (c, next) => {
 /** What launching would change, read from the sheet now; nothing is written. */
 entries.post("/preview", async (c) => {
   const { draft } = Preview.parse(await c.req.json());
+  // The Diário previsto reads and checks each day itself when it writes: nothing to preview.
+  if (draft.type === "forecast") return c.json({ parts: [] });
   const { cardsKnown } = await getProjection(c.env, todayIn(new Date()));
   const api = await writerApi(c.env);
   if (!api) throw new WriteError("o Neko ainda não pode gravar");
-  const parts = await previewEntry(api, place(draft as Draft, cardsKnown));
+  const parts = await previewEntry(api, place(draft as CellDraft, cardsKnown));
   return c.json({ parts });
 });
 
@@ -155,11 +173,12 @@ entries.post("/", async (c) => {
   const draft = body.draft as Draft;
   const env = c.env;
   const data = await getProjection(env, todayIn(new Date()));
-  const placements = place(draft, data.cardsKnown);
   const api = await writerApi(env);
   if (!api) throw new WriteError("o Neko ainda não pode gravar");
   const result = await withLock(env.DB, () =>
-    commitEntry(env.DB, api, body.id, placements, body.fingerprints),
+    draft.type === "forecast"
+      ? writeForecast(env.DB, api, body.id, draft.days, draft.value)
+      : commitEntry(env.DB, api, body.id, place(draft, data.cardsKnown), body.fingerprints),
   );
   if (result.state === "done" && body.key) {
     await env.DB.prepare(
@@ -182,6 +201,46 @@ entries.post("/", async (c) => {
   return c.json(result);
 });
 
+/**
+ * The Diário previsto, from Ajustes: every day from today to the end of the last year tab gets
+ * `value` (the days the owner wrote in stay as they are), and 0 takes Neko's forecast away. The
+ * value is saved only once the sheet has it.
+ */
+entries.post("/previsto", async (c) => {
+  const { value } = z.object({ value: Money.max(10_000_00) }).parse(await c.req.json());
+  const env = c.env;
+  const today = todayIn(new Date());
+  const data = await getProjection(env, today);
+  const last = Math.max(
+    ...Object.keys(data.sheet.tabs)
+      .filter((t) => /^\d{4}$/.test(t))
+      .map(Number),
+  );
+  const days: LocalDate[] = [];
+  for (let d = today; d.slice(0, 4) <= String(last); d = addDays(d, 1)) days.push(d);
+  if (days.length === 0) throw new WriteError("a planilha não tem a aba deste ano");
+  const api = await writerApi(env);
+  if (!api) throw new WriteError("o Neko ainda não pode gravar");
+  const result = await withLock(env.DB, () =>
+    writeForecast(env.DB, api, crypto.randomUUID(), days, cents(value)),
+  );
+  if (result.state === "done") {
+    const settings = await loadSettings(env.DB);
+    const undo = {
+      entry: result.entryId,
+      dailyForecast: settings.dailyForecast,
+      since: settings.previstoSince,
+    };
+    await saveSettings(
+      env.DB,
+      value > 0
+        ? { ...settings, dailyForecast: value, previstoSince: today, previstoUndo: undo }
+        : { ...settings, previstoSince: null, previstoUndo: undo },
+    );
+  }
+  return c.json(result);
+});
+
 /** Puts every cell back as it was, if the owner did not change it since; the item comes back. */
 entries.post("/:id/undo", async (c) => {
   const id = z.string().uuid().parse(c.req.param("id"));
@@ -190,6 +249,16 @@ entries.post("/:id/undo", async (c) => {
   if (!api) throw new WriteError("o Neko ainda não pode gravar");
   const result = await withLock(env.DB, () => undoEntry(env.DB, api, id));
   await env.DB.prepare("DELETE FROM queue_decision WHERE entry_id = ?").bind(id).run();
+  // Desfazer after filling or changing the Diário previsto puts its setting back too.
+  const settings = await loadSettings(env.DB);
+  const before = settings.previstoUndo;
+  if (result.state === "undone" && before?.entry === id)
+    await saveSettings(env.DB, {
+      ...settings,
+      dailyForecast: before.dailyForecast,
+      previstoSince: before.since,
+      previstoUndo: null,
+    });
   return c.json(result);
 });
 
@@ -203,6 +272,14 @@ queue.post("/ignore", async (c) => {
   )
     .bind(key, new Date().toISOString())
     .run();
+  return c.json({ ok: true });
+});
+
+/** The review every 3 months, answered "keep it": the next one comes 3 months from today. */
+queue.post("/previsto/manter", async (c) => {
+  const settings = await loadSettings(c.env.DB);
+  if (settings.previstoSince !== null)
+    await saveSettings(c.env.DB, { ...settings, previstoSince: todayIn(new Date()) });
   return c.json({ ok: true });
 });
 

@@ -55,6 +55,8 @@ data class WidgetText(
     /** "Planilha em dia · 12 dias" and this week as seven marks, for the tall widget; null without a streak. */
     val streak: String? = null,
     val week: List<String> = emptyList(),
+    /** What `bill` is: the open bill, or with the Diário previsto on, the month's spending. */
+    val billLabel: String = "Fatura",
 )
 
 fun widgetText(v: TodayView?): WidgetText {
@@ -66,21 +68,27 @@ fun widgetText(v: TodayView?): WidgetText {
     val h = v?.habit
     val streak = h?.let { dev.johnlaff.neko.ui.Learn.streakLabel(it.streak) }
     val week = h?.week.orEmpty().map { it.state }
-    val billDetail = cs?.let { "de ${Format.money(it.budget)} do plano" }
+    // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
+    val month = cs?.mode == "month"
+    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos" else "do plano"}" }
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
-        cs.pace == "over" -> WidgetText("Passou do plano", Format.money(cs.overBy), cs.card, true, bill, billDetail, days)
+        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else "Passou do plano", Format.money(cs.overBy), if (month) "neste mês" else cs.card, true, bill, billDetail, days)
         else -> WidgetText(
             "Hoje cabem",
             Format.money(cs.perDay),
-            if (cs.daysLeft > 1) "por dia · fecha ${Format.shortDate(cs.closing)}" else "até a fatura fechar, hoje",
+            when {
+                cs.daysLeft > 1 -> "por dia · ${if (month) "até" else "fecha"} ${Format.shortDate(cs.closing)}"
+                month -> "até o mês acabar, hoje"
+                else -> "até a fatura fechar, hoje"
+            },
             false,
             bill,
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week)
+    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else "Fatura")
 }
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
@@ -138,7 +146,7 @@ class TodayWidget : GlanceAppWidget() {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Figure(t, roomy, GlanceModifier.defaultWeight())
                     Column(GlanceModifier.defaultWeight()) {
-                        Text("Fatura", style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
+                        Text(t.billLabel, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
                         Text(t.bill ?: "", style = TextStyle(color = pair { it.text }, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1)
                         Text(t.billDetail ?: "", style = TextStyle(color = pair { it.faint }, fontSize = 11.sp), maxLines = 1)
                     }

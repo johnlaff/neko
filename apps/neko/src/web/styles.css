@@ -2654,3 +2654,18 @@ form.entry {
   background: none;
   box-shadow: none;
 }
+
+/* Diário previsto: how far ahead of the Diário the month went, under the dial */
+.behind {
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+}
+/* Ajustes › Planilha: the value form opens inside the list, under its switch */
+.panel.list > .previsto {
+  display: grid;
+  gap: 10px;
+  padding: 12px 16px 16px;
+}

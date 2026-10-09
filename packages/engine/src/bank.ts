@@ -1,6 +1,6 @@
 import { billOnSheet, type CardConfig, cycleForDueMonth, normalizeName } from "./cards.ts";
 import { diffDays, type LocalDate } from "./date.ts";
-import type { Column, Ledger, NoteItem } from "./ledger.ts";
+import { type Column, isForecastItem, type Ledger, type NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
 
 /**
@@ -18,6 +18,8 @@ export interface BankCardLine {
   readonly description: string;
   readonly installment: number | null;
   readonly installments: number | null;
+  /** The day of the charge, as the bank dates it; absent in data read before it was kept. */
+  readonly date?: LocalDate;
 }
 
 /** One future bill: what the bank already has on it and what the sheet expects. */
@@ -43,6 +45,9 @@ export interface ClosedBill {
 
 /** A card account also shows the payment of the previous bill; that is not a charge. */
 const PAYMENT = /\bpagamento|\bpagto|\bpgto/i;
+
+export const isCardPayment = (l: BankCardLine): boolean =>
+  l.amount < 0 && PAYMENT.test(l.description);
 
 const nextMonth = (month: string, n: number): string => {
   const [y = 0, m = 1] = month.split("-").map(Number);
@@ -104,7 +109,7 @@ export const billChecks = (
   const groups = new Map<string, { card: CardConfig; month: string; lines: BankCardLine[] }>();
   for (const l of withFutureParcels(lines)) {
     const card = byCard.get(normalizeName(l.card));
-    if (!card || (l.amount < 0 && PAYMENT.test(l.description))) continue;
+    if (!card || isCardPayment(l)) continue;
     const key = `${normalizeName(card.name)}|${l.billMonth}`;
     const g = groups.get(key) ?? { card, month: l.billMonth, lines: [] };
     g.lines.push(l);
@@ -145,6 +150,15 @@ export interface BankMovement {
   readonly id?: string;
 }
 
+/** Bank text without numbers and punctuation: "PIX RECEBIDO 0710 FULANO" → "pix recebido fulano". */
+export const originKey = (description: string): string =>
+  description
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z]+/g, " ")
+    .trim();
+
 /** How far apart the two sides of a move between the owner's accounts may be dated. */
 export const TRANSFER_DAYS = 2;
 
@@ -163,7 +177,10 @@ export interface SheetLine {
   readonly amount: Cents;
 }
 
-/** The sheet's lines of one column; a cell without a note counts as one line of its total. */
+/**
+ * The sheet's lines of one column; a cell without a note counts as one line of its total. A
+ * Diário forecast is not a line: no movement stands for it.
+ */
 const sheetLines = (
   date: LocalDate,
   column: Column,
@@ -172,7 +189,7 @@ const sheetLines = (
   const sign = column === "entrada" ? 1 : -1;
   const items =
     cell.items.length > 0
-      ? cell.items
+      ? cell.items.filter((i) => !isForecastItem(i))
       : cell.amount === 0
         ? []
         : [{ amount: cell.amount, description: "", section: null }];

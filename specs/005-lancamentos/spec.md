@@ -124,8 +124,30 @@ com valores diferentes, valor negativo.
      ou nenhuma. O gravador acha o mês pelo bloco do ano na linha 4 (`ano | Entradas | Economia`)
      e para se a aba mudou ou o ano não tem bloco. A fila mostra a mudança ("Economia de out:
      +R$ 500,00"), porque o Neko não lê essa aba.
-3. **Diário previsto.** Previsão do Diário nos dias futuros, fechar o dia, "bem ou mal", revisão a
-   cada 3 meses e a chave para desligar.
+3. **Diário previsto.** Para quem paga quase tudo no cartão, o método põe no Diário dos dias
+   futuros o que um dia costuma custar, para o Saldo à frente não parecer folgado
+   (`packages/engine/src/forecast.ts`).
+   - **Valor sugerido:** os últimos 90 dias do banco (ou desde que há dados de cartão e de conta,
+     com pelo menos 28 dias): compras nos cartões do dono pelo valor cheio (a parcelada conta
+     inteira no dia da compra; parcelas seguintes, pagamentos e o cartão de outra pessoa ficam de
+     fora) mais Pix e débito que a planilha não planejou (sem contas de guardar). Dividido pelos
+     dias e arredondado para cima em reais (`suggestDaily`). O dono aprova ou troca o valor.
+   - **Preencher:** em Ajustes › Planilha, cada dia de hoje até dezembro da última aba de ano
+     recebe uma linha `R$ X - Previsto` no Diário (`=SUM(X)`), só onde o Diário está vazio ou só
+     com a previsão. Uma gravação por aba (`writeForecast`): lê a aba, grava tudo num
+     `batchUpdate`, relê e confere cada célula e o Saldo; se algo não bate, a aba volta como era.
+     O valor fica salvo (`dailyForecast`, `previstoSince`) só depois que a planilha tem.
+   - **Fechar o dia:** um dia que passou com previsão vira um item da fila ("Fechar o dia"), que
+     troca a previsão pelo que foi gasto: 0 quando tudo foi no cartão. Um Pix lançado no Diário
+     tira a previsão do dia na mesma edição (`dropForecast`). Dias vazios à frente (uma aba de ano
+     nova) voltam como item para preencher. Nenhum banco casa com uma linha Previsto.
+   - **Bem ou mal:** com a previsão ligada, "Hoje cabem" é o mês: o Diário × dias do mês menos o
+     que o banco mostra gasto antes de hoje, dividido pelos dias que faltam, e "R$ X acima do
+     previsto, uns N dias sem gastar" quando o mês passou do ritmo. Hoje, o widget, o aviso das 8h
+     e a Mia mudam juntos.
+   - **A cada 3 meses:** Hoje mostra o gasto real por dia ao lado do valor, com "Trocar para" e
+     "Manter" (que conta mais 3 meses).
+   - **Desligar:** apaga só as linhas Previsto dos dias que vêm; o que o dono escreveu fica.
 4. **Mia.** Uma frase vira um item da fila, com o mesmo toque para aprovar.
 
 ## Proteções da gravação (Fases 1+)

@@ -87,9 +87,10 @@ describe("today view", () => {
     expect(v.upcomingCount).toBe(4);
   });
 
-  it("says when the usual card passed its plan", () => {
+  it("says how far the month is ahead of the Diário previsto", () => {
     const v = todayView(fixture, []);
-    expect(v.canSpend).toMatchObject({ card: "Cartão Azul", pace: "over" });
+    expect(v.canSpend).toMatchObject({ mode: "month", pace: "ahead", daysBehind: 4 });
+    expect(v.previsto).toMatchObject({ on: true, review: { real: 10000 } });
   });
 
   it("links today's row in the sheet", () => {

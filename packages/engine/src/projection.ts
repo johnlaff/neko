@@ -8,7 +8,8 @@ import {
   isCardItem,
   normalizeName,
 } from "./cards.ts";
-import { addDays, diffDays, type LocalDate, parts, ymd } from "./date.ts";
+import { addDays, daysInMonth, diffDays, type LocalDate, parts, ymd } from "./date.ts";
+import { realDiario } from "./forecast.ts";
 import { type HealthIssue, missingBills, sheetHealth } from "./health.ts";
 import { firstUnplannedMonth, type Insight, insights } from "./insights.ts";
 import type { CellRef, Ledger, NoteItem } from "./ledger.ts";
@@ -28,6 +29,11 @@ export interface Settings {
   readonly cards: readonly CardConfig[];
   /** Cards someone else pays (e.g. a partner's card): left out of your spending pace. */
   readonly othersCards: readonly string[];
+  /**
+   * The Diário previsto is on (specs/005-lancamentos, Fase 3): "Hoje cabem" follows the month,
+   * the day's value against what the bank shows spent this month before today.
+   */
+  readonly previsto?: { readonly value: Cents; readonly spent: Cents } | null;
 }
 
 export interface CardView {
@@ -50,6 +56,11 @@ export interface CardView {
 }
 
 export interface CanSpend {
+  /**
+   * `cycle`: the usual card's bill against its plan for the cycle. `month`: with the Diário
+   * previsto on, the month's spending (cards and Pix, as the bank shows it) against the Diário.
+   */
+  readonly mode: "cycle" | "month";
   readonly card: string;
   readonly budget: Cents;
   readonly budgetSource: "configured" | "diario";
@@ -66,6 +77,8 @@ export interface CanSpend {
   readonly paceGap: Cents;
   /** How much the bill already passed the cycle budget; zero while under it. */
   readonly overBy: Cents;
+  /** Days without spending that would bring the month back to the pace; 0 when on it. */
+  readonly daysBehind: number;
 }
 
 export interface Simulation {
@@ -353,12 +366,39 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
 
   let canSpend: CanSpend | null = null;
   const usualView = cards.find((c) => c.usual);
-  if (usualView) {
+  const previsto = settings.previsto;
+  if (previsto && previsto.value > 0) {
+    // The month, day by day: what the bank shows spent before today against the Diário.
+    const { year, month, day } = parts(today);
+    const monthDays = daysInMonth(year, month);
+    const budget = mul(previsto.value, monthDays);
+    const daysLeft = monthDays - day + 1;
+    const paceExpected = mul(previsto.value, day - 1);
+    const paceGap = sub(paceExpected, previsto.spent);
+    const closing = ymd(year, month, monthDays);
+    canSpend = {
+      mode: "month",
+      card: usualView?.card.name ?? "",
+      budget,
+      budgetSource: "diario",
+      accumulated: previsto.spent,
+      daysLeft,
+      perDay: divFloor(sub(budget, previsto.spent), daysLeft),
+      closing,
+      due: usualView?.cycle.due ?? closing,
+      cycleDays: monthDays,
+      paceExpected,
+      paceGap,
+      overBy: previsto.spent > budget ? sub(previsto.spent, budget) : ZERO,
+      daysBehind: paceGap < 0 ? Math.ceil(-paceGap / previsto.value) : 0,
+    };
+  } else if (usualView) {
     const cycleDays = diffDays(usualView.cycle.start, usualView.cycle.closing);
     const budget = settings.cycleBudget ?? mul(dailyForecast, cycleDays);
     const daysLeft = Math.max(1, usualView.closesInDays);
     const daysIn = Math.min(cycleDays, Math.max(0, cycleDays - daysLeft + 1));
     canSpend = {
+      mode: "cycle",
       card: usualView.card.name,
       budget,
       budgetSource: settings.cycleBudget === null ? "diario" : "configured",
@@ -371,6 +411,7 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       paceExpected: divFloor(mul(budget, daysIn), cycleDays),
       paceGap: sub(divFloor(mul(budget, daysIn), cycleDays), usualView.onSheet),
       overBy: usualView.onSheet > budget ? sub(usualView.onSheet, budget) : ZERO,
+      daysBehind: 0,
     };
   }
 
@@ -538,7 +579,11 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     today,
     balanceToday: byDate.has(today) ? sheetBalance(today) : null,
     todayRef: byDate.get(today)?.dateRef ?? null,
-    todayLogged: (byDate.get(today)?.diario.amount ?? 0) !== 0,
+    // The Diário previsto is not something logged: only what was really spent counts.
+    todayLogged: (() => {
+      const row = byDate.get(today);
+      return row ? realDiario(row.diario) !== 0 : false;
+    })(),
     dailyForecast,
     dailyForecastSource: settings.dailyForecast === null ? "inferred" : "configured",
     canSpend,

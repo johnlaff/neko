@@ -187,6 +187,8 @@ data class AjustesView(
     val settings: UserSettings,
     val cards: List<CardConfig> = emptyList(),
     val dailyAuto: Long = 0,
+    /** The Diário previsto; null from a Worker that predates it. */
+    val previsto: PrevistoView? = null,
 )
 
 /** The Worker's UserSettings (apps/neko/src/shared/types.ts), sent back whole on PUT. */

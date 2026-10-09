@@ -20,4 +20,18 @@ describe("settings", () => {
     });
     expect(keepBankCards({ bankCards: [] }, current).bankCards).toEqual([]);
   });
+
+  it("keeps the Diário previsto and its Desfazer out of the Ajustes form", () => {
+    const undo = { entry: crypto.randomUUID(), dailyForecast: null, since: null };
+    const current = UserSettings.parse({
+      dailyForecast: 95_00,
+      previstoSince: "2026-10-09",
+      previstoUndo: undo,
+    });
+    expect(keepBankCards({ dailyForecast: 50_00 }, current)).toMatchObject({
+      dailyForecast: 95_00,
+      previstoSince: "2026-10-09",
+      previstoUndo: undo,
+    });
+  });
 });

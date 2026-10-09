@@ -120,6 +120,21 @@ class ScreenshotTest {
         AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true))
     }
 
+    // The Diário previsto (specs/005-lancamentos, Fase 3): the value with the bank's suggestion,
+    // the review every 3 months, and the card's cycle when it is off.
+    @Test fun previstoAjustesDark() = shot("previsto-ajustes-dark", night = true) {
+        dev.johnlaff.neko.ui.Panel { dev.johnlaff.neko.ui.PrevistoForm(ajustes.previsto!!.copy(on = false), false, {}, {}) }
+    }
+
+    @Test fun previstoHojeLight() = shot("previsto-hoje-light", night = false, scrollTo = "A cada 3 meses") {
+        HojeScreen(TodayState(view), {}, {}, launcher = Fakes.launcher)
+    }
+
+    @Test fun cicloHojeDark() = shot("ciclo-hoje-dark", night = true) {
+        val cycle = view.canSpend!!.copy(mode = "cycle", pace = "over", perDay = -2_000, overBy = 30_000, daysBehind = 0)
+        HojeScreen(TodayState(view.copy(canSpend = cycle, previsto = null)), {}, {})
+    }
+
     @Test fun proximosDark() = shot("proximos-dark", night = true, scrollTo = "Próximos 7 dias") {
         HojeScreen(TodayState(view), {}, {})
     }

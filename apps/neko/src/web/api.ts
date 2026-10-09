@@ -42,7 +42,13 @@ export interface Device {
 }
 
 /** Settings the Ajustes form does not send; the Worker keeps them. */
-export type KeptSetting = "bankCards" | "accountUse" | "savedOrigins" | "writing";
+export type KeptSetting =
+  | "bankCards"
+  | "accountUse"
+  | "savedOrigins"
+  | "writing"
+  | "previstoSince"
+  | "previstoUndo";
 
 /** What a launch or an undo did; `error` says why a part failed. */
 export interface LaunchResult {
@@ -138,6 +144,14 @@ export const api = {
     request<LaunchResult>("/entries", { method: "POST", body: JSON.stringify(body) }),
   undoEntry: (id: string) =>
     request<LaunchResult>(`/entries/${encodeURIComponent(id)}/undo`, { method: "POST" }),
+  /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. */
+  previsto: (value: number) =>
+    request<LaunchResult>("/entries/previsto", {
+      method: "POST",
+      body: JSON.stringify({ value }),
+    }),
+  /** The review every 3 months, answered "keep the value". */
+  keepPrevisto: () => request<{ ok: true }>("/queue/previsto/manter", { method: "POST" }),
   ignore: (key: string) =>
     request<{ ok: true }>("/queue/ignore", { method: "POST", body: JSON.stringify({ key }) }),
   accountUse: (account: string, use: "guardado" | "corrente") =>

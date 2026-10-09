@@ -64,12 +64,15 @@ interface Launcher {
     suspend fun undo(id: String): Boolean
     suspend fun ignore(key: String)
     suspend fun account(account: String, use: String)
+    /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. Its id, for Desfazer. */
+    suspend fun previsto(value: Long): String
+    suspend fun keepPrevisto()
 }
 
 /** How long Desfazer stays after a launch. */
 private const val UNDO_MS = 10_000L
 
-private fun reasonOf(e: Throwable) =
+internal fun reasonOf(e: Throwable) =
     e.message?.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() }
         ?: "Não gravou. Confira a conexão e tente de novo."
 
@@ -103,7 +106,7 @@ private fun Lines(lines: List<QueueLine>) {
 }
 
 @Composable
-private fun Small(text: String, filled: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(10.dp)
     val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)
@@ -125,7 +128,7 @@ private fun Small(text: String, filled: Boolean, enabled: Boolean = true, onClic
 }
 
 @Composable
-private fun Failed(text: String) {
+internal fun Failed(text: String) {
     Text(
         text,
         color = LocalLedger.current.neg,
@@ -289,6 +292,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
             }
         }
         option?.lines?.takeIf { it.isNotEmpty() }?.let { Lines(it) }
+        item.note?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
         if (adjusting && draft != null && launcher != null && !isCard) {
             EntryForm(launcher, v.today, { adjusting = false }, onLaunched, draft = draft, key = item.key)
         } else if (launcher != null) {
@@ -313,7 +317,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
             }
         }
         error?.let { Failed(it) }
-        Column {
+        if (item.bank.isNotEmpty()) Column {
             TextAction("O banco mostrou", { bank = !bank }, open = bank)
             Reveal(bank) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -378,10 +382,16 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
 
 /** Desfazer, over the dock, for a few seconds after each launch. */
 @Composable
-fun UndoBar(entryId: String?, launcher: Launcher?, onDone: () -> Unit, modifier: Modifier = Modifier) {
+fun UndoBar(
+    entryId: String?,
+    launcher: Launcher?,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+    done: String = "Lançado na planilha",
+) {
     val l = LocalLedger.current
     val scope = rememberCoroutineScope()
-    var text by remember(entryId) { mutableStateOf(if (entryId != null) "Lançado na planilha" else null) }
+    var text by remember(entryId) { mutableStateOf(if (entryId != null) done else null) }
     var busy by remember(entryId) { mutableStateOf(false) }
     var id by remember(entryId) { mutableStateOf(entryId) }
     LaunchedEffect(entryId, text, busy) {
@@ -406,7 +416,7 @@ fun UndoBar(entryId: String?, launcher: Launcher?, onDone: () -> Unit, modifier:
                     busy = true
                     scope.launch {
                         text = runCatching { launcher.undo(undoing) }.fold(
-                            { if (it) "Desfeito" else "A célula mudou depois. Desfaça na planilha" },
+                            { if (it) "Desfeito" else "A planilha mudou depois. Desfaça por lá" },
                             ::reasonOf,
                         )
                         id = null

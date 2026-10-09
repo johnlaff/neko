@@ -7,6 +7,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -132,7 +134,11 @@ fun AjustesScreen(
     lock: LockSwitch = LockSwitch(),
     banks: BanksList = BanksList(),
     restoreReviewed: (suspend () -> Boolean)? = null,
+    /** The Diário previsto's fill, and its Desfazer. */
+    launcher: Launcher? = null,
 ) {
+    var undo by remember { mutableStateOf<Pair<String, String>?>(null) }
+    Box(Modifier.fillMaxSize()) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
     val payload = form?.payload()
@@ -166,9 +172,15 @@ fun AjustesScreen(
         },
     ) { view ->
         val f = form ?: return@ScreenFrame
-        item { Group("Ritmo") { Pace(f, view.dailyAuto) } }
+        // With the Diário previsto on, its value lives in Planilha and the month sets the pace.
+        item { Group("Ritmo") { Pace(f, view.dailyAuto, view.previsto?.takeIf { it.on }?.value) } }
         if (f.cards.isNotEmpty()) item { Group("Cartões") { Cards(f) } }
-        item { Group("Planilha") { Writing(f) } }
+        item {
+            Group("Planilha") {
+                Writing(f)
+                view.previsto?.let { p -> Previsto(p, f.writing, launcher) { id, text -> undo = id to text } }
+            }
+        }
         banks.view?.takeIf { it.configured || it.items.isNotEmpty() }?.let { b ->
             item {
                 Column {
@@ -203,6 +215,12 @@ fun AjustesScreen(
                 )
             }
         }
+    }
+    UndoBar(
+        undo?.first, launcher, { undo = null },
+        Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 84.dp),
+        done = undo?.second ?: "",
+    )
     }
 }
 
@@ -247,6 +265,46 @@ private fun Writing(f: AjustesForm) {
         }),
     ) {
         Switch(checked = f.writing, onCheckedChange = null, colors = switchColors())
+    }
+}
+
+/** The Diário previsto's switch (specs/005-lancamentos, Fase 3); the form opens below it. */
+@Composable
+private fun Previsto(
+    p: dev.johnlaff.neko.data.PrevistoView,
+    writing: Boolean,
+    launcher: Launcher?,
+    onDone: (String, String) -> Unit,
+) {
+    var open by rememberSaveable { mutableStateOf<String?>(null) }
+    val can = writing && launcher != null
+    Setting(
+        "Diário previsto",
+        when {
+            !writing -> "Ligue Lançar pelo Neko para usar"
+            open == "off" -> "Confirme abaixo para desligar"
+            p.on -> "${Format.money(p.value)} por dia nos dias que vêm"
+            else -> "Desligado"
+        },
+        modifier = Modifier
+            .toggleable(p.on, enabled = can, role = Role.Switch, onValueChange = toggled {
+                open = if (it) "on" else "off"
+            })
+            // TalkBack hears the new value per day, or that it waits for the confirmation.
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    ) {
+        Switch(checked = p.on, onCheckedChange = null, enabled = can, colors = switchColors())
+    }
+    if (p.on && can && open == null) TextAction("Trocar o valor", { open = "on" })
+    val go = launcher ?: return
+    open?.let { mode ->
+        PrevistoForm(
+            p, mode == "off",
+            { value ->
+                val id = go.previsto(value)
+                onDone(id, if (value > 0) "Diário previsto: ${Format.money(value)} por dia" else "Previsto apagado da planilha")
+            },
+        ) { open = null }
     }
 }
 
@@ -542,15 +600,17 @@ private fun Field(
 }
 
 @Composable
-private fun Pace(f: AjustesForm, dailyAuto: Long) {
+private fun Pace(f: AjustesForm, dailyAuto: Long, previsto: Long?) {
     val dailyBad = "daily" in f.left && badMoney(f.daily)
-    Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
+    if (previsto != null) Setting("Diário", "Pelo Diário previsto, em Planilha") { Text(Format.money(previsto)) }
+    else Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
         Field(
             f.daily, { f.daily = it }, { f.left += "daily"; f.now = true },
             placeholder = fromCents(dailyAuto), description = "Diário", money = true, error = dailyBad, width = 150,
         )
     }
     Setting("Cartão principal", "O que aparece em Hoje") { CardPicker(f) }
+    if (previsto != null) return
     val budgetBad = "budget" in f.left && badMoney(f.budget)
     Setting("Plano por ciclo", if (budgetBad) "Use um valor como 5.000,00" else "Em branco, diário × dias do ciclo", budgetBad) {
         Field(

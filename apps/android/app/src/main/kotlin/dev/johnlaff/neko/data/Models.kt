@@ -36,7 +36,37 @@ data class TodayView(
     val writing: Boolean = false,
     /** Cards a purchase can be launched on: their closing day is known. */
     val entryCards: List<String> = emptyList(),
+    /** The Diário previsto, for its review every 3 months; null from an older Worker. */
+    val previsto: PrevistoView? = null,
 )
+
+/** The Diário previsto (specs/005-lancamentos, Fase 3): on or off, its value, the bank's suggestion. */
+@Serializable
+data class PrevistoView(
+    val on: Boolean = false,
+    /** Value per day; with it off, the Diário Neko uses for the pace. */
+    val value: Long = 0,
+    val since: String? = null,
+    /** From the bank: what a usual day costs. Null with no bank, or too little of it. */
+    val suggestion: DailySuggestion? = null,
+    /** Every 3 months while on: the real cost of a day since `from`, beside the value. */
+    val review: PrevistoReview? = null,
+    /** The last year tab: the forecast fills the days up to its December. */
+    val lastYear: Int = 0,
+)
+
+@Serializable
+data class DailySuggestion(
+    val cards: Long,
+    val pix: Long,
+    val total: Long,
+    val perDay: Long,
+    val from: String,
+    val days: Int,
+)
+
+@Serializable
+data class PrevistoReview(val real: Long, val from: String)
 
 /**
  * One cell a launch changes: "Diário de 15/10", from `before` to `after`. For the Economia tab,
@@ -70,6 +100,8 @@ data class QueueItem(
     val options: List<QueueOption>,
     val bank: List<BankMove> = emptyList(),
     val adjustable: Boolean = false,
+    /** One line on why the item is there, when its title does not say it. */
+    val note: String? = null,
 )
 
 /** `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. */
@@ -153,6 +185,10 @@ data class CanSpend(
     val overBy: Long,
     /** "over", "on-pace" or "ahead". */
     val pace: String,
+    /** "cycle": the usual card's bill. "month": with the Diário previsto on, cards and Pix against it. */
+    val mode: String = "cycle",
+    /** In month mode, how many days without spending bring the month back to the Diário. */
+    val daysBehind: Int = 0,
 )
 
 @Serializable

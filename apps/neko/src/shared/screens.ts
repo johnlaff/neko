@@ -16,7 +16,7 @@ import {
   type Win,
   type YearTotals,
 } from "@neko/engine";
-import type { ProjectionResponse, UserSettings } from "./types.ts";
+import type { PrevistoView, ProjectionResponse, UserSettings } from "./types.ts";
 
 /**
  * Faturas, Mês and Ajustes ready to draw, for the Android app. Same rules as the site's screens
@@ -258,10 +258,13 @@ export interface AjustesView {
   readonly cards: readonly CardConfig[];
   /** The diário in use when the setting is empty, shown as the field's placeholder. */
   readonly dailyAuto: number;
+  /** The Diário previsto; null from a Worker that predates it. */
+  readonly previsto: PrevistoView | null;
 }
 
 export const ajustesView = (r: ProjectionResponse, settings: UserSettings): AjustesView => ({
   settings,
   cards: r.cardsKnown,
   dailyAuto: r.projection.dailyForecast,
+  previsto: r.previsto ?? null,
 });

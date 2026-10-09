@@ -3,6 +3,10 @@ import {
   type Cents,
   cents,
   type Draft,
+  dropsForecast,
+  forecastIn,
+  isFreeDiario,
+  isOnlyForecast,
   type Ledger,
   type LocalDate,
   originKey,
@@ -48,6 +52,8 @@ export interface QueueItemView {
   readonly adjustable: boolean;
   /** The bank text behind a single movement, normalized: launched as savings, it is remembered. */
   readonly origin: string | null;
+  /** One line on why the item is there, when its title does not say it. */
+  readonly note: string | null;
 }
 
 export const dayMonth = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
@@ -60,12 +66,39 @@ const COLUMN: Record<Placement["column"], string> = {
 
 const MONTHS = "jan fev mar abr mai jun jul ago set out nov dez".split(" ");
 
+/**
+ * The Diário previsto of many days, as one line: "Diário de 17/10: R$ 45,00 → R$ 0,00", or
+ * "Diário de 365 dias: R$ 0,00 → R$ 16.425,00". Days the owner wrote in stay as they are.
+ */
+const forecastLine = (draft: Extract<Draft, { type: "forecast" }>, ledger: Ledger): QueueLine => {
+  const wanted = new Set(draft.days);
+  const rows = ledger.filter((r) => wanted.has(r.date));
+  let before = 0;
+  let after = 0;
+  for (const { diario } of rows) {
+    before += diario.amount;
+    if (draft.value === 0) after += diario.amount - forecastIn(diario);
+    else if (isFreeDiario(diario) || isOnlyForecast(diario)) after += draft.value;
+    else after += diario.amount;
+  }
+  const [only] = draft.days;
+  return {
+    label:
+      draft.days.length === 1 && only
+        ? `Diário de ${dayMonth(only)}`
+        : `Diário de ${draft.days.length} dias`,
+    before: cents(before),
+    after: cents(after),
+  };
+};
+
 /** Each cell a draft changes, with its value now and after, in date order; Economia last. */
 export const draftLines = (
   draft: Draft,
   ledger: Ledger,
   cards: readonly CardConfig[],
 ): QueueLine[] => {
+  if (draft.type === "forecast") return [forecastLine(draft, ledger)];
   const cells = new Map<string, { p: Placement; before: Cents; delta: number }>();
   for (const p of placeDraft(draft, cards)) {
     const economia = p.target === "economia";
@@ -73,6 +106,8 @@ export const draftLines = (
     const row = ledger.find((r) => r.date === p.date);
     const cell = cells.get(key) ?? { p, before: row?.[p.column].amount ?? (0 as Cents), delta: 0 };
     cell.delta += economia && p.column === "entrada" ? -p.amount : p.amount - (p.was ?? 0);
+    // Real spending on a day with the Diário previsto takes the forecast off (see the writer).
+    if (dropsForecast(p) && row) cell.delta -= forecastIn(row.diario);
     cells.set(key, cell);
   }
   return [...cells.values()]
@@ -96,9 +131,24 @@ export const draftLines = (
 const titleOf = (item: QueueItem): string => {
   const draft = item.options[0]?.draft;
   if (!draft) return "Conta nova sua";
+  if (draft.type === "forecast")
+    return draft.value > 0
+      ? "Diário previsto"
+      : draft.days.length === 1
+        ? "Fechar o dia"
+        : "Fechar os dias";
   if (draft.type === "card") return draft.card;
   if (draft.type === "fix") return draft.line.description;
   return draft.description;
+};
+
+const noteOf = (item: QueueItem): string | null => {
+  const draft = item.options[0]?.draft;
+  if (draft?.type !== "forecast") return null;
+  if (draft.value > 0) return "Os dias que vêm recebem o Diário previsto.";
+  return draft.days.length === 1
+    ? "O dia passou: o previsto sai e fica só o que você gastou."
+    : "Os dias passaram: o previsto sai e fica só o que você gastou.";
 };
 
 export const queueView = (
@@ -121,9 +171,12 @@ export const queueView = (
             lines: o.draft ? draftLines(o.draft, ledger, cards) : [],
           })),
           bank: item.bank,
-          adjustable: item.options.some((o) => o.draft !== null && o.draft.type !== "card"),
+          adjustable: item.options.some(
+            (o) => o.draft !== null && o.draft.type !== "card" && o.draft.type !== "forecast",
+          ),
           origin:
             item.bank.length === 1 && item.bank[0] ? originKey(item.bank[0].description) : null,
+          note: noteOf(item),
         },
       ];
     } catch (error) {
