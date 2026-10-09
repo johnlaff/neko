@@ -56,6 +56,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   scrollbar-color: var(--border) transparent;
+  /* Scrolling to a field or form keeps it clear of the dock */
+  scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
 }
 body {
   margin: 0;
@@ -510,9 +512,13 @@ button:hover {
 button:active {
   scale: 0.98;
 }
-button:disabled {
+button:disabled,
+button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: default;
+}
+button[aria-disabled="true"]:active {
+  scale: none;
 }
 button.ghost,
 .button.ghost {
@@ -607,6 +613,9 @@ input[type="checkbox"] {
 }
 input[aria-invalid="true"] {
   border-color: var(--neg);
+}
+input[aria-invalid="true"]:focus-visible {
+  outline-color: var(--neg);
 }
 .hint.error {
   color: var(--neg);

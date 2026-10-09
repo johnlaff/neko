@@ -37,6 +37,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -277,7 +279,10 @@ private fun Previsto(
     onDone: (String, String) -> Unit,
 ) {
     var open by rememberSaveable { mutableStateOf<String?>(null) }
-    val can = writing && launcher != null
+    var busy by remember { mutableStateOf(false) }
+    val can = writing && launcher != null && !busy
+    // Closing the form puts focus back on the switch, not at the top of the screen.
+    val switch = remember { FocusRequester() }
     Setting(
         "Diário previsto",
         when {
@@ -287,6 +292,7 @@ private fun Previsto(
             else -> "Desligado"
         },
         modifier = Modifier
+            .focusRequester(switch)
             .toggleable(p.on, enabled = can, role = Role.Switch, onValueChange = toggled {
                 open = if (it) "on" else "off"
             })
@@ -302,9 +308,15 @@ private fun Previsto(
             p, mode == "off",
             { value ->
                 val id = go.previsto(value)
-                onDone(id, if (value > 0) "Diário previsto: ${Format.money(value)} por dia" else "Previsto apagado da planilha")
+                onDone(id, if (value > 0) "Diário previsto: ${Format.money(value)} por dia" else "Diário previsto desligado")
             },
-        ) { open = null }
+            onBusy = { busy = it },
+        ) {
+            // The form leaves before it can report it is done writing.
+            busy = false
+            open = null
+            runCatching { switch.requestFocus() }
+        }
     }
 }
 

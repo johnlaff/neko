@@ -6,12 +6,16 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,6 +23,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -30,6 +39,7 @@ import dev.johnlaff.neko.ui.Format.fromCents
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.shortDate
 import dev.johnlaff.neko.ui.Format.toCents
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -41,17 +51,39 @@ import kotlinx.coroutines.launch
 /** Ajustes › Planilha, under the switch: the value per day, or taking the forecast away. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> Unit, onClose: () -> Unit) {
+internal fun PrevistoForm(
+    p: PrevistoView,
+    off: Boolean,
+    set: suspend (Long) -> Unit,
+    onBusy: (Boolean) -> Unit = {},
+    onClose: () -> Unit,
+) {
     val l = LocalLedger.current
     val scope = rememberCoroutineScope()
     val start: Long = if (p.on) p.value else p.suggestion?.perDay ?: 0L
     var typed by rememberSaveable { mutableStateOf(if (start > 0) fromCents(start) else "") }
     var busy by remember { mutableStateOf(false) }
+    // The switch above waits too, as on the site: flipping it mid-write would swap the form.
+    LaunchedEffect(busy) { onBusy(busy) }
     var error by remember { mutableStateOf<String?>(null) }
     var formula by remember { mutableStateOf(false) }
     val amount = toCents(typed)
+    // As in Ritmo, a wrong value is pointed out once you leave the field, not while typing.
+    var left by rememberSaveable { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
+    val bad = left && typed.isNotBlank() && (amount == null || amount <= 0)
+    // The form grows (Como calculei, a wrong value, a failure): once it has, keep its buttons in sight and clear
+    // of the floating dock.
+    val buttons = remember { BringIntoViewRequester() }
+    var buttonsSize by remember { mutableStateOf(IntSize.Zero) }
+    val dock = with(LocalDensity.current) { (if (LocalRail.current) 0.dp else DOCK_ROOM).toPx() }
+    LaunchedEffect(formula, bad, error) {
+        delay(260)
+        buttons.bringIntoView(Rect(0f, 0f, buttonsSize.width.toFloat(), buttonsSize.height + dock))
+    }
 
     fun submit(value: Long) {
+        left = true
         busy = true
         error = null
         scope.launch {
@@ -85,10 +117,19 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
                 singleLine = true,
                 prefix = { Text("R$ ", color = l.faint) },
                 placeholder = { Text("0,00", color = l.faint) },
+                isError = bad,
+                supportingText = if (bad) ({ Text("Use um valor como 95,00") }) else null,
                 textStyle = MaterialTheme.typography.headlineSmall,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    left = true
+                    amount?.takeIf { it > 0 && !busy }?.let(::submit)
+                }),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().onFocusChanged {
+                    if (focused && !it.isFocused) left = true
+                    focused = it.isFocused
+                },
             )
             Text(
                 "Cada dia de hoje até dezembro de ${p.lastYear} recebe esse valor no Diário, com a nota Previsto. " +
@@ -98,14 +139,18 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
             )
         }
         error?.let { Failed(it) }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            Modifier.bringIntoViewRequester(buttons).onSizeChanged { buttonsSize = it },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             if (off) Small(if (busy) "Apagando…" else "Apagar o previsto", filled = true, enabled = !busy) { submit(0L) }
             else Small(
                 if (busy) "Gravando…" else if (p.on) "Trocar" else "Preencher",
                 filled = true,
                 enabled = amount != null && amount > 0 && !busy,
             ) { amount?.let { submit(it) } }
-            Small("Cancelar", filled = false, onClick = onClose)
+            Small("Cancelar", filled = false, enabled = !busy, onClick = onClose)
         }
     }
 }
