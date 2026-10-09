@@ -1,3 +1,4 @@
+import type { CardConfig } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import { UserSettings } from "../src/shared/types.ts";
 import { type BankRows, bankInput, bankVersion, loadBank } from "../src/worker/bank.ts";
@@ -29,32 +30,46 @@ const rows: BankRows = {
     txn({ amount: -1990, description: "PADARIA" }),
     txn({ account_id: "cartao", amount: 12000, bill_month: "2026-11", card_number: "**** 1111" }),
     txn({ account_id: "cartao", amount: 3000, bill_month: "2026-11", card_number: "2222" }),
-    txn({ account_id: "cartao", amount: 500, type: "CREDIT", bill_id: "b1" }),
+    txn({
+      account_id: "cartao",
+      amount: 500,
+      type: "CREDIT",
+      bill_id: "b1",
+      bill_month: "2026-09",
+    }),
     txn({ account_id: "cartao", amount: 700, card_number: "1111" }),
   ],
   bills: [{ id: "b1", due_date: "2026-10-12" }],
 };
+// Closes on the 29th, due on the 12th: Pluggy forecasts the closing month.
+const cards: CardConfig[] = ["Visa", "Visa Gio"].map((name) => ({
+  name,
+  closingDay: 29,
+  dueDay: 12,
+  closingEstimated: false,
+}));
 const map: UserSettings["bankCards"] = [
   { accountId: "cartao", cardNumber: null, card: "Visa" },
   { accountId: "cartao", cardNumber: "2222", card: "Visa Gio" },
 ];
 
 describe("bank rows to the engine", () => {
-  it("signs by type and names each card line by its number, then by its account", () => {
-    const { lines, movements } = bankInput(rows, map);
+  it("signs by type, names each card line by its number, then by its account, and dates it by due month", () => {
+    const { lines, movements } = bankInput(rows, map, cards);
     expect(movements.map((m) => [m.description, m.amount])).toEqual([
       ["PIX RECEBIDO", 5000],
       ["PADARIA", -1990],
     ]);
     expect(lines.map((l) => [l.card, l.amount, l.billMonth])).toEqual([
-      ["Visa", 12000, "2026-11"],
-      ["Visa Gio", 3000, "2026-11"],
+      ["Visa", 12000, "2026-12"],
+      ["Visa Gio", 3000, "2026-12"],
       ["Visa", -500, "2026-10"],
     ]);
   });
 
   it("drops card lines with no sheet name or no bill to land on", () => {
-    expect(bankInput(rows, []).lines).toEqual([]);
+    expect(bankInput(rows, [], cards).lines).toEqual([]);
+    expect(bankInput({ ...rows, txns: rows.txns.slice(2, 4) }, map, []).lines).toEqual([]);
   });
 });
 

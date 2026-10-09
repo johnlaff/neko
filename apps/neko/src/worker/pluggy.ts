@@ -200,6 +200,7 @@ export const syncItem = async (
       );
       for (const t of txns) {
         const card = t.creditCardMetadata;
+        // The month the bill closes, not the one it is due; bank.ts turns it into the due month.
         const month = card?.billForecastDate?.slice(0, 7);
         stmts.push(
           db
