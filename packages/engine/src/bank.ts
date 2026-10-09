@@ -33,6 +33,14 @@ export interface BillCheck {
   readonly gap: Cents;
 }
 
+/** A bill the bank already closed, with its final total. */
+export interface ClosedBill {
+  readonly card: string;
+  /** Due month, `YYYY-MM`. */
+  readonly billMonth: string;
+  readonly total: Cents;
+}
+
 /** A card account also shows the payment of the previous bill; that is not a charge. */
 const PAYMENT = /\bpagamento|\bpagto|\bpgto/i;
 
@@ -43,36 +51,38 @@ const nextMonth = (month: string, n: number): string => {
 };
 
 /** The purchase behind a parcel: banks often write "PARC 02/04" in the text, so that goes. */
-const purchaseKey = (l: BankCardLine): string =>
-  [
-    normalizeName(l.card),
-    l.description
-      .replace(/\bparc(ela)?\b|\d{1,2}\s*\/\s*\d{1,2}/gi, "")
-      .replace(/[^\p{L}\p{N}]+/gu, " ")
-      .trim()
-      .toLowerCase(),
-    l.amount,
-    l.installments,
-  ].join("|");
+const purchaseText = (l: BankCardLine): string =>
+  l.description
+    .replace(/\bparc(ela)?\b|\d{1,2}\s*\/\s*\d{1,2}/gi, "")
+    .replace(/[^\p{L}\p{N}]+/gu, "")
+    .toLowerCase();
+
+/**
+ * Two parcels of the same purchase: same card, count and number, value within a cent per parcel
+ * (the bank puts the rounding on the first one: 33,63 then 33,61), and one text starting the other
+ * (it lists future parcels with a shorter text, "MERCADOLIVRE*MERC" for "MERCADOLIVRE*MERCADOLI").
+ */
+const samePurchase = (a: BankCardLine, b: BankCardLine): boolean => {
+  if (normalizeName(a.card) !== normalizeName(b.card)) return false;
+  if (a.installments !== b.installments || a.installment !== b.installment) return false;
+  if (Math.abs(a.amount - b.amount) > Math.max(1, a.installments ?? 1)) return false;
+  const [x, y] = [purchaseText(a), purchaseText(b)];
+  return x.startsWith(y) || y.startsWith(x);
+};
 
 /**
  * The bank lists only the parcels already on a bill; the rest of each purchase is already owed.
- * Parcel n of N on month M puts n+1..N on the months after, unless the bank already lists them.
+ * Parcel n of N on month M puts n+1..N on the months after, unless that parcel is already known.
  * Two purchases with the same text, parcel value and count read as one.
  */
 const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
-  const seen = new Set(
-    lines.filter((l) => l.installment !== null).map((l) => `${purchaseKey(l)}|${l.installment}`),
-  );
   const out = [...lines];
   for (const l of lines) {
     const { installment: n, installments: total } = l;
     if (n === null || total === null || n >= total) continue;
     for (let k = n + 1; k <= total; k++) {
-      const key = `${purchaseKey(l)}|${k}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({ ...l, installment: k, billMonth: nextMonth(l.billMonth, k - n) });
+      const next = { ...l, installment: k, billMonth: nextMonth(l.billMonth, k - n) };
+      if (!out.some((o) => samePurchase(o, next))) out.push(next);
     }
   }
   return out;
@@ -88,6 +98,7 @@ export const billChecks = (
   cards: readonly CardConfig[],
   lines: readonly BankCardLine[],
   today: LocalDate,
+  closed: readonly ClosedBill[] = [],
 ): BillCheck[] => {
   const byCard = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const groups = new Map<string, { card: CardConfig; month: string; lines: BankCardLine[] }>();
@@ -99,13 +110,22 @@ export const billChecks = (
     g.lines.push(l);
     groups.set(key, g);
   }
+  // A closed bill counts by its total, even when the bank listed only part of it.
+  const totals = new Map<string, Cents>();
+  for (const b of closed) {
+    const card = byCard.get(normalizeName(b.card));
+    if (!card) continue;
+    const key = `${normalizeName(card.name)}|${b.billMonth}`;
+    totals.set(key, b.total);
+    if (!groups.has(key)) groups.set(key, { card, month: b.billMonth, lines: [] });
+  }
   const out: BillCheck[] = [];
-  for (const { card, month, lines: ls } of groups.values()) {
+  for (const [key, { card, month, lines: ls }] of groups) {
     const [y, m] = month.split("-").map(Number);
     if (!y || !m) continue;
     const { due } = cycleForDueMonth(card, y, m);
     if (diffDays(today, due) <= 0) continue;
-    const bank = add(ZERO, ...ls.map((l) => l.amount));
+    const bank = totals.get(key) ?? add(ZERO, ...ls.map((l) => l.amount));
     const parcels = add(ZERO, ...ls.filter((l) => (l.installments ?? 1) > 1).map((l) => l.amount));
     const sheet = billOnSheet(ledger, card, due);
     if (sheet === null) continue;
@@ -119,7 +139,15 @@ export interface BankMovement {
   readonly date: LocalDate;
   readonly amount: Cents;
   readonly description: string;
+  /** The bank account it happened in, so a move between two of the owner's accounts is seen. */
+  readonly account?: string;
 }
+
+/** How far apart the two sides of a move between the owner's accounts may be dated. */
+export const TRANSFER_DAYS = 2;
+
+/** Paying a card bill from the account: the bills are checked on their own. */
+const BILL_PAYMENT = /gastos cart[aã]o|pagamento (de )?fatura|pagto\.? fatura/i;
 
 /** How far apart the bank's date and the sheet's day may be, as in Actual Budget's matching. */
 export const MATCH_DAYS = 7;
@@ -130,7 +158,10 @@ const sheetLines = (cell: { amount: Cents; items: readonly NoteItem[] }): Cents[
 
 /**
  * Movements up to today with no sheet line of the same amount, same direction, within
- * MATCH_DAYS. Each sheet line answers for one movement only, the closest in date first.
+ * MATCH_DAYS. Each sheet line answers for one movement only, the closest in date first; what is
+ * left may still be two lines of one sheet day added up. Money moved between two linked accounts (the same amount out of one and into another within
+ * TRANSFER_DAYS, or both sides with the same text in one account) and card bill payments never
+ * reach the sheet as such, so they are left out.
  */
 export const unmatchedMovements = (
   ledger: Ledger,
@@ -145,8 +176,31 @@ export const unmatchedMovements = (
       used: false,
     })),
   ]);
-  const candidates = movements
-    .filter((m) => diffDays(m.date, today) >= 0 && m.amount !== 0)
+  const transfers = new Set<BankMovement>();
+  const outs = movements.filter((m) => m.amount < 0);
+  for (const m of movements) {
+    if (m.amount <= 0 || m.account === undefined) continue;
+    const other = outs.find(
+      (o) =>
+        !transfers.has(o) &&
+        o.account !== undefined &&
+        o.amount === -m.amount &&
+        Math.abs(diffDays(o.date, m.date)) <= TRANSFER_DAYS &&
+        // Within one account only when both sides say the same: a bank shows an inner move twice.
+        (o.account !== m.account || o.description === m.description),
+    );
+    if (!other) continue;
+    transfers.add(m);
+    transfers.add(other);
+  }
+  const open = movements.filter(
+    (m) =>
+      diffDays(m.date, today) >= 0 &&
+      m.amount !== 0 &&
+      !transfers.has(m) &&
+      !(m.amount < 0 && BILL_PAYMENT.test(m.description)),
+  );
+  const candidates = open
     .flatMap((m) =>
       pool
         .filter((p) => p.amount === m.amount && Math.abs(diffDays(p.date, m.date)) <= MATCH_DAYS)
@@ -159,7 +213,24 @@ export const unmatchedMovements = (
     p.used = true;
     matched.add(m);
   }
-  return movements
-    .filter((m) => diffDays(m.date, today) >= 0 && m.amount !== 0 && !matched.has(m))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  // One transfer can pay two lines of the same day: R$ 1.123,51 for "car 1.006,51" and "pharmacy 117,00".
+  for (const m of open) {
+    if (matched.has(m)) continue;
+    const near = pool.filter(
+      (p) =>
+        !p.used &&
+        Math.sign(p.amount) === Math.sign(m.amount) &&
+        Math.abs(diffDays(p.date, m.date)) <= MATCH_DAYS,
+    );
+    const pair = near.flatMap((a, i) =>
+      near
+        .slice(i + 1)
+        .filter((b) => b.date === a.date && a.amount + b.amount === m.amount)
+        .map((b) => [a, b] as const),
+    )[0];
+    if (!pair) continue;
+    for (const p of pair) p.used = true;
+    matched.add(m);
+  }
+  return open.filter((m) => !matched.has(m)).sort((a, b) => a.date.localeCompare(b.date));
 };
