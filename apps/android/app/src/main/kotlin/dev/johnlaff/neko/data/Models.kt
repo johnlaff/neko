@@ -100,6 +100,8 @@ data class QueueItem(
     val options: List<QueueOption>,
     val bank: List<BankMove> = emptyList(),
     val adjustable: Boolean = false,
+    /** One line on why the item is there, when its title does not say it. */
+    val note: String? = null,
 )
 
 /** `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. */

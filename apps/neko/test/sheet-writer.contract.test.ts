@@ -273,7 +273,7 @@ describe.runIf(available)("writer on the test sheet", { timeout: 300_000 }, () =
           [p],
           [preview?.fingerprint ?? ""],
         ),
-      ).rejects.toThrow(/mudou desde a prévia/);
+      ).rejects.toThrow(/mudou na planilha agora há pouco/);
     } finally {
       await s.writeCell(
         tabId,

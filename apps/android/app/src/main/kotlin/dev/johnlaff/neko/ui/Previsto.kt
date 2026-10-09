@@ -62,7 +62,7 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (off) {
-            Text("A previsão sai dos dias que vêm. O que você escreveu no Diário fica como está.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            Text("O previsto sai dos dias que vêm. O que você escreveu no Diário fica como está.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
         } else {
             p.suggestion?.let { s ->
                 Text("Pelo banco, um dia seu custa ${money(s.perDay)}.")
@@ -99,7 +99,7 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
         }
         error?.let { Failed(it) }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (off) Small(if (busy) "Apagando…" else "Apagar a previsão", filled = true, enabled = !busy) { submit(0L) }
+            if (off) Small(if (busy) "Apagando…" else "Apagar o previsto", filled = true, enabled = !busy) { submit(0L) }
             else Small(
                 if (busy) "Gravando…" else if (p.on) "Trocar" else "Preencher",
                 filled = true,

@@ -106,7 +106,8 @@ class TodayViewTest {
         val t = widgetText(view)
         val cs = view.canSpend!!
         assertEquals(dev.johnlaff.neko.ui.Format.money(cs.accumulated), t.bill)
-        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} previstos no mês", t.billDetail)
+        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} previstos", t.billDetail)
+        assertEquals("Gasto no mês", t.billLabel)
         assertEquals("por dia · até 31 out", t.footer)
         assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} do plano", widgetText(view.copy(canSpend = over)).billDetail)
         assertEquals(view.upcoming.size.coerceAtMost(3), t.days.size)

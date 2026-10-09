@@ -151,7 +151,7 @@ export const PrevistoSetting = ({
       {open === "off" && (
         <section className="sim entry previsto" aria-label="Desligar o Diário previsto">
           <p className="hint">
-            A previsão sai dos dias que vêm. O que você escreveu no Diário fica como está.
+            O previsto sai dos dias que vêm. O que você escreveu no Diário fica como está.
           </p>
           {run.isError && (
             <p className="setting-error" role="alert">
@@ -160,7 +160,7 @@ export const PrevistoSetting = ({
           )}
           <div className="actions">
             <button type="button" disabled={run.isPending} onClick={() => run.mutate(0)}>
-              {run.isPending ? "Apagando…" : "Apagar a previsão"}
+              {run.isPending ? "Apagando…" : "Apagar o previsto"}
             </button>
             <button type="button" className="ghost" onClick={() => setOpen(null)}>
               Cancelar

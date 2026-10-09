@@ -237,18 +237,20 @@ describe("entry writer", () => {
         preview.map((p) => p.fingerprint),
         fixedNow,
       ),
-    ).rejects.toThrow(/mudou desde a prévia/);
+    ).rejects.toThrow(/mudou na planilha agora há pouco/);
     expect(sheet.writes).toEqual([]);
   });
 
-  it("refuses a cell it does not fully understand, naming the address", async () => {
+  it("refuses a cell it does not fully understand, naming the day", async () => {
     const { sheet } = setup();
     const ps = placeEntry(
       { kind: "diario", amount: cents(100), description: "x", date: d("2026-10-09") },
       cards,
     );
     sheet.set(ps[0] as Placement, { formulaValue: "=A1*2" }, "");
-    await expect(previewEntry(sheet.api, ps)).rejects.toThrow(/2026!BF11: a fórmula/);
+    await expect(previewEntry(sheet.api, ps)).rejects.toThrow(
+      /mudar o Diário de 09\/10: a fórmula/,
+    );
   });
 
   it("lands a card purchase in installments whole or not at all", async () => {
@@ -454,7 +456,7 @@ describe("entry writer", () => {
     );
     await sheet.api.writeCell(9, 13, 8, { formulaValue: "=H14*0,1" }, "");
     await expect(previewEntry(sheet.api, reserva("2026-10-05"))).rejects.toThrow(
-      /Economia!I14: a célula Economia tem uma fórmula/,
+      /não consegue mudar a Economia de 10\/2026: a fórmula não é só de somas/,
     );
   });
 

@@ -52,6 +52,8 @@ export interface QueueItemView {
   readonly adjustable: boolean;
   /** The bank text behind a single movement, normalized: launched as savings, it is remembered. */
   readonly origin: string | null;
+  /** One line on why the item is there, when its title does not say it. */
+  readonly note: string | null;
 }
 
 export const dayMonth = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
@@ -140,6 +142,15 @@ const titleOf = (item: QueueItem): string => {
   return draft.description;
 };
 
+const noteOf = (item: QueueItem): string | null => {
+  const draft = item.options[0]?.draft;
+  if (draft?.type !== "forecast") return null;
+  if (draft.value > 0) return "Os dias que vêm recebem o Diário previsto.";
+  return draft.days.length === 1
+    ? "O dia passou: o previsto sai e fica só o que você gastou."
+    : "Os dias passaram: o previsto sai e fica só o que você gastou.";
+};
+
 export const queueView = (
   items: readonly QueueItem[],
   ledger: Ledger,
@@ -165,6 +176,7 @@ export const queueView = (
           ),
           origin:
             item.bank.length === 1 && item.bank[0] ? originKey(item.bank[0].description) : null,
+          note: noteOf(item),
         },
       ];
     } catch (error) {

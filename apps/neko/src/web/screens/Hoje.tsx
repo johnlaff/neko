@@ -441,8 +441,9 @@ export const Hoje = () => (
             <section className="panel hero today half">
               <div className="panel-head">
                 <h2>{month ? `Diário de ${monthName(Number(p.today.slice(5, 7)))}` : cs.card}</h2>
-                {/* Over the plan, the figure already says so in red: the chip would repeat it. */}
-                {!over && (
+                {/* Over the plan, the figure already says so in red, and behind the Diário the line
+                    under it says by how much: the chip would repeat either. */}
+                {!over && !(month && cs.daysBehind > 0) && (
                   <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
                     {cs.paceGap >= 0 ? "No ritmo" : month ? "Acima do previsto" : "Acima do ritmo"}
                   </span>
@@ -475,7 +476,8 @@ export const Hoje = () => (
               {/* How far ahead of the Diário the month went, in days without spending. */}
               {month && cs.daysBehind > 0 && !over && (
                 <p className="behind">
-                  {money(-cs.paceGap)} acima do previsto, uns {days(cs.daysBehind)} sem gastar.
+                  {money(-cs.paceGap)} acima do previsto. Uns {days(cs.daysBehind)} sem gastar e
+                  você volta ao previsto.
                 </p>
               )}
               {cs.daysLeft > 1 && (

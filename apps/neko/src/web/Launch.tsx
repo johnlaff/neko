@@ -68,7 +68,7 @@ export const LaunchToast = () => {
     onSuccess: (r) => {
       showToast({
         entryId: null,
-        text: r.state === "undone" ? "Desfeito" : "A célula mudou depois. Desfaça na planilha",
+        text: r.state === "undone" ? "Desfeito" : "A planilha mudou depois. Desfaça por lá",
       });
       queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
@@ -340,6 +340,7 @@ const Row = ({
         </fieldset>
       )}
       {option && option.lines.length > 0 && <Lines lines={option.lines} />}
+      {item.note && <p className="hint">{item.note}</p>}
       {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
         <EntryForm
           draft={draft}

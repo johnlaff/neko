@@ -169,7 +169,7 @@ fun AjustesScreen(
     ) { view ->
         val f = form ?: return@ScreenFrame
         // With the Diário previsto on, its value lives in Planilha and the month sets the pace.
-        item { Group("Ritmo") { Pace(f, view.dailyAuto, view.previsto?.on == true) } }
+        item { Group("Ritmo") { Pace(f, view.dailyAuto, view.previsto?.takeIf { it.on }?.value) } }
         if (f.cards.isNotEmpty()) item { Group("Cartões") { Cards(f) } }
         item {
             Group("Planilha") {
@@ -573,16 +573,17 @@ private fun Field(
 }
 
 @Composable
-private fun Pace(f: AjustesForm, dailyAuto: Long, previsto: Boolean) {
+private fun Pace(f: AjustesForm, dailyAuto: Long, previsto: Long?) {
     val dailyBad = "daily" in f.left && badMoney(f.daily)
-    if (!previsto) Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
+    if (previsto != null) Setting("Diário", "Pelo Diário previsto, em Planilha") { Text(Format.money(previsto)) }
+    else Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
         Field(
             f.daily, { f.daily = it }, { f.left += "daily"; f.now = true },
             placeholder = fromCents(dailyAuto), description = "Diário", money = true, error = dailyBad, width = 150,
         )
     }
     Setting("Cartão principal", "O que aparece em Hoje") { CardPicker(f) }
-    if (previsto) return
+    if (previsto != null) return
     val budgetBad = "budget" in f.left && badMoney(f.budget)
     Setting("Plano por ciclo", if (budgetBad) "Use um valor como 5.000,00" else "Em branco, diário × dias do ciclo", budgetBad) {
         Field(

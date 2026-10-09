@@ -91,6 +91,17 @@ export class WriteError extends Error {
   override name = "WriteError";
 }
 
+const ddmm = (date: string) => `${date.slice(8, 10)}/${date.slice(5, 7)}`;
+
+/** "o Diário de 15/10", "a Economia de 10/2026": a place in the sheet as the owner calls it. */
+const where = (column: Placement["column"], target: Placement["target"], date: string) =>
+  target === "economia"
+    ? `a Economia de ${date.slice(5, 7)}/${date.slice(0, 4)}`
+    : `${{ entrada: "a Entrada", saida: "a Saída", diario: "o Diário" }[column]} de ${ddmm(date)}`;
+
+const placeOf = (p: Placement) => where(p.column, p.target, p.date);
+const placeOfOp = (o: OpRow) => where(o.column_name, o.target, o.date);
+
 const ROW_FIELDS =
   "sheets(properties(sheetId),data(rowData(values(effectiveValue,userEnteredValue,note))))";
 
@@ -134,7 +145,10 @@ export const googleSheets = (
         await wait(Math.min(60_000, 1000 * 2 ** attempt));
         continue;
       }
-      if (!res.ok) throw new WriteError(`Google respondeu ${res.status}: ${await res.text()}`);
+      if (!res.ok) {
+        console.error("sheets", res.status, await res.text());
+        throw new WriteError(`o Google respondeu ${res.status} e não gravou`);
+      }
       return res.json();
     }
   };
@@ -230,7 +244,7 @@ export const locateEconomia = (rows: readonly (readonly ApiCell[])[], date: Loca
   const row = 3 + month;
   if (label(rows[row]?.[at]) !== MONTHS[month - 1])
     throw new WriteError(
-      `a aba ${ECONOMIA_TAB} mudou: esperava ${MONTHS[month - 1]} em ${a1(row, at)}`,
+      `a aba ${ECONOMIA_TAB} mudou: esperava ${MONTHS[month - 1]} abaixo de ${year}`,
     );
   const col = at + 2;
   return { tab: ECONOMIA_TAB, row, col, address: `${ECONOMIA_TAB}!${a1(row, col)}` };
@@ -295,7 +309,7 @@ const readSite = async (api: SheetsApi, p: Where): Promise<Site> => {
   const day = cells[SHEET_MAP.offsets.data]?.effectiveValue?.numberValue;
   if (day !== at.day)
     throw new WriteError(
-      `${at.address}: a linha não é do dia ${at.day} (Data mostra ${day ?? "nada"})`,
+      `a planilha mudou: a linha de ${ddmm(p.date)} mostra o dia ${day ?? "vazio"}`,
     );
   const { tab, row, col, address } = at;
   return { tab, row, col, address, sheetId, cells, cell: cells[SHEET_MAP.offsets[p.column]] };
@@ -306,8 +320,7 @@ const plan = (site: Site, p: Placement) => {
     p.target === "economia"
       ? planEconomiaEdit(site.cell, p)
       : planCellEdit(site.cell, { ...p, dropForecast: dropsForecast(p) });
-  if (!result.ok)
-    throw new WriteError(`${site.address}: ${result.reason}; arrume a célula na planilha`);
+  if (!result.ok) throw new WriteError(`o Neko não consegue mudar ${placeOf(p)}: ${result.reason}`);
   return result;
 };
 
@@ -321,7 +334,7 @@ export const previewEntry = async (
   for (const p of placements) {
     const site = await readSite(api, p);
     if (seen.has(site.address))
-      throw new WriteError(`${site.address} aparece duas vezes no lançamento`);
+      throw new WriteError(`${placeOf(p)} aparece duas vezes no lançamento`);
     seen.add(site.address);
     const edit = plan(site, p);
     out.push({
@@ -466,7 +479,7 @@ export const commitEntry = async (
         continue;
       }
       if (!isBefore(cell, old)) {
-        await setState(db, old, "failed", now(), "a célula mudou no meio da gravação");
+        await setState(db, old, "failed", now(), "a planilha mudou no meio da gravação");
         await rollBack(db, api, entryId, part, now);
         return result(db, entryId);
       }
@@ -476,7 +489,9 @@ export const commitEntry = async (
         .run();
     } else if ((await fingerprint(cell)) !== fingerprints[part]) {
       await rollBack(db, api, entryId, part, now);
-      throw new WriteError(`${site.address} mudou desde a prévia; confira e lance de novo`);
+      throw new WriteError(
+        `${placeOf(p)} mudou na planilha agora há pouco; confira e lance de novo`,
+      );
     }
 
     const edit = plan(site, p);
@@ -517,12 +532,12 @@ export const commitEntry = async (
       await api.writeCell(site.sheetId, site.row, site.col, value, edit.note);
       const back = await readSite(api, p);
       if (!isAfter(back.cell, { target: p.target, after_total: edit.after, after_note: edit.note }))
-        error = `${site.address} não ficou como planejado`;
+        error = `${placeOf(p)} não ficou como devia`;
       else if (
         back.cells &&
         saldoOf(back.cells) - saldoBefore !== signed(p.column, edit.after - edit.before)
       )
-        error = `o Saldo de ${p.date} não mudou ${(edit.after - edit.before) / 100} reais`;
+        error = `o Saldo de ${ddmm(p.date)} não bateu depois de gravar`;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
       // Before the new protection script runs, the whole Economia tab is closed to Neko.
@@ -537,7 +552,7 @@ export const commitEntry = async (
     const op = (await opsOf(db, entryId)).find((o) => o.part === part);
     if (op)
       await restore(api, op, true).catch((e) => {
-        error = `${error}; e não consegui voltar a célula: ${e instanceof Error ? e.message : e}`;
+        error = `${error}; e não consegui desfazer: ${e instanceof Error ? e.message : e}`;
       });
     await setState(db, { entry_id: entryId, part }, "failed", now(), error);
     await rollBack(db, api, entryId, part, now);
@@ -555,7 +570,7 @@ const restore = async (api: SheetsApi, op: OpRow, justWritten = false) => {
   const { sheetId, row, col, cell } = await readSite(api, whereOf(op));
   if (isBefore(cell, op)) return;
   if (!justWritten && !isAfter(cell, op))
-    throw new WriteError(`${op.tab}!${op.cell} mudou depois do lançamento; desfaça na planilha`);
+    throw new WriteError(`${placeOfOp(op)} mudou depois do lançamento; desfaça na planilha`);
   await api.writeCell(
     sheetId,
     row,
@@ -564,7 +579,7 @@ const restore = async (api: SheetsApi, op: OpRow, justWritten = false) => {
     op.before_note,
   );
   const back = await readSite(api, whereOf(op));
-  if (!isBefore(back.cell, op)) throw new WriteError(`${op.tab}!${op.cell} não voltou ao que era`);
+  if (!isBefore(back.cell, op)) throw new WriteError(`${placeOfOp(op)} não voltou ao que era`);
 };
 
 /** Undoes the parts already written before `upTo`, newest first. */
@@ -602,7 +617,7 @@ export const undoEntry = async (
   for (const op of ops) {
     const { cell } = await readSite(api, whereOf(op));
     if (!isAfter(cell, op))
-      throw new WriteError(`${op.tab}!${op.cell} mudou depois do lançamento; desfaça na planilha`);
+      throw new WriteError(`${placeOfOp(op)} mudou depois do lançamento; desfaça na planilha`);
   }
   for (const op of ops.reverse()) {
     await restore(api, op);
@@ -742,7 +757,10 @@ export const writeForecast = async (
       const at = locate({ date, column: "diario" });
       const day = dayCell(rows, at.row, at.block + SHEET_MAP.offsets.data)?.effectiveValue
         ?.numberValue;
-      if (day !== at.day) throw new WriteError(`${at.address}: a linha não é do dia ${at.day}`);
+      if (day !== at.day)
+        throw new WriteError(
+          `a planilha mudou: a linha de ${ddmm(date)} mostra o dia ${day ?? "vazio"}`,
+        );
       const cell = dayCell(rows, at.row, at.col);
       const op = forecastEdit(cell, value);
       const edit = op && planCellEdit(cell, op);
@@ -847,9 +865,7 @@ const undoForecast = async (
     for (const op of ops.filter((o) => o.tab === tab)) {
       const { row, col } = cellIndex(op.cell);
       if (!isAfter(dayCell(got.rows, row, col), op))
-        throw new WriteError(
-          `${op.tab}!${op.cell} mudou depois do lançamento; desfaça na planilha`,
-        );
+        throw new WriteError(`${placeOfOp(op)} mudou depois do lançamento; desfaça na planilha`);
     }
   }
   for (const tab of tabs.reverse())

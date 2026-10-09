@@ -90,7 +90,7 @@ describe("checkCell", () => {
     ).toMatch(/sem nota|não tem nota/);
     expect(reason(sumCell("=SUM(10+10)", 20, "R$ 20,00 - Item"))).toMatch(/mesmos valores/);
     expect(reason(sumCell("=SUM(10+10)", 21, "R$ 10,00 - a\nR$ 10,00 - b"))).toMatch(/soma/);
-    expect(reason(sumCell("=SUM(10)", 10, "R$ 10,00 - a\nR$ dez - b"))).toMatch(/não entendo/);
+    expect(reason(sumCell("=SUM(10)", 10, "R$ 10,00 - a\nR$ dez - b"))).toMatch(/não entende/);
     expect(
       reason({ userEnteredValue: { numberValue: -5 }, effectiveValue: { numberValue: -5 } }),
     ).toMatch(/negativo/);

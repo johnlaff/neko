@@ -292,6 +292,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
             }
         }
         option?.lines?.takeIf { it.isNotEmpty() }?.let { Lines(it) }
+        item.note?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
         if (adjusting && draft != null && launcher != null && !isCard) {
             EntryForm(launcher, v.today, { adjusting = false }, onLaunched, draft = draft, key = item.key)
         } else if (launcher != null) {
@@ -409,7 +410,7 @@ fun UndoBar(entryId: String?, launcher: Launcher?, onDone: () -> Unit, modifier:
                     busy = true
                     scope.launch {
                         text = runCatching { launcher.undo(undoing) }.fold(
-                            { if (it) "Desfeito" else "A célula mudou depois. Desfaça na planilha" },
+                            { if (it) "Desfeito" else "A planilha mudou depois. Desfaça por lá" },
                             ::reasonOf,
                         )
                         id = null

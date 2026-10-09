@@ -55,6 +55,8 @@ data class WidgetText(
     /** "Planilha em dia · 12 dias" and this week as seven marks, for the tall widget; null without a streak. */
     val streak: String? = null,
     val week: List<String> = emptyList(),
+    /** What `bill` is: the open bill, or with the Diário previsto on, the month's spending. */
+    val billLabel: String = "Fatura",
 )
 
 fun widgetText(v: TodayView?): WidgetText {
@@ -68,7 +70,7 @@ fun widgetText(v: TodayView?): WidgetText {
     val week = h?.week.orEmpty().map { it.state }
     // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
     val month = cs?.mode == "month"
-    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos no mês" else "do plano"}" }
+    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos" else "do plano"}" }
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
@@ -86,7 +88,7 @@ fun widgetText(v: TodayView?): WidgetText {
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week)
+    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else "Fatura")
 }
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
@@ -144,7 +146,7 @@ class TodayWidget : GlanceAppWidget() {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Figure(t, roomy, GlanceModifier.defaultWeight())
                     Column(GlanceModifier.defaultWeight()) {
-                        Text("Fatura", style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
+                        Text(t.billLabel, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
                         Text(t.bill ?: "", style = TextStyle(color = pair { it.text }, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1)
                         Text(t.billDetail ?: "", style = TextStyle(color = pair { it.faint }, fontSize = 11.sp), maxLines = 1)
                     }

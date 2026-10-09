@@ -11445,7 +11445,8 @@
           }
         ],
         "adjustable": true,
-        "origin": "pix feira do bairro"
+        "origin": "pix feira do bairro",
+        "note": null
       },
       {
         "key": "mov:m3",
@@ -11479,7 +11480,8 @@
           }
         ],
         "adjustable": true,
-        "origin": "pix recebido ana"
+        "origin": "pix recebido ana",
+        "note": null
       },
       {
         "key": "previsto:fechar:2026-10-04",
@@ -11505,7 +11507,8 @@
         ],
         "bank": [],
         "adjustable": false,
-        "origin": null
+        "origin": null,
+        "note": "O dia passou: o previsto sai e fica só o que você gastou."
       }
     ],
     "saldo": {

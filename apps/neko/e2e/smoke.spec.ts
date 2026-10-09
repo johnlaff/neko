@@ -123,7 +123,9 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
 }) => {
   const errors = await open(page, "/");
   await expect(page.getByRole("heading", { name: "Diário de outubro" })).toBeVisible();
-  await expect(page.locator(".behind")).toContainText("uns 4 dias sem gastar");
+  await expect(page.locator(".behind")).toContainText(
+    "Uns 4 dias sem gastar e você volta ao previsto",
+  );
   const queue = page.getByRole("region", { name: "Para lançar" });
   await expect(queue).toContainText("Fechar o dia");
   await expect(queue).toContainText("Diário de 04/10: R$ 95,00 → R$ 0,00");

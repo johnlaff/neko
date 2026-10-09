@@ -163,9 +163,10 @@ private fun Hero(v: TodayView) {
     Panel {
         // Over the plan, the figure already says so in red: the chip would repeat it.
         PanelHead(if (month) "Diário de ${Format.monthName(v.today.substring(5, 7).toInt())}" else cs.card) {
-            when (cs.pace) {
-                "over" -> Unit
-                "on-pace" -> Chip("No ritmo", ChipTone.Ok)
+            // Behind the Diário, the line under the figure already says by how much.
+            when {
+                cs.pace == "over" || (month && cs.daysBehind > 0) -> Unit
+                cs.pace == "on-pace" -> Chip("No ritmo", ChipTone.Ok)
                 else -> Chip(if (month) "Acima do previsto" else "Acima do ritmo", ChipTone.Warn)
             }
         }
@@ -202,7 +203,7 @@ private fun Hero(v: TodayView) {
         // How far ahead of the Diário the month went, in days without spending.
         if (month && cs.daysBehind > 0 && !over)
             Text(
-                "${money(-cs.paceGap)} acima do previsto, uns ${days(cs.daysBehind)} sem gastar.",
+                "${money(-cs.paceGap)} acima do previsto. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.",
                 Modifier.fillMaxWidth(),
                 color = l.warn,
                 style = MaterialTheme.typography.bodyMedium,

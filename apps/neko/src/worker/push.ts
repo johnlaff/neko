@@ -120,7 +120,7 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
       cs.daysLeft === 1 ? "O mês acaba hoje." : `Até o fim do mês, faltam ${days(cs.daysLeft)}.`;
     const behind =
       cs.daysBehind > 0
-        ? ` O mês está ${money(sub(cs.accumulated, cs.paceExpected))} acima do previsto, uns ${days(cs.daysBehind)} sem gastar.`
+        ? ` O mês está ${money(sub(cs.accumulated, cs.paceExpected))} acima do previsto. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.`
         : "";
     return cs.perDay < 0
       ? {

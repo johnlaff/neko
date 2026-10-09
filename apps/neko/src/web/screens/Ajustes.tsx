@@ -4,7 +4,7 @@ import type { PrevistoView } from "../../shared/types.ts";
 import { api, type KeptSetting, type UserSettings } from "../api.ts";
 import { Banks } from "../Banks.tsx";
 import { Devices } from "../Devices.tsx";
-import { toCents } from "../format.ts";
+import { money, toCents } from "../format.ts";
 import { resetHints } from "../Hint.tsx";
 import { IconChevron } from "../icons.tsx";
 import { IDEAS, LEARN_INTRO } from "../learn.ts";
@@ -66,8 +66,8 @@ const Form = ({
 }: {
   initial: UserSettings;
   cards: readonly Card[];
-  /** With the Diário previsto on, its value lives in Planilha and the month sets the pace. */
-  previsto: boolean;
+  /** With the Diário previsto on, its value per day: it lives in Planilha and the month sets the pace. */
+  previsto: number | null;
 }) => {
   const queryClient = useQueryClient();
   const projection = useProjection();
@@ -135,7 +135,16 @@ const Form = ({
       <section className="group" aria-labelledby="g-forecast">
         <h2 id="g-forecast">Ritmo</h2>
         <div className="panel list">
-          {!previsto && (
+          {previsto !== null && (
+            <div className="setting">
+              <span className="label">
+                Diário
+                <span className="sub">Pelo Diário previsto, em Planilha</span>
+              </span>
+              <span>{money(previsto)}</span>
+            </div>
+          )}
+          {previsto === null && (
             <label className="setting">
               <span className="label">
                 Diário
@@ -175,7 +184,7 @@ const Form = ({
               ))}
             </select>
           </label>
-          {!previsto && (
+          {previsto === null && (
             <label className="setting">
               <span className="label">
                 Plano por ciclo
@@ -289,7 +298,7 @@ export const Ajustes = () => {
       <Form
         initial={settings.data}
         cards={projection.data.cardsKnown}
-        previsto={projection.data.previsto?.on ?? false}
+        previsto={projection.data.previsto?.on ? projection.data.previsto.value : null}
       />
       <Writing settings={settings.data} previsto={projection.data.previsto} />
       <Banks sheetCards={projection.data.cardsKnown.map((c) => c.name)} />
