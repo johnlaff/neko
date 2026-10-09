@@ -38,9 +38,12 @@ data class TodayView(
     val entryCards: List<String> = emptyList(),
 )
 
-/** One cell a launch changes: "Diário de 15/10", from `before` to `after`. */
+/**
+ * One cell a launch changes: "Diário de 15/10", from `before` to `after`. For the Economia tab,
+ * which Neko does not read, `before` is null and `after` is the change, signed.
+ */
 @Serializable
-data class QueueLine(val label: String, val before: Long, val after: Long)
+data class QueueLine(val label: String, val before: Long? = null, val after: Long)
 
 /**
  * One way to launch an item. `draft` goes back to the Worker as is (only value, day and name may

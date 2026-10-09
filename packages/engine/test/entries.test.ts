@@ -60,6 +60,44 @@ describe("placeEntry", () => {
     expect(res[0]).toMatchObject({ column: "saida", section: "reserva", target: "line" });
   });
 
+  it("puts savings in the month's Economia too, and takes a resgate back from it (=500+500-300)", () => {
+    const kept = placeEntry(
+      { kind: "reserva", amount: cents(50000), description: "Reserva", date: d("2026-11-27") },
+      cards,
+    );
+    expect(kept).toHaveLength(2);
+    expect(kept[1]).toEqual({
+      date: "2026-11-01",
+      column: "saida",
+      section: null,
+      amount: 50000,
+      description: "Economia",
+      target: "economia",
+    });
+    const back = placeEntry(
+      { kind: "resgate", amount: cents(30000), description: "Reserva", date: d("2026-12-03") },
+      cards,
+    );
+    expect(back[0]).toMatchObject({ column: "entrada", section: "reserva", target: "line" });
+    expect(back[1]).toMatchObject({
+      date: "2026-12-01",
+      column: "entrada",
+      amount: 30000,
+      target: "economia",
+    });
+    // Nothing else touches the Economia tab.
+    const inv = placeEntry(
+      {
+        kind: "investimento",
+        amount: cents(100),
+        description: "Previdência",
+        date: d("2026-11-27"),
+      },
+      cards,
+    );
+    expect(inv).toHaveLength(1);
+  });
+
   it("adds a card purchase to the card's line on the due date of the bill it falls in", () => {
     // Closing 29, due 12: bought on 9/10 → closes 29/10 → due 12/11.
     const [p] = placeEntry(
