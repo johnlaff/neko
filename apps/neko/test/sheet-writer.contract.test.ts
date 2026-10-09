@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { cents, fromReais, localDate, type Placement } from "@neko/engine";
 import { SHEET_MAP } from "@neko/sheet-reader";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { accessToken, WRITE_SCOPES } from "../src/worker/google.ts";
 import {
   commitEntry,
@@ -27,7 +27,9 @@ const available = key !== "" && sheetId !== "";
 const d = localDate;
 const at = (date: string, column: Placement["column"]) => ({ date: d(date), column });
 
-describe.runIf(available)("writer on the test sheet", { timeout: 180_000 }, () => {
+describe.runIf(available)("writer on the test sheet", { timeout: 300_000 }, () => {
+  // Sheets allows 60 reads a minute and each test reads about 20 times: keep a pace.
+  beforeEach(() => new Promise((r) => setTimeout(r, 15_000)), 20_000);
   let api: SheetsApi;
   const sheets = async () => {
     api ??= googleSheets(sheetId, await accessToken(key, Date.now(), WRITE_SCOPES));

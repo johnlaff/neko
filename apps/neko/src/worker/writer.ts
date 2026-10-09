@@ -59,8 +59,8 @@ const RowResponse = z.object({
     .min(1),
 });
 
-/** Tries after a 429, waiting 1, 2, 4, 8, 16 and 32 seconds: over a minute, the quota's window. */
-const RETRIES = 6;
+/** Tries after a 429, waiting 1, 2, 4, 8, 16, 32 and 60 seconds: two minutes in all. */
+const RETRIES = 7;
 
 /** The real Sheets API, with a token of the neko-writer account (`WRITE_SCOPES`). */
 export const googleSheets = (
@@ -79,7 +79,7 @@ export const googleSheets = (
       });
       if (res.status === 429 && attempt < RETRIES) {
         await res.body?.cancel();
-        await wait(1000 * 2 ** attempt);
+        await wait(Math.min(60_000, 1000 * 2 ** attempt));
         continue;
       }
       if (!res.ok) throw new WriteError(`Google respondeu ${res.status}: ${await res.text()}`);
