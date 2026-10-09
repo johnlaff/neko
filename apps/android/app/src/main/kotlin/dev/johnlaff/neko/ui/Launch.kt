@@ -104,13 +104,19 @@ private fun Small(text: String, filled: Boolean, enabled: Boolean = true, onClic
     val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)
     if (filled) Button(
         onClick, Modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
-        colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
-    ) { Text(text, style = MaterialTheme.typography.labelLarge) }
+        // Dimmed when off, as the site's disabled buttons.
+        colors = ButtonDefaults.buttonColors(
+            containerColor = l.text,
+            contentColor = l.bg,
+            disabledContainerColor = l.text.copy(alpha = 0.5f),
+            disabledContentColor = l.bg,
+        ),
+    ) { Text(text, color = l.bg, style = MaterialTheme.typography.labelLarge) }
     else OutlinedButton(
         onClick, Modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = BorderStroke(1.dp, l.borderInput),
-    ) { Text(text, style = MaterialTheme.typography.labelLarge) }
+    ) { Text(text, color = l.text, style = MaterialTheme.typography.labelLarge) }
 }
 
 @Composable
