@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { cents, fromReais, localDate, type Placement } from "@neko/engine";
+import { cents, fromReais, localDate, type Placement, withEconomia } from "@neko/engine";
 import { SHEET_MAP } from "@neko/sheet-reader";
 import { beforeEach, describe, expect, it } from "vitest";
 import { accessToken, WRITE_SCOPES } from "../src/worker/google.ts";
@@ -7,6 +7,7 @@ import {
   commitEntry,
   googleSheets,
   locate,
+  locateEconomia,
   previewEntry,
   type SheetsApi,
   undoEntry,
@@ -282,6 +283,47 @@ describe.runIf(available)("writer on the test sheet", { timeout: 300_000 }, () =
         before.cell.note ?? "",
       );
     }
+  });
+
+  it("saves into the reserve and adds it to the month's Economia, undoing both", async (ctx) => {
+    const s = await sheets();
+    const { rows } = await s.readEconomia();
+    const month = (() => {
+      try {
+        return locateEconomia(rows, d("2026-11-01"));
+      } catch {
+        return null;
+      }
+    })();
+    // The test sheet gets its Economia block from the setup script; until then there is nothing
+    // to write into.
+    if (!month) return ctx.skip();
+    const economia = async () => (await s.readEconomia()).rows[month.row]?.[month.col] ?? {};
+    const before = await economia();
+    const reserva: Placement = {
+      ...at("2026-11-20", "saida"),
+      section: "reserva",
+      amount: cents(50050),
+      description: "Reserva",
+      target: "line",
+    };
+    const placements = withEconomia([reserva]);
+    const db = sqliteD1() as unknown as D1Database;
+    const id = randomUUID();
+    const preview = await previewEntry(s, placements);
+    const done = await commitEntry(
+      db,
+      s,
+      id,
+      placements,
+      preview.map((p) => p.fingerprint),
+    );
+    expect(done.state, JSON.stringify(done)).toBe("done");
+    const after = await economia();
+    expect(after.userEnteredValue?.formulaValue).toBe(preview[1]?.formula);
+    expect(fromReais(after.effectiveValue?.numberValue ?? Number.NaN)).toBe(preview[1]?.after);
+    expect((await undoEntry(db, s, id)).state).toBe("undone");
+    expect((await economia()).userEnteredValue).toEqual(before.userEnteredValue);
   });
 
   it("cannot touch Data or Saldo: the sheet protects them from Neko's account", async () => {

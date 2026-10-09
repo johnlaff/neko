@@ -97,7 +97,10 @@ export const LaunchToast = () => {
   );
 };
 
-/** "Diário de 15/10: R$ 0,00 → R$ 18,90"; card parcels in later bills are counted, not listed. */
+/**
+ * "Diário de 15/10: R$ 0,00 → R$ 18,90", or "Economia de out: +R$ 500,00"; card parcels in later
+ * bills are counted, not listed.
+ */
 const Lines = ({ lines }: { lines: readonly QueueLine[] }) => {
   const shown = lines.slice(0, 2);
   const more = lines.length - shown.length;
@@ -105,7 +108,10 @@ const Lines = ({ lines }: { lines: readonly QueueLine[] }) => {
     <p className="q-lines">
       {shown.map((l) => (
         <span key={l.label}>
-          {l.label}: {money(l.before)} → {money(l.after)}
+          {l.label}:{" "}
+          {l.before === null
+            ? `${l.after < 0 ? "−" : "+"}${money(Math.abs(l.after) as Cents)}`
+            : `${money(l.before)} → ${money(l.after)}`}
         </span>
       ))}
       {more > 0 && <span>e mais {more === 1 ? "1 fatura" : `${more} faturas`}</span>}

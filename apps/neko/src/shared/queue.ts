@@ -28,9 +28,10 @@ export interface QueueOptionView {
 }
 
 export interface QueueLine {
-  /** "Diário de 15/10", "Fatura do Inter de 01/12". */
+  /** "Diário de 15/10", "Fatura do Inter de 01/12", "Economia de out". */
   readonly label: string;
-  readonly before: Cents;
+  /** Null for the Economia tab, which Neko does not read: `after` is then the change, signed. */
+  readonly before: Cents | null;
   readonly after: Cents;
 }
 
@@ -57,7 +58,9 @@ const COLUMN: Record<Placement["column"], string> = {
   diario: "Diário",
 };
 
-/** Each cell a draft changes, with its value now and after, in date order. */
+const MONTHS = "jan fev mar abr mai jun jul ago set out nov dez".split(" ");
+
+/** Each cell a draft changes, with its value now and after, in date order; Economia last. */
 export const draftLines = (
   draft: Draft,
   ledger: Ledger,
@@ -65,15 +68,26 @@ export const draftLines = (
 ): QueueLine[] => {
   const cells = new Map<string, { p: Placement; before: Cents; delta: number }>();
   for (const p of placeDraft(draft, cards)) {
-    const key = `${p.date}|${p.column}`;
+    const economia = p.target === "economia";
+    const key = `${p.date}|${economia ? "economia" : p.column}`;
     const row = ledger.find((r) => r.date === p.date);
     const cell = cells.get(key) ?? { p, before: row?.[p.column].amount ?? (0 as Cents), delta: 0 };
-    cell.delta += p.amount - (p.was ?? 0);
+    cell.delta += economia && p.column === "entrada" ? -p.amount : p.amount - (p.was ?? 0);
     cells.set(key, cell);
   }
   return [...cells.values()]
-    .sort((a, b) => a.p.date.localeCompare(b.p.date))
-    .map(({ p, before, delta }) => {
+    .sort(
+      (a, b) =>
+        Number(a.p.target === "economia") - Number(b.p.target === "economia") ||
+        a.p.date.localeCompare(b.p.date),
+    )
+    .map(({ p, before, delta }): QueueLine => {
+      if (p.target === "economia")
+        return {
+          label: `Economia de ${MONTHS[Number(p.date.slice(5, 7)) - 1]}`,
+          before: null,
+          after: cents(delta),
+        };
       const what = p.target === "card" ? `Fatura do ${p.description}` : COLUMN[p.column];
       return { label: `${what} de ${dayMonth(p.date)}`, before, after: cents(before + delta) };
     });

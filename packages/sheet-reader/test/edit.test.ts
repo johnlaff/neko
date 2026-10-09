@@ -8,6 +8,7 @@ import {
   noteAmount,
   parseNote,
   planCellEdit,
+  planEconomiaEdit,
 } from "../src/index.ts";
 
 const sumCell = (formula: string, value: number, note?: string): ApiCell => ({
@@ -484,5 +485,43 @@ describe("properties", () => {
       );
       expect(reread).toMatchObject({ ok: true, total: p.after });
     }
+  });
+});
+
+describe("planEconomiaEdit", () => {
+  const num = (n: number) => ({
+    userEnteredValue: { numberValue: n },
+    effectiveValue: { numberValue: n },
+  });
+  const fx = (f: string, n: number) => ({
+    userEnteredValue: { formulaValue: f },
+    effectiveValue: { numberValue: n },
+  });
+
+  it("keeps the month's Economia as the method does: =500+500-300", () => {
+    const first = planEconomiaEdit(num(0), { amount: cents(50000), column: "saida" });
+    expect(first).toMatchObject({ ok: true, formula: "=500", before: 0, after: 50000 });
+    const second = planEconomiaEdit(fx("=500", 500), { amount: cents(50000), column: "saida" });
+    expect(second).toMatchObject({ formula: "=500+500", after: 100000 });
+    const back = planEconomiaEdit(fx("=500+500", 1000), {
+      amount: cents(30050),
+      column: "entrada",
+    });
+    expect(back).toMatchObject({ formula: "=500+500-300,5", before: 100000, after: 69950 });
+    expect(planEconomiaEdit(undefined, { amount: cents(100), column: "saida" })).toMatchObject({
+      formula: "=1",
+    });
+    expect(planEconomiaEdit(num(250), { amount: cents(100), column: "saida" })).toMatchObject({
+      formula: "=250+1",
+      after: 25100,
+    });
+  });
+
+  it("leaves alone a cell it does not fully understand", () => {
+    const refuse = (c: unknown) =>
+      expect(planEconomiaEdit(c as never, { amount: cents(100), column: "saida" }).ok).toBe(false);
+    refuse(fx("=SUM(A1:A3)", 10));
+    refuse(fx("=500+500", 999));
+    refuse({ userEnteredValue: { stringValue: "x" } });
   });
 });
