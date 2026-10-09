@@ -167,6 +167,26 @@ describe("bank sync", () => {
     ]);
   });
 
+  it("keeps a purchase abroad in reais, as the bill charges it, not in its own currency", async () => {
+    const db = await withItem();
+    await syncItem(
+      db as never,
+      fakeApi({
+        txns: [
+          txn("usd", { amount: 10, currencyCode: "USD", amountInAccountCurrency: 54.9 }),
+          txn("brl", { currencyCode: "BRL", amountInAccountCurrency: null }),
+        ],
+      }).api,
+      ITEM,
+      TODAY,
+    );
+    const rows = db.sqlite.prepare("SELECT id, amount FROM bank_txn ORDER BY id").all();
+    expect(rows).toEqual([
+      { id: "brl", amount: 10010 },
+      { id: "usd", amount: 5490 },
+    ]);
+  });
+
   it("keeps the last good read and notes the error when the bank fails", async () => {
     const db = await withItem();
     const broken = pluggy(
