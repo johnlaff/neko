@@ -7,6 +7,7 @@ import { Devices } from "../Devices.tsx";
 import { money, toCents } from "../format.ts";
 import { resetHints } from "../Hint.tsx";
 import { IconChevron } from "../icons.tsx";
+import { LaunchToast } from "../Launch.tsx";
 import { IDEAS, LEARN_INTRO } from "../learn.ts";
 import { PrevistoSetting } from "../Previsto.tsx";
 import { Reminders } from "../Reminders.tsx";
@@ -327,6 +328,7 @@ export const Ajustes = () => {
           </button>
         </div>
       </section>
+      <LaunchToast />
     </>
   );
 };

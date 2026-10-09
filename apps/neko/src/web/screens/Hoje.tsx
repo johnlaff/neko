@@ -222,7 +222,7 @@ const IssueList = ({
             <span className="value muted">
               {shortDate(i.date)}
               <IconExternal />
-              <span className="sr-only">, abre a célula {i.ref.a1} na planilha</span>
+              <span className="sr-only">, abre o dia na planilha</span>
             </span>
             <span className="meta">{t.detail}</span>
           </a>
@@ -520,7 +520,7 @@ export const Hoje = () => (
                   </>
                 )}
               </details>
-              <Hint id="hoje">{HINTS.hoje}</Hint>
+              <Hint id="hoje">{month ? HINTS.hojeMes : HINTS.hoje}</Hint>
             </section>
           ) : (
             <section className="page-head empty-cards">

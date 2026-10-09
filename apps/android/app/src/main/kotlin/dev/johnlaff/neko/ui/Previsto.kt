@@ -113,7 +113,7 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
 /** Hoje, every 3 months: what a day really cost beside the value, and whether to change it. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun PrevistoReview(p: PrevistoView?, launcher: Launcher?) {
+internal fun PrevistoReview(p: PrevistoView?, launcher: Launcher?, onLaunched: (String) -> Unit = {}) {
     val l = LocalLedger.current
     val r = p?.review
     if (p == null || !p.on || r == null) return
@@ -143,7 +143,7 @@ internal fun PrevistoReview(p: PrevistoView?, launcher: Launcher?) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (r.real != p.value)
                     Small(if (busy == "change") "Trocando…" else "Trocar para ${money(r.real)}", filled = true, enabled = busy == null) {
-                        act("change") { it.previsto(r.real) }
+                        act("change") { onLaunched(it.previsto(r.real)) }
                     }
                 Small("Manter ${money(p.value)}", filled = false, enabled = busy == null) {
                     act("keep") { it.keepPrevisto() }

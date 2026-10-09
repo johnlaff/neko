@@ -226,11 +226,16 @@ entries.post("/previsto", async (c) => {
   );
   if (result.state === "done") {
     const settings = await loadSettings(env.DB);
+    const undo = {
+      entry: result.entryId,
+      dailyForecast: settings.dailyForecast,
+      since: settings.previstoSince,
+    };
     await saveSettings(
       env.DB,
       value > 0
-        ? { ...settings, dailyForecast: value, previstoSince: today }
-        : { ...settings, previstoSince: null },
+        ? { ...settings, dailyForecast: value, previstoSince: today, previstoUndo: undo }
+        : { ...settings, previstoSince: null, previstoUndo: undo },
     );
   }
   return c.json(result);
@@ -244,6 +249,16 @@ entries.post("/:id/undo", async (c) => {
   if (!api) throw new WriteError("o Neko ainda não pode gravar");
   const result = await withLock(env.DB, () => undoEntry(env.DB, api, id));
   await env.DB.prepare("DELETE FROM queue_decision WHERE entry_id = ?").bind(id).run();
+  // Desfazer after filling or changing the Diário previsto puts its setting back too.
+  const settings = await loadSettings(env.DB);
+  const before = settings.previstoUndo;
+  if (result.state === "undone" && before?.entry === id)
+    await saveSettings(env.DB, {
+      ...settings,
+      dailyForecast: before.dailyForecast,
+      previstoSince: before.since,
+      previstoUndo: null,
+    });
   return c.json(result);
 });
 

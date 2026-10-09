@@ -18,7 +18,7 @@ const UNDO_MS = 10_000;
 type Toast = { readonly entryId: string | null; readonly text: string } | null;
 let toast: Toast = null;
 const listeners = new Set<() => void>();
-const showToast = (t: Toast) => {
+export const showToast = (t: Toast) => {
   toast = t;
   for (const f of listeners) f();
 };

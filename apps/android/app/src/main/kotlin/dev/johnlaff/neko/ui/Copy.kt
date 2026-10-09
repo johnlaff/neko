@@ -74,7 +74,7 @@ object Copy {
         )
         "missing-bill" -> Line("Fatura ${i.card} não lançada", "Venceu e não tem linha na nota de Saída")
         "unparsed-note" -> Line("${column(i.column)}: nota não entendida", "\"${i.lines.firstOrNull() ?: ""}\"")
-        else -> Line("Ponto a conferir", "Abra a célula na planilha")
+        else -> Line("Ponto a conferir", "Abra o dia na planilha")
     }
 
     fun dailySource(source: String) = when (source) {

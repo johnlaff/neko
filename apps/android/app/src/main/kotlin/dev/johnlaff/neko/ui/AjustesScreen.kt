@@ -7,6 +7,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -132,9 +134,11 @@ fun AjustesScreen(
     lock: LockSwitch = LockSwitch(),
     banks: BanksList = BanksList(),
     restoreReviewed: (suspend () -> Boolean)? = null,
-    /** Fills the days ahead with the Diário previsto at a value per day; 0 takes it away. */
-    setPrevisto: (suspend (Long) -> Unit)? = null,
+    /** The Diário previsto's fill, and its Desfazer. */
+    launcher: Launcher? = null,
 ) {
+    var undo by remember { mutableStateOf<Pair<String, String>?>(null) }
+    Box(Modifier.fillMaxSize()) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
     val payload = form?.payload()
@@ -174,7 +178,7 @@ fun AjustesScreen(
         item {
             Group("Planilha") {
                 Writing(f)
-                view.previsto?.let { p -> Previsto(p, f.writing, setPrevisto) }
+                view.previsto?.let { p -> Previsto(p, f.writing, launcher) { id, text -> undo = id to text } }
             }
         }
         banks.view?.takeIf { it.configured || it.items.isNotEmpty() }?.let { b ->
@@ -211,6 +215,12 @@ fun AjustesScreen(
                 )
             }
         }
+    }
+    UndoBar(
+        undo?.first, launcher, { undo = null },
+        Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 84.dp),
+        done = undo?.second ?: "",
+    )
     }
 }
 
@@ -260,25 +270,42 @@ private fun Writing(f: AjustesForm) {
 
 /** The Diário previsto's switch (specs/005-lancamentos, Fase 3); the form opens below it. */
 @Composable
-private fun Previsto(p: dev.johnlaff.neko.data.PrevistoView, writing: Boolean, set: (suspend (Long) -> Unit)?) {
+private fun Previsto(
+    p: dev.johnlaff.neko.data.PrevistoView,
+    writing: Boolean,
+    launcher: Launcher?,
+    onDone: (String, String) -> Unit,
+) {
     var open by rememberSaveable { mutableStateOf<String?>(null) }
-    val can = writing && set != null
+    val can = writing && launcher != null
     Setting(
         "Diário previsto",
         when {
             !writing -> "Ligue Lançar pelo Neko para usar"
+            open == "off" -> "Confirme abaixo para desligar"
             p.on -> "${Format.money(p.value)} por dia nos dias que vêm"
             else -> "Desligado"
         },
-        modifier = Modifier.toggleable(p.on, enabled = can, role = Role.Switch, onValueChange = toggled {
-            open = if (it) "on" else "off"
-        }),
+        modifier = Modifier
+            .toggleable(p.on, enabled = can, role = Role.Switch, onValueChange = toggled {
+                open = if (it) "on" else "off"
+            })
+            // TalkBack hears the new value per day, or that it waits for the confirmation.
+            .semantics { liveRegion = LiveRegionMode.Polite },
     ) {
         Switch(checked = p.on, onCheckedChange = null, enabled = can, colors = switchColors())
     }
     if (p.on && can && open == null) TextAction("Trocar o valor", { open = "on" })
-    val go = set ?: return
-    open?.let { PrevistoForm(p, it == "off", go) { open = null } }
+    val go = launcher ?: return
+    open?.let { mode ->
+        PrevistoForm(
+            p, mode == "off",
+            { value ->
+                val id = go.previsto(value)
+                onDone(id, if (value > 0) "Diário previsto na planilha" else "Previsto apagado da planilha")
+            },
+        ) { open = null }
+    }
 }
 
 /** Offers "Lançar" in Quick Settings; Android shows its own dialog and says if it is already there. */

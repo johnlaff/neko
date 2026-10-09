@@ -4,6 +4,7 @@ import type { PrevistoView } from "../shared/types.ts";
 import { api } from "./api.ts";
 import { money, shortDate, toCents } from "./format.ts";
 import { IconChevron } from "./icons.tsx";
+import { showToast } from "./Launch.tsx";
 
 /**
  * The Diário previsto (specs/005-lancamentos, Fase 3): a switch in Ajustes that fills the days
@@ -20,9 +21,13 @@ const useSetPrevisto = (onDone: () => void) => {
       const r = await api.previsto(value);
       if (r.state !== "done")
         throw new Error(r.error ?? "Não gravou. A planilha ficou como estava.");
-      return r;
+      return { ...r, value };
     },
-    onSuccess: () => {
+    onSuccess: (r) => {
+      showToast({
+        entryId: r.entryId,
+        text: r.value > 0 ? "Diário previsto na planilha" : "Previsto apagado da planilha",
+      });
       onDone();
       queryClient.invalidateQueries();
     },
@@ -59,12 +64,14 @@ export const PrevistoSetting = ({
       <label className="setting">
         <span className="label">
           Diário previsto
-          <span className="sub">
+          <span className="sub" aria-live="polite">
             {!writing
               ? "Ligue Lançar pelo Neko para usar"
-              : p.on
-                ? `${money(p.value)} por dia nos dias que vêm`
-                : "Desligado"}
+              : open === "off"
+                ? "Confirme abaixo para desligar"
+                : p.on
+                  ? `${money(p.value)} por dia nos dias que vêm`
+                  : "Desligado"}
           </span>
         </span>
         <input
@@ -149,7 +156,13 @@ export const PrevistoSetting = ({
         </form>
       )}
       {open === "off" && (
-        <section className="sim entry previsto" aria-label="Desligar o Diário previsto">
+        <section
+          className="sim entry previsto"
+          aria-label="Desligar o Diário previsto"
+          tabIndex={-1}
+          // A screen reader reads what turning it off does, not just the switch.
+          ref={(el) => el?.focus()}
+        >
           <p className="hint">
             O previsto sai dos dias que vêm. O que você escreveu no Diário fica como está.
           </p>

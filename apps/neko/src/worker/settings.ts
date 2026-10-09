@@ -46,6 +46,7 @@ export const keepBankCards = (body: unknown, current: UserSettings): UserSetting
   return {
     ...next,
     previstoSince: current.previstoSince,
+    previstoUndo: current.previstoUndo,
     ...(current.previstoSince !== null ? { dailyForecast: current.dailyForecast } : {}),
   };
 };

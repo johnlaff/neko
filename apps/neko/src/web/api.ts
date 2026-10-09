@@ -42,7 +42,13 @@ export interface Device {
 }
 
 /** Settings the Ajustes form does not send; the Worker keeps them. */
-export type KeptSetting = "bankCards" | "accountUse" | "savedOrigins" | "writing" | "previstoSince";
+export type KeptSetting =
+  | "bankCards"
+  | "accountUse"
+  | "savedOrigins"
+  | "writing"
+  | "previstoSince"
+  | "previstoUndo";
 
 /** What a launch or an undo did; `error` says why a part failed. */
 export interface LaunchResult {

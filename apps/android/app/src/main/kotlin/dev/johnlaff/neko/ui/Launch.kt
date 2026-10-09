@@ -64,8 +64,8 @@ interface Launcher {
     suspend fun undo(id: String): Boolean
     suspend fun ignore(key: String)
     suspend fun account(account: String, use: String)
-    /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. Throws with the reason. */
-    suspend fun previsto(value: Long)
+    /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. Its id, for Desfazer. */
+    suspend fun previsto(value: Long): String
     suspend fun keepPrevisto()
 }
 
@@ -382,10 +382,16 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
 
 /** Desfazer, over the dock, for a few seconds after each launch. */
 @Composable
-fun UndoBar(entryId: String?, launcher: Launcher?, onDone: () -> Unit, modifier: Modifier = Modifier) {
+fun UndoBar(
+    entryId: String?,
+    launcher: Launcher?,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+    done: String = "Lançado na planilha",
+) {
     val l = LocalLedger.current
     val scope = rememberCoroutineScope()
-    var text by remember(entryId) { mutableStateOf(if (entryId != null) "Lançado na planilha" else null) }
+    var text by remember(entryId) { mutableStateOf(if (entryId != null) done else null) }
     var busy by remember(entryId) { mutableStateOf(false) }
     var id by remember(entryId) { mutableStateOf(entryId) }
     LaunchedEffect(entryId, text, busy) {

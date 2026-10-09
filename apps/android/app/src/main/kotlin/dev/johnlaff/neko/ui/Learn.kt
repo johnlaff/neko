@@ -30,6 +30,7 @@ import androidx.core.content.edit
  */
 object Learn {
     const val HOJE = "O arco é a fatura aberta perto do plano do ciclo."
+    const val HOJE_MES = "O arco é o gasto do mês perto do Diário previsto."
     const val FATURAS = "Compra no cartão entra na planilha uma vez só: na fatura, no dia em que ela vence."
     const val MES = "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista."
 
@@ -75,7 +76,7 @@ object Learn {
     const val CARDS_COME_FROM = "Os cartões vêm das notas de Saída, abaixo da linha CARTÕES."
 
     val IDEAS = listOf(
-        Idea("De onde vêm os números", "Tudo vem da sua planilha. O Neko lê e faz as contas, mas nunca escreve nela."),
+        Idea("De onde vêm os números", "Tudo vem da sua planilha. O Neko lê e faz as contas, e só escreve nela quando você toca em Lançar."),
         Idea(
             "Saída ou diário",
             "Conta com data e valor certos vai em Saída. O gasto do dia a dia é diário. No cartão, a compra entra só na fatura, no dia do vencimento.",

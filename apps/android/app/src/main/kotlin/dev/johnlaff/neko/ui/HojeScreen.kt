@@ -97,6 +97,7 @@ fun HojeScreen(
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
     var undo by remember { mutableStateOf<String?>(null) }
+    var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
     var asking by rememberSaveable { mutableStateOf(miaOpen) }
     LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
@@ -117,7 +118,7 @@ fun HojeScreen(
         }
         if (writes && launching && launcher != null) item {
             Panel {
-                EntryForm(launcher, v.today, { launching = false }, { undo = it }, cards = v.entryCards)
+                EntryForm(launcher, v.today, { launching = false }, { undoText = "Lançado na planilha"; undo = it }, cards = v.entryCards)
             }
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
@@ -126,7 +127,7 @@ fun HojeScreen(
             if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk) }
         }
         v.habit?.let { h -> item { Streak(h) } }
-        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) }
+        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto na planilha"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
         val over = (v.canSpend?.perDay ?: 0) < 0
         val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
@@ -134,12 +135,13 @@ fun HojeScreen(
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
-        if (v.queue != null) item { ParaLancar(v, launcher) { undo = it } }
+        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = "Lançado na planilha"; undo = it } }
         item { Conference(v, review) }
     }
     UndoBar(
         undo, launcher, { undo = null },
         Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 84.dp),
+        done = undoText,
     )
     }
 }
@@ -215,7 +217,7 @@ private fun Hero(v: TodayView) {
             TextAction(if (formula) "Esconder a conta" else "Como calculei", { formula = !formula }, open = formula)
             Reveal(formula) { Formula(cs, v) }
         }
-        Hint("hoje", Learn.HOJE)
+        Hint("hoje", if (month) Learn.HOJE_MES else Learn.HOJE)
     }
 }
 

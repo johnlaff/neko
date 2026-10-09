@@ -144,6 +144,18 @@ export const UserSettings = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullable()
     .default(null),
+  /** The last fill or change of the Diário previsto and the settings before it, for Desfazer. */
+  previstoUndo: z
+    .object({
+      entry: z.string().uuid(),
+      dailyForecast: z.number().int().nonnegative().nullable(),
+      since: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .nullable(),
+    })
+    .nullable()
+    .default(null),
 });
 export type UserSettings = z.infer<typeof UserSettings>;
 
