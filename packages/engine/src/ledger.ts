@@ -42,3 +42,16 @@ export interface DayRow {
 
 /** Days in chronological order with no gaps. */
 export type Ledger = readonly DayRow[];
+
+/**
+ * The note line Neko writes on a future day's Diário when the owner turns the Diário previsto on
+ * (specs/005-lancamentos, Fase 3): `R$ 45,00 - Previsto`. A forecast, never something spent.
+ */
+export const FORECAST = "Previsto";
+
+export const isForecastItem = (i: NoteItem): boolean =>
+  i.section === null && i.description.trim().toLowerCase() === FORECAST.toLowerCase();
+
+/** The part of a cell that is forecast: the sum of its `Previsto` lines. */
+export const forecastIn = (cell: Pick<CellValue, "items">): Cents =>
+  cell.items.reduce((sum, i) => (isForecastItem(i) ? sum + i.amount : sum), 0) as Cents;

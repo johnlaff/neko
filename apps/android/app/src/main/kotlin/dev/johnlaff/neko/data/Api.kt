@@ -143,6 +143,15 @@ class Api(
         }.asBody())
     }
 
+    /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. */
+    suspend fun previsto(value: Long): LaunchResult =
+        json.decodeFromString(call("/entries/previsto", buildJsonObject { put("value", value) }.asBody()))
+
+    /** Keeps the Diário previsto's value: the review comes back in 3 months. */
+    suspend fun keepPrevisto() {
+        call("/queue/previsto/manter", JsonObject(emptyMap()).asBody())
+    }
+
     suspend fun mia(): MiaStatus = json.decodeFromString(call("/mia"))
 
     suspend fun askMia(ask: MiaAsk): MiaReply {

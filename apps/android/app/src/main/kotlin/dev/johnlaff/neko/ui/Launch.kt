@@ -64,12 +64,15 @@ interface Launcher {
     suspend fun undo(id: String): Boolean
     suspend fun ignore(key: String)
     suspend fun account(account: String, use: String)
+    /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. Throws with the reason. */
+    suspend fun previsto(value: Long)
+    suspend fun keepPrevisto()
 }
 
 /** How long Desfazer stays after a launch. */
 private const val UNDO_MS = 10_000L
 
-private fun reasonOf(e: Throwable) =
+internal fun reasonOf(e: Throwable) =
     e.message?.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() }
         ?: "Não gravou. Confira a conexão e tente de novo."
 
@@ -103,7 +106,7 @@ private fun Lines(lines: List<QueueLine>) {
 }
 
 @Composable
-private fun Small(text: String, filled: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(10.dp)
     val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)
@@ -125,7 +128,7 @@ private fun Small(text: String, filled: Boolean, enabled: Boolean = true, onClic
 }
 
 @Composable
-private fun Failed(text: String) {
+internal fun Failed(text: String) {
     Text(
         text,
         color = LocalLedger.current.neg,
@@ -313,7 +316,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
             }
         }
         error?.let { Failed(it) }
-        Column {
+        if (item.bank.isNotEmpty()) Column {
             TextAction("O banco mostrou", { bank = !bank }, open = bank)
             Reveal(bank) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

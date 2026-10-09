@@ -3,6 +3,7 @@ import type {
   BillCheck,
   CardConfig,
   Cents,
+  DailySuggestion,
   Habit,
   Projection,
   RefValue,
@@ -49,6 +50,23 @@ export interface ProjectionResponse {
   readonly writing?: boolean;
   /** Bank against sheet (specs/003-open-finance); absent with no bank linked. */
   readonly bank?: BankView | null;
+  /** The Diário previsto (specs/005-lancamentos, Fase 3); absent from older copies. */
+  readonly previsto?: PrevistoView;
+}
+
+/** The Diário previsto: on or off, its value, and what the bank says a day costs. */
+export interface PrevistoView {
+  readonly on: boolean;
+  /** Value per day; with it off, the Diário Neko uses for the pace. */
+  readonly value: number;
+  /** When the value was approved; the review comes 3 months later. */
+  readonly since: string | null;
+  /** From the bank: what a usual day costs. Null with no bank, or too little of it. */
+  readonly suggestion: DailySuggestion | null;
+  /** Every 3 months while on: the real cost of a day since `from`, beside the value. */
+  readonly review: { readonly real: number; readonly from: string } | null;
+  /** The last year tab: the forecast fills the days up to its December. */
+  readonly lastYear: number;
 }
 
 /** Only divergences: the bank never changes a balance, a bill or the projection. */
@@ -117,6 +135,15 @@ export const UserSettings = z.object({
   accountUse: z.record(z.string().min(1).max(64), z.enum(["guardado", "corrente"])).default({}),
   /** Origins (bank text, see `originKey`) the owner launched as savings: proposed so next time. */
   savedOrigins: z.array(z.string().min(1).max(80)).max(100).default([]),
+  /**
+   * The Diário previsto (specs/005-lancamentos, Fase 3): the day the owner approved its value,
+   * `dailyForecast`, written on the days ahead; null while it is off.
+   */
+  previstoSince: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .default(null),
 });
 export type UserSettings = z.infer<typeof UserSettings>;
 

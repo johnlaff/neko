@@ -68,5 +68,7 @@ object Fakes {
         override suspend fun undo(id: String) = true
         override suspend fun ignore(key: String) = Unit
         override suspend fun account(account: String, use: String) = Unit
+        override suspend fun previsto(value: Long) = Unit
+        override suspend fun keepPrevisto() = Unit
     }
 }

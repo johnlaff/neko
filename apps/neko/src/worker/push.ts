@@ -113,6 +113,29 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
       tag: "morning",
     };
   }
+  const rest = `${dueDay(p)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`;
+  // With the Diário previsto on, the pace is the month's, cards and Pix together.
+  if (cs.mode === "month") {
+    const left =
+      cs.daysLeft === 1 ? "O mês acaba hoje." : `Até o fim do mês, faltam ${days(cs.daysLeft)}.`;
+    const behind =
+      cs.daysBehind > 0
+        ? ` O mês está ${money(sub(cs.accumulated, cs.paceExpected))} acima do previsto, uns ${days(cs.daysBehind)} sem gastar.`
+        : "";
+    return cs.perDay < 0
+      ? {
+          title: `O mês passou ${money(cs.overBy)} do Diário previsto`,
+          body: `${left}${rest}`,
+          url: "/",
+          tag: "morning",
+        }
+      : {
+          title: `Hoje cabem ${money(cs.perDay)}`,
+          body: `${left}${behind}${rest}`,
+          url: "/",
+          tag: "morning",
+        };
+  }
   if (cs.perDay < 0)
     return {
       title: `O ${cs.card} passou ${money(sub(cs.accumulated, cs.budget))} do plano do ciclo`,

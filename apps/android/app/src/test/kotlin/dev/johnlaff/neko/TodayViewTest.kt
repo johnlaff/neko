@@ -23,14 +23,20 @@ class TodayViewTest {
     @Test fun parsesWhatTheWorkerSends() {
         assertEquals("2026-10-05", view.today)
         assertEquals("Cartão Azul", view.canSpend?.card)
-        assertEquals("over", view.canSpend?.pace)
+        // The fixture has the Diário previsto on: the dial follows the month.
+        assertEquals("month", view.canSpend?.mode)
+        assertEquals(4, view.canSpend?.daysBehind)
+        assertEquals(10_000L, view.previsto?.review?.real)
         assertEquals(2, view.upcoming.size)
         assertEquals(view.upcomingCount, view.upcoming.sumOf { it.items.size })
     }
 
+    /** The usual card's cycle, past its plan. */
+    private val over = view.canSpend!!.copy(mode = "cycle", pace = "over", perDay = -2_000, overBy = 30_000, daysBehind = 0)
+
     @Test fun simulatorOverThePlanSaysByHowMuchNotANegativePerDay() {
-        val cs = view.canSpend!!
-        // The fixture's card is over: before a value is typed the figure must not read "-R$ … por dia".
+        val cs = over
+        // The card is over: before a value is typed the figure must not read "-R$ … por dia".
         val before = simFigure(cs, null)
         assertEquals("Passa do plano", before.label)
         assertEquals(cs.overBy, before.amount)
@@ -91,7 +97,7 @@ class TodayViewTest {
     }
 
     @Test fun widgetSaysWhenThePlanIsPassed() {
-        val t = widgetText(view)
+        val t = widgetText(view.copy(canSpend = over))
         assertEquals("Passou do plano", t.caption)
         assertEquals(true, t.alarm)
     }
@@ -100,7 +106,9 @@ class TodayViewTest {
         val t = widgetText(view)
         val cs = view.canSpend!!
         assertEquals(dev.johnlaff.neko.ui.Format.money(cs.accumulated), t.bill)
-        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} do plano", t.billDetail)
+        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} previstos no mês", t.billDetail)
+        assertEquals("por dia · até 31 out", t.footer)
+        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} do plano", widgetText(view.copy(canSpend = over)).billDetail)
         assertEquals(view.upcoming.size.coerceAtMost(3), t.days.size)
         assertEquals("Hoje", t.days.first().label)
         assertEquals(true, t.days.first().income)

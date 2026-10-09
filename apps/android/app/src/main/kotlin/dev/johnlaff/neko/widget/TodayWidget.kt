@@ -66,15 +66,21 @@ fun widgetText(v: TodayView?): WidgetText {
     val h = v?.habit
     val streak = h?.let { dev.johnlaff.neko.ui.Learn.streakLabel(it.streak) }
     val week = h?.week.orEmpty().map { it.state }
-    val billDetail = cs?.let { "de ${Format.money(it.budget)} do plano" }
+    // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
+    val month = cs?.mode == "month"
+    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos no mês" else "do plano"}" }
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
-        cs.pace == "over" -> WidgetText("Passou do plano", Format.money(cs.overBy), cs.card, true, bill, billDetail, days)
+        cs.pace == "over" -> WidgetText("Passou do plano", Format.money(cs.overBy), if (month) "neste mês" else cs.card, true, bill, billDetail, days)
         else -> WidgetText(
             "Hoje cabem",
             Format.money(cs.perDay),
-            if (cs.daysLeft > 1) "por dia · fecha ${Format.shortDate(cs.closing)}" else "até a fatura fechar, hoje",
+            when {
+                cs.daysLeft > 1 -> "por dia · ${if (month) "até" else "fecha"} ${Format.shortDate(cs.closing)}"
+                month -> "até o mês acabar, hoje"
+                else -> "até a fatura fechar, hoje"
+            },
             false,
             bill,
             billDetail,

@@ -1,4 +1,11 @@
-import { type Cents, cents, fromReais, normalizeName, type Placement } from "@neko/engine";
+import {
+  type Cents,
+  cents,
+  fromReais,
+  isForecastItem,
+  normalizeName,
+  type Placement,
+} from "@neko/engine";
 import type { ApiCell } from "./grid.ts";
 import { normalizeSection, parseNote } from "./note.ts";
 
@@ -30,7 +37,13 @@ export type EditPlan =
     }
   | { ok: false; reason: string };
 
-export type EditOp = Pick<Placement, "section" | "amount" | "description" | "target" | "was">;
+export type EditOp = Pick<Placement, "section" | "amount" | "description" | "target" | "was"> & {
+  /**
+   * A real spending added to a Diário cell takes the day's forecast off (specs/005, Fase 3): the
+   * `Previsto` line goes and the new line comes, in the same edit, so nothing counts twice.
+   */
+  readonly dropForecast?: boolean;
+};
 
 const SUM = /^=SUM\(([\s\d,+]*)\)$/;
 const TERM = /^\d+(,\d{1,2})?$/;
@@ -265,6 +278,30 @@ export const planCellEdit = (cell: ApiCell | undefined, op: EditOp): EditPlan =>
   const note = cell?.note ?? "";
   const before = check.total;
   const lines = note === "" ? [] : note.split("\n");
+
+  const forecast = itemLines(lines).findLast((i) =>
+    isForecastItem({ section: i.section, description: i.description, amount: i.amount }),
+  );
+  if (op.dropForecast && op.target === "line" && !changing && forecast) {
+    const off = planCellEdit(cell, {
+      section: null,
+      description: forecast.description,
+      target: "line",
+      was: forecast.amount,
+      amount: cents(0),
+    });
+    if (!off.ok) return off;
+    const without: ApiCell =
+      off.formula === ""
+        ? { note: off.note }
+        : {
+            userEnteredValue: { formulaValue: off.formula },
+            effectiveValue: { numberValue: off.after / 100 },
+            note: off.note,
+          };
+    const on = planCellEdit(without, { ...op, dropForecast: false });
+    return on.ok ? { ...on, before } : on;
+  }
   const key = normalizeName(description);
   let after: Cents;
   let next: { formula: string | null; note: string };

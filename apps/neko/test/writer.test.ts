@@ -1,4 +1,11 @@
-import { type CardConfig, cents, localDate, type Placement, placeEntry } from "@neko/engine";
+import {
+  addDays,
+  type CardConfig,
+  cents,
+  localDate,
+  type Placement,
+  placeEntry,
+} from "@neko/engine";
 import { type ApiCell, SHEET_MAP } from "@neko/sheet-reader";
 import { describe, expect, it } from "vitest";
 import {
@@ -9,6 +16,7 @@ import {
   previewEntry,
   type SheetsApi,
   undoEntry,
+  writeForecast,
 } from "../src/worker/writer.ts";
 import { sqliteD1 } from "./d1.ts";
 
@@ -47,13 +55,14 @@ const economiaGrid = (cellAt: (row: number, col: number) => ApiCell): ApiCell[][
 };
 
 /**
- * A year tab in memory: Data holds the day, Saldo is 1000 + Entrada − Saída − Diário of the row
- * (enough to see one write move it), and hooks let a test break the sheet on purpose.
+ * A year tab in memory: Data holds the day, Saldo carries like the sheet's (1000, then each day's
+ * Entrada − Saída − Diário, month after month), and hooks let a test break the sheet on purpose.
  */
 const fakeSheet = () => {
   const cells = new Map<string, FakeCell>();
   const key = (tab: string, row: number, col: number) => `${tab}:${row}:${col}`;
   const writes: string[] = [];
+  const batches: number[] = [];
   const hooks = {
     failWrite: (_k: string): string | null => null,
     mangle: (_k: string, c: FakeCell): FakeCell => c,
@@ -63,10 +72,13 @@ const fakeSheet = () => {
     if (offset === SHEET_MAP.offsets.data)
       return { effectiveValue: { numberValue: row - SHEET_MAP.firstDayRow + 1 } };
     if (offset === SHEET_MAP.offsets.saldo) {
-      const block = col - offset;
-      const v = (o: number) => evaluate(cells.get(key(tab, row, block + o))?.value ?? {});
+      const v = (r: number, c: number) => evaluate(cells.get(key(tab, r, c))?.value ?? {});
       const { entrada, saida, diario } = SHEET_MAP.offsets;
-      return { effectiveValue: { numberValue: 1000 + v(entrada) - v(saida) - v(diario) } };
+      let saldo = 1000;
+      for (let block = 0; block <= col - offset; block += SHEET_MAP.blockWidth)
+        for (let r = SHEET_MAP.firstDayRow; r <= (block === col - offset ? row : 32); r++)
+          saldo += v(r, block + entrada) - v(r, block + saida) - v(r, block + diario);
+      return { effectiveValue: { numberValue: Math.round(saldo * 100) / 100 } };
     }
     const c = cells.get(key(tab, row, col));
     if (!c) return {};
@@ -93,6 +105,26 @@ const fakeSheet = () => {
       writes.push(k);
       cells.set(k, hooks.mangle(k, { value, note }));
     },
+    async readDays(tab) {
+      return {
+        sheetId: Number(tab),
+        rows: Array.from({ length: 31 }, (_, r) =>
+          Array.from({ length: 72 }, (_, c) => at(tab, SHEET_MAP.firstDayRow + r, c)),
+        ),
+      };
+    },
+    async writeCells(sheetId, list) {
+      const fail = list
+        .map((c) => hooks.failWrite(key(String(sheetId), c.row, c.col)))
+        .find(Boolean);
+      if (fail) throw new Error(fail);
+      batches.push(list.length);
+      for (const c of list) {
+        const k = key(String(sheetId), c.row, c.col);
+        writes.push(k);
+        cells.set(k, hooks.mangle(k, { value: c.value, note: c.note }));
+      }
+    },
   };
   const set = (p: Pick<Placement, "date" | "column">, value: Entered, note: string) => {
     const l = locate(p);
@@ -107,6 +139,7 @@ const fakeSheet = () => {
     set,
     get,
     writes,
+    batches,
     hooks,
     key: (p: Pick<Placement, "date" | "column">) => {
       const l = locate(p);
@@ -457,5 +490,141 @@ describe("entry writer", () => {
     });
     expect(a).toBe(b);
     expect(a).not.toBe(c);
+  });
+});
+
+describe("Diário previsto writer", () => {
+  const span = (from: string, to: string) => {
+    const out = [];
+    for (let x = d(from); x <= d(to); x = addDays(x, 1)) out.push(x);
+    return out;
+  };
+  const diario = (date: string) => ({ date: d(date), column: "diario" as const });
+
+  it("fills the days ahead tab by tab, in one write each, leaving what the owner wrote", async () => {
+    const { sheet, db } = setup();
+    sheet.set(diario("2026-12-30"), { numberValue: 0 }, "");
+    sheet.set(diario("2026-12-31"), { formulaValue: "=SUM(12)" }, "R$ 12,00 - Café");
+    const r = await writeForecast(
+      db,
+      sheet.api,
+      "f1",
+      span("2026-12-29", "2027-01-02"),
+      cents(4500),
+      fixedNow,
+    );
+    expect(r.state).toBe("done");
+    expect(r.parts).toHaveLength(4);
+    expect(sheet.batches).toEqual([2, 2]);
+    expect(sheet.get(diario("2026-12-30"))).toMatchObject({
+      userEnteredValue: { formulaValue: "=SUM(45)" },
+      note: "R$ 45,00 - Previsto",
+    });
+    expect(sheet.get(diario("2026-12-31")).note).toBe("R$ 12,00 - Café");
+    expect(sheet.get(diario("2027-01-02")).note).toBe("R$ 45,00 - Previsto");
+  });
+
+  it("changes only its own forecast, and takes it away with 0, the owner's lines staying", async () => {
+    const { sheet, db } = setup();
+    await writeForecast(
+      db,
+      sheet.api,
+      "f1",
+      span("2026-11-01", "2026-11-03"),
+      cents(4500),
+      fixedNow,
+    );
+    sheet.set(
+      diario("2026-11-02"),
+      { formulaValue: "=SUM(45+12)" },
+      "R$ 45,00 - Previsto\nR$ 12,00 - Café",
+    );
+    await writeForecast(
+      db,
+      sheet.api,
+      "f2",
+      span("2026-11-01", "2026-11-03"),
+      cents(5000),
+      fixedNow,
+    );
+    expect(sheet.get(diario("2026-11-01")).note).toBe("R$ 50,00 - Previsto");
+    expect(sheet.get(diario("2026-11-02")).note).toBe("R$ 45,00 - Previsto\nR$ 12,00 - Café");
+    const off = await writeForecast(
+      db,
+      sheet.api,
+      "f3",
+      span("2026-11-01", "2026-11-03"),
+      cents(0),
+      fixedNow,
+    );
+    expect(off.parts.map((p) => [p.before, p.after])).toEqual([
+      [5000, 0],
+      [5700, 1200],
+      [5000, 0],
+    ]);
+    expect(sheet.get(diario("2026-11-01"))).toEqual({});
+    expect(sheet.get(diario("2026-11-02")).note).toBe("R$ 12,00 - Café");
+  });
+
+  it("puts every tab back when one day does not read back as written", async () => {
+    const { sheet, db } = setup();
+    let once = true;
+    sheet.hooks.mangle = (k, c) => {
+      if (!once || k !== sheet.key(diario("2027-01-02"))) return c;
+      once = false;
+      return { ...c, note: "x" };
+    };
+    const r = await writeForecast(
+      db,
+      sheet.api,
+      "f1",
+      span("2026-12-30", "2027-01-02"),
+      cents(4500),
+      fixedNow,
+    );
+    expect(r.state).toBe("failed");
+    for (const day of span("2026-12-30", "2027-01-02")) expect(sheet.get(diario(day))).toEqual({});
+  });
+
+  it("undoes the whole forecast at once, and refuses once the owner changed a day", async () => {
+    const { sheet, db } = setup();
+    await writeForecast(
+      db,
+      sheet.api,
+      "f1",
+      span("2026-11-01", "2026-11-05"),
+      cents(4500),
+      fixedNow,
+    );
+    expect((await undoEntry(db, sheet.api, "f1", fixedNow)).state).toBe("undone");
+    expect(sheet.get(diario("2026-11-03"))).toEqual({});
+    await writeForecast(
+      db,
+      sheet.api,
+      "f2",
+      span("2026-11-01", "2026-11-05"),
+      cents(4500),
+      fixedNow,
+    );
+    sheet.set(diario("2026-11-04"), { formulaValue: "=SUM(9)" }, "R$ 9,00 - Pão");
+    await expect(undoEntry(db, sheet.api, "f2", fixedNow)).rejects.toThrow(/mudou depois/);
+  });
+
+  it("writes a Pix on a forecast day in place of the forecast", async () => {
+    const { sheet, db } = setup();
+    await writeForecast(db, sheet.api, "f1", [d("2026-11-03")], cents(4500), fixedNow);
+    const r = await write(
+      db,
+      sheet.api,
+      "p1",
+      placeEntry(
+        { kind: "diario", amount: cents(3000), description: "Feira", date: d("2026-11-03") },
+        cards,
+      ),
+    );
+    expect(r.parts).toEqual([
+      expect.objectContaining({ before: 4500, after: 3000, state: "done" }),
+    ]);
+    expect(sheet.get(diario("2026-11-03")).note).toBe("R$ 30,00 - Feira");
   });
 });

@@ -340,7 +340,7 @@ const Row = ({
         </fieldset>
       )}
       {option && option.lines.length > 0 && <Lines lines={option.lines} />}
-      {adjusting && draft && draft.type !== "card" ? (
+      {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
         <EntryForm
           draft={draft}
           today={today}
@@ -405,24 +405,26 @@ const Row = ({
           {message(error)}
         </p>
       )}
-      <details className="formula">
-        <summary>
-          <IconChevron />O banco mostrou
-        </summary>
-        <ul className="q-bank">
-          {item.bank.map((m) => (
-            <li key={`${m.date}|${m.amount}|${m.description}`}>
-              <span>
-                {shortDate(m.date)} · {bankText(m.description)}
-              </span>
-              <span className={m.amount > 0 ? "pos" : undefined}>
-                {m.amount > 0 ? "+" : "−"}
-                {money(Math.abs(m.amount))}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </details>
+      {item.bank.length > 0 && (
+        <details className="formula">
+          <summary>
+            <IconChevron />O banco mostrou
+          </summary>
+          <ul className="q-bank">
+            {item.bank.map((m) => (
+              <li key={`${m.date}|${m.amount}|${m.description}`}>
+                <span>
+                  {shortDate(m.date)} · {bankText(m.description)}
+                </span>
+                <span className={m.amount > 0 ? "pos" : undefined}>
+                  {m.amount > 0 ? "+" : "−"}
+                  {money(Math.abs(m.amount))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </li>
   );
 };

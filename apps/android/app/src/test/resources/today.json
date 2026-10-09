@@ -1,22 +1,24 @@
 {
   "today": "2026-10-05",
-  "balanceToday": 2353747,
+  "balanceToday": 2334747,
   "todayLogged": false,
   "todayUrl": "https://docs.google.com/spreadsheets/d/planilha-de-exemplo/edit#gid=2&range=A9",
   "canSpend": {
+    "mode": "month",
     "card": "Cartão Azul",
-    "budget": 285000,
+    "budget": 294500,
     "budgetSource": "diario",
-    "accumulated": 360031,
-    "daysLeft": 1,
-    "perDay": -75031,
-    "closing": "2026-10-05",
+    "accumulated": 73220,
+    "daysLeft": 27,
+    "perDay": 8195,
+    "closing": "2026-10-31",
     "due": "2026-10-12",
-    "cycleDays": 30,
-    "paceExpected": 285000,
-    "paceGap": -75031,
-    "overBy": 75031,
-    "pace": "over"
+    "cycleDays": 31,
+    "paceExpected": 38000,
+    "paceGap": -35220,
+    "overBy": 0,
+    "daysBehind": 4,
+    "pace": "ahead"
   },
   "dailyForecast": 9500,
   "dailySource": "inferred",
@@ -75,10 +77,10 @@
   "saving": {
     "date": "2026-10-05",
     "income": 560000,
-    "amount": 1680000,
-    "lowest": 1733404,
-    "lowestDate": "2026-10-15",
-    "leftAtLowest": 53404,
+    "amount": 1120000,
+    "lowest": 1171048,
+    "lowestDate": "2026-12-31",
+    "leftAtLowest": 51048,
     "until": "2026-12-31"
   },
   "issues": [],
@@ -227,22 +229,68 @@
       ],
       "adjustable": true,
       "origin": "pix recebido ana"
+    },
+    {
+      "key": "previsto:fechar:2026-10-04",
+      "kind": "previsto",
+      "date": "2026-10-04",
+      "title": "Fechar o dia",
+      "options": [
+        {
+          "label": "",
+          "draft": {
+            "type": "forecast",
+            "value": 0,
+            "days": [
+              "2026-10-04"
+            ]
+          },
+          "lines": [
+            {
+              "label": "Diário de 04/10",
+              "before": 9500,
+              "after": 0
+            }
+          ]
+        }
+      ],
+      "bank": [],
+      "adjustable": false,
+      "origin": null
     }
   ],
   "saldo": {
     "date": "2026-10-04",
-    "sheet": 1793747,
+    "sheet": 1784247,
     "bank": 2353747,
-    "diff": 560000,
+    "diff": 569500,
     "stale": [],
     "draft": {
       "type": "new",
       "kind": "entrada",
-      "amount": 560000,
+      "amount": 569500,
       "date": "2026-10-04",
       "description": "Diferença do banco"
     }
   },
   "writing": true,
-  "entryCards": []
+  "entryCards": [],
+  "previsto": {
+    "on": true,
+    "value": 9500,
+    "since": "2026-07-01",
+    "suggestion": {
+      "cards": 690000,
+      "pix": 210000,
+      "total": 900000,
+      "perDay": 10000,
+      "from": "2026-07-07",
+      "days": 90
+    },
+    "review": {
+      "real": 10000,
+      "from": "2026-07-07"
+    },
+    "lastYear": 2026
+  }
 }

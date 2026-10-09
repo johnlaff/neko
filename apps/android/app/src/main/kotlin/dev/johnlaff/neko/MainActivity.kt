@@ -164,6 +164,7 @@ class MainActivity : ComponentActivity() {
                                             lockSwitch(),
                                             BanksList(banks, model::saveBanks, model::saveBankCards),
                                             model::restoreReviewed,
+                                            model.launcher::previsto,
                                         )
                                     }
                                 }

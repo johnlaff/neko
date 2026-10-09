@@ -132,6 +132,8 @@ fun AjustesScreen(
     lock: LockSwitch = LockSwitch(),
     banks: BanksList = BanksList(),
     restoreReviewed: (suspend () -> Boolean)? = null,
+    /** Fills the days ahead with the Diário previsto at a value per day; 0 takes it away. */
+    setPrevisto: (suspend (Long) -> Unit)? = null,
 ) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
@@ -166,9 +168,15 @@ fun AjustesScreen(
         },
     ) { view ->
         val f = form ?: return@ScreenFrame
-        item { Group("Ritmo") { Pace(f, view.dailyAuto) } }
+        // With the Diário previsto on, its value lives in Planilha and the month sets the pace.
+        item { Group("Ritmo") { Pace(f, view.dailyAuto, view.previsto?.on == true) } }
         if (f.cards.isNotEmpty()) item { Group("Cartões") { Cards(f) } }
-        item { Group("Planilha") { Writing(f) } }
+        item {
+            Group("Planilha") {
+                Writing(f)
+                view.previsto?.let { p -> Previsto(p, f.writing, setPrevisto) }
+            }
+        }
         banks.view?.takeIf { it.configured || it.items.isNotEmpty() }?.let { b ->
             item {
                 Column {
@@ -248,6 +256,29 @@ private fun Writing(f: AjustesForm) {
     ) {
         Switch(checked = f.writing, onCheckedChange = null, colors = switchColors())
     }
+}
+
+/** The Diário previsto's switch (specs/005-lancamentos, Fase 3); the form opens below it. */
+@Composable
+private fun Previsto(p: dev.johnlaff.neko.data.PrevistoView, writing: Boolean, set: (suspend (Long) -> Unit)?) {
+    var open by rememberSaveable { mutableStateOf<String?>(null) }
+    val can = writing && set != null
+    Setting(
+        "Diário previsto",
+        when {
+            !writing -> "Ligue Lançar pelo Neko para usar"
+            p.on -> "${Format.money(p.value)} por dia nos dias que vêm"
+            else -> "Desligado"
+        },
+        modifier = Modifier.toggleable(p.on, enabled = can, role = Role.Switch, onValueChange = toggled {
+            open = if (it) "on" else "off"
+        }),
+    ) {
+        Switch(checked = p.on, onCheckedChange = null, enabled = can, colors = switchColors())
+    }
+    if (p.on && can && open == null) TextAction("Trocar o valor", { open = "on" })
+    val go = set ?: return
+    open?.let { PrevistoForm(p, it == "off", go) { open = null } }
 }
 
 /** Offers "Lançar" in Quick Settings; Android shows its own dialog and says if it is already there. */
@@ -542,15 +573,16 @@ private fun Field(
 }
 
 @Composable
-private fun Pace(f: AjustesForm, dailyAuto: Long) {
+private fun Pace(f: AjustesForm, dailyAuto: Long, previsto: Boolean) {
     val dailyBad = "daily" in f.left && badMoney(f.daily)
-    Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
+    if (!previsto) Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
         Field(
             f.daily, { f.daily = it }, { f.left += "daily"; f.now = true },
             placeholder = fromCents(dailyAuto), description = "Diário", money = true, error = dailyBad, width = 150,
         )
     }
     Setting("Cartão principal", "O que aparece em Hoje") { CardPicker(f) }
+    if (previsto) return
     val budgetBad = "budget" in f.left && badMoney(f.budget)
     Setting("Plano por ciclo", if (budgetBad) "Use um valor como 5.000,00" else "Em branco, diário × dias do ciclo", budgetBad) {
         Field(

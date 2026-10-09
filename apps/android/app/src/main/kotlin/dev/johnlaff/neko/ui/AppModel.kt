@@ -222,6 +222,18 @@ class AppModel(
             neko.api.accountUse(account, use)
             readToday(shown = false)
         }
+
+        override suspend fun previsto(value: Long) {
+            val r = neko.api.previsto(value)
+            if (r.state != "done") throw ApiException(422, "write", r.error ?: "Não gravou. A planilha ficou como estava.")
+            readToday(shown = false)
+            read(Tab.Ajustes, shown = false)
+        }
+
+        override suspend fun keepPrevisto() {
+            neko.api.keepPrevisto()
+            readToday(shown = false)
+        }
     }
 
     /** Hoje's "Perguntar à Mia"; the Worker runs the tools and checks the answer. */
