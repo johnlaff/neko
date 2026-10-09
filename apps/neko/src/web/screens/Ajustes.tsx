@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { api, type UserSettings } from "../api.ts";
+import { api, type KeptSetting, type UserSettings } from "../api.ts";
 import { Banks } from "../Banks.tsx";
 import { Devices } from "../Devices.tsx";
 import { toCents } from "../format.ts";
@@ -39,7 +39,7 @@ const payload = (
   v: Values,
   cards: readonly Card[],
   reviewed: readonly string[],
-): Omit<UserSettings, "bankCards"> => ({
+): Omit<UserSettings, KeptSetting> => ({
   dailyForecast: toCents(v.daily),
   cycleBudget: toCents(v.budget),
   usualCard: v.usualCard || null,

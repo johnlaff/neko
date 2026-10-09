@@ -6,8 +6,10 @@ import type {
   Habit,
   Projection,
   RefValue,
+  SaldoCheck,
 } from "@neko/engine";
 import { z } from "zod";
+import type { QueueItemView } from "./queue.ts";
 
 /** Shared by the Worker and the web app; no runtime-specific types here. */
 
@@ -55,6 +57,10 @@ export interface BankView {
   readonly checks: readonly BillCheck[];
   /** Account movements with no line in the sheet, oldest first. */
   readonly missing: readonly BankMovement[];
+  /** Para lançar: what the bank showed and the sheet does not have yet. */
+  readonly queue?: readonly QueueItemView[];
+  /** Yesterday's Saldo against the accounts; null without a balance to compare. */
+  readonly saldo?: SaldoCheck | null;
 }
 
 export interface HistoryPoint {
@@ -103,6 +109,12 @@ export const UserSettings = z.object({
     .default([]),
   /** Conferência points already checked (see `issueKey`), hidden from Hoje. */
   reviewed: z.array(z.string().min(1).max(120)).max(300).default([]),
+  /** Off: Neko writes nothing to the sheet, whatever is tapped (specs/005-lancamentos). */
+  writing: z.boolean().default(true),
+  /** What each linked account is, as the owner answered: where savings go, or day to day. */
+  accountUse: z.record(z.string().min(1).max(64), z.enum(["guardado", "corrente"])).default({}),
+  /** Origins (bank text, see `originKey`) the owner launched as savings: proposed so next time. */
+  savedOrigins: z.array(z.string().min(1).max(80)).max(100).default([]),
 });
 export type UserSettings = z.infer<typeof UserSettings>;
 
