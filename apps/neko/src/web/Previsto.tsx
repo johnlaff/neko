@@ -53,17 +53,40 @@ export const PrevistoSetting = ({
   const id = useId();
   const [open, setOpen] = useState<"on" | "off" | null>(null);
   const [typed, setTyped] = useState("");
-  const run = useSetPrevisto(() => setOpen(null));
+  const run = useSetPrevisto(() => close());
   const amount = toCents(typed);
   // As in Ritmo, a wrong value is pointed out once you leave the field, not while typing.
   const [left, setLeft] = useState(false);
   const bad = left && typed.trim() !== "" && (amount === null || amount <= 0);
   const actions = useRef<HTMLDivElement>(null);
-  // The form opens below the switch and grows (Como calculei, the error): keep its buttons
-  // above the dock.
+  // The form opens below the switch and grows (Como calculei opening, the error): whenever its
+  // size changes, keep its buttons above the dock.
+  const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    if (open === "on" || bad) nearest(actions.current);
-  }, [open, bad]);
+    const el = form.current;
+    if (open !== "on" || !el) return;
+    const keep = new ResizeObserver(() => nearest(actions.current));
+    keep.observe(el);
+    return () => keep.disconnect();
+  }, [open]);
+  const off = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (open === "off") {
+      off.current?.focus({ preventScroll: true });
+      nearest(off.current);
+    }
+  }, [open]);
+  // The pressed button was disabled while writing; on a failure, focus goes to the reason.
+  const failed = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (run.isError) failed.current?.focus({ preventScroll: true });
+  }, [run.isError]);
+  // Closing puts focus back on the switch, not on the page.
+  const toggle = useRef<HTMLInputElement>(null);
+  const close = () => {
+    setOpen(null);
+    toggle.current?.focus({ preventScroll: true });
+  };
   const start = () => {
     const value = p.on ? p.value : (p.suggestion?.perDay ?? 0);
     setTyped(value > 0 ? reais(value) : "");
@@ -89,6 +112,7 @@ export const PrevistoSetting = ({
         </span>
         <input
           type="checkbox"
+          ref={toggle}
           role="switch"
           className="switch"
           aria-checked={p.on}
@@ -110,6 +134,7 @@ export const PrevistoSetting = ({
       )}
       {open === "on" && (
         <form
+          ref={form}
           className="sim entry previsto"
           aria-label="Diário previsto"
           onSubmit={(e) => {
@@ -123,7 +148,7 @@ export const PrevistoSetting = ({
               <p className="q-lines">
                 <span>Pelo banco, um dia seu custa {money(s.perDay)}.</span>
               </p>
-              <details className="formula" onToggle={() => nearest(actions.current)}>
+              <details className="formula">
                 <summary>
                   <IconChevron />
                   Como calculei
@@ -163,7 +188,7 @@ export const PrevistoSetting = ({
             Previsto. O que você escreveu no Diário fica como está.
           </p>
           {run.isError && (
-            <p className="setting-error" role="alert">
+            <p className="setting-error" role="alert" tabIndex={-1} ref={failed}>
               {failure(run.error)}
             </p>
           )}
@@ -171,7 +196,7 @@ export const PrevistoSetting = ({
             <button type="submit" disabled={amount === null || amount <= 0 || run.isPending}>
               {run.isPending ? "Gravando…" : p.on ? "Trocar" : "Preencher"}
             </button>
-            <button type="button" className="ghost" onClick={() => setOpen(null)}>
+            <button type="button" className="ghost" onClick={close}>
               Cancelar
             </button>
           </div>
@@ -182,18 +207,14 @@ export const PrevistoSetting = ({
           className="sim entry previsto"
           aria-label="Desligar o Diário previsto"
           tabIndex={-1}
-          // A screen reader reads what turning it off does, not just the switch; the switch stays
-          // in sight.
-          ref={(el) => {
-            el?.focus({ preventScroll: true });
-            el?.scrollIntoView({ block: "nearest" });
-          }}
+          // Focused on open: a screen reader reads what turning it off does, not just the switch.
+          ref={off}
         >
           <p className="hint">
             O previsto sai dos dias que vêm. O que você escreveu no Diário fica como está.
           </p>
           {run.isError && (
-            <p className="setting-error" role="alert">
+            <p className="setting-error" role="alert" tabIndex={-1} ref={failed}>
               {failure(run.error)}
             </p>
           )}
@@ -201,7 +222,7 @@ export const PrevistoSetting = ({
             <button type="button" disabled={run.isPending} onClick={() => run.mutate(0)}>
               {run.isPending ? "Apagando…" : "Apagar o previsto"}
             </button>
-            <button type="button" className="ghost" onClick={() => setOpen(null)}>
+            <button type="button" className="ghost" onClick={close}>
               Cancelar
             </button>
           </div>

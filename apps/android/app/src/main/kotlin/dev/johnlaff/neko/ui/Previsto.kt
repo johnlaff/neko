@@ -22,6 +22,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
@@ -34,6 +38,7 @@ import dev.johnlaff.neko.ui.Format.fromCents
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.shortDate
 import dev.johnlaff.neko.ui.Format.toCents
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -58,9 +63,15 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
     var left by rememberSaveable { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
     val bad = left && typed.isNotBlank() && (amount == null || amount <= 0)
-    // The form grows (Como calculei, the error): keep its buttons in sight.
+    // The form grows (Como calculei, the error): once it has, keep its buttons in sight and clear
+    // of the floating dock.
     val buttons = remember { BringIntoViewRequester() }
-    LaunchedEffect(formula, bad) { buttons.bringIntoView() }
+    var buttonsSize by remember { mutableStateOf(IntSize.Zero) }
+    val dock = with(LocalDensity.current) { (if (LocalRail.current) 0.dp else DOCK_ROOM).toPx() }
+    LaunchedEffect(formula, bad) {
+        delay(260)
+        buttons.bringIntoView(Rect(0f, 0f, buttonsSize.width.toFloat(), buttonsSize.height + dock))
+    }
 
     fun submit(value: Long) {
         left = true
@@ -116,7 +127,7 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
         }
         error?.let { Failed(it) }
         FlowRow(
-            Modifier.bringIntoViewRequester(buttons),
+            Modifier.bringIntoViewRequester(buttons).onSizeChanged { buttonsSize = it },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
