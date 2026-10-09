@@ -11,7 +11,8 @@ invented data like `apps/neko/e2e/make-projection.ts`), and never commit keys.
 - Neko writes to the sheet only through the entries feature (`specs/005-lancamentos`), only when the
   owner taps an action, and only Entrada/Saída/Diário cells that `checkCell` fully understands, via
   `planCellEdit`. Never Data, Saldo, headers or other tabs, and nothing automatic (bank, Mia, cron).
-  Until Fase 1 ships, no code path writes. Reads use the read-only service account
+  The writer (`apps/neko/src/worker/writer.ts`) runs only in CI against the "Neko Teste" sheet;
+  no Worker route writes until Fase 2. Reads use the read-only service account
   (`GOOGLE_SERVICE_ACCOUNT_JSON`); writes will use a separate `neko-writer` account. Any other Google
   key never enters this repo or its secrets.
 - Money is integer cents (`Cents`), dates are civil `LocalDate` strings, time zone

@@ -6,29 +6,35 @@ const ServiceAccount = z.object({
   private_key: z.string().min(1),
 });
 
-/** Read-only by construction: Neko's account is a Viewer and asks only for read scopes. */
-const SCOPES = [
+/** Reading: Neko's reader account is a Viewer and asks only for read scopes. */
+export const READ_SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets.readonly",
   "https://www.googleapis.com/auth/drive.metadata.readonly",
 ].join(" ");
 
-let cached: { token: string; expires: number } | null = null;
+/** Writing entries (specs/005-lancamentos): only the separate neko-writer account asks for this. */
+export const WRITE_SCOPES = "https://www.googleapis.com/auth/spreadsheets";
+
+const cached = new Map<string, { token: string; expires: number }>();
 
 export const accessToken = async (
   serviceAccountJson: string,
   now = Date.now(),
+  scopes = READ_SCOPES,
 ): Promise<string> => {
-  if (cached && cached.expires - 60_000 > now) return cached.token;
   const sa = ServiceAccount.parse(JSON.parse(serviceAccountJson));
-  const key = await importPKCS8(sa.private_key, "RS256");
+  const key = `${sa.client_email} ${scopes}`;
+  const hit = cached.get(key);
+  if (hit && hit.expires - 60_000 > now) return hit.token;
+  const pkcs8 = await importPKCS8(sa.private_key, "RS256");
   const iat = Math.floor(now / 1000);
-  const assertion = await new SignJWT({ scope: SCOPES })
+  const assertion = await new SignJWT({ scope: scopes })
     .setProtectedHeader({ alg: "RS256", typ: "JWT" })
     .setIssuer(sa.client_email)
     .setAudience("https://oauth2.googleapis.com/token")
     .setIssuedAt(iat)
     .setExpirationTime(iat + 3600)
-    .sign(key);
+    .sign(pkcs8);
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -41,7 +47,7 @@ export const accessToken = async (
   const body = z
     .object({ access_token: z.string(), expires_in: z.number() })
     .parse(await res.json());
-  cached = { token: body.access_token, expires: now + body.expires_in * 1000 };
+  cached.set(key, { token: body.access_token, expires: now + body.expires_in * 1000 });
   return body.access_token;
 };
 
