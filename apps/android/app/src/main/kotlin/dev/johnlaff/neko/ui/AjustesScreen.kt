@@ -279,7 +279,8 @@ private fun Previsto(
     onDone: (String, String) -> Unit,
 ) {
     var open by rememberSaveable { mutableStateOf<String?>(null) }
-    val can = writing && launcher != null
+    var busy by remember { mutableStateOf(false) }
+    val can = writing && launcher != null && !busy
     // Closing the form puts focus back on the switch, not at the top of the screen.
     val switch = remember { FocusRequester() }
     Setting(
@@ -309,7 +310,10 @@ private fun Previsto(
                 val id = go.previsto(value)
                 onDone(id, if (value > 0) "Diário previsto: ${Format.money(value)} por dia" else "Diário previsto desligado")
             },
+            onBusy = { busy = it },
         ) {
+            // The form leaves before it can report it is done writing.
+            busy = false
             open = null
             runCatching { switch.requestFocus() }
         }

@@ -51,12 +51,20 @@ import kotlinx.coroutines.launch
 /** Ajustes › Planilha, under the switch: the value per day, or taking the forecast away. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> Unit, onClose: () -> Unit) {
+internal fun PrevistoForm(
+    p: PrevistoView,
+    off: Boolean,
+    set: suspend (Long) -> Unit,
+    onBusy: (Boolean) -> Unit = {},
+    onClose: () -> Unit,
+) {
     val l = LocalLedger.current
     val scope = rememberCoroutineScope()
     val start: Long = if (p.on) p.value else p.suggestion?.perDay ?: 0L
     var typed by rememberSaveable { mutableStateOf(if (start > 0) fromCents(start) else "") }
     var busy by remember { mutableStateOf(false) }
+    // The switch above waits too, as on the site: flipping it mid-write would swap the form.
+    LaunchedEffect(busy) { onBusy(busy) }
     var error by remember { mutableStateOf<String?>(null) }
     var formula by remember { mutableStateOf(false) }
     val amount = toCents(typed)
