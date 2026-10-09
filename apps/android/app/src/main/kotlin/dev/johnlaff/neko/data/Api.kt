@@ -1,6 +1,7 @@
 package dev.johnlaff.neko.data
 
 import java.io.IOException
+import java.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -28,13 +29,21 @@ class Api(
 ) {
     private val jsonType = "application/json".toMediaType()
 
-    private suspend fun call(path: String, body: RequestBody? = null, method: String? = null): String =
+    /** Mia's answer takes a few model calls, well past OkHttp's 10 s read timeout. */
+    private val patient = client.newBuilder().readTimeout(MIA_WAIT).callTimeout(MIA_WAIT).build()
+
+    private suspend fun call(
+        path: String,
+        body: RequestBody? = null,
+        method: String? = null,
+        via: OkHttpClient = client,
+    ): String =
         withContext(Dispatchers.IO) {
             val request = Request.Builder()
                 .url("$baseUrl/api$path")
                 .method(method ?: if (body != null) "POST" else "GET", body)
                 .build()
-            client.newCall(request).execute().use { res ->
+            via.newCall(request).execute().use { res ->
                 val text = res.body.string()
                 if (!res.isSuccessful) {
                     val err = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
@@ -102,7 +111,7 @@ class Api(
 
     suspend fun askMia(ask: MiaAsk): MiaReply {
         val body = json.encodeToString(MiaAsk.serializer(), ask).toRequestBody(jsonType)
-        return json.decodeFromString(call("/mia", body))
+        return json.decodeFromString(call("/mia", body, via = patient))
     }
 
     /** WebAuthn request options, as JSON for Credential Manager. */
@@ -119,6 +128,9 @@ class Api(
         cookies.clear()
     }
 }
+
+/** How long a question to Mia may take before the app gives up. */
+val MIA_WAIT: Duration = Duration.ofSeconds(90)
 
 @Serializable
 private data class BanksBody(val items: List<BankLink>)
