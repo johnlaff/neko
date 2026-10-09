@@ -45,6 +45,8 @@ export interface ProjectionResponse {
    * projection; absent from copies saved before it existed.
    */
   readonly habit?: Habit;
+  /** Neko may write to the sheet now (specs/005-lancamentos); attached fresh, never cached. */
+  readonly writing?: boolean;
   /** Bank against sheet (specs/003-open-finance); absent with no bank linked. */
   readonly bank?: BankView | null;
 }

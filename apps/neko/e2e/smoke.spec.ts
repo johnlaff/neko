@@ -72,6 +72,10 @@ const open = async (page: Page, path: string, body = projection) => {
     const { pathname } = new URL(route.request().url());
     if (pathname === "/api/mia" && route.request().method() === "POST")
       return route.fulfill({ json: MIA_REPLY });
+    if (pathname === "/api/entries/preview")
+      return route.fulfill({ json: { parts: [{ fingerprint: "f" }] } });
+    if (pathname === "/api/entries")
+      return route.fulfill({ json: { entryId: "e", state: "done" } });
     if (pathname === "/api/projection")
       return route.fulfill({ contentType: "application/json", body });
     if (pathname in API) return route.fulfill({ json: API[pathname] });
@@ -97,8 +101,13 @@ for (const [path, heading] of [
 
 test("the bank shows only where it and the sheet differ", async ({ page }) => {
   const errors = await open(page, "/");
-  const missing = page.getByRole("region", { name: "Fora da planilha" });
-  await expect(missing.getByRole("button")).toHaveCount(2);
+  const queue = page.getByRole("region", { name: "Para lançar" });
+  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(2);
+  await expect(queue).toContainText("Diário de 03/10");
+  await queue.screenshot({ path: "test-results/para-lancar.png" });
+  await queue.getByRole("button", { name: "Lançar" }).first().click();
+  await expect(page.getByRole("status").filter({ hasText: "Lançado na planilha" })).toBeVisible();
+  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(1);
   await page.getByRole("link", { name: "Faturas", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Faturas no banco" })).toBeVisible();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
@@ -176,4 +185,37 @@ test("keys switch screens and months, but a calendar arrow stays in the calendar
   await expect(month).not.toHaveText(shown);
   await page.keyboard.press("4");
   await expect(page).toHaveURL(/\/ajustes$/);
+});
+
+test("Lançar à mão asks the value, how it was paid and the name, then offers Desfazer", async ({
+  page,
+}) => {
+  // A card takes purchases once its closing day is set in Ajustes.
+  const data = JSON.parse(projection);
+  data.cardsKnown[0].closingEstimated = false;
+  const errors = await open(page, "/", JSON.stringify(data));
+  await page.getByRole("button", { name: "Lançar", exact: true }).first().click();
+  const form = page.getByRole("form", { name: "Lançar à mão" });
+  await form.getByLabel("Valor").fill("18,90");
+  await form.getByRole("button", { name: "Cartão Azul" }).click();
+  await form.getByRole("button", { name: "3×" }).click();
+  await form.getByLabel("Nome").fill("Padaria");
+  await form.screenshot({ path: "test-results/lancar-a-mao.png" });
+  await form.getByRole("button", { name: "Lançar" }).click();
+  await expect(page.getByRole("button", { name: "Desfazer" })).toBeVisible();
+  await expect(form).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("with nothing left to launch, Para lançar compares the Saldo with the bank", async ({
+  page,
+}) => {
+  const data = JSON.parse(projection);
+  data.bank.queue = [];
+  const errors = await open(page, "/", JSON.stringify(data));
+  const queue = page.getByRole("region", { name: "Para lançar" });
+  await expect(queue).toContainText("Faltam");
+  await queue.getByRole("button", { name: "Lançar a diferença" }).click();
+  await queue.screenshot({ path: "test-results/saldo.png" });
+  expect(errors).toEqual([]);
 });

@@ -10,6 +10,7 @@ import {
   type Saving,
   type UpcomingDay,
 } from "@neko/engine";
+import { type QueueItemView, type SaldoView, saldoView } from "./queue.ts";
 import { sheetCellUrl } from "./sheet.ts";
 import type { DailySource, ProjectionResponse } from "./types.ts";
 
@@ -73,9 +74,21 @@ export interface TodayView {
   readonly recap: MonthRecap | null;
   /** Account movements the sheet does not have yet; null with no bank linked. */
   readonly bankMissing: readonly MissingMovement[] | null;
+  /** Para lançar; null with no bank linked. */
+  readonly queue: readonly QueueItemView[] | null;
+  /** "Saldo bate" against the bank, shown when the queue is empty. */
+  readonly saldo: SaldoView | null;
+  /** Off in Ajustes, or no writer key yet: the app shows no launch buttons. */
+  readonly writing: boolean;
+  /** Cards a purchase can be launched on: the closing day is known. */
+  readonly entryCards: readonly string[];
 }
 
-export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): TodayView => {
+export const todayView = (
+  r: ProjectionResponse,
+  reviewed: readonly string[],
+  writing = false,
+): TodayView => {
   const p = r.projection;
   const cellUrl = (tab: string, a1: string) => sheetCellUrl(r.sheet.id, r.sheet.tabs[tab], a1);
   const since = addDays(p.today, -HEALTH_DAYS);
@@ -105,5 +118,9 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     habit: r.habit ?? null,
     recap: p.recap ?? null,
     bankMissing: r.bank ? r.bank.missing.map((m) => ({ ...m, line: noteLine(m) })) : null,
+    queue: r.bank ? (r.bank.queue ?? []) : null,
+    saldo: saldoView(r.bank?.saldo),
+    writing,
+    entryCards: r.cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name),
   };
 };

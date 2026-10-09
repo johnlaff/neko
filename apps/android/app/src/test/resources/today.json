@@ -145,16 +145,104 @@
   },
   "bankMissing": [
     {
+      "id": "m2",
       "date": "2026-10-03",
       "amount": -4250,
       "description": "PIX FEIRA DO BAIRRO",
       "line": "R$ 42,50 - PIX FEIRA DO BAIRRO"
     },
     {
+      "id": "m3",
       "date": "2026-10-04",
       "amount": 15000,
       "description": "PIX RECEBIDO ANA",
       "line": "R$ 150,00 - PIX RECEBIDO ANA"
     }
-  ]
+  ],
+  "queue": [
+    {
+      "key": "mov:m2",
+      "kind": "diario",
+      "date": "2026-10-03",
+      "title": "PIX FEIRA DO BAIRRO",
+      "options": [
+        {
+          "label": "",
+          "draft": {
+            "type": "new",
+            "kind": "diario",
+            "amount": 4250,
+            "date": "2026-10-03",
+            "description": "PIX FEIRA DO BAIRRO"
+          },
+          "lines": [
+            {
+              "label": "Diário de 03/10",
+              "before": 5638,
+              "after": 9888
+            }
+          ]
+        }
+      ],
+      "bank": [
+        {
+          "date": "2026-10-03",
+          "amount": -4250,
+          "description": "PIX FEIRA DO BAIRRO"
+        }
+      ],
+      "adjustable": true,
+      "origin": "pix feira do bairro"
+    },
+    {
+      "key": "mov:m3",
+      "kind": "entrada",
+      "date": "2026-10-04",
+      "title": "PIX RECEBIDO ANA",
+      "options": [
+        {
+          "label": "",
+          "draft": {
+            "type": "new",
+            "kind": "entrada",
+            "amount": 15000,
+            "date": "2026-10-04",
+            "description": "PIX RECEBIDO ANA"
+          },
+          "lines": [
+            {
+              "label": "Entrada de 04/10",
+              "before": 0,
+              "after": 15000
+            }
+          ]
+        }
+      ],
+      "bank": [
+        {
+          "date": "2026-10-04",
+          "amount": 15000,
+          "description": "PIX RECEBIDO ANA"
+        }
+      ],
+      "adjustable": true,
+      "origin": "pix recebido ana"
+    }
+  ],
+  "saldo": {
+    "date": "2026-10-04",
+    "sheet": 1793747,
+    "bank": 2353747,
+    "diff": 560000,
+    "stale": [],
+    "draft": {
+      "type": "new",
+      "kind": "entrada",
+      "amount": 560000,
+      "date": "2026-10-04",
+      "description": "Diferença do banco"
+    }
+  },
+  "writing": false,
+  "entryCards": []
 }

@@ -7,6 +7,7 @@ import { join } from "node:path";
 import {
   addDays,
   billChecks,
+  buildQueue,
   type CellValue,
   cents,
   type DayRow,
@@ -18,8 +19,10 @@ import {
   type NoteItem,
   parts,
   project,
+  saldoCheck,
   unmatchedMovements,
 } from "../../../packages/engine/src/index.ts";
+import { queueView } from "../src/shared/queue.ts";
 import type { ProjectionResponse } from "../src/shared/types.ts";
 
 /** Seeded, so the fixture only changes when this file does. */
@@ -118,8 +121,40 @@ const bankLine = (
   installment: n ?? null,
   installments: of ?? null,
 });
+const movements = [
+  { id: "m1", date: localDate("2026-10-05"), amount: cents(5_600_00), description: "SALARIO" },
+  {
+    id: "m2",
+    date: localDate("2026-10-03"),
+    amount: cents(-42_50),
+    description: "PIX FEIRA DO BAIRRO",
+  },
+  {
+    id: "m3",
+    date: localDate("2026-10-04"),
+    amount: cents(150_00),
+    description: "PIX RECEBIDO ANA",
+  },
+];
+const queue = buildQueue({
+  ledger: rows,
+  cards,
+  today: TODAY,
+  since: addDays(TODAY, -10),
+  movements,
+  lines: [],
+  closed: [],
+  othersCards: ["Cartão Verde"],
+  accounts: [{ id: "conta", label: "Banco Azul", use: "corrente" }],
+  savedOrigins: new Set(),
+  decided: new Set(),
+});
 const bank = {
   syncedAt: "2026-10-05T09:00:00.000Z",
+  queue: queueView(queue, rows, cards),
+  saldo: saldoCheck(rows, TODAY, [
+    { label: "Banco Azul", balance: cents(2_353_747), readOn: TODAY },
+  ]),
   checks: billChecks(
     rows,
     cards,
@@ -130,15 +165,7 @@ const bank = {
     ],
     TODAY,
   ),
-  missing: unmatchedMovements(
-    rows,
-    [
-      { date: localDate("2026-10-05"), amount: cents(5_600_00), description: "SALARIO" },
-      { date: localDate("2026-10-03"), amount: cents(-42_50), description: "PIX FEIRA DO BAIRRO" },
-      { date: localDate("2026-10-04"), amount: cents(150_00), description: "PIX RECEBIDO ANA" },
-    ],
-    TODAY,
-  ),
+  missing: unmatchedMovements(rows, movements, TODAY),
 };
 
 const response: ProjectionResponse = {
@@ -157,6 +184,7 @@ const response: ProjectionResponse = {
     Array.from({ length: 13 }, (_, i) => addDays(TODAY, i - 13)).filter((d) => d !== "2026-09-30"),
     TODAY,
   ),
+  writing: true,
   bank,
 };
 
