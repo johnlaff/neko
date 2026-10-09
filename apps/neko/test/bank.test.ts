@@ -39,7 +39,7 @@ const rows: BankRows = {
     }),
     txn({ account_id: "cartao", amount: 700, card_number: "1111" }),
   ],
-  bills: [{ id: "b1", due_date: "2026-10-12" }],
+  bills: [{ id: "b1", account_id: "cartao", due_date: "2026-10-12", total: 98000 }],
 };
 // Closes on the 29th, due on the 12th: Pluggy forecasts the closing month.
 const cards: CardConfig[] = ["Visa", "Visa Gio"].map((name) => ({
@@ -65,6 +65,13 @@ describe("bank rows to the engine", () => {
       ["Visa Gio", 3000, "2026-12"],
       ["Visa", -500, "2026-10"],
     ]);
+  });
+
+  it("checks each closed bill by its total, with every sheet card of its account", () => {
+    expect(bankInput(rows, map, cards).closed).toEqual([
+      { cards: ["Visa", "Visa Gio"], billMonth: "2026-10", total: 98000 },
+    ]);
+    expect(bankInput(rows, [], cards).closed).toEqual([]);
   });
 
   it("drops card lines with no sheet name or no bill to land on", () => {

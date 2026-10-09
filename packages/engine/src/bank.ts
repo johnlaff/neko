@@ -33,6 +33,27 @@ export interface BillCheck {
   readonly gap: Cents;
 }
 
+/**
+ * A bill the bank already closed: its total is final, though Open Finance may leave a few of its
+ * lines out. `cards` are the sheet names of every card on that bank account (holder and
+ * additional), so the check compares the whole bill at once.
+ */
+export interface ClosedBill {
+  readonly cards: readonly string[];
+  /** Due month, `YYYY-MM`. */
+  readonly billMonth: string;
+  readonly total: Cents;
+}
+
+/** "Bradesco João" and "Bradesco Gio" read as "Bradesco"; names with nothing in common are joined. */
+const sharedName = (names: readonly string[]): string => {
+  const words = names.map((n) => n.split(/\s+/));
+  const first = words[0] ?? [];
+  let k = 0;
+  while (k < first.length && words.every((w) => w[k] === first[k])) k++;
+  return k > 0 ? first.slice(0, k).join(" ") : names.join(" + ");
+};
+
 /** A card account also shows the payment of the previous bill; that is not a charge. */
 const PAYMENT = /\bpagamento|\bpagto|\bpgto/i;
 
@@ -88,6 +109,7 @@ export const billChecks = (
   cards: readonly CardConfig[],
   lines: readonly BankCardLine[],
   today: LocalDate,
+  closed: readonly ClosedBill[] = [],
 ): BillCheck[] => {
   const byCard = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const groups = new Map<string, { card: CardConfig; month: string; lines: BankCardLine[] }>();
@@ -100,6 +122,27 @@ export const billChecks = (
     groups.set(key, g);
   }
   const out: BillCheck[] = [];
+  // A closed bill: the bank's total against every sheet line of that account on its due day.
+  for (const bill of closed) {
+    const own = bill.cards.flatMap((n) => byCard.get(normalizeName(n)) ?? []);
+    const [first] = own;
+    const [y, m] = bill.billMonth.split("-").map(Number);
+    if (!first || !y || !m) continue;
+    const { due } = cycleForDueMonth(first, y, m);
+    const ls = own.flatMap((c) => {
+      const key = `${normalizeName(c.name)}|${bill.billMonth}`;
+      const g = groups.get(key);
+      groups.delete(key);
+      return g?.lines ?? [];
+    });
+    if (diffDays(today, due) <= 0) continue;
+    const sheets = own.map((c) => billOnSheet(ledger, c, due));
+    if (sheets.every((v) => v === null)) continue;
+    const sheet = add(ZERO, ...sheets.map((v) => v ?? ZERO));
+    const parcels = add(ZERO, ...ls.filter((l) => (l.installments ?? 1) > 1).map((l) => l.amount));
+    const card = sharedName(own.map((c) => c.name));
+    out.push({ card, due, bank: bill.total, parcels, sheet, gap: sub(bill.total, sheet) });
+  }
   for (const { card, month, lines: ls } of groups.values()) {
     const [y, m] = month.split("-").map(Number);
     if (!y || !m) continue;

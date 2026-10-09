@@ -60,6 +60,9 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   soma o que o banco já pôs nela (compras e parcelas, com estornos descontados e sem o pagamento da
   fatura anterior) e compara com a linha da planilha no vencimento. Cada cartão do banco é ligado ao
   nome dele na planilha em Ajustes, inclusive o adicional, que vem no mesmo cartão com outro número.
+  Fatura já fechada usa o total que o banco informa, porque o Open Finance às vezes não lista
+  algumas linhas uma a uma; ela é comparada com a soma das linhas da planilha de todos os cartões
+  daquela conta (titular e adicional juntos), e aparece com o nome em comum deles ("Bradesco").
 - **Parcelas futuras (engine):** a soma por cartão e por fatura usa `installmentNumber`,
   `totalInstallments` e `billForecastDate`. O Open Finance não liga as parcelas de uma mesma compra,
   então a compra é reconhecida por descrição, valor da parcela e total de parcelas. O

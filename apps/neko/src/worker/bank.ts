@@ -3,6 +3,7 @@ import {
   type BankMovement,
   billChecks,
   type CardConfig,
+  type ClosedBill,
   cents,
   dueMonthOfClosing,
   type Ledger,
@@ -38,7 +39,9 @@ export interface BankTxnRow {
 
 export interface BankBillRow {
   readonly id: string;
+  readonly account_id: string;
   readonly due_date: string;
+  readonly total: number;
 }
 
 export interface BankRows {
@@ -107,7 +110,14 @@ export const bankInput = (
         description: t.description,
       });
   }
-  return { lines, movements };
+  // Pluggy lists only closed bills; each one is checked by its total, with every card of the account.
+  const closed: ClosedBill[] = rows.bills.flatMap((b) => {
+    const names = [...new Set(map.filter((m) => m.accountId === b.account_id).map((m) => m.card))];
+    return names.length === 0
+      ? []
+      : [{ cards: names, billMonth: b.due_date.slice(0, 7), total: cents(b.total) }];
+  });
+  return { lines, movements, closed };
 };
 
 /** Bank against sheet for the response; null with no bank linked. */
@@ -119,10 +129,10 @@ export const bankView = (
   today: LocalDate,
 ): BankView | null => {
   if (!rows) return null;
-  const { lines, movements } = bankInput(rows, settings.bankCards, cards);
+  const { lines, movements, closed } = bankInput(rows, settings.bankCards, cards);
   return {
     syncedAt: rows.syncedAt,
-    checks: billChecks(ledger, cards, lines, today),
+    checks: billChecks(ledger, cards, lines, today, closed),
     missing: unmatchedMovements(ledger, movements, today),
   };
 };
@@ -144,7 +154,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
           "SELECT account_id, date, amount, type, description, installment, installments, bill_id, bill_month, card_number FROM bank_txn ORDER BY date, id",
         )
         .all<BankTxnRow>(),
-      db.prepare("SELECT id, due_date FROM bank_bill").all<BankBillRow>(),
+      db.prepare("SELECT id, account_id, due_date, total FROM bank_bill").all<BankBillRow>(),
     ]);
     return {
       items: items.n,

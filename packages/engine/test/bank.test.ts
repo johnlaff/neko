@@ -66,6 +66,29 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     ]);
   });
 
+  it("takes a closed bill's total and checks every sheet card of that account together", () => {
+    const gio: CardConfig = { ...visa, name: "Visa Gio" };
+    // Sheet: Visa 300,00 + Visa Gio 200,00 on Nov 10; the bank lists 480,00 of a 500,00 bill.
+    const both = ledger("2026-10-01", 92, 0, {
+      "2026-11-10": { saida: cell(50000, [item(30000, "Visa"), item(20000, "Visa Gio")]) },
+    });
+    const checks = billChecks(
+      both,
+      [visa, gio],
+      [
+        line(29000, "2026-11", { installment: 1, installments: 2 }),
+        line(19000, "2026-11", { card: "Visa Gio" }),
+        line(29000, "2026-12", { installment: 2, installments: 2 }),
+      ],
+      today,
+      [{ cards: ["Visa", "Visa Gio"], billMonth: "2026-11", total: cents(50000) }],
+    );
+    expect(checks).toEqual([
+      { card: "Visa", due: "2026-11-10", bank: 50000, parcels: 29000, sheet: 50000, gap: 0 },
+      { card: "Visa", due: "2026-12-10", bank: 29000, parcels: 29000, sheet: 0, gap: 29000 },
+    ]);
+  });
+
   it("leaves out bills the sheet does not reach yet", () => {
     const checks = billChecks(
       days,
