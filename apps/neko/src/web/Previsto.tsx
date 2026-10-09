@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { PrevistoView } from "../shared/types.ts";
 import { api } from "./api.ts";
 import { money, shortDate, toCents } from "./format.ts";
@@ -27,9 +27,7 @@ const useSetPrevisto = (onDone: () => void) => {
       showToast({
         entryId: r.entryId,
         text:
-          r.value > 0
-            ? `Diário previsto: ${money(r.value)} por dia`
-            : "Previsto apagado da planilha",
+          r.value > 0 ? `Diário previsto: ${money(r.value)} por dia` : "Diário previsto desligado",
       });
       onDone();
       queryClient.invalidateQueries();
@@ -55,6 +53,12 @@ export const PrevistoSetting = ({
   const [typed, setTyped] = useState("");
   const run = useSetPrevisto(() => setOpen(null));
   const amount = toCents(typed);
+  const bad = typed.trim() !== "" && (amount === null || amount <= 0);
+  const form = useRef<HTMLFormElement>(null);
+  // Opening the form below the switch can leave its buttons under the dock.
+  useEffect(() => {
+    if (open === "on") form.current?.scrollIntoView({ block: "nearest" });
+  }, [open]);
   const start = () => {
     const value = p.on ? p.value : (p.suggestion?.perDay ?? 0);
     setTyped(value > 0 ? reais(value) : "");
@@ -100,6 +104,7 @@ export const PrevistoSetting = ({
       )}
       {open === "on" && (
         <form
+          ref={form}
           className="sim entry previsto"
           aria-label="Diário previsto"
           onSubmit={(e) => {
@@ -136,9 +141,16 @@ export const PrevistoSetting = ({
               autoComplete="off"
               placeholder="0,00"
               value={typed}
+              aria-invalid={bad}
+              aria-describedby={bad ? `${id}-e` : undefined}
               onChange={(e) => setTyped(e.target.value)}
             />
           </span>
+          {bad && (
+            <p id={`${id}-e`} className="hint error">
+              Use um valor como 95,00
+            </p>
+          )}
           <p className="hint">
             Cada dia de hoje até dezembro de {p.lastYear} recebe esse valor no Diário, com a nota
             Previsto. O que você escreveu no Diário fica como está.

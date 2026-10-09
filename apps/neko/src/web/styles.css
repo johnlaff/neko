@@ -56,6 +56,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   scrollbar-color: var(--border) transparent;
+  /* Scrolling to a field or form keeps it clear of the dock */
+  scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
 }
 body {
   margin: 0;
@@ -1290,6 +1292,10 @@ fieldset.panel > legend {
   color: var(--faint);
 }
 .setting .sub.error {
+  color: var(--neg);
+}
+.hint.error {
+  margin: 0;
   color: var(--neg);
 }
 .setting > select {

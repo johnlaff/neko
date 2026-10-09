@@ -302,7 +302,7 @@ private fun Previsto(
             p, mode == "off",
             { value ->
                 val id = go.previsto(value)
-                onDone(id, if (value > 0) "Diário previsto: ${Format.money(value)} por dia" else "Previsto apagado da planilha")
+                onDone(id, if (value > 0) "Diário previsto: ${Format.money(value)} por dia" else "Diário previsto desligado")
             },
         ) { open = null }
     }

@@ -50,6 +50,7 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
     var error by remember { mutableStateOf<String?>(null) }
     var formula by remember { mutableStateOf(false) }
     val amount = toCents(typed)
+    val bad = typed.isNotBlank() && (amount == null || amount <= 0)
 
     fun submit(value: Long) {
         busy = true
@@ -85,6 +86,8 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
                 singleLine = true,
                 prefix = { Text("R$ ", color = l.faint) },
                 placeholder = { Text("0,00", color = l.faint) },
+                isError = bad,
+                supportingText = if (bad) ({ Text("Use um valor como 95,00") }) else null,
                 textStyle = MaterialTheme.typography.headlineSmall,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
