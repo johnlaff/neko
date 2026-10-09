@@ -113,6 +113,26 @@ describe("credit mode projection", () => {
     expect(fifth.years).toEqual([{ year: 2026, entrada: 5000_00, saved: 0, savedShare: 0 }]);
   });
 
+  it("a resgate, an Entrada under Reserva:, takes back from what was kept", () => {
+    // R$ 500 kept on the 6th, R$ 200 drawn back on the 20th: the month kept R$ 300, and the
+    // money drawn back is not a cost of living.
+    const l = ledger("2026-10-01", 92, 10_000_00, {
+      "2026-11-05": { entrada: cell(5000_00, [item(5000_00, "Salário", null)]) },
+      "2026-11-06": {
+        saida: cell(500_00, [item(500_00, "Poupança", "reserva")]),
+        diario: cell(150_00),
+      },
+      "2026-11-20": { entrada: cell(200_00, [item(200_00, "Poupança", "reserva")]) },
+    });
+    const december = project(l, localDate("2026-12-10"), settings());
+    expect(december.months.find((m) => m.month === 11)).toMatchObject({
+      saved: 300_00,
+      savedToDate: 300_00,
+      livingCost: 150_00,
+    });
+    expect(december.reserve).toMatchObject({ kept: 300_00 });
+  });
+
   it("a configured cycle budget wins over diário × days", () => {
     expect(project(base(), today, settings({ cycleBudget: cents(2000_00) })).canSpend?.perDay).toBe(
       103_33,

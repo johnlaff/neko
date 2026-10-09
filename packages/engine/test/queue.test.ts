@@ -386,6 +386,57 @@ describe("placeDraft", () => {
       },
     ]);
   });
+  it("moves the Economia with a planned saving: the change in its month, or out of one into another", () => {
+    const kept = {
+      ...line,
+      column: "saida",
+      section: "reserva",
+      description: "Reserva",
+      amount: cents(50000),
+    } as const;
+    const same = placeDraft(
+      { type: "fix", line: kept, amount: cents(60000), date: kept.date, description: "Reserva" },
+      [],
+    );
+    expect(same.filter((p) => p.target === "economia")).toEqual([
+      {
+        date: "2026-10-01",
+        column: "saida",
+        section: null,
+        amount: 10000,
+        description: "Economia",
+        target: "economia",
+      },
+    ]);
+    const moved = placeDraft(
+      {
+        type: "fix",
+        line: kept,
+        amount: cents(50000),
+        date: d("2026-11-02"),
+        description: "Reserva",
+      },
+      [],
+    );
+    expect(moved.filter((p) => p.target === "economia")).toEqual([
+      {
+        date: "2026-10-01",
+        column: "entrada",
+        section: null,
+        amount: 50000,
+        description: "Economia",
+        target: "economia",
+      },
+      {
+        date: "2026-11-01",
+        column: "saida",
+        section: null,
+        amount: 50000,
+        description: "Economia",
+        target: "economia",
+      },
+    ]);
+  });
   it("sets each card bill and its reimbursement", () => {
     const ps = placeDraft(
       {

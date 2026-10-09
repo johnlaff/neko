@@ -246,6 +246,7 @@ const dropLine = (lines: string[], at: number): string => {
 };
 
 export const planCellEdit = (cell: ApiCell | undefined, op: EditOp): EditPlan => {
+  if (op.target === "economia") return { ok: false, reason: "a Economia fica na aba Economia" };
   const check = checkCell(cell);
   if (!check.ok) return check;
   const changing = op.was !== undefined;
@@ -337,4 +338,62 @@ export const planCellEdit = (cell: ApiCell | undefined, op: EditOp): EditPlan =>
   if (!reread.ok || reread.total !== after)
     throw new Error(`planCellEdit produced an inconsistent cell: ${JSON.stringify(next)}`);
   return { ok: true, formula: next.formula, note: next.note, before, after };
+};
+
+const ECONOMIA = /^=\s*([-+]?\s*[\d,]+(?:\s*[-+]\s*[\d,]+)*)\s*$/;
+
+/**
+ * A month's cell in the Economia tab: empty, a number, or `=500+500-300` (the method's own way of
+ * keeping it, saved minus drawn back). Its value in cents, or why the writer must not touch it.
+ */
+export const checkEconomia = (
+  cell: ApiCell | undefined,
+): { ok: true; total: number } | { ok: false; reason: string } => {
+  const entered = cell?.userEnteredValue ?? {};
+  if (entered.stringValue !== undefined)
+    return { ok: false, reason: "a célula Economia tem texto" };
+  if (entered.numberValue !== undefined) return { ok: true, total: fromReais(entered.numberValue) };
+  if (entered.formulaValue === undefined) return { ok: true, total: 0 };
+  const m = ECONOMIA.exec(entered.formulaValue);
+  if (!m) return { ok: false, reason: "a célula Economia tem uma fórmula que não é só de somas" };
+  let total = 0;
+  for (const [, sign, raw] of (m[1] ?? "").matchAll(/([-+]?)\s*([\d,]+)/g)) {
+    const c = termCents(raw ?? "");
+    if (c === null) return { ok: false, reason: "a célula Economia tem um número que não entendo" };
+    total += sign === "-" ? -c : c;
+  }
+  const shown = cell?.effectiveValue?.numberValue;
+  if (shown === undefined || fromReais(shown) !== total)
+    return { ok: false, reason: "a célula Economia não mostra a soma da fórmula" };
+  return { ok: true, total };
+};
+
+/**
+ * Adds a saving to the month's Economia (`=500` → `=500+500`) or takes a resgate off it
+ * (`=500+500-300`), as the method teaches; the note is left as it is.
+ */
+export const planEconomiaEdit = (
+  cell: ApiCell | undefined,
+  op: Pick<Placement, "amount" | "column">,
+): EditPlan => {
+  const check = checkEconomia(cell);
+  if (!check.ok) return check;
+  const sign = op.column === "entrada" ? "-" : "+";
+  const term = formulaTerm(op.amount);
+  const entered = cell?.userEnteredValue ?? {};
+  const base =
+    entered.formulaValue !== undefined
+      ? entered.formulaValue.trim()
+      : check.total === 0
+        ? "="
+        : `=${check.total < 0 ? "-" : ""}${formulaTerm(cents(Math.abs(check.total)))}`;
+  const formula = base === "=" ? `=${sign === "-" ? "-" : ""}${term}` : `${base}${sign}${term}`;
+  const after = check.total + (sign === "-" ? -op.amount : op.amount);
+  return {
+    ok: true,
+    formula,
+    note: cell?.note ?? "",
+    before: check.total as Cents,
+    after: after as Cents,
+  };
 };

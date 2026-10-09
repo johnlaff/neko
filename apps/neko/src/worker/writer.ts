@@ -1,15 +1,24 @@
-import { type Cents, cents, fromReais, type Placement, parts } from "@neko/engine";
-import { type ApiCell, a1, checkCell, planCellEdit, SHEET_MAP } from "@neko/sheet-reader";
+import { type Cents, cents, fromReais, type LocalDate, type Placement, parts } from "@neko/engine";
+import {
+  type ApiCell,
+  a1,
+  checkCell,
+  checkEconomia,
+  planCellEdit,
+  planEconomiaEdit,
+  SHEET_MAP,
+} from "@neko/sheet-reader";
 import { z } from "zod";
 
 /**
  * Writes entries into the sheet (specs/005-lancamentos). Each placement adds, changes or removes
- * one line of an Entrada/Saída/Diário cell exactly as the owner would type it. The Sheets API has no
+ * one line of an Entrada/Saída/Diário cell exactly as the owner would type it, or a month's cell of
+ * the Economia tab when money goes into or out of the reserve. The Sheets API has no
  * compare-and-set and cannot restore a revision, so safety lives here:
  * - the cell is re-read right before writing and must still be the one the preview showed;
  * - the journal row (D1 `entry_op`) is written first, with the cell as it was;
- * - after writing, the cell and the day's Saldo are read back and must have changed by exactly
- *   the amount, or the cell is put back;
+ * - after writing, the cell and the day's Saldo (the Economia tab has none) are read back and must
+ *   have changed by exactly the amount, or the cell is put back;
  * - undo restores the stored cell, only if the cell is still as Neko left it.
  * Callers run one write at a time (a single writer), so the Saldo check sees only this change.
  */
@@ -25,6 +34,8 @@ export interface SheetsApi {
     row: number,
     firstCol: number,
   ): Promise<{ sheetId: number; cells: ApiCell[] }>;
+  /** The Economia tab's cells A1:Z20, row by row. */
+  readEconomia(): Promise<{ sheetId: number; rows: ApiCell[][] }>;
   /** Sets one cell's value (formula, number or empty) and note, and nothing else. */
   writeCell(
     sheetId: number,
@@ -100,6 +111,19 @@ export const googleSheets = (
         cells: (sheet?.data?.[0]?.rowData?.[0]?.values ?? []) as ApiCell[],
       };
     },
+    async readEconomia() {
+      const qs = new URLSearchParams({
+        ranges: `'${ECONOMIA_TAB}'!A1:Z20`,
+        includeGridData: "true",
+        fields: ROW_FIELDS,
+      });
+      const body = RowResponse.parse(await call(`${base}?${qs}`));
+      const sheet = body.sheets[0];
+      return {
+        sheetId: sheet?.properties.sheetId ?? 0,
+        rows: (sheet?.data?.[0]?.rowData ?? []).map((r) => (r.values ?? []) as ApiCell[]),
+      };
+    },
     async writeCell(sheetId, row, col, value, note) {
       // One updateCells request sets value and note together: either both change or neither.
       await call(`${base}:batchUpdate`, {
@@ -142,6 +166,37 @@ export const locate = (p: Pick<Placement, "date" | "column">) => {
   return { tab: String(year), row, col, block, day, address: `${year}!${a1(row, col)}` };
 };
 
+export const ECONOMIA_TAB = "Economia";
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+const label = (cell: ApiCell | undefined) =>
+  String(cell?.effectiveValue?.stringValue ?? cell?.effectiveValue?.numberValue ?? "")
+    .trim()
+    .toLowerCase();
+
+/**
+ * The month's cell in the Economia tab. Each year is a block whose header on row 4 reads
+ * `2026 | Entradas | Economia | %`, with the months jan to dez on rows 5 to 16 under the year.
+ * Anything else stops the write: the reader does not guess.
+ */
+export const locateEconomia = (rows: readonly (readonly ApiCell[])[], date: LocalDate) => {
+  const { year, month } = parts(date);
+  const head = rows[3] ?? [];
+  const at = head.findIndex((c) => label(c) === String(year));
+  if (at < 0) throw new WriteError(`a aba ${ECONOMIA_TAB} não tem o bloco de ${year}`);
+  if (label(head[at + 1]) !== "entradas" || label(head[at + 2]) !== "economia")
+    throw new WriteError(
+      `a aba ${ECONOMIA_TAB} mudou: esperava Entradas e Economia ao lado de ${year}`,
+    );
+  const row = 3 + month;
+  if (label(rows[row]?.[at]) !== MONTHS[month - 1])
+    throw new WriteError(
+      `a aba ${ECONOMIA_TAB} mudou: esperava ${MONTHS[month - 1]} em ${a1(row, at)}`,
+    );
+  const col = at + 2;
+  return { tab: ECONOMIA_TAB, row, col, address: `${ECONOMIA_TAB}!${a1(row, col)}` };
+};
+
 /** A short, stable id of a cell's contents: the preview hands it out and the write checks it. */
 export const fingerprint = async (cell: ApiCell | undefined): Promise<string> => {
   const data = JSON.stringify([enteredOf(cell), cell?.note ?? ""]);
@@ -177,7 +232,25 @@ export interface PartPreview {
   readonly fingerprint: string;
 }
 
-const readPlaced = async (api: SheetsApi, p: Placement) => {
+type Where = Pick<Placement, "date" | "column" | "target">;
+
+/** The cell a placement changes, read now; `cells` is the day's row, for its Saldo. */
+interface Site {
+  readonly tab: string;
+  readonly row: number;
+  readonly col: number;
+  readonly address: string;
+  readonly sheetId: number;
+  readonly cell: ApiCell | undefined;
+  readonly cells?: ApiCell[];
+}
+
+const readSite = async (api: SheetsApi, p: Where): Promise<Site> => {
+  if (p.target === "economia") {
+    const { sheetId, rows } = await api.readEconomia();
+    const at = locateEconomia(rows, p.date);
+    return { ...at, sheetId, cell: rows[at.row]?.[at.col] };
+  }
   const at = locate(p);
   const { sheetId, cells } = await api.readRow(at.tab, at.row, at.block);
   const day = cells[SHEET_MAP.offsets.data]?.effectiveValue?.numberValue;
@@ -185,13 +258,15 @@ const readPlaced = async (api: SheetsApi, p: Placement) => {
     throw new WriteError(
       `${at.address}: a linha não é do dia ${at.day} (Data mostra ${day ?? "nada"})`,
     );
-  const cell = cells[SHEET_MAP.offsets[p.column]];
-  return { at, sheetId, cells, cell };
+  const { tab, row, col, address } = at;
+  return { tab, row, col, address, sheetId, cells, cell: cells[SHEET_MAP.offsets[p.column]] };
 };
 
-const plan = (address: string, cell: ApiCell | undefined, p: Placement) => {
-  const result = planCellEdit(cell, p);
-  if (!result.ok) throw new WriteError(`${address}: ${result.reason}; arrume a célula na planilha`);
+const plan = (site: Site, p: Placement) => {
+  const result =
+    p.target === "economia" ? planEconomiaEdit(site.cell, p) : planCellEdit(site.cell, p);
+  if (!result.ok)
+    throw new WriteError(`${site.address}: ${result.reason}; arrume a célula na planilha`);
   return result;
 };
 
@@ -203,20 +278,20 @@ export const previewEntry = async (
   const seen = new Set<string>();
   const out: PartPreview[] = [];
   for (const p of placements) {
-    const { at, cell } = await readPlaced(api, p);
-    if (seen.has(at.address))
-      throw new WriteError(`${at.address} aparece duas vezes no lançamento`);
-    seen.add(at.address);
-    const edit = plan(at.address, cell, p);
+    const site = await readSite(api, p);
+    if (seen.has(site.address))
+      throw new WriteError(`${site.address} aparece duas vezes no lançamento`);
+    seen.add(site.address);
+    const edit = plan(site, p);
     out.push({
-      address: at.address,
+      address: site.address,
       date: p.date,
       column: p.column,
       before: edit.before,
       after: edit.after,
       formula: edit.formula,
       note: edit.note,
-      fingerprint: await fingerprint(cell),
+      fingerprint: await fingerprint(site.cell),
     });
   }
   return out;
@@ -230,6 +305,7 @@ interface OpRow {
   cell: string;
   date: string;
   column_name: Placement["column"];
+  target: Placement["target"];
   before_value: string;
   before_note: string;
   after_formula: string;
@@ -247,10 +323,19 @@ export interface CommitResult {
   readonly error?: string;
 }
 
-const isAfter = (cell: ApiCell | undefined, op: Pick<OpRow, "after_total" | "after_note">) => {
-  const check = checkCell(cell);
+const isAfter = (
+  cell: ApiCell | undefined,
+  op: Pick<OpRow, "target" | "after_total" | "after_note">,
+) => {
+  const check = op.target === "economia" ? checkEconomia(cell) : checkCell(cell);
   return check.ok && check.total === op.after_total && (cell?.note ?? "") === op.after_note;
 };
+
+const whereOf = (op: OpRow): Where => ({
+  date: op.date as LocalDate,
+  column: op.column_name,
+  target: op.target,
+});
 
 const isBefore = (cell: ApiCell | undefined, op: Pick<OpRow, "before_value" | "before_note">) =>
   JSON.stringify(enteredOf(cell)) === JSON.stringify(JSON.parse(op.before_value)) &&
@@ -329,7 +414,8 @@ export const commitEntry = async (
   for (const [part, p] of placements.entries()) {
     const old = existing.find((o) => o.part === part);
     if (old?.state === "done") continue;
-    const { at, sheetId, cells, cell } = await readPlaced(api, p);
+    const site = await readSite(api, p);
+    const { cell } = site;
 
     if (old?.state === "writing") {
       // A previous attempt stopped between the journal and the check: see where the cell is.
@@ -348,11 +434,11 @@ export const commitEntry = async (
         .run();
     } else if ((await fingerprint(cell)) !== fingerprints[part]) {
       await rollBack(db, api, entryId, part, now);
-      throw new WriteError(`${at.address} mudou desde a prévia; confira e lance de novo`);
+      throw new WriteError(`${site.address} mudou desde a prévia; confira e lance de novo`);
     }
 
-    const edit = plan(at.address, cell, p);
-    const saldoBefore = saldoOf(cells);
+    const edit = plan(site, p);
+    const saldoBefore = site.cells ? saldoOf(site.cells) : 0;
     const t = now();
     await db
       .prepare(
@@ -366,8 +452,8 @@ export const commitEntry = async (
         part,
         t,
         t,
-        at.tab,
-        a1(at.row, at.col),
+        site.tab,
+        a1(site.row, site.col),
         p.date,
         p.column,
         p.section,
@@ -386,15 +472,20 @@ export const commitEntry = async (
     let error: string | null = null;
     try {
       const value = edit.formula === "" ? {} : { formulaValue: edit.formula };
-      await api.writeCell(sheetId, at.row, at.col, value, edit.note);
-      const back = await api.readRow(at.tab, at.row, at.block);
-      const written = back.cells[SHEET_MAP.offsets[p.column]];
-      if (!isAfter(written, { after_total: edit.after, after_note: edit.note }))
-        error = `${at.address} não ficou como planejado`;
-      else if (saldoOf(back.cells) - saldoBefore !== signed(p.column, edit.after - edit.before))
+      await api.writeCell(site.sheetId, site.row, site.col, value, edit.note);
+      const back = await readSite(api, p);
+      if (!isAfter(back.cell, { target: p.target, after_total: edit.after, after_note: edit.note }))
+        error = `${site.address} não ficou como planejado`;
+      else if (
+        back.cells &&
+        saldoOf(back.cells) - saldoBefore !== signed(p.column, edit.after - edit.before)
+      )
         error = `o Saldo de ${p.date} não mudou ${(edit.after - edit.before) / 100} reais`;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
+      // Before the new protection script runs, the whole Economia tab is closed to Neko.
+      if (site.tab === ECONOMIA_TAB && error.includes("respondeu 403"))
+        error = "a aba Economia está protegida para o Neko; rode de novo o script de proteção";
     }
     if (error === null) {
       await setState(db, { entry_id: entryId, part }, "done", now());
@@ -419,22 +510,19 @@ export const commitEntry = async (
  * whatever that write became, and goes back to what it was.
  */
 const restore = async (api: SheetsApi, op: OpRow, justWritten = false) => {
-  const at = locate({ date: op.date as Placement["date"], column: op.column_name });
-  const { sheetId, cells } = await api.readRow(at.tab, at.row, at.block);
-  const cell = cells[SHEET_MAP.offsets[op.column_name]];
+  const { sheetId, row, col, cell } = await readSite(api, whereOf(op));
   if (isBefore(cell, op)) return;
   if (!justWritten && !isAfter(cell, op))
     throw new WriteError(`${op.tab}!${op.cell} mudou depois do lançamento; desfaça na planilha`);
   await api.writeCell(
     sheetId,
-    at.row,
-    at.col,
+    row,
+    col,
     JSON.parse(op.before_value) as EnteredValue,
     op.before_note,
   );
-  const back = await api.readRow(at.tab, at.row, at.block);
-  if (!isBefore(back.cells[SHEET_MAP.offsets[op.column_name]], op))
-    throw new WriteError(`${op.tab}!${op.cell} não voltou ao que era`);
+  const back = await readSite(api, whereOf(op));
+  if (!isBefore(back.cell, op)) throw new WriteError(`${op.tab}!${op.cell} não voltou ao que era`);
 };
 
 /** Undoes the parts already written before `upTo`, newest first. */
@@ -469,9 +557,8 @@ export const undoEntry = async (
   const ops = (await opsOf(db, entryId)).filter((o) => o.state === "done");
   if (ops.length === 0) throw new WriteError("não há lançamento gravado para desfazer");
   for (const op of ops) {
-    const at = locate({ date: op.date as Placement["date"], column: op.column_name });
-    const { cells } = await api.readRow(at.tab, at.row, at.block);
-    if (!isAfter(cells[SHEET_MAP.offsets[op.column_name]], op))
+    const { cell } = await readSite(api, whereOf(op));
+    if (!isAfter(cell, op))
       throw new WriteError(`${op.tab}!${op.cell} mudou depois do lançamento; desfaça na planilha`);
   }
   for (const op of ops.reverse()) {

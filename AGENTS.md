@@ -10,7 +10,8 @@ invented data like `apps/neko/e2e/make-projection.ts`), and never commit keys.
   real-sheet acceptance test against it. `SHEET_ID` and `ALLOWED_EMAILS` are Worker secrets.
 - Neko writes to the sheet only through the entries feature (`specs/005-lancamentos`), only when the
   owner taps an action (Lançar, Desfazer), and only Entrada/Saída/Diário cells that `checkCell`
-  fully understands, via `planCellEdit`. Never Data, Saldo, headers or other tabs, and nothing
+  fully understands, via `planCellEdit`, plus the month's Economia cell next to a reserve line
+  (`checkEconomia`, `planEconomiaEdit`). Never Data, Saldo, headers or other tabs, and nothing
   automatic: the bank and Mia only propose items in "Para lançar" (`packages/engine/src/queue.ts`),
   cron and webhooks never write. Writes go through `/api/entries` (`apps/neko/src/worker/entries.ts`),
   one at a time, and stop when writing is switched off in Ajustes. Reads use the read-only service
