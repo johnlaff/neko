@@ -46,6 +46,16 @@ export const cycleForDueMonth = (card: CardConfig, year: number, month: number):
   return { start: prevClosing, closing, due };
 };
 
+/**
+ * The bill that closes in `closingMonth` (`YYYY-MM`), named by its due month as the sheet does: the
+ * same month when the card closes before it is due, the next one otherwise.
+ */
+export const dueMonthOfClosing = (card: CardConfig, closingMonth: string): string => {
+  const [y = 0, m = 1] = closingMonth.split("-").map(Number);
+  const i = y * 12 + (m - 1) + (card.closingDay < card.dueDay ? 0 : 1);
+  return `${Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`;
+};
+
 /** The bill a purchase made on `date` falls into. */
 export const cycleContaining = (card: CardConfig, date: LocalDate): Cycle => {
   const { year, month } = parts(date);

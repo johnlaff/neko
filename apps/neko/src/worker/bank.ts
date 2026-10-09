@@ -4,9 +4,11 @@ import {
   billChecks,
   type CardConfig,
   cents,
+  dueMonthOfClosing,
   type Ledger,
   type LocalDate,
   localDate,
+  normalizeName,
   unmatchedMovements,
 } from "@neko/engine";
 import type { BankView, UserSettings } from "../shared/types.ts";
@@ -65,7 +67,18 @@ const cardName = (
 const signed = (t: BankTxnRow): number =>
   t.type === "CREDIT" ? Math.abs(t.amount) : -Math.abs(t.amount);
 
-export const bankInput = (rows: BankRows, map: UserSettings["bankCards"]) => {
+/**
+ * The bill a card line lands on, by due month. A closed bill knows its due date; an open one only
+ * has Pluggy's `billForecastDate`, which is the month the bill closes (a card closing on the 29th
+ * and due on the 12th forecasts September for the bill due in October), so the card's days turn it
+ * into the due month.
+ */
+export const bankInput = (
+  rows: BankRows,
+  map: UserSettings["bankCards"],
+  cards: readonly CardConfig[],
+) => {
+  const config = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const cardAccounts = new Set(rows.accounts.filter((a) => a.type === "CREDIT").map((a) => a.id));
   const billMonth = new Map(rows.bills.map((b) => [b.id, b.due_date.slice(0, 7)]));
   const lines: BankCardLine[] = [];
@@ -73,7 +86,10 @@ export const bankInput = (rows: BankRows, map: UserSettings["bankCards"]) => {
   for (const t of rows.txns) {
     if (cardAccounts.has(t.account_id)) {
       const card = cardName(map, t.account_id, t.card_number);
-      const month = t.bill_month ?? (t.bill_id ? billMonth.get(t.bill_id) : undefined);
+      const days = card ? config.get(normalizeName(card)) : undefined;
+      const month =
+        (t.bill_id ? billMonth.get(t.bill_id) : undefined) ??
+        (t.bill_month && days ? dueMonthOfClosing(days, t.bill_month) : undefined);
       if (!card || !month) continue;
       lines.push({
         card,
@@ -103,7 +119,7 @@ export const bankView = (
   today: LocalDate,
 ): BankView | null => {
   if (!rows) return null;
-  const { lines, movements } = bankInput(rows, settings.bankCards);
+  const { lines, movements } = bankInput(rows, settings.bankCards, cards);
   return {
     syncedAt: rows.syncedAt,
     checks: billChecks(ledger, cards, lines, today),
