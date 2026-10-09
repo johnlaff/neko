@@ -27,7 +27,7 @@ const available = key !== "" && sheetId !== "";
 const d = localDate;
 const at = (date: string, column: Placement["column"]) => ({ date: d(date), column });
 
-describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () => {
+describe.runIf(available)("writer on the test sheet", { timeout: 180_000 }, () => {
   let api: SheetsApi;
   const sheets = async () => {
     api ??= googleSheets(sheetId, await accessToken(key, Date.now(), WRITE_SCOPES));
@@ -131,6 +131,14 @@ describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () =>
     );
   });
 
+  /** Puts a cell as the test sheet's script made it, in case an earlier run died halfway. */
+  const reset = async (p: ReturnType<typeof at>, formula: string | null, note: string) => {
+    const s = await sheets();
+    const l = locate(p);
+    const { sheetId: tabId } = await s.readRow(l.tab, l.row, l.block);
+    await s.writeCell(tabId, l.row, l.col, formula === null ? {} : { formulaValue: formula }, note);
+  };
+
   /** Several cells at once (a move), each checked against its own preview, then undone. */
   const roundTripMany = async (placements: Placement[], expectNotes: ((b: string) => string)[]) => {
     const s = await sheets();
@@ -165,6 +173,7 @@ describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () =>
   };
 
   it("changes the value of a planned salary", async () => {
+    await reset(at("2026-02-05", "entrada"), "=SUM(4000)", "R$ 4.000,00 - Salário");
     await roundTripMany(
       [
         {
@@ -181,6 +190,11 @@ describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () =>
   });
 
   it("removes a bill line from CONTAS", async () => {
+    await reset(
+      at("2026-03-10", "saida"),
+      "=SUM(1200+150,5+300)",
+      "CONTAS\nR$ 1.200,00 - Aluguel\nR$ 150,50 - Luz\n\nCARTÕES\nR$ 300,00 - Cartão A",
+    );
     await roundTripMany(
       [
         {
@@ -198,6 +212,8 @@ describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () =>
 
   it("moves the salary to the day before, emptying its old cell", async () => {
     const line = { section: null, description: "Salário", target: "line" } as const;
+    await reset(at("2026-01-05", "entrada"), "=SUM(4000)", "R$ 4.000,00 - Salário");
+    await reset(at("2026-01-04", "entrada"), null, "");
     await roundTripMany(
       [
         { ...at("2026-01-05", "entrada"), ...line, was: cents(400000), amount: cents(0) },
@@ -208,6 +224,11 @@ describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () =>
   });
 
   it("sets a card's line on its bill to a lower total", async () => {
+    await reset(
+      at("2026-09-10", "saida"),
+      "=SUM(1200+150,5+300)",
+      "CONTAS\nR$ 1.200,00 - Aluguel\nR$ 150,50 - Luz\n\nCARTÕES\nR$ 300,00 - Cartão A",
+    );
     await roundTripMany(
       [
         {

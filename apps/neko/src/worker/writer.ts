@@ -59,8 +59,8 @@ const RowResponse = z.object({
     .min(1),
 });
 
-/** Tries after a 429, waiting 1, 2, 4, 8 and 16 seconds: a full minute of quota in all. */
-const RETRIES = 5;
+/** Tries after a 429, waiting 1, 2, 4, 8, 16 and 32 seconds: over a minute, the quota's window. */
+const RETRIES = 6;
 
 /** The real Sheets API, with a token of the neko-writer account (`WRITE_SCOPES`). */
 export const googleSheets = (
