@@ -30,6 +30,11 @@ export interface EntryInput {
 /**
  * One change to one cell. `target: "line"` adds a note line; `target: "card"` adds to the card's
  * line on the bill (one line per card, decided in specs/005), creating it when missing.
+ *
+ * With `was`, the change is to something already there instead of an addition: the line
+ * `description` worth `was` becomes worth `amount`, and goes away when `amount` is 0. On a card
+ * line `was` is what the line holds now (0 for no line), and `amount` its new total. Moving a line
+ * is two placements: away from one day, onto another.
  */
 export interface Placement {
   readonly date: LocalDate;
@@ -39,6 +44,7 @@ export interface Placement {
   readonly amount: Cents;
   readonly description: string;
   readonly target: "line" | "card";
+  readonly was?: Cents;
 }
 
 export class EntryError extends Error {

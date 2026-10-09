@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   commitEntry,
   fingerprint,
+  googleSheets,
   locate,
   previewEntry,
   type SheetsApi,
@@ -290,6 +291,75 @@ describe("entry writer", () => {
     );
     expect(r.state).toBe("done");
     expect(sheet.writes).toHaveLength(1);
+  });
+
+  it("moves a planned line to another day and changes its value, undoing both", async () => {
+    const { sheet, db } = setup();
+    const from = { date: d("2026-11-05"), column: "entrada" } as const;
+    const to = { date: d("2026-11-04"), column: "entrada" } as const;
+    sheet.set(
+      from,
+      { formulaValue: "=SUM(9000+50)" },
+      "R$ 9.000,00 - Salário\nR$ 50,00 - Rendimento",
+    );
+    const before = [sheet.get(from), sheet.get(to)];
+    const move: Placement[] = [
+      {
+        ...from,
+        section: null,
+        description: "Salário",
+        target: "line",
+        was: cents(900000),
+        amount: cents(0),
+      },
+      { ...to, section: null, description: "Salário", target: "line", amount: cents(912345) },
+    ];
+    const preview = await previewEntry(sheet.api, move);
+    expect(preview.map((p) => [p.before, p.after])).toEqual([
+      [905000, 5000],
+      [0, 912345],
+    ]);
+    expect((await write(db, sheet.api, "mv", move)).state).toBe("done");
+    expect(sheet.get(from)).toMatchObject({ note: "R$ 50,00 - Rendimento" });
+    expect(sheet.get(to)).toMatchObject({ note: "R$ 9.123,45 - Salário" });
+
+    expect((await undoEntry(db, sheet.api, "mv", fixedNow)).state).toBe("undone");
+    expect([sheet.get(from), sheet.get(to)]).toEqual(before);
+  });
+
+  it("empties a cell whose last line is removed", async () => {
+    const { sheet, db } = setup();
+    const at = { date: d("2026-10-12"), column: "diario" } as const;
+    sheet.set(at, { formulaValue: "=SUM(42,4)" }, "R$ 42,40 - Padaria");
+    const r = await write(db, sheet.api, "rm", [
+      {
+        ...at,
+        section: null,
+        description: "Padaria",
+        target: "line",
+        was: cents(4240),
+        amount: cents(0),
+      },
+    ]);
+    expect(r.parts).toEqual([{ address: "2026!BF14", before: 4240, after: 0, state: "done" }]);
+    expect(sheet.get(at)).toEqual({});
+  });
+
+  it("waits and retries when Google says the minute's quota is spent", async () => {
+    const answers = [429, 429, 200];
+    const waits: number[] = [];
+    const f = (async () => {
+      const status = answers.shift() ?? 200;
+      return new Response(
+        JSON.stringify({ sheets: [{ properties: { sheetId: 7 }, data: [{ rowData: [] }] }] }),
+        { status },
+      );
+    }) as typeof fetch;
+    const api = googleSheets("id", "token", f, async (ms) => {
+      waits.push(ms);
+    });
+    expect((await api.readRow("2026", 2, 0)).sheetId).toBe(7);
+    expect(waits).toEqual([1000, 2000]);
   });
 
   it("hands out the same fingerprint for the same cell and a new one when it changes", async () => {

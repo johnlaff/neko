@@ -22,7 +22,7 @@ export type CellCheck = ({ ok: true } & CellContents) | { ok: false; reason: str
 export type EditPlan =
   | {
       ok: true;
-      /** New `userEnteredValue`, always a formula in the sheet's own dialect. */
+      /** New `userEnteredValue`, a formula in the sheet's own dialect; "" empties the cell. */
       formula: string;
       note: string;
       before: Cents;
@@ -30,7 +30,7 @@ export type EditPlan =
     }
   | { ok: false; reason: string };
 
-export type EditOp = Pick<Placement, "section" | "amount" | "description" | "target">;
+export type EditOp = Pick<Placement, "section" | "amount" | "description" | "target" | "was">;
 
 const SUM = /^=SUM\(([\s\d,+]*)\)$/;
 const TERM = /^\d+(,\d{1,2})?$/;
@@ -176,25 +176,85 @@ const appendTerm = (formula: string | undefined, terms: readonly Cents[], add: C
   return `=SUM(${head}${sep}${formulaTerm(add)}${inner.slice(cut)})`;
 };
 
-/** Replaces the last `+`-separated term worth `from` with `to`, spacing untouched. */
+/**
+ * Changes the last `+`-separated term worth `from` to `to`, spacing untouched; `to` 0 drops the
+ * term, and the cell's `formula` becomes "" (empty) when none is left.
+ */
 const replaceTerm = (formula: string | undefined, from: Cents, to: Cents): string | null => {
-  if (formula === undefined) return from > 0 ? `=SUM(${formulaTerm(to)})` : null;
+  if (formula === undefined) {
+    if (from <= 0) return null;
+    return to === 0 ? "" : `=SUM(${formulaTerm(to)})`;
+  }
   const inner = SUM.exec(formula)?.[1] ?? "";
-  const parts = inner.split("+");
+  const cut = inner.search(/\s*$/);
+  const parts = inner.slice(0, cut).split("+");
   for (let i = parts.length - 1; i >= 0; i--) {
     const raw = parts[i] ?? "";
-    if (termCents(raw.trim()) === from) {
-      parts[i] = raw.replace(raw.trim(), formulaTerm(to));
-      return `=SUM(${parts.join("+")})`;
-    }
+    if (termCents(raw.trim()) !== from) continue;
+    if (to === 0) parts.splice(i, 1);
+    else parts[i] = raw.replace(raw.trim(), formulaTerm(to));
+    const head = parts.join("+");
+    return /\d/.test(head) ? `=SUM(${head}${inner.slice(cut)})` : "";
   }
   return null;
+};
+
+/** The `R$` lines of a note with their index and the section they sit in, as the parser sees them. */
+const itemLines = (lines: readonly string[]) => {
+  let section: string | null = null;
+  const out: { at: number; section: string | null; amount: Cents; description: string }[] = [];
+  for (const [at, l] of lines.entries()) {
+    if (isHeaderLine(l)) section = normalizeSection(l.trim());
+    if (!isItemLine(l)) continue;
+    const item = parseNote(l).items[0];
+    if (item) out.push({ at, section, amount: item.amount, description: item.description });
+  }
+  return out;
+};
+
+/** The same line with a new amount: the owner's spacing and description stay. */
+const withAmount = (raw: string, amount: Cents): string => {
+  const dash = raw.indexOf("-", raw.toLowerCase().indexOf("r$") + 2);
+  return `${raw.slice(0, raw.search(/\S/))}${noteAmount(amount)} ${raw.slice(dash)}`;
+};
+
+/** Drops line `at`, and its header with the blank lines before it once the section is empty. */
+const dropLine = (lines: string[], at: number): string => {
+  lines.splice(at, 1);
+  let header = -1;
+  for (let i = at - 1; i >= 0; i--)
+    if (isHeaderLine(lines[i] ?? "")) {
+      header = i;
+      break;
+    }
+  if (header !== -1) {
+    let end = lines.length;
+    for (let i = header + 1; i < lines.length; i++)
+      if (isHeaderLine(lines[i] ?? "")) {
+        end = i;
+        break;
+      }
+    if (!lines.slice(header + 1, end).some(isItemLine)) {
+      let from = header;
+      while (from > 0 && (lines[from - 1] ?? "").trim() === "") from--;
+      // Keep the blank line that separated what came before from the next header.
+      const next = end < lines.length && from > 0 ? 1 : 0;
+      lines.splice(from + next, end - from - next);
+    }
+  }
+  return lines.every((l) => l.trim() === "") ? "" : lines.join("\n");
 };
 
 export const planCellEdit = (cell: ApiCell | undefined, op: EditOp): EditPlan => {
   const check = checkCell(cell);
   if (!check.ok) return check;
-  if (!Number.isSafeInteger(op.amount) || op.amount <= 0)
+  const changing = op.was !== undefined;
+  if (
+    !Number.isSafeInteger(op.amount) ||
+    op.amount < 0 ||
+    (!changing && op.amount === 0) ||
+    (changing && (!Number.isSafeInteger(op.was) || (op.was ?? 0) < 0 || op.was === op.amount))
+  )
     return { ok: false, reason: "o valor precisa ser maior que zero" };
   const description = op.description.replace(/\s+/g, " ").trim();
   if (description === "" || /^r\$/i.test(description))
@@ -203,13 +263,13 @@ export const planCellEdit = (cell: ApiCell | undefined, op: EditOp): EditPlan =>
   const formula = cell?.userEnteredValue?.formulaValue;
   const note = cell?.note ?? "";
   const before = check.total;
-  const after = cents(before + op.amount);
-  let next: { formula: string; note: string } | null = null;
+  const lines = note === "" ? [] : note.split("\n");
+  const key = normalizeName(description);
+  let after: Cents;
+  let next: { formula: string | null; note: string };
 
   if (op.target === "card") {
-    const key = normalizeName(description);
-    const parsed = parseNote(note);
-    const matches = parsed.items.filter(
+    const matches = itemLines(lines).filter(
       (i) =>
         i.section !== null &&
         HEADERS.cartoes?.names.includes(i.section) &&
@@ -218,45 +278,63 @@ export const planCellEdit = (cell: ApiCell | undefined, op: EditOp): EditPlan =>
     if (matches.length > 1)
       return { ok: false, reason: `a fatura tem mais de uma linha ${description}` };
     const old = matches[0];
+    const current = old?.amount ?? cents(0);
+    if (changing && op.was !== current)
+      return { ok: false, reason: `a fatura do ${description} mudou; confira de novo` };
+    const total = changing ? op.amount : cents(current + op.amount);
+    after = cents(before - current + total);
     if (old) {
-      // Walk the lines as the parser does, so the line changed is the one under a card header.
-      const lines = note.split("\n");
-      let section: string | null = null;
-      const at = lines.findIndex((l) => {
-        if (isHeaderLine(l)) section = normalizeSection(l.trim());
-        if (!isItemLine(l) || section === null || !HEADERS.cartoes?.names.includes(section))
-          return false;
-        const one = parseNote(l).items[0];
-        return one !== undefined && normalizeName(one.description) === key;
-      });
-      const raw = lines[at] ?? "";
-      const dash = raw.indexOf("-", raw.toLowerCase().indexOf("r$") + 2);
-      const newAmount = cents(old.amount + op.amount);
-      lines[at] = `${raw.slice(0, raw.search(/\S/))}${noteAmount(newAmount)} ${raw.slice(dash)}`;
-      const newFormula =
-        old.amount === 0
-          ? appendTerm(formula, check.terms, op.amount)
-          : replaceTerm(formula, old.amount, newAmount);
-      if (newFormula === null)
-        return { ok: false, reason: "não achei o valor do cartão na fórmula" };
+      lines[old.at] = withAmount(lines[old.at] ?? "", total);
+      next = {
+        formula:
+          current === 0
+            ? appendTerm(formula, check.terms, total)
+            : replaceTerm(formula, current, total),
+        note: lines.join("\n"),
+      };
+    } else
+      next = {
+        formula: appendTerm(formula, check.terms, total),
+        note: insertLine(note, "cartoes", `${noteAmount(total)} - ${description}`),
+      };
+  } else if (changing) {
+    const was = op.was ?? cents(0);
+    const old = itemLines(lines)
+      .filter(
+        (i) => i.section === op.section && i.amount === was && normalizeName(i.description) === key,
+      )
+      .at(-1);
+    if (!old) return { ok: false, reason: `a linha ${description} não está mais lá` };
+    after = cents(before - was + op.amount);
+    const newFormula =
+      was === 0
+        ? appendTerm(formula, check.terms, op.amount)
+        : replaceTerm(formula, was, op.amount);
+    if (op.amount === 0) next = { formula: newFormula, note: dropLine(lines, old.at) };
+    else {
+      lines[old.at] = withAmount(lines[old.at] ?? "", op.amount);
       next = { formula: newFormula, note: lines.join("\n") };
     }
-  }
-  if (next === null) {
-    const section = op.target === "card" ? "cartoes" : op.section;
+  } else {
+    after = cents(before + op.amount);
     next = {
       formula: appendTerm(formula, check.terms, op.amount),
-      note: insertLine(note, section, `${noteAmount(op.amount)} - ${description}`),
+      note: insertLine(note, op.section, `${noteAmount(op.amount)} - ${description}`),
     };
   }
+  if (next.formula === null) return { ok: false, reason: "não achei o valor na fórmula" };
 
   // Read our own output back with the same rules: it must be a clean cell worth `after`.
-  const reread = checkCell({
-    userEnteredValue: { formulaValue: next.formula },
-    effectiveValue: { numberValue: after / 100 },
-    note: next.note,
-  });
+  const reread = checkCell(
+    next.formula === ""
+      ? { note: next.note }
+      : {
+          userEnteredValue: { formulaValue: next.formula },
+          effectiveValue: { numberValue: after / 100 },
+          note: next.note,
+        },
+  );
   if (!reread.ok || reread.total !== after)
     throw new Error(`planCellEdit produced an inconsistent cell: ${JSON.stringify(next)}`);
-  return { ok: true, ...next, before, after };
+  return { ok: true, formula: next.formula, note: next.note, before, after };
 };
