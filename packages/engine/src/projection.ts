@@ -435,7 +435,12 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     const entrada = add(m.entrada, row.entrada.amount);
     const saida = add(m.saida, row.saida.amount);
     const diario = add(m.diario, row.diario.amount);
-    const savedToday = add(ZERO, ...row.saida.items.filter(isSavingItem).map((i) => i.amount));
+    // Money drawn back from the reserve (an Entrada under `Reserva:`) takes from what was kept.
+    const keptToday = add(ZERO, ...row.saida.items.filter(isSavingItem).map((i) => i.amount));
+    const savedToday = sub(
+      keptToday,
+      add(ZERO, ...row.entrada.items.filter(isSavingItem).map((i) => i.amount)),
+    );
     const saved = add(m.saved, savedToday);
     const past = row.date <= today;
     const balance = sheetBalance(row.date);
@@ -468,7 +473,7 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       savedShare: entrada > 0 ? Math.round((saved * 100) / entrada) : null,
       savedToDate: past ? add(m.savedToDate, savedToday) : m.savedToDate,
       entradaToDate: past ? add(m.entradaToDate, row.entrada.amount) : m.entradaToDate,
-      livingCost: sub(add(saida, diario), saved),
+      livingCost: add(m.livingCost, sub(add(row.saida.amount, row.diario.amount), keptToday)),
     };
   }
 

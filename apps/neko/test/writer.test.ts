@@ -18,16 +18,32 @@ interface FakeCell {
   note: string;
 }
 
-/** `=SUM(1200+150,5)` in the sheet's dialect, evaluated like Sheets would. */
+/** `=SUM(1200+150,5)` or `=500-300` in the sheet's dialect, evaluated like Sheets would. */
 const evaluate = (v: Entered): number => {
   if (v.numberValue !== undefined) return v.numberValue;
-  const inner = /^=SUM\((.*)\)$/s.exec(v.formulaValue ?? "")?.[1];
-  if (inner === undefined) return 0;
-  return inner
-    .split("+")
-    .map((t) => t.trim())
-    .filter((t) => t !== "")
-    .reduce((a, t) => a + Number(t.replace(",", ".")), 0);
+  const f = v.formulaValue ?? "";
+  const inner = /^=SUM\((.*)\)$/s.exec(f)?.[1] ?? f.slice(1);
+  return [...inner.matchAll(/([-+]?)\s*([\d,]+)/g)].reduce(
+    (a, [, sign, n]) => a + (sign === "-" ? -1 : 1) * Number((n ?? "").replace(",", ".")),
+    0,
+  );
+};
+
+/** The Economia tab's sheetId in the fake; year tabs use their year. */
+const ECONOMIA = 9;
+/** Its 2026 block: year in column G of row 4, Economia in column I, jan on row 5. */
+const economiaGrid = (cellAt: (row: number, col: number) => ApiCell): ApiCell[][] => {
+  const t = (s: string): ApiCell => ({ effectiveValue: { stringValue: s } });
+  const months = "jan fev mar abr mai jun jul ago set out nov dez".split(" ");
+  return Array.from({ length: 20 }, (_, row) =>
+    Array.from({ length: 11 }, (_, col) => {
+      if (row === 3 && col === 6) return { effectiveValue: { numberValue: 2026 } };
+      if (row === 3 && col === 7) return t("Entradas");
+      if (row === 3 && col === 8) return t("Economia");
+      if (row >= 4 && row < 16 && col === 6) return t(months[row - 4] ?? "");
+      return cellAt(row, col);
+    }),
+  );
 };
 
 /**
@@ -43,7 +59,7 @@ const fakeSheet = () => {
     mangle: (_k: string, c: FakeCell): FakeCell => c,
   };
   const at = (tab: string, row: number, col: number): ApiCell => {
-    const offset = col % SHEET_MAP.blockWidth;
+    const offset = tab === String(ECONOMIA) ? -1 : col % SHEET_MAP.blockWidth;
     if (offset === SHEET_MAP.offsets.data)
       return { effectiveValue: { numberValue: row - SHEET_MAP.firstDayRow + 1 } };
     if (offset === SHEET_MAP.offsets.saldo) {
@@ -61,6 +77,9 @@ const fakeSheet = () => {
     return out;
   };
   const api: SheetsApi = {
+    async readEconomia() {
+      return { sheetId: ECONOMIA, rows: economiaGrid((r, c) => at(String(ECONOMIA), r, c)) };
+    },
     async readRow(tab, row, firstCol) {
       return {
         sheetId: Number(tab),
@@ -343,6 +362,67 @@ describe("entry writer", () => {
     ]);
     expect(r.parts).toEqual([{ address: "2026!BF14", before: 4240, after: 0, state: "done" }]);
     expect(sheet.get(at)).toEqual({});
+  });
+
+  it("saves into the reserve and adds it to the month's Economia, undoing both", async () => {
+    const { sheet, db } = setup();
+    const economia = (row: number) => sheet.api.readEconomia().then((e) => e.rows[row]?.[8]);
+    const ps = placeEntry(
+      { kind: "reserva", amount: cents(50000), description: "Reserva", date: d("2026-10-15") },
+      cards,
+    );
+    const preview = await previewEntry(sheet.api, ps);
+    expect(preview.map((p) => [p.address, p.before, p.after, p.formula])).toEqual([
+      ["2026!BE17", 0, 50000, "=SUM(500)"],
+      ["Economia!I14", 0, 50000, "=500"],
+    ]);
+    const r = await write(db, sheet.api, "guardou", ps);
+    expect(r.state).toBe("done");
+    expect(await economia(13)).toMatchObject({ userEnteredValue: { formulaValue: "=500" } });
+
+    const resgate = placeEntry(
+      { kind: "resgate", amount: cents(30000), description: "Reserva", date: d("2026-10-20") },
+      cards,
+    );
+    expect((await write(db, sheet.api, "resgatou", resgate)).state).toBe("done");
+    expect(await economia(13)).toMatchObject({
+      userEnteredValue: { formulaValue: "=500-300" },
+      effectiveValue: { numberValue: 200 },
+    });
+
+    expect((await undoEntry(db, sheet.api, "resgatou", fixedNow)).state).toBe("undone");
+    expect((await undoEntry(db, sheet.api, "guardou", fixedNow)).state).toBe("undone");
+    expect(await economia(13)).toEqual({});
+    expect(sheet.get(ps[0] as Placement)).toEqual({});
+  });
+
+  it("writes neither the reserve line nor the Economia when the Economia cell fails", async () => {
+    const { sheet, db } = setup();
+    sheet.hooks.failWrite = (k) => (k.startsWith("9:") ? "sem permissão" : null);
+    const ps = placeEntry(
+      { kind: "reserva", amount: cents(100), description: "Reserva", date: d("2026-10-15") },
+      cards,
+    );
+    const r = await write(db, sheet.api, "e", ps);
+    expect(r.state).toBe("failed");
+    expect(r.error).toMatch(/sem permissão/);
+    expect(sheet.get(ps[0] as Placement)).toEqual({});
+  });
+
+  it("refuses an Economia cell that is not a plain sum, and a year without a block", async () => {
+    const { sheet } = setup();
+    const reserva = (date: string) =>
+      placeEntry(
+        { kind: "reserva", amount: cents(100), description: "Reserva", date: d(date) },
+        cards,
+      );
+    await expect(previewEntry(sheet.api, reserva("2027-01-05"))).rejects.toThrow(
+      /Economia não tem o bloco de 2027/,
+    );
+    await sheet.api.writeCell(9, 13, 8, { formulaValue: "=H14*0,1" }, "");
+    await expect(previewEntry(sheet.api, reserva("2026-10-05"))).rejects.toThrow(
+      /Economia!I14: a célula Economia tem uma fórmula/,
+    );
   });
 
   it("waits and retries when Google says the minute's quota is spent", async () => {

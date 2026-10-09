@@ -117,8 +117,13 @@ com valores diferentes, valor negativo.
      banco que não atualizou hoje nomeado. A diferença pode ser lançada como Entrada ou Saída.
    O app manda um rascunho (`Draft`), nunca células: o Worker transforma em lançamentos
    (`placeDraft`), mostra a prévia e grava (`/api/entries`, um por vez, trava no D1), com Desfazer
-   e o interruptor em Ajustes. Lançar à mão no botão Lançar da tela Hoje. Aba Economia e aviso das
-   21h fecham a fase.
+   e o interruptor em Ajustes. Lançar à mão no botão Lançar da tela Hoje. O aviso das 21h abre o
+   Neko quando a gravação está ligada.
+   - Aba Economia: guardar soma e resgatar subtrai na célula Economia do mês, do jeito do método
+     (`=500+500-300`), no mesmo envio da linha em `Reserva:` (`withEconomia`). Ou as duas gravam,
+     ou nenhuma. O gravador acha o mês pelo bloco do ano na linha 4 (`ano | Entradas | Economia`)
+     e para se a aba mudou ou o ano não tem bloco. A fila mostra a mudança ("Economia de out:
+     +R$ 500,00"), porque o Neko não lê essa aba.
 3. **Diário previsto.** Previsão do Diário nos dias futuros, fechar o dia, "bem ou mal", revisão a
    cada 3 meses e a chave para desligar.
 4. **Mia.** Uma frase vira um item da fila, com o mesmo toque para aprovar.
@@ -128,6 +133,7 @@ com valores diferentes, valor negativo.
 - A API do Google Sheets não tem trava nem "grave só se não mudou", e não restaura versões de
   planilha. Por isso a segurança fica no Neko: diário próprio, releitura antes, conferência depois e
   desfazer guardando a célula como estava.
-- Intervalos protegidos na planilha (Data, Saldo, cabeçalhos, Economia) sem permissão para a conta
-  do Neko.
+- Intervalos protegidos na planilha (Data, Saldo, cabeçalhos, totais e as outras abas) sem
+  permissão para a conta do Neko. Na aba Economia, só as células Economia de cada mês ficam livres
+  (script `proteger-planilha.gs`, fora do Git).
 - A chave do Neko que escreve nunca é a de leitura nem qualquer chave usada fora do Neko.

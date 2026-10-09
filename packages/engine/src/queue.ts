@@ -8,7 +8,13 @@ import {
 } from "./bank.ts";
 import { type CardConfig, normalizeName } from "./cards.ts";
 import { addDays, diffDays, type LocalDate } from "./date.ts";
-import { type EntryInput, type EntryKind, type Placement, placeEntry } from "./entries.ts";
+import {
+  type EntryInput,
+  type EntryKind,
+  type Placement,
+  placeEntry,
+  withEconomia,
+} from "./entries.ts";
 import type { Column, Ledger } from "./ledger.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
 
@@ -154,7 +160,7 @@ const ref = (l: SheetLine): LineRef => ({
 export const placeDraft = (draft: Draft, cards: readonly CardConfig[]): Placement[] => {
   if (draft.type === "new") return placeEntry(draft, cards);
   if (draft.type === "card")
-    return [
+    return withEconomia([
       ...draft.bills
         .filter((b) => b.amount !== b.was)
         .map(
@@ -169,13 +175,13 @@ export const placeDraft = (draft: Draft, cards: readonly CardConfig[]): Placemen
           }),
         ),
       ...(draft.also ?? []).map((a) => lineChange(a.line, a.amount)),
-    ];
+    ]);
   const { line } = draft;
   const description = draft.description.replace(/\s+/g, " ").trim();
   if (draft.date === line.date && normalizeName(description) === normalizeName(line.description))
-    return [lineChange(line, draft.amount)];
+    return withEconomia([lineChange(line, draft.amount)]);
   // A new day or a new name: the old line goes, the new one comes, in one entry.
-  return [
+  return withEconomia([
     lineChange(line, ZERO),
     {
       date: draft.date,
@@ -185,7 +191,7 @@ export const placeDraft = (draft: Draft, cards: readonly CardConfig[]): Placemen
       target: "line",
       amount: draft.amount,
     },
-  ];
+  ]);
 };
 
 const lineChange = (line: LineRef, amount: Cents): Placement => ({

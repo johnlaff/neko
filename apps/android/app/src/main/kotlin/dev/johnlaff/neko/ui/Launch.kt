@@ -84,13 +84,18 @@ private fun isoDate(typed: String, year: String): String? {
     }.getOrNull()
 }
 
-/** "Diário de 15/10: R$ 0,00 → R$ 18,90"; card parcels in later bills are counted, not listed. */
+/**
+ * "Diário de 15/10: R$ 0,00 → R$ 18,90", or "Economia de out: +R$ 500,00"; card parcels in later
+ * bills are counted, not listed.
+ */
 @Composable
 private fun Lines(lines: List<QueueLine>) {
     val l = LocalLedger.current
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         lines.take(2).forEach {
-            Text("${it.label}: ${money(it.before)} → ${money(it.after)}", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            val change = it.before?.let { b -> "${money(b)} → ${money(it.after)}" }
+                ?: "${if (it.after < 0) "−" else "+"}${money(kotlin.math.abs(it.after))}"
+            Text("${it.label}: $change", color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
         val more = lines.size - 2
         if (more > 0) Text(if (more == 1) "e mais 1 fatura" else "e mais $more faturas", color = l.muted, style = MaterialTheme.typography.bodyMedium)
