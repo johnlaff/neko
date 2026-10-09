@@ -159,10 +159,13 @@ describe.runIf(available)("writer on the test sheet", { timeout: 180_000 }, () =
       const plan = preview[i];
       expect(after.cell.userEnteredValue?.formulaValue).toBe(plan?.formula || undefined);
       expect(after.cell.note ?? "").toBe(expectNotes[i]?.(before[i]?.cell.note ?? ""));
-      const sign = p.column === "entrada" ? 1 : -1;
-      expect(after.saldo - (before[i]?.saldo ?? 0)).toBe(
-        sign * ((plan?.after ?? 0) - (plan?.before ?? 0)),
-      );
+      // Saldo carries forward: a day's Saldo moves by every change on or before it.
+      const moved = placements.reduce((sum, q, j) => {
+        const pj = preview[j];
+        const sign = q.column === "entrada" ? 1 : -1;
+        return q.date <= p.date ? sum + sign * ((pj?.after ?? 0) - (pj?.before ?? 0)) : sum;
+      }, 0);
+      expect(after.saldo - (before[i]?.saldo ?? 0)).toBe(moved);
     }
     expect((await undoEntry(db, s, id)).state).toBe("undone");
     for (const [i, p] of placements.entries()) {
