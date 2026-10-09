@@ -14,6 +14,8 @@ import { showToast } from "./Launch.tsx";
 
 const reais = (c: number) => (c / 100).toFixed(2).replace(".", ",");
 
+const nearest = (el: Element | null) => el?.scrollIntoView({ block: "nearest" });
+
 const useSetPrevisto = (onDone: () => void) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -53,15 +55,19 @@ export const PrevistoSetting = ({
   const [typed, setTyped] = useState("");
   const run = useSetPrevisto(() => setOpen(null));
   const amount = toCents(typed);
-  const bad = typed.trim() !== "" && (amount === null || amount <= 0);
-  const form = useRef<HTMLFormElement>(null);
-  // Opening the form below the switch can leave its buttons under the dock.
+  // As in Ritmo, a wrong value is pointed out once you leave the field, not while typing.
+  const [left, setLeft] = useState(false);
+  const bad = left && typed.trim() !== "" && (amount === null || amount <= 0);
+  const actions = useRef<HTMLDivElement>(null);
+  // The form opens below the switch and grows (Como calculei, the error): keep its buttons
+  // above the dock.
   useEffect(() => {
-    if (open === "on") form.current?.scrollIntoView({ block: "nearest" });
-  }, [open]);
+    if (open === "on" || bad) nearest(actions.current);
+  }, [open, bad]);
   const start = () => {
     const value = p.on ? p.value : (p.suggestion?.perDay ?? 0);
     setTyped(value > 0 ? reais(value) : "");
+    setLeft(false);
     run.reset();
     setOpen("on");
   };
@@ -104,11 +110,11 @@ export const PrevistoSetting = ({
       )}
       {open === "on" && (
         <form
-          ref={form}
           className="sim entry previsto"
           aria-label="Diário previsto"
           onSubmit={(e) => {
             e.preventDefault();
+            setLeft(true);
             if (amount !== null && amount > 0) run.mutate(amount);
           }}
         >
@@ -117,7 +123,7 @@ export const PrevistoSetting = ({
               <p className="q-lines">
                 <span>Pelo banco, um dia seu custa {money(s.perDay)}.</span>
               </p>
-              <details className="formula">
+              <details className="formula" onToggle={() => nearest(actions.current)}>
                 <summary>
                   <IconChevron />
                   Como calculei
@@ -144,6 +150,7 @@ export const PrevistoSetting = ({
               aria-invalid={bad}
               aria-describedby={bad ? `${id}-e` : undefined}
               onChange={(e) => setTyped(e.target.value)}
+              onBlur={() => setLeft(true)}
             />
           </span>
           {bad && (
@@ -160,7 +167,7 @@ export const PrevistoSetting = ({
               {failure(run.error)}
             </p>
           )}
-          <div className="actions">
+          <div className="actions" ref={actions}>
             <button type="submit" disabled={amount === null || amount <= 0 || run.isPending}>
               {run.isPending ? "Gravando…" : p.on ? "Trocar" : "Preencher"}
             </button>
@@ -175,8 +182,12 @@ export const PrevistoSetting = ({
           className="sim entry previsto"
           aria-label="Desligar o Diário previsto"
           tabIndex={-1}
-          // A screen reader reads what turning it off does, not just the switch.
-          ref={(el) => el?.focus()}
+          // A screen reader reads what turning it off does, not just the switch; the switch stays
+          // in sight.
+          ref={(el) => {
+            el?.focus({ preventScroll: true });
+            el?.scrollIntoView({ block: "nearest" });
+          }}
         >
           <p className="hint">
             O previsto sai dos dias que vêm. O que você escreveu no Diário fica como está.

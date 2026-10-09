@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -50,9 +54,16 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
     var error by remember { mutableStateOf<String?>(null) }
     var formula by remember { mutableStateOf(false) }
     val amount = toCents(typed)
-    val bad = typed.isNotBlank() && (amount == null || amount <= 0)
+    // As in Ritmo, a wrong value is pointed out once you leave the field, not while typing.
+    var left by rememberSaveable { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
+    val bad = left && typed.isNotBlank() && (amount == null || amount <= 0)
+    // The form grows (Como calculei, the error): keep its buttons in sight.
+    val buttons = remember { BringIntoViewRequester() }
+    LaunchedEffect(formula, bad) { buttons.bringIntoView() }
 
     fun submit(value: Long) {
+        left = true
         busy = true
         error = null
         scope.launch {
@@ -91,7 +102,10 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
                 textStyle = MaterialTheme.typography.headlineSmall,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().onFocusChanged {
+                    if (focused && !it.isFocused) left = true
+                    focused = it.isFocused
+                },
             )
             Text(
                 "Cada dia de hoje até dezembro de ${p.lastYear} recebe esse valor no Diário, com a nota Previsto. " +
@@ -101,7 +115,11 @@ internal fun PrevistoForm(p: PrevistoView, off: Boolean, set: suspend (Long) -> 
             )
         }
         error?.let { Failed(it) }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            Modifier.bringIntoViewRequester(buttons),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             if (off) Small(if (busy) "Apagando…" else "Apagar o previsto", filled = true, enabled = !busy) { submit(0L) }
             else Small(
                 if (busy) "Gravando…" else if (p.on) "Trocar" else "Preencher",

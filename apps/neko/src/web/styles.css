@@ -610,6 +610,9 @@ input[type="checkbox"] {
 input[aria-invalid="true"] {
   border-color: var(--neg);
 }
+input[aria-invalid="true"]:focus-visible {
+  outline-color: var(--neg);
+}
 .hint.error {
   color: var(--neg);
 }
@@ -1292,10 +1295,6 @@ fieldset.panel > legend {
   color: var(--faint);
 }
 .setting .sub.error {
-  color: var(--neg);
-}
-.hint.error {
-  margin: 0;
   color: var(--neg);
 }
 .setting > select {
