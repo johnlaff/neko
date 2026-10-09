@@ -62,7 +62,10 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   nome dele na planilha em Ajustes, inclusive o adicional, que vem no mesmo cartão com outro número.
 - **Parcelas futuras (engine):** a soma por cartão e por fatura usa `installmentNumber`,
   `totalInstallments` e `billForecastDate`. O Open Finance não liga as parcelas de uma mesma compra,
-  então a compra é reconhecida por descrição, valor da parcela e total de parcelas. Nada disso
+  então a compra é reconhecida por descrição, valor da parcela e total de parcelas. O
+  `billForecastDate` traz o mês em que a fatura fecha, não o do vencimento (cartão que fecha dia 29
+  e vence dia 12 diz setembro para a fatura de outubro); o Neko usa o vencimento da fatura fechada e,
+  na aberta, converte pelo dia de fechamento e de vencimento do cartão. Nada disso
   entra no saldo. A tela mostra "já comprometido" ao lado do que a planilha prevê e avisa a diferença.
 - **Telas (web e Android 1:1, mesma API):**
   - Faturas: por cartão, "Parcelas já compradas" por mês vindas do banco, e a diferença para a

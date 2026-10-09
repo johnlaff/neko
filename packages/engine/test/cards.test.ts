@@ -3,6 +3,7 @@ import {
   type CardConfig,
   cycleContaining,
   cycleForDueMonth,
+  dueMonthOfClosing,
   inferCards,
   localDate,
   mergeCards,
@@ -34,6 +35,11 @@ describe("card cycles", () => {
   it("a purchase on the closing day lands on that bill; the next day goes to the next one", () => {
     expect(cycleContaining(card(20, 28), localDate("2026-01-20")).due).toBe("2026-01-28");
     expect(cycleContaining(card(20, 28), localDate("2026-01-21")).due).toBe("2026-02-28");
+  });
+  it("names the bill closing in a month by its due month, as the sheet does", () => {
+    expect(dueMonthOfClosing(card(3, 13), "2026-10")).toBe("2026-10");
+    expect(dueMonthOfClosing(card(29, 12), "2026-09")).toBe("2026-10");
+    expect(dueMonthOfClosing(card(25, 5), "2026-12")).toBe("2027-01");
   });
   it("handles a cycle crossing the year", () => {
     expect(cycleContaining(card(25, 5), localDate("2026-12-30")).due).toBe("2027-02-05");
