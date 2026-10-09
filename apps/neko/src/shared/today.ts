@@ -12,7 +12,7 @@ import {
 } from "@neko/engine";
 import { type QueueItemView, type SaldoView, saldoView } from "./queue.ts";
 import { sheetCellUrl } from "./sheet.ts";
-import type { DailySource, ProjectionResponse } from "./types.ts";
+import type { DailySource, PrevistoView, ProjectionResponse } from "./types.ts";
 
 /** Conferência looks back this far: older differences are history, not something to fix today. */
 export const HEALTH_DAYS = 60;
@@ -82,6 +82,8 @@ export interface TodayView {
   readonly writing: boolean;
   /** Cards a purchase can be launched on: the closing day is known. */
   readonly entryCards: readonly string[];
+  /** The Diário previsto, for its review every 3 months; null from an older Worker. */
+  readonly previsto: PrevistoView | null;
 }
 
 export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): TodayView => {
@@ -118,5 +120,6 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     saldo: saldoView(r.bank?.saldo),
     writing: r.writing ?? false,
     entryCards: r.cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name),
+    previsto: r.previsto ?? null,
   };
 };

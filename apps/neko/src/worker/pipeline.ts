@@ -1,15 +1,22 @@
 import {
   cents,
+  type DailySuggestion,
   editDay,
   type Habit,
   habit,
   inferCards,
   inferDailyForecast,
   type LocalDate,
+  localDate,
   mergeCards,
+  monthsSince,
   notMyCardLines,
   parts,
   project,
+  REVIEW_MONTHS,
+  type SpendInput,
+  suggestDaily,
+  variableSpend,
 } from "@neko/engine";
 import {
   type ApiSpreadsheet,
@@ -21,16 +28,17 @@ import type {
   DailyForecast,
   DailySource,
   HistoryPoint,
+  PrevistoView,
   ProjectionResponse,
   UserSettings,
 } from "../shared/types.ts";
-import { type BankRows, bankVersion, bankView, loadBank } from "./bank.ts";
+import { type BankRows, bankInput, bankVersion, bankView, loadBank } from "./bank.ts";
 import type { Env } from "./env.ts";
 import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./google.ts";
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "45";
+const PIPELINE_VERSION = "46";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -151,19 +159,69 @@ export const buildResponse = (
   );
   const daily: DailyForecast = { value: dailyForecast, source, sheetNote, inferred };
 
+  // The Diário previsto (specs/005-lancamentos, Fase 3) needs the bank: what a day costs, and
+  // what this month already cost.
+  const input = bank && bankInput(bank, settings.bankCards, cards);
+  const spend: SpendInput | null = input && {
+    ledger,
+    today,
+    movements: input.movements,
+    lines: input.lines,
+    othersCards: settings.othersCards,
+    savingsAccounts: new Set(
+      Object.entries(settings.accountUse)
+        .filter(([, use]) => use === "guardado")
+        .map(([id]) => id),
+    ),
+    savedOrigins: new Set(settings.savedOrigins),
+  };
+  const on = settings.previstoSince !== null && dailyForecast > 0;
+  const suggestion = spend && suggestDaily(spend);
   const projection = project(ledger, today, {
     dailyForecast,
     usualCard: settings.usualCard,
     cycleBudget: settings.cycleBudget === null ? null : cents(settings.cycleBudget),
     cards,
     othersCards: settings.othersCards,
+    previsto:
+      on && spend
+        ? {
+            value: dailyForecast,
+            spent: variableSpend(spend, localDate(`${today.slice(0, 8)}01`), today).total,
+          }
+        : null,
   });
   return {
     projection,
     daily,
     cardsKnown: cards,
     sheet,
-    bank: bankView(bank, ledger, cards, settings, today),
+    bank: bankView(bank, ledger, cards, settings, today, input),
+    previsto: previstoView(settings, dailyForecast, today, suggestion, sheet.tabs),
+  };
+};
+
+/** Ajustes and the review on Hoje: whether it is on, at what value, and what the bank suggests. */
+const previstoView = (
+  settings: UserSettings,
+  value: number,
+  today: LocalDate,
+  suggestion: DailySuggestion | null,
+  tabs: Readonly<Record<string, unknown>>,
+): PrevistoView => {
+  const since = settings.previstoSince === null ? null : localDate(settings.previstoSince);
+  const due = since !== null && monthsSince(since, today) >= REVIEW_MONTHS;
+  return {
+    on: since !== null,
+    value,
+    since,
+    suggestion,
+    review: due && suggestion ? { real: suggestion.perDay, from: suggestion.from } : null,
+    lastYear: Math.max(
+      ...Object.keys(tabs)
+        .filter((t) => /^\d{4}$/.test(t))
+        .map(Number),
+    ),
   };
 };
 

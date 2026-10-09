@@ -119,6 +119,7 @@ export const bankInput = (
         description: t.description,
         installment: t.installment,
         installments: t.installments,
+        date: localDate(t.date),
       });
     } else if (t.status !== "PENDING")
       // Only what the bank confirmed: a pending movement waits.
@@ -153,9 +154,10 @@ export const bankView = (
   cards: readonly CardConfig[],
   settings: UserSettings,
   today: LocalDate,
+  input: ReturnType<typeof bankInput> | null = rows && bankInput(rows, settings.bankCards, cards),
 ): BankView | null => {
-  if (!rows) return null;
-  const { lines, movements, closed } = bankInput(rows, settings.bankCards, cards);
+  if (!rows || !input) return null;
+  const { lines, movements, closed } = input;
   const labels = new Map((rows.itemRows ?? []).map((i) => [i.item_id, i]));
   const checking = rows.accounts.filter((a) => a.type !== "CREDIT");
   const accounts = checking.map((a) => ({
@@ -175,6 +177,7 @@ export const bankView = (
     accounts,
     savedOrigins: new Set(settings.savedOrigins),
     decided: new Set(rows.decided ?? []),
+    forecast: settings.previstoSince !== null ? cents(settings.dailyForecast ?? 0) : null,
   });
   const synced = (a: BankAccountRow) => labels.get(a.item_id ?? "")?.synced_at ?? null;
   return {

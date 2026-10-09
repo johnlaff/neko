@@ -4,6 +4,7 @@ import {
   billChecks,
   type ClosedBill,
   matchMovements,
+  originKey,
   type SheetLine,
 } from "./bank.ts";
 import { type CardConfig, normalizeName } from "./cards.ts";
@@ -15,7 +16,8 @@ import {
   placeEntry,
   withEconomia,
 } from "./entries.ts";
-import type { Column, Ledger } from "./ledger.ts";
+import { isFreeDiario } from "./forecast.ts";
+import { type Column, forecastIn, type Ledger } from "./ledger.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
 
 /**
@@ -41,6 +43,8 @@ export interface LineRef {
  * - `fix`: a line already planned gets the bank's value and day; with `also`, other lines change
  *   with it (the reimbursement of a card someone else pays).
  * - `card`: one card's bills set to the bank's totals.
+ * - `forecast`: the Diário previsto of these days becomes `value` (0 takes it away). Days whose
+ *   Diário the owner wrote are left as they are.
  */
 export type Draft =
   | ({ readonly type: "new" } & EntryInput)
@@ -60,7 +64,15 @@ export type Draft =
         readonly amount: Cents;
       }[];
       readonly also?: readonly { readonly line: LineRef; readonly amount: Cents }[];
+    }
+  | {
+      readonly type: "forecast";
+      readonly value: Cents;
+      readonly days: readonly LocalDate[];
     };
+
+/** A draft that becomes a few cell changes; the Diário previsto has its own writer. */
+export type CellDraft = Exclude<Draft, { type: "forecast" }>;
 
 export type QueueKind =
   | "entrada"
@@ -69,7 +81,8 @@ export type QueueKind =
   | "cartao"
   | "guardar"
   | "resgate"
-  | "conta-propria";
+  | "conta-propria"
+  | "previsto";
 
 export interface QueueOption {
   /** Empty for the only option; otherwise what this choice means, in the owner's words. */
@@ -115,21 +128,14 @@ export interface QueueInput {
   readonly savedOrigins: ReadonlySet<string>;
   /** Keys already launched or ignored. */
   readonly decided: ReadonlySet<string>;
+  /** The Diário previsto, when the owner turned it on: its value per day. */
+  readonly forecast?: Cents | null;
 }
 
 /** How close a planned line's value must be for a movement to stand for it: a quarter. */
 const NEAR_SHARE = 0.25;
 /** A bill may go down before it closes only by this much: a cent of rounding on each parcel. */
 const ROUNDING = 10;
-
-/** Bank text without numbers and punctuation: "PIX RECEBIDO 0710 FULANO" → "pix recebido fulano". */
-export const originKey = (description: string): string =>
-  description
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z]+/g, " ")
-    .trim();
 
 /** A name fit for a note line: one line, no leading "R$", not too long. */
 const lineName = (description: string): string => {
@@ -157,7 +163,7 @@ const ref = (l: SheetLine): LineRef => ({
 });
 
 /** Turns what launching does into cell changes; the server calls this, never the app. */
-export const placeDraft = (draft: Draft, cards: readonly CardConfig[]): Placement[] => {
+export const placeDraft = (draft: CellDraft, cards: readonly CardConfig[]): Placement[] => {
   if (draft.type === "new") return placeEntry(draft, cards);
   if (draft.type === "card")
     return withEconomia([
@@ -500,6 +506,40 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
           : [{ label: "", draft }],
     });
   }
+  // The Diário previsto: a day that passed loses its forecast, keeping only what was really
+  // spent (0 when everything went on a card). A day with a Pix still to launch waits for it,
+  // since launching the Pix takes the forecast off too.
+  const pixDays = new Set(items.filter((i) => i.kind === "diario").map((i) => i.date));
+  const passed = ledger
+    .filter((r) => r.date < today && forecastIn(r.diario) > 0 && !pixDays.has(r.date))
+    .map((r) => r.date);
+  const firstPassed = passed[0];
+  if (firstPassed)
+    push({
+      key: `previsto:fechar:${passed.join(",")}`,
+      kind: "previsto",
+      date: firstPassed,
+      bank: [],
+      options: [{ label: "", draft: { type: "forecast", value: ZERO, days: passed } }],
+    });
+  // Days ahead with nothing in the Diário, like a new year tab: they get the forecast too.
+  const value = input.forecast ?? 0;
+  const empty = value > 0 ? ledger.filter((r) => r.date >= today && isFreeDiario(r.diario)) : [];
+  const firstEmpty = empty[0];
+  const lastEmpty = empty.at(-1);
+  if (firstEmpty && lastEmpty)
+    push({
+      key: `previsto:preencher:${value}:${firstEmpty.date}:${lastEmpty.date}:${empty.length}`,
+      kind: "previsto",
+      date: firstEmpty.date,
+      bank: [],
+      options: [
+        {
+          label: "",
+          draft: { type: "forecast", value: cents(value), days: empty.map((r) => r.date) },
+        },
+      ],
+    });
   return items.sort((a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key));
 };
 

@@ -21,6 +21,7 @@ import {
   project,
   saldoCheck,
   unmatchedMovements,
+  variableSpend,
 } from "../../../packages/engine/src/index.ts";
 import { queueView } from "../src/shared/queue.ts";
 import type { ProjectionResponse } from "../src/shared/types.ts";
@@ -36,6 +37,7 @@ const rand = mulberry32(2026);
 const between = (lo: number, hi: number) => Math.round(lo + rand() * (hi - lo));
 
 const TODAY = localDate("2026-10-05");
+const YESTERDAY = addDays(TODAY, -1);
 const START = localDate("2025-01-01");
 const DAYS = 730;
 const TAB = (d: LocalDate) => String(parts(d).year);
@@ -75,10 +77,15 @@ for (let i = 0, d = START; i < DAYS; i++, d = addDays(d, 1)) {
   }
   if (day === 20) saida.push(item(800_00, "Poupança", "reserva"));
   if (day === 12) entrada.push(item(between(300_00, 700_00), "Reembolso Cartão Verde", null));
-  // Months after today only hold what is already known: bills and fixed costs, no diário.
+  // Months after today hold what is already known, bills and fixed costs, and the Diário
+  // previsto from yesterday on: yesterday's is still there to close.
   const past = d <= TODAY;
   const diario: NoteItem[] =
-    past && day % 3 === 0 ? [item(between(15_00, 90_00), "Padaria e mercado", null)] : [];
+    d >= YESTERDAY
+      ? [item(95_00, "Previsto", null)]
+      : past && day % 3 === 0
+        ? [item(between(15_00, 90_00), "Padaria e mercado", null)]
+        : [];
   const col = (n: number) => `${String.fromCharCode(65 + (month - 1) * 4 + n)}${day + 4}`;
   const e = cellOf(entrada, col(0), d);
   const s = cellOf(saida, col(1), d);
@@ -98,13 +105,6 @@ for (let i = 0, d = START; i < DAYS; i++, d = addDays(d, 1)) {
 
 const cards = mergeCards(inferCards(rows), []);
 const dailyForecast = cents(95_00);
-const projection = project(rows, TODAY, {
-  dailyForecast,
-  usualCard: null,
-  cycleBudget: null,
-  cards,
-  othersCards: ["Cartão Verde"],
-});
 
 /** An invented bank: the usual card's next bills and a few account movements, two of them new. */
 const bankLine = (
@@ -120,6 +120,7 @@ const bankLine = (
   description,
   installment: n ?? null,
   installments: of ?? null,
+  date: localDate("2026-10-02"),
 });
 const movements = [
   { id: "m1", date: localDate("2026-10-05"), amount: cents(5_600_00), description: "SALARIO" },
@@ -136,6 +137,32 @@ const movements = [
     description: "PIX RECEBIDO ANA",
   },
 ];
+const lines = [
+  bankLine(300_00, "2026-11", "Compras do ciclo"),
+  bankLine(450_00, "2026-11", "LOJA DE MÓVEIS PARC 03/06", 3, 6),
+  bankLine(129_90, "2026-11", "FONE PARC 01/03", 1, 3),
+];
+// The Diário previsto is on since July: its value against the month, and the review is due.
+const spendInput = {
+  ledger: rows,
+  today: TODAY,
+  movements,
+  lines,
+  othersCards: ["Cartão Verde"],
+  savingsAccounts: new Set<string>(),
+  savedOrigins: new Set<string>(),
+};
+const projection = project(rows, TODAY, {
+  dailyForecast,
+  usualCard: null,
+  cycleBudget: null,
+  cards,
+  othersCards: ["Cartão Verde"],
+  previsto: {
+    value: dailyForecast,
+    spent: variableSpend(spendInput, localDate("2026-10-01"), TODAY).total,
+  },
+});
 const queue = buildQueue({
   ledger: rows,
   cards,
@@ -148,6 +175,7 @@ const queue = buildQueue({
   accounts: [{ id: "conta", label: "Banco Azul", use: "corrente" }],
   savedOrigins: new Set(),
   decided: new Set(),
+  forecast: dailyForecast,
 });
 const bank = {
   syncedAt: "2026-10-05T09:00:00.000Z",
@@ -155,16 +183,7 @@ const bank = {
   saldo: saldoCheck(rows, TODAY, [
     { label: "Banco Azul", balance: cents(2_353_747), readOn: TODAY },
   ]),
-  checks: billChecks(
-    rows,
-    cards,
-    [
-      bankLine(1_640_00, "2026-11", "Compras do ciclo"),
-      bankLine(450_00, "2026-11", "LOJA DE MÓVEIS PARC 03/06", 3, 6),
-      bankLine(129_90, "2026-11", "FONE PARC 01/03", 1, 3),
-    ],
-    TODAY,
-  ),
+  checks: billChecks(rows, cards, lines, TODAY),
   missing: unmatchedMovements(rows, movements, TODAY),
 };
 
@@ -186,6 +205,21 @@ const response: ProjectionResponse = {
   ),
   writing: true,
   bank,
+  previsto: {
+    on: true,
+    value: dailyForecast,
+    since: "2026-07-01",
+    suggestion: {
+      cards: cents(6_900_00),
+      pix: cents(2_100_00),
+      total: cents(9_000_00),
+      perDay: cents(100_00),
+      from: localDate("2026-07-07"),
+      days: 90,
+    },
+    review: { real: 100_00, from: "2026-07-07" },
+    lastYear: 2026,
+  },
 };
 
 writeFileSync(

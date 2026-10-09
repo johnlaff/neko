@@ -11,7 +11,9 @@
     "reviewed": [],
     "writing": true,
     "accountUse": {},
-    "savedOrigins": []
+    "savedOrigins": [],
+    "previstoSince": null,
+    "previstoUndo": null
   },
   "cards": [
     {
@@ -27,5 +29,23 @@
       "closingEstimated": true
     }
   ],
-  "dailyAuto": 9500
+  "dailyAuto": 9500,
+  "previsto": {
+    "on": true,
+    "value": 9500,
+    "since": "2026-07-01",
+    "suggestion": {
+      "cards": 690000,
+      "pix": 210000,
+      "total": 900000,
+      "perDay": 10000,
+      "from": "2026-07-07",
+      "days": 90
+    },
+    "review": {
+      "real": 10000,
+      "from": "2026-07-07"
+    },
+    "lastYear": 2026
+  }
 }

@@ -1,4 +1,11 @@
-import { type Cents, cents, fromReais, normalizeName, type Placement } from "@neko/engine";
+import {
+  type Cents,
+  cents,
+  fromReais,
+  isForecastItem,
+  normalizeName,
+  type Placement,
+} from "@neko/engine";
 import type { ApiCell } from "./grid.ts";
 import { normalizeSection, parseNote } from "./note.ts";
 
@@ -30,7 +37,13 @@ export type EditPlan =
     }
   | { ok: false; reason: string };
 
-export type EditOp = Pick<Placement, "section" | "amount" | "description" | "target" | "was">;
+export type EditOp = Pick<Placement, "section" | "amount" | "description" | "target" | "was"> & {
+  /**
+   * A real spending added to a Diário cell takes the day's forecast off (specs/005, Fase 3): the
+   * `Previsto` line goes and the new line comes, in the same edit, so nothing counts twice.
+   */
+  readonly dropForecast?: boolean;
+};
 
 const SUM = /^=SUM\(([\s\d,+]*)\)$/;
 const TERM = /^\d+(,\d{1,2})?$/;
@@ -82,7 +95,7 @@ const formulaTerms = (formula: string): Cents[] | null => {
  */
 export const checkCell = (cell: ApiCell | undefined): CellCheck => {
   const entered = cell?.userEnteredValue ?? {};
-  if (entered.stringValue !== undefined) return { ok: false, reason: "a célula tem texto" };
+  if (entered.stringValue !== undefined) return { ok: false, reason: "tem texto" };
   let terms: Cents[];
   if (entered.formulaValue !== undefined) {
     const parsed = formulaTerms(entered.formulaValue);
@@ -90,7 +103,7 @@ export const checkCell = (cell: ApiCell | undefined): CellCheck => {
     terms = parsed;
   } else if (entered.numberValue !== undefined) {
     const c = fromReais(entered.numberValue);
-    if (c < 0) return { ok: false, reason: "a célula tem valor negativo" };
+    if (c < 0) return { ok: false, reason: "o valor é negativo" };
     terms = c === 0 ? [] : [c];
   } else terms = [];
 
@@ -100,10 +113,11 @@ export const checkCell = (cell: ApiCell | undefined): CellCheck => {
     return { ok: false, reason: "o valor mostrado não é a soma da fórmula" };
 
   const note = parseNote(cell?.note);
-  if (note.unparsed.length > 0) return { ok: false, reason: "a nota tem linhas que não entendo" };
+  if (note.unparsed.length > 0)
+    return { ok: false, reason: "a nota tem linhas que o Neko não entende" };
   const lines = note.items.map((i) => i.amount).filter((a) => a !== 0);
   if (terms.length > 0 && note.items.length === 0)
-    return { ok: false, reason: "a célula tem valor e não tem nota" };
+    return { ok: false, reason: "tem valor e não tem nota" };
   if (!sameMultiset(lines, terms))
     return { ok: false, reason: "a nota e a fórmula não têm os mesmos valores" };
   return { ok: true, total, terms };
@@ -265,6 +279,30 @@ export const planCellEdit = (cell: ApiCell | undefined, op: EditOp): EditPlan =>
   const note = cell?.note ?? "";
   const before = check.total;
   const lines = note === "" ? [] : note.split("\n");
+
+  const forecast = itemLines(lines).findLast((i) =>
+    isForecastItem({ section: i.section, description: i.description, amount: i.amount }),
+  );
+  if (op.dropForecast && op.target === "line" && !changing && forecast) {
+    const off = planCellEdit(cell, {
+      section: null,
+      description: forecast.description,
+      target: "line",
+      was: forecast.amount,
+      amount: cents(0),
+    });
+    if (!off.ok) return off;
+    const without: ApiCell =
+      off.formula === ""
+        ? { note: off.note }
+        : {
+            userEnteredValue: { formulaValue: off.formula },
+            effectiveValue: { numberValue: off.after / 100 },
+            note: off.note,
+          };
+    const on = planCellEdit(without, { ...op, dropForecast: false });
+    return on.ok ? { ...on, before } : on;
+  }
   const key = normalizeName(description);
   let after: Cents;
   let next: { formula: string | null; note: string };
@@ -350,21 +388,20 @@ export const checkEconomia = (
   cell: ApiCell | undefined,
 ): { ok: true; total: number } | { ok: false; reason: string } => {
   const entered = cell?.userEnteredValue ?? {};
-  if (entered.stringValue !== undefined)
-    return { ok: false, reason: "a célula Economia tem texto" };
+  if (entered.stringValue !== undefined) return { ok: false, reason: "tem texto" };
   if (entered.numberValue !== undefined) return { ok: true, total: fromReais(entered.numberValue) };
   if (entered.formulaValue === undefined) return { ok: true, total: 0 };
   const m = ECONOMIA.exec(entered.formulaValue);
-  if (!m) return { ok: false, reason: "a célula Economia tem uma fórmula que não é só de somas" };
+  if (!m) return { ok: false, reason: "a fórmula não é só de somas" };
   let total = 0;
   for (const [, sign, raw] of (m[1] ?? "").matchAll(/([-+]?)\s*([\d,]+)/g)) {
     const c = termCents(raw ?? "");
-    if (c === null) return { ok: false, reason: "a célula Economia tem um número que não entendo" };
+    if (c === null) return { ok: false, reason: "tem um número que o Neko não entende" };
     total += sign === "-" ? -c : c;
   }
   const shown = cell?.effectiveValue?.numberValue;
   if (shown === undefined || fromReais(shown) !== total)
-    return { ok: false, reason: "a célula Economia não mostra a soma da fórmula" };
+    return { ok: false, reason: "o valor mostrado não é a soma da fórmula" };
   return { ok: true, total };
 };
 

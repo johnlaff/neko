@@ -13974,9 +13974,9 @@
       "startBalance": 1799385,
       "entrada": 795340,
       "saida": 745683,
-      "diario": 5638,
-      "endSheet": 1843404,
-      "result": 44019,
+      "diario": 271638,
+      "endSheet": 1577404,
+      "result": -221981,
       "outflows": [
         {
           "label": "Cartão Azul",
@@ -14351,14 +14351,20 @@
         },
         {
           "day": 4,
-          "balance": 1793747,
+          "balance": 1784247,
           "band": "surplus",
           "future": false,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 5,
-          "balance": 2353747,
+          "balance": 2334747,
           "band": "surplus",
           "future": false,
           "moves": [
@@ -14366,40 +14372,69 @@
               "kind": "income",
               "description": "Salário",
               "amount": 560000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 6,
-          "balance": 2353747,
+          "balance": 2325247,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 7,
-          "balance": 2353747,
+          "balance": 2315747,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 8,
-          "balance": 2353747,
+          "balance": 2306247,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 9,
-          "balance": 2353747,
+          "balance": 2296747,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 10,
-          "balance": 2132865,
+          "balance": 2066365,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -14417,19 +14452,30 @@
               "kind": "bill",
               "description": "Internet",
               "amount": 12000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 11,
-          "balance": 2132865,
+          "balance": 2056865,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 12,
-          "balance": 1765404,
+          "balance": 1679904,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -14447,26 +14493,43 @@
               "kind": "card",
               "description": "Cartão Verde",
               "amount": 52770
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 13,
-          "balance": 1765404,
+          "balance": 1670404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 14,
-          "balance": 1765404,
+          "balance": 1660904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 15,
-          "balance": 1733404,
+          "balance": 1619404,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -14474,40 +14537,69 @@
               "kind": "bill",
               "description": "Academia e curso",
               "amount": 32000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 16,
-          "balance": 1733404,
+          "balance": 1609904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 17,
-          "balance": 1733404,
+          "balance": 1600404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 18,
-          "balance": 1733404,
+          "balance": 1590904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 19,
-          "balance": 1733404,
+          "balance": 1581404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 20,
-          "balance": 1843404,
+          "balance": 1681904,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -14520,90 +14612,161 @@
               "kind": "bill",
               "description": "Poupança",
               "amount": 80000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 21,
-          "balance": 1843404,
+          "balance": 1672404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 22,
-          "balance": 1843404,
+          "balance": 1662904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 23,
-          "balance": 1843404,
+          "balance": 1653404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 24,
-          "balance": 1843404,
+          "balance": 1643904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 25,
-          "balance": 1843404,
+          "balance": 1634404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 26,
-          "balance": 1843404,
+          "balance": 1624904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 27,
-          "balance": 1843404,
+          "balance": 1615404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 28,
-          "balance": 1843404,
+          "balance": 1605904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 29,
-          "balance": 1843404,
+          "balance": 1596404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 30,
-          "balance": 1843404,
+          "balance": 1586904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 31,
-          "balance": 1843404,
+          "balance": 1577404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         }
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 671321,
+      "livingCost": 937321,
       "wins": []
     },
     {
@@ -14612,12 +14775,12 @@
       "month": 11,
       "past": false,
       "future": true,
-      "startBalance": 1843404,
+      "startBalance": 1577404,
       "entrada": 803726,
       "saida": 656754,
-      "diario": 0,
-      "endSheet": 1990376,
-      "result": 146972,
+      "diario": 285000,
+      "endSheet": 1439376,
+      "result": -138028,
       "outflows": [
         {
           "label": "Cartão Azul",
@@ -14965,35 +15128,59 @@
       "days": [
         {
           "day": 1,
-          "balance": 1843404,
+          "balance": 1567904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 2,
-          "balance": 1843404,
+          "balance": 1558404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 3,
-          "balance": 1843404,
+          "balance": 1548904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 4,
-          "balance": 1843404,
+          "balance": 1539404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 5,
-          "balance": 2403404,
+          "balance": 2089904,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15001,40 +15188,69 @@
               "kind": "income",
               "description": "Salário",
               "amount": 560000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 6,
-          "balance": 2403404,
+          "balance": 2080404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 7,
-          "balance": 2403404,
+          "balance": 2070904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 8,
-          "balance": 2403404,
+          "balance": 2061404,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 9,
-          "balance": 2403404,
+          "balance": 2051904,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 10,
-          "balance": 2178676,
+          "balance": 1817676,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15052,19 +15268,30 @@
               "kind": "bill",
               "description": "Internet",
               "amount": 12000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 11,
-          "balance": 2178676,
+          "balance": 1808176,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 12,
-          "balance": 1912376,
+          "balance": 1532376,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15082,26 +15309,43 @@
               "kind": "card",
               "description": "Cartão Verde",
               "amount": 36219
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 13,
-          "balance": 1912376,
+          "balance": 1522876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 14,
-          "balance": 1912376,
+          "balance": 1513376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 15,
-          "balance": 1880376,
+          "balance": 1471876,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15109,40 +15353,69 @@
               "kind": "bill",
               "description": "Academia e curso",
               "amount": 32000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 16,
-          "balance": 1880376,
+          "balance": 1462376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 17,
-          "balance": 1880376,
+          "balance": 1452876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 18,
-          "balance": 1880376,
+          "balance": 1443376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 19,
-          "balance": 1880376,
+          "balance": 1433876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 20,
-          "balance": 1990376,
+          "balance": 1534376,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15155,83 +15428,148 @@
               "kind": "bill",
               "description": "Poupança",
               "amount": 80000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 21,
-          "balance": 1990376,
+          "balance": 1524876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 22,
-          "balance": 1990376,
+          "balance": 1515376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 23,
-          "balance": 1990376,
+          "balance": 1505876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 24,
-          "balance": 1990376,
+          "balance": 1496376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 25,
-          "balance": 1990376,
+          "balance": 1486876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 26,
-          "balance": 1990376,
+          "balance": 1477376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 27,
-          "balance": 1990376,
+          "balance": 1467876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 28,
-          "balance": 1990376,
+          "balance": 1458376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 29,
-          "balance": 1990376,
+          "balance": 1448876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 30,
-          "balance": 1990376,
+          "balance": 1439376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         }
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 576754,
+      "livingCost": 861754,
       "wins": []
     },
     {
@@ -15240,12 +15578,12 @@
       "month": 12,
       "past": false,
       "future": true,
-      "startBalance": 1990376,
+      "startBalance": 1439376,
       "entrada": 795363,
       "saida": 769191,
-      "diario": 0,
-      "endSheet": 2016548,
-      "result": 26172,
+      "diario": 294500,
+      "endSheet": 1171048,
+      "result": -268328,
       "outflows": [
         {
           "label": "Cartão Azul",
@@ -15593,35 +15931,59 @@
       "days": [
         {
           "day": 1,
-          "balance": 1990376,
+          "balance": 1429876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 2,
-          "balance": 1990376,
+          "balance": 1420376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 3,
-          "balance": 1990376,
+          "balance": 1410876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 4,
-          "balance": 1990376,
+          "balance": 1401376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 5,
-          "balance": 2550376,
+          "balance": 1951876,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15629,40 +15991,69 @@
               "kind": "income",
               "description": "Salário",
               "amount": 560000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 6,
-          "balance": 2550376,
+          "balance": 1942376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 7,
-          "balance": 2550376,
+          "balance": 1932876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 8,
-          "balance": 2550376,
+          "balance": 1923376,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 9,
-          "balance": 2550376,
+          "balance": 1913876,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 10,
-          "balance": 2326355,
+          "balance": 1680355,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15680,19 +16071,30 @@
               "kind": "bill",
               "description": "Internet",
               "amount": 12000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 11,
-          "balance": 2326355,
+          "balance": 1670855,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 12,
-          "balance": 1938548,
+          "balance": 1273548,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15710,26 +16112,43 @@
               "kind": "card",
               "description": "Cartão Verde",
               "amount": 62738
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 13,
-          "balance": 1938548,
+          "balance": 1264048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 14,
-          "balance": 1938548,
+          "balance": 1254548,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 15,
-          "balance": 1906548,
+          "balance": 1213048,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15737,40 +16156,69 @@
               "kind": "bill",
               "description": "Academia e curso",
               "amount": 32000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 16,
-          "balance": 1906548,
+          "balance": 1203548,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 17,
-          "balance": 1906548,
+          "balance": 1194048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 18,
-          "balance": 1906548,
+          "balance": 1184548,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 19,
-          "balance": 1906548,
+          "balance": 1175048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 20,
-          "balance": 2016548,
+          "balance": 1275548,
           "band": "surplus",
           "future": true,
           "moves": [
@@ -15783,100 +16231,171 @@
               "kind": "bill",
               "description": "Poupança",
               "amount": 80000
+            },
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
             }
           ]
         },
         {
           "day": 21,
-          "balance": 2016548,
+          "balance": 1266048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 22,
-          "balance": 2016548,
+          "balance": 1256548,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 23,
-          "balance": 2016548,
+          "balance": 1247048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 24,
-          "balance": 2016548,
+          "balance": 1237548,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 25,
-          "balance": 2016548,
+          "balance": 1228048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 26,
-          "balance": 2016548,
+          "balance": 1218548,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 27,
-          "balance": 2016548,
+          "balance": 1209048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 28,
-          "balance": 2016548,
+          "balance": 1199548,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 29,
-          "balance": 2016548,
+          "balance": 1190048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 30,
-          "balance": 2016548,
+          "balance": 1180548,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         },
         {
           "day": 31,
-          "balance": 2016548,
+          "balance": 1171048,
           "band": "surplus",
           "future": true,
-          "moves": []
+          "moves": [
+            {
+              "kind": "diario",
+              "description": "",
+              "amount": 9500
+            }
+          ]
         }
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 689191,
+      "livingCost": 983691,
       "wins": []
     }
   ],
   "saving": {
     "date": "2026-10-05",
     "income": 560000,
-    "amount": 1680000,
-    "lowest": 1733404,
-    "lowestDate": "2026-10-15",
-    "leftAtLowest": 53404,
+    "amount": 1120000,
+    "lowest": 1171048,
+    "lowestDate": "2026-12-31",
+    "leftAtLowest": 51048,
     "until": "2026-12-31"
   },
   "reserve": {

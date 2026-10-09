@@ -206,17 +206,31 @@ export const runMiaTool = (p: Projection, name: string, input: unknown, book: Re
       return {
         hoje: p.today,
         saldo_hoje: saldo,
-        cartao_principal: cs && {
-          nome: cs.card,
-          cabe_por_dia: cs.perDay < 0 ? null : today(cs.perDay, "Cabe por dia", "total"),
-          passou_do_plano:
-            cs.overBy > 0 ? today(cs.overBy, "Passou do plano do ciclo", "diferenca") : null,
-          fatura_aberta: today(cs.accumulated, `Fatura aberta do ${cs.card}`, "fatura"),
-          plano_do_ciclo: today(cs.budget, "Plano do ciclo", "total"),
-          fecha: cs.closing,
-          vence: cs.due,
-          dias_ate_fechar: cs.daysLeft,
-        },
+        // With the Diário previsto on, "Hoje cabem" follows the month, cards and Pix together.
+        ritmo_do_mes:
+          cs?.mode === "month"
+            ? {
+                cabe_por_dia: cs.perDay < 0 ? null : today(cs.perDay, "Cabe por dia", "total"),
+                gasto_no_mes_ate_ontem: today(cs.accumulated, "Gasto no mês até ontem", "total"),
+                previsto_ate_ontem: today(cs.paceExpected, "Diário previsto até ontem", "total"),
+                dias_sem_gastar_para_voltar_ao_ritmo: cs.daysBehind,
+                dias_ate_o_fim_do_mes: cs.daysLeft,
+              }
+            : null,
+        cartao_principal:
+          cs?.mode === "cycle"
+            ? {
+                nome: cs.card,
+                cabe_por_dia: cs.perDay < 0 ? null : today(cs.perDay, "Cabe por dia", "total"),
+                passou_do_plano:
+                  cs.overBy > 0 ? today(cs.overBy, "Passou do plano do ciclo", "diferenca") : null,
+                fatura_aberta: today(cs.accumulated, `Fatura aberta do ${cs.card}`, "fatura"),
+                plano_do_ciclo: today(cs.budget, "Plano do ciclo", "total"),
+                fecha: cs.closing,
+                vence: cs.due,
+                dias_ate_fechar: cs.daysLeft,
+              }
+            : null,
         diario_previsto_por_dia: today(p.dailyForecast, "Diário previsto por dia", "total"),
         proximos_7_dias: p.upcoming.map((u) => ({
           data: u.date,

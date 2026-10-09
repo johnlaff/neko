@@ -97,6 +97,7 @@ fun HojeScreen(
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
     var undo by remember { mutableStateOf<String?>(null) }
+    var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
     var asking by rememberSaveable { mutableStateOf(miaOpen) }
     LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
@@ -117,7 +118,7 @@ fun HojeScreen(
         }
         if (writes && launching && launcher != null) item {
             Panel {
-                EntryForm(launcher, v.today, { launching = false }, { undo = it }, cards = v.entryCards)
+                EntryForm(launcher, v.today, { launching = false }, { undoText = "Lançado na planilha"; undo = it }, cards = v.entryCards)
             }
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
@@ -126,6 +127,7 @@ fun HojeScreen(
             if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk) }
         }
         v.habit?.let { h -> item { Streak(h) } }
+        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
         val over = (v.canSpend?.perDay ?: 0) < 0
         val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
@@ -133,12 +135,13 @@ fun HojeScreen(
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
-        if (v.queue != null) item { ParaLancar(v, launcher) { undo = it } }
+        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = "Lançado na planilha"; undo = it } }
         item { Conference(v, review) }
     }
     UndoBar(
         undo, launcher, { undo = null },
         Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 84.dp),
+        done = undoText,
     )
     }
 }
@@ -156,14 +159,17 @@ private fun Hero(v: TodayView) {
         return
     }
     val over = cs.pace == "over"
+    // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
+    val month = cs.mode == "month"
     var formula by remember { mutableStateOf(false) }
     Panel {
         // Over the plan, the figure already says so in red: the chip would repeat it.
-        PanelHead(cs.card) {
-            when (cs.pace) {
-                "over" -> Unit
-                "on-pace" -> Chip("No ritmo", ChipTone.Ok)
-                else -> Chip("Acima do ritmo", ChipTone.Warn)
+        PanelHead(if (month) "Diário de ${Format.monthName(v.today.substring(5, 7).toInt())}" else cs.card) {
+            // Behind the Diário, the line under the figure already says by how much.
+            when {
+                cs.pace == "over" || (month && cs.daysBehind > 0) -> Unit
+                cs.pace == "on-pace" -> Chip("No ritmo", ChipTone.Ok)
+                else -> Chip(if (month) "Acima do previsto" else "Acima do ritmo", ChipTone.Warn)
             }
         }
         // With large text the figure no longer fits inside the arc: it goes under it instead.
@@ -187,8 +193,8 @@ private fun Hero(v: TodayView) {
                 BigMoney(if (over) cs.overBy else cs.perDay, if (over) l.neg else l.text)
                 Text(
                     when {
-                        over -> "neste ciclo"
-                        cs.daysLeft == 1 -> "até a fatura fechar, hoje"
+                        over -> if (month) "neste mês" else "neste ciclo"
+                        cs.daysLeft == 1 -> if (month) "até o mês acabar, hoje" else "até a fatura fechar, hoje"
                         else -> "por dia"
                     },
                     color = l.muted,
@@ -196,19 +202,41 @@ private fun Hero(v: TodayView) {
                 )
             }
         }
-        if (cs.daysLeft > 1) Chip("Fecha ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
+        // How far ahead of the Diário the month went, in days without spending.
+        if (month && cs.daysBehind > 0 && !over)
+            Text(
+                "${money(-cs.paceGap)} acima do previsto. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.",
+                Modifier.fillMaxWidth(),
+                color = l.warn,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
+        if (cs.daysLeft > 1) Chip("${if (month) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
         // The toggle and what it opens sit together: closed, the panel spends no gap on it.
         Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
             TextAction(if (formula) "Esconder a conta" else "Como calculei", { formula = !formula }, open = formula)
             Reveal(formula) { Formula(cs, v) }
         }
-        Hint("hoje", Learn.HOJE)
+        Hint("hoje", if (month) Learn.HOJE_MES else Learn.HOJE)
     }
 }
 
 @Composable
 private fun Formula(cs: CanSpend, v: TodayView) {
     val l = LocalLedger.current
+    if (cs.mode == "month") {
+        Text(
+            "${money(cs.budget)} de Diário previsto no mês (${money(v.dailyForecast)} por dia) menos ${money(cs.accumulated)} " +
+                "gastos até ontem nos seus cartões e no Pix, como o banco mostra, dividido por ${days(cs.daysLeft)}.",
+            color = l.muted,
+        )
+        Text(
+            "O ponto no arco é o previsto até ontem: o mês está ${money(kotlin.math.abs(cs.paceGap))} " +
+                "${if (cs.paceGap >= 0) "abaixo" else "acima"} dele.",
+            color = l.muted,
+        )
+        return
+    }
     val budget = if (cs.budgetSource == "diario")
         "de diário no ciclo (${money(v.dailyForecast)} por dia, ${Copy.dailySource(v.dailySource)})"
     else "planejados para o ciclo"

@@ -1,9 +1,21 @@
-import { type Cents, cents, fromReais, type LocalDate, type Placement, parts } from "@neko/engine";
+import {
+  type Cents,
+  cents,
+  dropsForecast,
+  FORECAST,
+  fromReais,
+  isForecastItem,
+  type LocalDate,
+  type Placement,
+  parts,
+} from "@neko/engine";
 import {
   type ApiCell,
   a1,
   checkCell,
   checkEconomia,
+  type EditOp,
+  parseNote,
   planCellEdit,
   planEconomiaEdit,
   SHEET_MAP,
@@ -44,11 +56,51 @@ export interface SheetsApi {
     value: EnteredValue,
     note: string,
   ): Promise<void>;
+  /** Every day row of a year tab (31 rows from the first day, all 12 month blocks). */
+  readDays(tab: string): Promise<{ sheetId: number; rows: ApiCell[][] }>;
+  /** Sets many cells' values and notes in one request: all of them change, or none. */
+  writeCells(sheetId: number, cells: readonly CellWrite[]): Promise<void>;
 }
+
+export interface CellWrite {
+  readonly row: number;
+  readonly col: number;
+  readonly value: EnteredValue;
+  readonly note: string;
+}
+
+/** One updateCells request: value and note of one cell, nothing else. */
+const updateCells = (sheetId: number, { row, col, value, note }: CellWrite) => ({
+  updateCells: {
+    range: {
+      sheetId,
+      startRowIndex: row,
+      endRowIndex: row + 1,
+      startColumnIndex: col,
+      endColumnIndex: col + 1,
+    },
+    // An empty value with "userEnteredValue" in the mask clears the cell.
+    rows: [
+      { values: [Object.keys(value).length > 0 ? { userEnteredValue: value, note } : { note }] },
+    ],
+    fields: "userEnteredValue,note",
+  },
+});
 
 export class WriteError extends Error {
   override name = "WriteError";
 }
+
+const ddmm = (date: string) => `${date.slice(8, 10)}/${date.slice(5, 7)}`;
+
+/** "o Diário de 15/10", "a Economia de 10/2026": a place in the sheet as the owner calls it. */
+const where = (column: Placement["column"], target: Placement["target"], date: string) =>
+  target === "economia"
+    ? `a Economia de ${date.slice(5, 7)}/${date.slice(0, 4)}`
+    : `${{ entrada: "a Entrada", saida: "a Saída", diario: "o Diário" }[column]} de ${ddmm(date)}`;
+
+const placeOf = (p: Placement) => where(p.column, p.target, p.date);
+const placeOfOp = (o: OpRow) => where(o.column_name, o.target, o.date);
 
 const ROW_FIELDS =
   "sheets(properties(sheetId),data(rowData(values(effectiveValue,userEnteredValue,note))))";
@@ -93,7 +145,14 @@ export const googleSheets = (
         await wait(Math.min(60_000, 1000 * 2 ** attempt));
         continue;
       }
-      if (!res.ok) throw new WriteError(`Google respondeu ${res.status}: ${await res.text()}`);
+      if (!res.ok) {
+        const body = await res.text();
+        console.error("sheets", res.status, body);
+        // The sheet's protection (proteger-planilha.gs) keeps Neko out of Data, Saldo and the rest.
+        if (body.includes("protected"))
+          throw new WriteError("a planilha está protegida para o Neko nesse lugar");
+        throw new WriteError(`o Google respondeu ${res.status} e não gravou`);
+      }
       return res.json();
     }
   };
@@ -128,30 +187,28 @@ export const googleSheets = (
       // One updateCells request sets value and note together: either both change or neither.
       await call(`${base}:batchUpdate`, {
         method: "POST",
-        body: JSON.stringify({
-          requests: [
-            {
-              updateCells: {
-                range: {
-                  sheetId,
-                  startRowIndex: row,
-                  endRowIndex: row + 1,
-                  startColumnIndex: col,
-                  endColumnIndex: col + 1,
-                },
-                // An empty value with "userEnteredValue" in the mask clears the cell.
-                rows: [
-                  {
-                    values: [
-                      Object.keys(value).length > 0 ? { userEnteredValue: value, note } : { note },
-                    ],
-                  },
-                ],
-                fields: "userEnteredValue,note",
-              },
-            },
-          ],
-        }),
+        body: JSON.stringify({ requests: [updateCells(sheetId, { row, col, value, note })] }),
+      });
+    },
+    async readDays(tab) {
+      const first = SHEET_MAP.firstDayRow;
+      const qs = new URLSearchParams({
+        ranges: `'${tab}'!${a1(first, 0)}:${a1(first + 30, 12 * SHEET_MAP.blockWidth - 1)}`,
+        includeGridData: "true",
+        fields: ROW_FIELDS,
+      });
+      const body = RowResponse.parse(await call(`${base}?${qs}`));
+      const sheet = body.sheets[0];
+      return {
+        sheetId: sheet?.properties.sheetId ?? 0,
+        rows: (sheet?.data?.[0]?.rowData ?? []).map((r) => (r.values ?? []) as ApiCell[]),
+      };
+    },
+    async writeCells(sheetId, cells) {
+      // A batchUpdate is all or nothing: one bad request and no cell changes.
+      await call(`${base}:batchUpdate`, {
+        method: "POST",
+        body: JSON.stringify({ requests: cells.map((c) => updateCells(sheetId, c)) }),
       });
     },
   };
@@ -191,7 +248,7 @@ export const locateEconomia = (rows: readonly (readonly ApiCell[])[], date: Loca
   const row = 3 + month;
   if (label(rows[row]?.[at]) !== MONTHS[month - 1])
     throw new WriteError(
-      `a aba ${ECONOMIA_TAB} mudou: esperava ${MONTHS[month - 1]} em ${a1(row, at)}`,
+      `a aba ${ECONOMIA_TAB} mudou: esperava ${MONTHS[month - 1]} abaixo de ${year}`,
     );
   const col = at + 2;
   return { tab: ECONOMIA_TAB, row, col, address: `${ECONOMIA_TAB}!${a1(row, col)}` };
@@ -256,7 +313,7 @@ const readSite = async (api: SheetsApi, p: Where): Promise<Site> => {
   const day = cells[SHEET_MAP.offsets.data]?.effectiveValue?.numberValue;
   if (day !== at.day)
     throw new WriteError(
-      `${at.address}: a linha não é do dia ${at.day} (Data mostra ${day ?? "nada"})`,
+      `a planilha mudou: a linha de ${ddmm(p.date)} mostra o dia ${day ?? "vazio"}`,
     );
   const { tab, row, col, address } = at;
   return { tab, row, col, address, sheetId, cells, cell: cells[SHEET_MAP.offsets[p.column]] };
@@ -264,9 +321,10 @@ const readSite = async (api: SheetsApi, p: Where): Promise<Site> => {
 
 const plan = (site: Site, p: Placement) => {
   const result =
-    p.target === "economia" ? planEconomiaEdit(site.cell, p) : planCellEdit(site.cell, p);
-  if (!result.ok)
-    throw new WriteError(`${site.address}: ${result.reason}; arrume a célula na planilha`);
+    p.target === "economia"
+      ? planEconomiaEdit(site.cell, p)
+      : planCellEdit(site.cell, { ...p, dropForecast: dropsForecast(p) });
+  if (!result.ok) throw new WriteError(`o Neko não consegue mudar ${placeOf(p)}: ${result.reason}`);
   return result;
 };
 
@@ -280,7 +338,7 @@ export const previewEntry = async (
   for (const p of placements) {
     const site = await readSite(api, p);
     if (seen.has(site.address))
-      throw new WriteError(`${site.address} aparece duas vezes no lançamento`);
+      throw new WriteError(`${placeOf(p)} aparece duas vezes no lançamento`);
     seen.add(site.address);
     const edit = plan(site, p);
     out.push({
@@ -299,6 +357,7 @@ export const previewEntry = async (
 
 interface OpRow {
   entry_id: string;
+  description: string;
   part: number;
   state: "writing" | "done" | "failed" | "undone";
   tab: string;
@@ -424,7 +483,7 @@ export const commitEntry = async (
         continue;
       }
       if (!isBefore(cell, old)) {
-        await setState(db, old, "failed", now(), "a célula mudou no meio da gravação");
+        await setState(db, old, "failed", now(), "a planilha mudou no meio da gravação");
         await rollBack(db, api, entryId, part, now);
         return result(db, entryId);
       }
@@ -434,7 +493,9 @@ export const commitEntry = async (
         .run();
     } else if ((await fingerprint(cell)) !== fingerprints[part]) {
       await rollBack(db, api, entryId, part, now);
-      throw new WriteError(`${site.address} mudou desde a prévia; confira e lance de novo`);
+      throw new WriteError(
+        `${placeOf(p)} mudou na planilha agora há pouco; confira e lance de novo`,
+      );
     }
 
     const edit = plan(site, p);
@@ -475,16 +536,16 @@ export const commitEntry = async (
       await api.writeCell(site.sheetId, site.row, site.col, value, edit.note);
       const back = await readSite(api, p);
       if (!isAfter(back.cell, { target: p.target, after_total: edit.after, after_note: edit.note }))
-        error = `${site.address} não ficou como planejado`;
+        error = `${placeOf(p)} não ficou como devia`;
       else if (
         back.cells &&
         saldoOf(back.cells) - saldoBefore !== signed(p.column, edit.after - edit.before)
       )
-        error = `o Saldo de ${p.date} não mudou ${(edit.after - edit.before) / 100} reais`;
+        error = `o Saldo de ${ddmm(p.date)} não bateu depois de gravar`;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
       // Before the new protection script runs, the whole Economia tab is closed to Neko.
-      if (site.tab === ECONOMIA_TAB && error.includes("respondeu 403"))
+      if (site.tab === ECONOMIA_TAB && /respondeu 403|protegida/.test(error))
         error = "a aba Economia está protegida para o Neko; rode de novo o script de proteção";
     }
     if (error === null) {
@@ -495,7 +556,7 @@ export const commitEntry = async (
     const op = (await opsOf(db, entryId)).find((o) => o.part === part);
     if (op)
       await restore(api, op, true).catch((e) => {
-        error = `${error}; e não consegui voltar a célula: ${e instanceof Error ? e.message : e}`;
+        error = `${error}; e não consegui desfazer: ${e instanceof Error ? e.message : e}`;
       });
     await setState(db, { entry_id: entryId, part }, "failed", now(), error);
     await rollBack(db, api, entryId, part, now);
@@ -513,7 +574,7 @@ const restore = async (api: SheetsApi, op: OpRow, justWritten = false) => {
   const { sheetId, row, col, cell } = await readSite(api, whereOf(op));
   if (isBefore(cell, op)) return;
   if (!justWritten && !isAfter(cell, op))
-    throw new WriteError(`${op.tab}!${op.cell} mudou depois do lançamento; desfaça na planilha`);
+    throw new WriteError(`${placeOfOp(op)} mudou depois do lançamento; desfaça na planilha`);
   await api.writeCell(
     sheetId,
     row,
@@ -522,7 +583,7 @@ const restore = async (api: SheetsApi, op: OpRow, justWritten = false) => {
     op.before_note,
   );
   const back = await readSite(api, whereOf(op));
-  if (!isBefore(back.cell, op)) throw new WriteError(`${op.tab}!${op.cell} não voltou ao que era`);
+  if (!isBefore(back.cell, op)) throw new WriteError(`${placeOfOp(op)} não voltou ao que era`);
 };
 
 /** Undoes the parts already written before `upTo`, newest first. */
@@ -556,14 +617,273 @@ export const undoEntry = async (
 ): Promise<CommitResult> => {
   const ops = (await opsOf(db, entryId)).filter((o) => o.state === "done");
   if (ops.length === 0) throw new WriteError("não há lançamento gravado para desfazer");
+  if (ops.every(isForecastOp)) return undoForecast(db, api, entryId, ops, now);
   for (const op of ops) {
     const { cell } = await readSite(api, whereOf(op));
     if (!isAfter(cell, op))
-      throw new WriteError(`${op.tab}!${op.cell} mudou depois do lançamento; desfaça na planilha`);
+      throw new WriteError(`${placeOfOp(op)} mudou depois do lançamento; desfaça na planilha`);
   }
   for (const op of ops.reverse()) {
     await restore(api, op);
     await setState(db, op, "undone", now());
   }
+  return result(db, entryId);
+};
+
+/**
+ * The Diário previsto (specs/005-lancamentos, Fase 3) touches up to a year of days at once, so it
+ * writes a whole year tab in one go instead of cell by cell, with the same care: each tab is read,
+ * every changing cell is journaled, all of them are written in one request (all or none), and the
+ * tab is read back. Each cell and each changed day's Saldo must show exactly the change, or the
+ * tab goes back to what it was. A Diário the owner wrote stays as it is.
+ */
+
+const isForecastOp = (op: Pick<OpRow, "column_name" | "target" | "description">) =>
+  op.column_name === "diario" && op.target === "line" && op.description === FORECAST;
+
+/** What setting a day's forecast to `value` does to its Diário cell; null leaves it alone. */
+export const forecastEdit = (cell: ApiCell | undefined, value: Cents): EditOp | null => {
+  const check = checkCell(cell);
+  if (!check.ok) return null;
+  const items = parseNote(cell?.note).items;
+  const forecast = items.find(isForecastItem);
+  const line = { section: null, description: FORECAST, target: "line" } as const;
+  if (value === 0) return forecast ? { ...line, was: forecast.amount, amount: cents(0) } : null;
+  if (check.total === 0 && items.length === 0) return { ...line, amount: value };
+  if (forecast && items.length === 1 && forecast.amount !== value)
+    return { ...line, was: forecast.amount, amount: value };
+  return null;
+};
+
+/** The day rows of a tab as the writer reads them: row 0 is the first day. */
+const dayCell = (rows: ApiCell[][], row: number, col: number) =>
+  rows[row - SHEET_MAP.firstDayRow]?.[col];
+
+const saldoAt = (rows: ApiCell[][], row: number, block: number): number | undefined =>
+  dayCell(rows, row, block + SHEET_MAP.offsets.saldo)?.effectiveValue?.numberValue;
+
+interface ForecastChange {
+  readonly date: LocalDate;
+  readonly row: number;
+  readonly col: number;
+  readonly block: number;
+  readonly cell: ApiCell | undefined;
+  readonly op: EditOp;
+  readonly formula: string;
+  readonly note: string;
+  readonly before: Cents;
+  readonly after: Cents;
+}
+
+const INSERT_OP = `INSERT INTO entry_op (entry_id, part, created_at, updated_at, state, tab, cell, date,
+  column_name, section, target, amount, description, before_value, before_note,
+  after_formula, after_note, before_total, after_total)
+  VALUES (?, ?, ?, ?, 'writing', ?, ?, ?, 'diario', NULL, 'line', ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+/** D1 runs a batch as one transaction; a few hundred rows go in a few batches. */
+const BATCH = 100;
+
+const inBatches = async (db: D1Database, stmts: D1PreparedStatement[]) => {
+  for (let i = 0; i < stmts.length; i += BATCH) await db.batch(stmts.slice(i, i + BATCH));
+};
+
+/** What went wrong with a tab just written, or null when every cell and Saldo is as planned. */
+const checkTab = (rows: ApiCell[][], before: ApiCell[][], changes: readonly ForecastChange[]) => {
+  let moved = 0;
+  for (const c of changes) {
+    const cell = dayCell(rows, c.row, c.col);
+    if (!isAfter(cell, { target: "line", after_total: c.after, after_note: c.note }))
+      return `${c.date} não ficou como planejado`;
+    moved += c.after - c.before;
+    const was = saldoAt(before, c.row, c.block);
+    const now = saldoAt(rows, c.row, c.block);
+    if (was === undefined || now === undefined || fromReais(now) - fromReais(was) !== -moved)
+      return `o Saldo de ${c.date} não mudou o que devia`;
+  }
+  return null;
+};
+
+/** Puts the cells of one tab back as they were, in one request, and checks they are. */
+const restoreTab = async (
+  api: SheetsApi,
+  tab: string,
+  sheetId: number,
+  ops: readonly Pick<OpRow, "cell" | "before_value" | "before_note">[],
+) => {
+  const at = ops.map((op) => ({ op, ...cellIndex(op.cell) }));
+  await api.writeCells(
+    sheetId,
+    at.map(({ op, row, col }) => ({
+      row,
+      col,
+      value: JSON.parse(op.before_value) as EnteredValue,
+      note: op.before_note,
+    })),
+  );
+  const { rows } = await api.readDays(tab);
+  if (at.some(({ op, row, col }) => !isBefore(dayCell(rows, row, col), op)))
+    throw new WriteError(`a aba ${tab} não voltou ao que era`);
+};
+
+/** `BF12` → 0-based row 11, column 57. */
+const cellIndex = (address: string) => {
+  const m = /^([A-Z]+)(\d+)$/.exec(address);
+  if (!m) throw new Error(`bad cell ${address}`);
+  const col = [...(m[1] ?? "")].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+  return { row: Number(m[2]) - 1, col };
+};
+
+/**
+ * Sets the Diário previsto of `days` to `value` (0 takes it away). Days the owner wrote in are
+ * left out, and so is a cell the reader does not fully understand. `entryId` is the idempotency
+ * key, as for `commitEntry`.
+ */
+export const writeForecast = async (
+  db: D1Database,
+  api: SheetsApi,
+  entryId: string,
+  days: readonly LocalDate[],
+  value: Cents,
+  now: () => string = () => new Date().toISOString(),
+): Promise<CommitResult> => {
+  if ((await opsOf(db, entryId)).length > 0) return result(db, entryId);
+  const tabs = new Map<string, LocalDate[]>();
+  for (const date of [...new Set(days)].sort()) {
+    const tab = date.slice(0, 4);
+    tabs.set(tab, [...(tabs.get(tab) ?? []), date]);
+  }
+  let part = 0;
+  const written: { tab: string; sheetId: number }[] = [];
+  for (const [tab, list] of tabs) {
+    const { sheetId, rows } = await api.readDays(tab);
+    const changes: ForecastChange[] = [];
+    for (const date of list) {
+      const at = locate({ date, column: "diario" });
+      const day = dayCell(rows, at.row, at.block + SHEET_MAP.offsets.data)?.effectiveValue
+        ?.numberValue;
+      if (day !== at.day)
+        throw new WriteError(
+          `a planilha mudou: a linha de ${ddmm(date)} mostra o dia ${day ?? "vazio"}`,
+        );
+      const cell = dayCell(rows, at.row, at.col);
+      const op = forecastEdit(cell, value);
+      const edit = op && planCellEdit(cell, op);
+      if (!op || !edit?.ok) continue;
+      changes.push({ date, ...at, cell, op, ...edit });
+    }
+    if (changes.length === 0) continue;
+    const t = now();
+    await inBatches(
+      db,
+      changes.map((c, i) =>
+        db
+          .prepare(INSERT_OP)
+          .bind(
+            entryId,
+            part + i,
+            t,
+            t,
+            tab,
+            a1(c.row, c.col),
+            c.date,
+            c.op.amount,
+            FORECAST,
+            JSON.stringify(enteredOf(c.cell)),
+            c.cell?.note ?? "",
+            c.formula,
+            c.note,
+            c.before,
+            c.after,
+          ),
+      ),
+    );
+    let error: string | null;
+    try {
+      await api.writeCells(
+        sheetId,
+        changes.map((c) => ({
+          row: c.row,
+          col: c.col,
+          value: c.formula === "" ? {} : { formulaValue: c.formula },
+          note: c.note,
+        })),
+      );
+      error = checkTab((await api.readDays(tab)).rows, rows, changes);
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+    const range = [entryId, part, part + changes.length - 1] as const;
+    if (error === null) {
+      await db
+        .prepare(
+          "UPDATE entry_op SET state = 'done', updated_at = ? WHERE entry_id = ? AND part BETWEEN ? AND ?",
+        )
+        .bind(now(), ...range)
+        .run();
+      written.push({ tab, sheetId });
+      part += changes.length;
+      continue;
+    }
+    // This tab goes back, and so do the ones written before it: the entry lands whole or not.
+    const ops = await opsOf(db, entryId);
+    for (const w of [{ tab, sheetId }, ...written.reverse()])
+      await restoreTab(
+        api,
+        w.tab,
+        w.sheetId,
+        ops.filter((o) => o.tab === w.tab),
+      ).catch((e) => {
+        error = `${error}; e não consegui voltar a aba ${w.tab}: ${e instanceof Error ? e.message : e}`;
+      });
+    await db
+      .prepare(
+        "UPDATE entry_op SET state = 'undone', updated_at = ? WHERE entry_id = ? AND state = 'done'",
+      )
+      .bind(now(), entryId)
+      .run();
+    await db
+      .prepare(
+        "UPDATE entry_op SET state = 'failed', error = ?, updated_at = ? WHERE entry_id = ? AND part BETWEEN ? AND ?",
+      )
+      .bind(error, now(), ...range)
+      .run();
+    return result(db, entryId);
+  }
+  if (part === 0) return { entryId, state: "done", parts: [] };
+  return result(db, entryId);
+};
+
+/** Undoes a Diário previsto entry tab by tab, only if every cell is still as Neko left it. */
+const undoForecast = async (
+  db: D1Database,
+  api: SheetsApi,
+  entryId: string,
+  ops: readonly OpRow[],
+  now: () => string,
+): Promise<CommitResult> => {
+  const tabs = [...new Set(ops.map((o) => o.tab))];
+  const read = new Map<string, { sheetId: number; rows: ApiCell[][] }>();
+  for (const tab of tabs) {
+    const got = await api.readDays(tab);
+    read.set(tab, got);
+    for (const op of ops.filter((o) => o.tab === tab)) {
+      const { row, col } = cellIndex(op.cell);
+      if (!isAfter(dayCell(got.rows, row, col), op))
+        throw new WriteError(`${placeOfOp(op)} mudou depois do lançamento; desfaça na planilha`);
+    }
+  }
+  for (const tab of tabs.reverse())
+    await restoreTab(
+      api,
+      tab,
+      read.get(tab)?.sheetId ?? 0,
+      ops.filter((o) => o.tab === tab),
+    );
+  await db
+    .prepare(
+      "UPDATE entry_op SET state = 'undone', updated_at = ? WHERE entry_id = ? AND state = 'done'",
+    )
+    .bind(now(), entryId)
+    .run();
   return result(db, entryId);
 };

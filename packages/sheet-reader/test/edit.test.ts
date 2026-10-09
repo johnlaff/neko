@@ -90,7 +90,7 @@ describe("checkCell", () => {
     ).toMatch(/sem nota|não tem nota/);
     expect(reason(sumCell("=SUM(10+10)", 20, "R$ 20,00 - Item"))).toMatch(/mesmos valores/);
     expect(reason(sumCell("=SUM(10+10)", 21, "R$ 10,00 - a\nR$ 10,00 - b"))).toMatch(/soma/);
-    expect(reason(sumCell("=SUM(10)", 10, "R$ 10,00 - a\nR$ dez - b"))).toMatch(/não entendo/);
+    expect(reason(sumCell("=SUM(10)", 10, "R$ 10,00 - a\nR$ dez - b"))).toMatch(/não entende/);
     expect(
       reason({ userEnteredValue: { numberValue: -5 }, effectiveValue: { numberValue: -5 } }),
     ).toMatch(/negativo/);
@@ -325,6 +325,70 @@ describe("planCellEdit: changing a line already there", () => {
     const bill = sumCell("=SUM(410)", 410, "CARTÕES\nR$ 410,00 - Inter");
     expect(planCellEdit(bill, setCard(40000, 45290, "Inter"))).toMatchObject({ ok: false });
     expect(planCellEdit(bill, setCard(41000, 41000, "Inter"))).toMatchObject({ ok: false });
+  });
+});
+
+describe("planCellEdit: the Diário previsto", () => {
+  it("fills a free Diário, the literal 0 included, with the forecast line", () => {
+    const p = plan(
+      { userEnteredValue: { numberValue: 0 }, effectiveValue: { numberValue: 0 } },
+      line(4500, "Previsto"),
+    );
+    expect(p).toMatchObject({
+      formula: "=SUM(45)",
+      note: "R$ 45,00 - Previsto",
+      before: 0,
+      after: 4500,
+    });
+  });
+  it("takes the forecast off when a real spending lands on the day", () => {
+    const p = plan(sumCell("=SUM(45)", 45, "R$ 45,00 - Previsto"), {
+      ...line(3000, "Padaria"),
+      dropForecast: true,
+    });
+    expect(p).toMatchObject({
+      formula: "=SUM(30)",
+      note: "R$ 30,00 - Padaria",
+      before: 4500,
+      after: 3000,
+    });
+  });
+  it("keeps what the owner wrote beside the forecast", () => {
+    const p = plan(sumCell("=SUM(45+12)", 57, "R$ 45,00 - Previsto\nR$ 12,00 - Café"), {
+      ...line(3000, "Padaria"),
+      dropForecast: true,
+    });
+    expect(p).toMatchObject({
+      formula: "=SUM(12+30)",
+      note: "R$ 12,00 - Café\nR$ 30,00 - Padaria",
+      before: 5700,
+      after: 4200,
+    });
+  });
+  it("adds as usual on a day without forecast, and leaves the forecast without the flag", () => {
+    expect(
+      plan(sumCell("=SUM(12)", 12, "R$ 12,00 - Café"), {
+        ...line(3000, "Padaria"),
+        dropForecast: true,
+      }),
+    ).toMatchObject({ after: 4200 });
+    expect(
+      plan(sumCell("=SUM(45)", 45, "R$ 45,00 - Previsto"), line(3000, "Padaria")),
+    ).toMatchObject({ after: 7500 });
+  });
+  it("changes and removes the forecast like any line", () => {
+    expect(
+      plan(sumCell("=SUM(45)", 45, "R$ 45,00 - Previsto"), {
+        ...line(5000, "Previsto"),
+        was: cents(4500),
+      }),
+    ).toMatchObject({ formula: "=SUM(50)", note: "R$ 50,00 - Previsto" });
+    expect(
+      plan(sumCell("=SUM(45)", 45, "R$ 45,00 - Previsto"), {
+        ...line(0, "Previsto"),
+        was: cents(4500),
+      }),
+    ).toMatchObject({ formula: "", note: "", after: 0 });
   });
 });
 

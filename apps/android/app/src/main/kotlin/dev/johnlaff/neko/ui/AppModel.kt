@@ -211,7 +211,11 @@ class AppModel(
         }
 
         override suspend fun undo(id: String): Boolean =
-            (neko.api.undo(id).state == "undone").also { readToday(shown = false) }
+            (neko.api.undo(id).state == "undone").also {
+                readToday(shown = false)
+                // Desfazer after the Diário previsto also puts its setting back.
+                read(Tab.Ajustes, shown = false)
+            }
 
         override suspend fun ignore(key: String) {
             neko.api.ignore(key)
@@ -220,6 +224,19 @@ class AppModel(
 
         override suspend fun account(account: String, use: String) {
             neko.api.accountUse(account, use)
+            readToday(shown = false)
+        }
+
+        override suspend fun previsto(value: Long): String {
+            val r = neko.api.previsto(value)
+            if (r.state != "done") throw ApiException(422, "write", r.error ?: "Não gravou. A planilha ficou como estava.")
+            readToday(shown = false)
+            read(Tab.Ajustes, shown = false)
+            return r.entryId
+        }
+
+        override suspend fun keepPrevisto() {
+            neko.api.keepPrevisto()
             readToday(shown = false)
         }
     }

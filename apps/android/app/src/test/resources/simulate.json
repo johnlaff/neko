@@ -1,7 +1,7 @@
 {
   "cycle": {
-    "perDay": -95031,
-    "remaining": -95031,
+    "perDay": 7454,
+    "remaining": 201280,
     "due": "2026-10-12"
   },
   "parcels": [
@@ -22,27 +22,27 @@
     {
       "year": 2026,
       "month": 10,
-      "endBefore": 1843404,
-      "endAfter": 1823404
+      "endBefore": 1577404,
+      "endAfter": 1557404
     },
     {
       "year": 2026,
       "month": 11,
-      "endBefore": 1990376,
-      "endAfter": 1950376
+      "endBefore": 1439376,
+      "endAfter": 1399376
     },
     {
       "year": 2026,
       "month": 12,
-      "endBefore": 2016548,
-      "endAfter": 1956548
+      "endBefore": 1171048,
+      "endAfter": 1111048
     }
   ],
   "lowest": {
     "year": 2026,
-    "month": 10,
-    "end": 1713404,
-    "date": "2026-10-15"
+    "month": 12,
+    "end": 1111048,
+    "date": "2026-12-31"
   },
   "firstNegative": null
 }
