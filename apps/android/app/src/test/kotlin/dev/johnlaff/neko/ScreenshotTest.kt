@@ -123,7 +123,7 @@ class ScreenshotTest {
     // The Diário previsto (specs/005-lancamentos, Fase 3): the value with the bank's suggestion,
     // the review every 3 months, and the card's cycle when it is off.
     @Test fun previstoAjustesDark() = shot("previsto-ajustes-dark", night = true) {
-        dev.johnlaff.neko.ui.Panel { dev.johnlaff.neko.ui.PrevistoForm(ajustes.previsto!!.copy(on = false), false, {}, {}) }
+        dev.johnlaff.neko.ui.Panel { dev.johnlaff.neko.ui.PrevistoForm(ajustes.previsto!!.copy(on = false), false, {}) {} }
     }
 
     @Test fun previstoHojeLight() = shot("previsto-hoje-light", night = false, scrollTo = "A cada 3 meses") {
