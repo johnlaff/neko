@@ -74,17 +74,24 @@ com valores diferentes, valor negativo.
 
 ## Fases
 
-0. **Fundação, sem gravar (esta entrega).** `placeEntry` no engine, `checkCell` e `planCellEdit` no
+0. **Fundação, sem gravar (feita).** `placeEntry` no engine, `checkCell` e `planCellEdit` no
    leitor, com testes de exemplo e de propriedade, e o ensaio na cópia real
    (`apps/neko/test/real-sheet-edit.test.ts`, com `NEKO_REAL_SHEET`): planeja um lançamento em cada
    célula e exige que toda célula a partir do ano anterior ao atual seja limpa.
-1. **Planilha de teste.** Conta de serviço `neko-writer` (Editor, separada da `neko-reader`), escopo
-   `spreadsheets`, chave como secret do Worker. Diário de operações no D1 (migração nova): chave de
-   idempotência, célula alvo, fórmula e nota antes e depois, estado. Um Durable Object grava um
-   lançamento por vez: relê a célula, compara com o plano, grava fórmula (`values.batchUpdate`,
-   `USER_ENTERED`) e nota (`updateCells`, máscara `note`), relê e confere a célula e o saldo. Roda no
-   CI contra uma planilha de teste em pt-BR com dados inventados.
-2. **Primeiro lançamento real.** Tela de lançamento na web e no Android, Entrada, Diário, Conta,
+1. **Planilha de teste (esta entrega).** Conta de serviço `neko-writer` (Editor, separada da
+   `neko-reader`), escopo `spreadsheets`, chave no secret `NEKO_WRITER_SERVICE_ACCOUNT_JSON`.
+   Diário de operações no D1 (`entry_op`, migração 0008): chave de idempotência, célula, valor e
+   nota antes e depois, estado. O gravador (`apps/neko/src/worker/writer.ts`):
+   - `previewEntry` lê as células e devolve o que muda, com a impressão digital de cada célula;
+   - `commitEntry` relê, recusa se a célula mudou desde a prévia, grava o diário, grava valor e
+     nota num único `updateCells`, relê e confere a célula e o Saldo do dia. Se algo não bate, a
+     célula volta ao que era; se uma parcela falha, as já gravadas são desfeitas;
+   - `undoEntry` devolve cada célula ao que era, só se ela ainda estiver como o Neko deixou.
+   Os testes de contrato (`apps/neko/test/sheet-writer.contract.test.ts`) rodam no CI contra a
+   planilha "Neko Teste" (pt-BR, dados inventados, mesmas proteções), um de cada vez, e desfazem o
+   que gravam. Nenhuma rota do Worker grava ainda.
+2. **Primeiro lançamento real.** Rota no Worker atrás de um Durable Object que grava um
+   lançamento por vez. Tela de lançamento na web e no Android, Entrada, Diário, Conta,
    Desfazer (restaura a célula se ela ainda estiver como o Neko deixou) e fila offline no Android.
    Interruptor para desligar a escrita sem deploy.
 3. **Cartões.** Fatura certa, parcelas, cartão adicional e reembolso, estorno, fatura fechou (o
