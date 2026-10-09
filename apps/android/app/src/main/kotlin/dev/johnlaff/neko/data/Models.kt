@@ -1,6 +1,7 @@
 package dev.johnlaff.neko.data
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /**
  * What GET /api/today returns (apps/neko/src/shared/today.ts), already grouped and filtered.
@@ -27,7 +28,61 @@ data class TodayView(
     val recap: MonthRecap? = null,
     /** Account movements the sheet does not have yet; null with no bank linked. */
     val bankMissing: List<MissingMovement>? = null,
+    /** Para lançar (shared/queue.ts); null with no bank linked. */
+    val queue: List<QueueItem>? = null,
+    /** "Saldo bate": yesterday's Saldo against the accounts, shown when the queue is empty. */
+    val saldo: SaldoView? = null,
+    /** Off in Ajustes, or no writer key yet: no launch buttons. */
+    val writing: Boolean = false,
+    /** Cards a purchase can be launched on: their closing day is known. */
+    val entryCards: List<String> = emptyList(),
 )
+
+/** One cell a launch changes: "Diário de 15/10", from `before` to `after`. */
+@Serializable
+data class QueueLine(val label: String, val before: Long, val after: Long)
+
+/**
+ * One way to launch an item. `draft` goes back to the Worker as is (only value, day and name may
+ * change, with Ajustar); null for a question that writes nothing, answered by `answer`.
+ */
+@Serializable
+data class QueueOption(
+    val label: String,
+    val draft: JsonObject? = null,
+    val answer: String? = null,
+    val lines: List<QueueLine> = emptyList(),
+)
+
+@Serializable
+data class BankMove(val date: String, val amount: Long, val description: String)
+
+/** What the bank showed and the sheet does not have yet (engine queue.ts). */
+@Serializable
+data class QueueItem(
+    val key: String,
+    val kind: String,
+    val date: String,
+    val title: String,
+    val options: List<QueueOption>,
+    val bank: List<BankMove> = emptyList(),
+    val adjustable: Boolean = false,
+)
+
+/** `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. */
+@Serializable
+data class SaldoView(
+    val date: String,
+    val sheet: Long,
+    val bank: Long,
+    val diff: Long,
+    val stale: List<String> = emptyList(),
+    val draft: JsonObject? = null,
+)
+
+/** What a launch or an undo did (worker/writer.ts CommitResult). */
+@Serializable
+data class LaunchResult(val entryId: String, val state: String, val error: String? = null)
 
 /** A bank movement with no sheet line (engine bank.ts), and the line to paste into the note. */
 @Serializable

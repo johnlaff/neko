@@ -2532,3 +2532,125 @@ form.mia-form {
   color: var(--neg);
   font-size: 0.875rem;
 }
+
+/* Para lançar: one item a line, what changes under it, the three answers beside it */
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.q-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.q-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.q-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+}
+.q-head > .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.q-head > .meta {
+  flex: none;
+  color: var(--faint);
+  font-size: 0.8125rem;
+}
+.q-lines {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.q-ok {
+  margin: 0;
+  color: var(--pos);
+}
+.q-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+button.small:not(.ghost) {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 0.875rem;
+}
+.q-bank {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.q-bank > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.q-bank .pos {
+  color: var(--pos);
+}
+fieldset.how {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+fieldset.how > button.chip-button {
+  flex: 0 1 auto;
+}
+.entry-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 84px);
+  translate: -50% 0;
+  z-index: 2;
+  width: min(calc(100% - 2 * var(--gutter)), 26rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 12px;
+  background: var(--text);
+  color: var(--bg);
+}
+.toast > button.ghost.small {
+  color: var(--bg);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--bg) 40%, transparent);
+}
+form.entry {
+  text-align: start;
+}
+.entry-row > .field,
+.entry-row input {
+  min-width: 0;
+}
+/* Inside Para lançar the form is part of the item, not a second card */
+.panel form.entry.panel {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}

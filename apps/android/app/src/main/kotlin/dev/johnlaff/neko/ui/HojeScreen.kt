@@ -2,14 +2,14 @@ package dev.johnlaff.neko.ui
 
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalDensity
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -61,7 +61,6 @@ import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
 import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
-import dev.johnlaff.neko.data.MissingMovement
 import dev.johnlaff.neko.data.MonthRecap
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
@@ -91,20 +90,34 @@ fun HojeScreen(
     miaOpen: Boolean = false,
     miaTalk: List<MiaExchange> = emptyList(),
     review: Review? = null,
+    launcher: Launcher? = null,
+    /** Opens Lançar à mão, as the "Lançar" shortcut and the prints do. */
+    launchOpen: Boolean = false,
 ) {
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
+    var launching by rememberSaveable { mutableStateOf(launchOpen) }
+    var undo by remember { mutableStateOf<String?>(null) }
+    Box(Modifier.fillMaxSize()) {
     var asking by rememberSaveable { mutableStateOf(miaOpen) }
     LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh) { v ->
         item { Hero(v) }
         val cs = v.canSpend.takeIf { simulate != null }
-        if (v.todayUrl != null || cs != null) {
+        // Writing on, Lançar opens the form here; off, it opens today's row in the sheet.
+        val writes = v.writing && launcher != null
+        if (v.todayUrl != null || cs != null || writes) {
             item {
                 // Both buttons take the taller one's height when large text wraps a label.
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    v.todayUrl?.let { url -> LancarButton(url, Modifier.weight(1f)) }
+                    if (writes) LancarButton(Modifier.weight(1f), launching) { launching = !launching }
+                    else v.todayUrl?.let { url -> LancarButton(url, Modifier.weight(1f)) }
                     if (cs != null) SimulateButton(simulating, Modifier.weight(1f)) { simulating = !simulating }
                 }
+            }
+        }
+        if (writes && launching && launcher != null) item {
+            Panel {
+                EntryForm(launcher, v.today, { launching = false }, { undo = it }, cards = v.entryCards)
             }
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
@@ -120,8 +133,13 @@ fun HojeScreen(
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
+        if (v.queue != null) item { ParaLancar(v, launcher) { undo = it } }
         item { Conference(v, review) }
-        v.bankMissing?.takeIf { it.isNotEmpty() }?.let { m -> item { BankMissing(m) } }
+    }
+    UndoBar(
+        undo, launcher, { undo = null },
+        Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 84.dp),
+    )
     }
 }
 
@@ -207,11 +225,17 @@ private fun Formula(cs: CanSpend, v: TodayView) {
 
 @Composable
 private fun LancarButton(url: String, modifier: Modifier = Modifier) {
-    val l = LocalLedger.current
     val context = LocalContext.current
+    LancarButton(modifier) { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+}
+
+@Composable
+private fun LancarButton(modifier: Modifier = Modifier, open: Boolean? = null, onClick: () -> Unit) {
+    val l = LocalLedger.current
     Button(
-        onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
-        modifier = modifier.fillMaxWidth().fillMaxHeight().heightIn(min = 48.dp),
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().fillMaxHeight().heightIn(min = 48.dp)
+            .then(if (open != null) Modifier.semantics { stateDescription = if (open) "Aberto" else "Fechado" } else Modifier),
         // The one filled button on the screen, as on the site: logging is the method's daily act.
         colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
         shape = RoundedCornerShape(10.dp),
@@ -566,53 +590,5 @@ private fun Conference(v: TodayView, review: Review?) {
             }
         }
         if (failed) SaveFailed()
-    }
-}
-
-/**
- * What moved in the account and has no line in the sheet yet (as on the site). Neko never writes
- * the sheet: a tap copies the line as the day's note wants it, and the owner pastes it there.
- */
-@Composable
-private fun BankMissing(items: List<MissingMovement>) {
-    val l = LocalLedger.current
-    val context = LocalContext.current
-    var copied by remember { mutableStateOf<Int?>(null) }
-    Panel {
-        PanelHead("Fora da planilha") {
-            Chip(if (items.size == 1) "1 movimento" else "${items.size} movimentos", ChipTone.Warn)
-        }
-        items.forEachIndexed { i, m ->
-            Column(
-                Modifier.fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .clickable(onClickLabel = "copiar a linha da nota", role = Role.Button) {
-                        context.getSystemService(ClipboardManager::class.java)
-                            ?.setPrimaryClip(ClipData.newPlainText("Neko", m.line))
-                        copied = i
-                    }
-                    .padding(vertical = 4.dp),
-            ) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(Format.bankText(m.description), modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        signed(m.amount, if (m.amount > 0) '+' else '−'),
-                        color = if (m.amount > 0) l.pos else l.text,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-                Text(
-                    if (copied == i) "Linha copiada. Cole na nota do dia"
-                    else "${shortDate(m.date)} · ${if (m.amount > 0) "Entrada" else "Saída"}",
-                    color = l.faint,
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
-        }
-        Text(
-            "Toque em um para copiar a linha da nota. O Neko não altera a planilha.",
-            color = l.muted,
-            style = MaterialTheme.typography.bodyMedium,
-        )
     }
 }

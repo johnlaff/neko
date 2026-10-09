@@ -131,18 +131,25 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
 /** The run as a fact, not a threat: a missed day is a rest day, so nothing is "lost" tonight. */
 const streakLine = (streak: number) => (streak >= 2 ? ` Você está há ${streak} dias em dia.` : "");
 
-/** 21:00: the habit nudge, straight to today's row in the sheet; silent once the day is logged. */
+/**
+ * 21:00: the habit nudge, silent once anything was done to the sheet today (a launch from Neko
+ * counts). With writing on it opens Para lançar; off, today's row in the sheet.
+ */
 export const eveningMessage = ({
   projection: p,
   sheet,
   habit,
+  writing,
 }: ProjectionResponse): Reminder | null =>
   p.todayLogged || habit?.editedToday
     ? null
     : {
         title: "Lançou os gastos de hoje?",
-        body: `Abre a planilha direto no dia ${shortDate(p.today)}.${streakLine(habit?.streak ?? 0)}`,
-        url: p.todayRef ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1) : "/",
+        body: `${writing ? "Abre o Neko para lançar o dia" : `Abre a planilha direto no dia ${shortDate(p.today)}`}.${streakLine(habit?.streak ?? 0)}`,
+        url:
+          !writing && p.todayRef
+            ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
+            : "/",
         tag: "evening",
       };
 

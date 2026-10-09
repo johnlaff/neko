@@ -177,7 +177,7 @@ private fun Figure(label: String, value: String, color: androidx.compose.ui.grap
 
 /** A pill to pick one option, pressed when chosen. */
 @Composable
-private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
+internal fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
     val l = LocalLedger.current
     val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(50)

@@ -1,3 +1,4 @@
+import type { Draft } from "@neko/engine";
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
@@ -42,6 +43,13 @@ export interface Device {
 
 /** Settings the Ajustes form does not send; the Worker keeps them. */
 export type KeptSetting = "bankCards" | "accountUse" | "savedOrigins" | "writing";
+
+/** What a launch or an undo did; `error` says why a part failed. */
+export interface LaunchResult {
+  entryId: string;
+  state: "done" | "failed" | "undone";
+  error?: string;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -121,6 +129,22 @@ export const api = {
     request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
   mia: () => request<MiaStatus>("/mia"),
   askMia: (ask: MiaAsk) => request<MiaReply>("/mia", { method: "POST", body: JSON.stringify(ask) }),
+  previewEntry: (draft: Draft) =>
+    request<{ parts: { fingerprint: string }[] }>("/entries/preview", {
+      method: "POST",
+      body: JSON.stringify({ draft }),
+    }),
+  launch: (body: { id: string; draft: Draft; fingerprints: string[]; key?: string }) =>
+    request<LaunchResult>("/entries", { method: "POST", body: JSON.stringify(body) }),
+  undoEntry: (id: string) =>
+    request<LaunchResult>(`/entries/${encodeURIComponent(id)}/undo`, { method: "POST" }),
+  ignore: (key: string) =>
+    request<{ ok: true }>("/queue/ignore", { method: "POST", body: JSON.stringify({ key }) }),
+  accountUse: (account: string, use: "guardado" | "corrente") =>
+    request<{ ok: true }>("/queue/account", {
+      method: "POST",
+      body: JSON.stringify({ account, use }),
+    }),
   saveBankCards: (cards: UserSettings["bankCards"]) =>
     request<{ ok: true }>("/banks/cards", { method: "PUT", body: JSON.stringify({ cards }) }),
 };
