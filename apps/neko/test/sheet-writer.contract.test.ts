@@ -332,7 +332,7 @@ describe.runIf(available)("writer on the test sheet", { timeout: 300_000 }, () =
     const { sheetId: tabId } = await s.readRow(l.tab, l.row, l.block);
     for (const col of [l.block + SHEET_MAP.offsets.data, l.block + SHEET_MAP.offsets.saldo])
       await expect(s.writeCell(tabId, l.row, col, { numberValue: 1 }, "")).rejects.toThrow(
-        /403|protect/i,
+        /403|protegida/i,
       );
   });
 });

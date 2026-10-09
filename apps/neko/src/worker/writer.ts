@@ -146,7 +146,11 @@ export const googleSheets = (
         continue;
       }
       if (!res.ok) {
-        console.error("sheets", res.status, await res.text());
+        const body = await res.text();
+        console.error("sheets", res.status, body);
+        // The sheet's protection (proteger-planilha.gs) keeps Neko out of Data, Saldo and the rest.
+        if (body.includes("protected"))
+          throw new WriteError("a planilha está protegida para o Neko nesse lugar");
         throw new WriteError(`o Google respondeu ${res.status} e não gravou`);
       }
       return res.json();
@@ -541,7 +545,7 @@ export const commitEntry = async (
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
       // Before the new protection script runs, the whole Economia tab is closed to Neko.
-      if (site.tab === ECONOMIA_TAB && error.includes("respondeu 403"))
+      if (site.tab === ECONOMIA_TAB && /respondeu 403|protegida/.test(error))
         error = "a aba Economia está protegida para o Neko; rode de novo o script de proteção";
     }
     if (error === null) {
