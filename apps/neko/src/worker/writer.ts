@@ -59,20 +59,32 @@ const RowResponse = z.object({
     .min(1),
 });
 
+/** Tries after a 429, waiting 1, 2, 4, 8 and 16 seconds: a full minute of quota in all. */
+const RETRIES = 5;
+
 /** The real Sheets API, with a token of the neko-writer account (`WRITE_SCOPES`). */
 export const googleSheets = (
   spreadsheetId: string,
   token: string,
   f: typeof fetch = fetch,
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
 ): SheetsApi => {
   const base = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`;
   const call = async (url: string, init?: RequestInit) => {
-    const res = await f(url, {
-      ...init,
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-    });
-    if (!res.ok) throw new WriteError(`Google respondeu ${res.status}: ${await res.text()}`);
-    return res.json();
+    // Sheets allows 60 reads and 60 writes a minute: a busy minute answers 429, so wait and retry.
+    for (let attempt = 0; ; attempt++) {
+      const res = await f(url, {
+        ...init,
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      });
+      if (res.status === 429 && attempt < RETRIES) {
+        await res.body?.cancel();
+        await wait(1000 * 2 ** attempt);
+        continue;
+      }
+      if (!res.ok) throw new WriteError(`Google respondeu ${res.status}: ${await res.text()}`);
+      return res.json();
+    }
   };
   return {
     async readRow(tab, row, firstCol) {
@@ -231,6 +243,8 @@ export interface CommitResult {
   readonly entryId: string;
   readonly state: "done" | "failed" | "undone";
   readonly parts: readonly { address: string; before: Cents; after: Cents; state: string }[];
+  /** Why a part failed, in words the owner can act on. */
+  readonly error?: string;
 }
 
 const isAfter = (cell: ApiCell | undefined, op: Pick<OpRow, "after_total" | "after_note">) => {
@@ -274,9 +288,11 @@ const result = async (db: D1Database, entryId: string): Promise<CommitResult> =>
     : ops.every((o) => o.state === "undone")
       ? "undone"
       : "done";
+  const error = ops.find((o) => o.state === "failed")?.error ?? undefined;
   return {
     entryId,
     state,
+    ...(error ? { error } : {}),
     parts: ops.map((o) => ({
       address: `${o.tab}!${o.cell}`,
       before: cents(o.before_total),
