@@ -97,16 +97,31 @@ com valores diferentes, valor negativo.
    Os testes de contrato (`apps/neko/test/sheet-writer.contract.test.ts`) rodam no CI contra a
    planilha "Neko Teste" (pt-BR, dados inventados, mesmas proteções), um de cada vez, e desfazem o
    que gravam. Nenhuma rota do Worker grava ainda.
-2. **Primeiro lançamento real.** Rota no Worker atrás de um Durable Object que grava um
-   lançamento por vez. Tela de lançamento na web e no Android, Entrada, Diário, Conta,
-   Desfazer (restaura a célula se ela ainda estiver como o Neko deixou) e fila offline no Android.
-   Interruptor para desligar a escrita sem deploy.
-3. **Cartões.** Fatura certa, parcelas, cartão adicional e reembolso, estorno, fatura fechou (o
-   valor real substitui a linha) e "o que compõe" cada fatura.
-4. **Completo.** Editar, mover e apagar, repetir todo mês, fechar o dia, aba Economia, widget e
-   bloco de configurações rápidas.
-5. **Atalhos.** Mia transforma uma frase em proposta de lançamento; Open Finance sugere o que falta
-   lançar; ambos esperam o toque do dono.
+2. **Conferência e Economia (plano v27, aprovado em 2026-10-09).** O gravador troca, move e apaga
+   uma linha. A fila **Para lançar** na tela Hoje (no lugar de "Fora da planilha") compara o banco
+   com a planilha todo dia e propõe, já do jeito do método (`buildQueue`, `packages/engine/src/queue.ts`):
+   - Entrada nova, ou a linha planejada corrigida (valor e dia). O salário cai líquido: o banco é
+     comparado com o salário menos as Saídas do dia, e o dono escolhe se mudou o salário ou um
+     desconto.
+   - Pix, débito e saque no Diário; conta planejada parecida (até 25% e 7 dias) é corrigida. Dois
+     candidatos iguais: o dono escolhe.
+   - A linha de cada cartão vai ao total do banco em cada fatura futura, num item por cartão, com as
+     parcelas até a última. Sobe sempre; baixa só com a fatura fechada ou por arredondamento (até
+     R$ 0,10). No cartão de outra pessoa, o dono diz se o reembolso planejado acompanha.
+   - Dinheiro para uma conta sua: pergunta uma vez se ela é de guardar. Para ela, Saída em
+     `Reserva:`; de volta dela, Entrada em `Reserva:`. O que acontece dentro dela não vira item.
+     Um Pix lançado como guardado faz a próxima vez da mesma origem vir como guardado.
+   - Só o confirmado (pendente espera), só os últimos 40 dias. Ignorado e lançado não voltam
+     (`queue_decision`, migração 0009); desfazer traz o item de volta.
+   - "Saldo bate": o Saldo de ontem contra a soma das contas correntes (sem as de guardar), com o
+     banco que não atualizou hoje nomeado. A diferença pode ser lançada como Entrada ou Saída.
+   O app manda um rascunho (`Draft`), nunca células: o Worker transforma em lançamentos
+   (`placeDraft`), mostra a prévia e grava (`/api/entries`, um por vez, trava no D1), com Desfazer
+   e o interruptor em Ajustes. Lançar à mão no botão Lançar da tela Hoje. Aba Economia e aviso das
+   21h fecham a fase.
+3. **Diário previsto.** Previsão do Diário nos dias futuros, fechar o dia, "bem ou mal", revisão a
+   cada 3 meses e a chave para desligar.
+4. **Mia.** Uma frase vira um item da fila, com o mesmo toque para aprovar.
 
 ## Proteções da gravação (Fases 1+)
 

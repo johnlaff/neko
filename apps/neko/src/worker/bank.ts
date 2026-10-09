@@ -3,6 +3,7 @@ import {
   type BankCardLine,
   type BankMovement,
   billChecks,
+  buildQueue,
   type CardConfig,
   type ClosedBill,
   cents,
@@ -11,8 +12,11 @@ import {
   type LocalDate,
   localDate,
   normalizeName,
+  saldoCheck,
+  todayIn,
   unmatchedMovements,
 } from "@neko/engine";
+import { queueView } from "../shared/queue.ts";
 import type { BankView, UserSettings } from "../shared/types.ts";
 
 /**
@@ -23,9 +27,20 @@ import type { BankView, UserSettings } from "../shared/types.ts";
 export interface BankAccountRow {
   readonly id: string;
   readonly type: string;
+  readonly item_id?: string;
+  readonly balance?: number;
+}
+
+export interface BankItemRow {
+  readonly item_id: string;
+  readonly label: string;
+  readonly synced_at: string | null;
 }
 
 export interface BankTxnRow {
+  /** The bank's own id when it has one: Pluggy may drop a movement and send it again anew. */
+  readonly id?: string;
+  readonly status?: string | null;
   readonly account_id: string;
   readonly date: string;
   readonly amount: number;
@@ -47,6 +62,9 @@ export interface BankBillRow {
 export interface BankRows {
   readonly items: number;
   readonly syncedAt: string | null;
+  readonly itemRows?: readonly BankItemRow[];
+  /** Para lançar keys already launched or ignored. */
+  readonly decided?: readonly string[];
   readonly accounts: readonly BankAccountRow[];
   readonly txns: readonly BankTxnRow[];
   readonly bills: readonly BankBillRow[];
@@ -102,12 +120,14 @@ export const bankInput = (
         installment: t.installment,
         installments: t.installments,
       });
-    } else
+    } else if (t.status !== "PENDING")
+      // Only what the bank confirmed: a pending movement waits.
       movements.push({
         date: localDate(t.date),
         amount: cents(signed(t)),
         description: t.description,
         account: t.account_id,
+        ...(t.id ? { id: t.id } : {}),
       });
   }
   // A closed bill's total is final, though the bank may leave a line or two out of the list. It
@@ -136,8 +156,41 @@ export const bankView = (
 ): BankView | null => {
   if (!rows) return null;
   const { lines, movements, closed } = bankInput(rows, settings.bankCards, cards);
+  const labels = new Map((rows.itemRows ?? []).map((i) => [i.item_id, i]));
+  const checking = rows.accounts.filter((a) => a.type !== "CREDIT");
+  const accounts = checking.map((a) => ({
+    id: a.id,
+    label: labels.get(a.item_id ?? "")?.label ?? "Banco",
+    use: settings.accountUse[a.id] ?? null,
+  }));
+  const queue = buildQueue({
+    ledger,
+    cards,
+    today,
+    since: addDays(today, -MISSING_DAYS),
+    movements,
+    lines,
+    closed,
+    othersCards: settings.othersCards,
+    accounts,
+    savedOrigins: new Set(settings.savedOrigins),
+    decided: new Set(rows.decided ?? []),
+  });
+  const synced = (a: BankAccountRow) => labels.get(a.item_id ?? "")?.synced_at ?? null;
   return {
     syncedAt: rows.syncedAt,
+    queue: queueView(queue, ledger, cards),
+    saldo: saldoCheck(
+      ledger,
+      today,
+      checking
+        .filter((a) => settings.accountUse[a.id] !== "guardado")
+        .map((a) => ({
+          label: labels.get(a.item_id ?? "")?.label ?? "Banco",
+          balance: cents(a.balance ?? 0),
+          readOn: synced(a) ? todayIn(new Date(synced(a) as string)) : null,
+        })),
+    ),
     checks: billChecks(ledger, cards, lines, today, closed),
     // The last MISSING_DAYS only, so an old gap does not stay on Hoje forever; the account id
     // stays on the server.
@@ -157,11 +210,12 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
-    const [accounts, txns, bills] = await Promise.all([
-      db.prepare("SELECT id, type FROM bank_account").all<BankAccountRow>(),
+    const [itemRows, accounts, txns, bills] = await Promise.all([
+      db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
+      db.prepare("SELECT id, type, item_id, balance FROM bank_account").all<BankAccountRow>(),
       db
         .prepare(
-          "SELECT account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",
+          "SELECT COALESCE(provider_id, id) AS id, status, account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",
         )
         .all<BankTxnRow>(),
       db.prepare("SELECT id, account_id, due_date, total FROM bank_bill").all<BankBillRow>(),
@@ -169,6 +223,8 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
     return {
       items: items.n,
       syncedAt: items.at,
+      itemRows: itemRows.results,
+      decided: await loadDecided(db),
       accounts: accounts.results,
       txns: txns.results,
       bills: bills.results,
@@ -179,8 +235,20 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
   }
 };
 
-/** Changes whenever a sync lands or a bank is linked or dropped. */
+/** Para lançar keys launched or ignored; none before migration 0009 is applied. */
+const loadDecided = async (db: D1Database): Promise<string[]> => {
+  try {
+    return (
+      await db.prepare("SELECT key FROM queue_decision ORDER BY key").all<{ key: string }>()
+    ).results.map((r) => r.key);
+  } catch (error) {
+    console.error("queue decisions unreadable", error);
+    return [];
+  }
+};
+
+/** Changes whenever a sync lands, a bank is linked or dropped, or an item is decided. */
 export const bankVersion = (rows: BankRows | null): string =>
   rows
-    ? `${rows.items}:${rows.syncedAt ?? "-"}:${rows.accounts.length}:${rows.txns.length}`
+    ? `${rows.items}:${rows.syncedAt ?? "-"}:${rows.accounts.length}:${rows.txns.length}:${rows.decided?.length ?? 0}:${rows.decided?.at(-1) ?? "-"}`
     : "none";

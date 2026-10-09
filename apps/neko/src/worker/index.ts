@@ -18,6 +18,7 @@ import {
   startSession,
   verifyGoogleCredential,
 } from "./auth.ts";
+import { entries, queue } from "./entries.ts";
 import type { AppEnv, Env } from "./env.ts";
 import {
   askMia,
@@ -151,6 +152,11 @@ app.use("/client-error", requireSession);
 app.use("/banks", requireSession);
 app.use("/banks/*", requireSession);
 app.use("/mia", requireSession);
+app.use("/entries", requireSession);
+app.use("/entries/*", requireSession);
+app.use("/queue/*", requireSession);
+app.route("/entries", entries);
+app.route("/queue", queue);
 
 const ClientError = z.object({
   message: z.string().max(500),

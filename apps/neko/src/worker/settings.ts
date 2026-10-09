@@ -32,10 +32,13 @@ export const settingsHash = async ({ reviewed: _, ...s }: UserSettings): Promise
 };
 
 /**
- * The bank cards are set from Ajustes › Bancos; a settings form that does not send them (Ajustes
- * itself, or an older app) keeps the ones saved.
+ * Fields set elsewhere than the Ajustes form (Ajustes › Bancos, Para lançar): a settings body that
+ * does not send them (Ajustes itself, or an older app) keeps the ones saved.
  */
+const KEPT = ["bankCards", "accountUse", "savedOrigins", "writing"] as const;
+
 export const keepBankCards = (body: unknown, current: UserSettings): UserSettings => {
   const b = z.record(z.string(), z.unknown()).parse(body);
-  return UserSettings.parse("bankCards" in b ? b : { ...b, bankCards: current.bankCards });
+  const kept = Object.fromEntries(KEPT.filter((k) => !(k in b)).map((k) => [k, current[k]]));
+  return UserSettings.parse({ ...b, ...kept });
 };
