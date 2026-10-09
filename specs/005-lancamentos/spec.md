@@ -69,6 +69,13 @@ com valores diferentes, valor negativo.
   cabeçalho; linha com seção entra no fim da seção; seção que não existe é criada no fim da nota. O
   resto do texto fica idêntico, byte a byte.
 - A descrição vira uma linha só e não pode começar com `R$`.
+- **Trocar, mover e apagar** (Fase 2): com `was`, a edição muda uma linha que já existe em vez de
+  somar uma nova. A linha `descrição` que vale `was`, na mesma seção, passa a valer o novo valor, e
+  o termo igual da fórmula muda junto; com valor 0, a linha e o termo saem, o cabeçalho que fica
+  sem linhas sai também, e a célula sem nenhuma linha fica vazia. Numa linha de cartão, `was` é o
+  que a linha vale agora (0 sem linha) e o valor é o novo total da fatura. Se a linha não está mais
+  lá com aquele valor, a edição é recusada e o item é refeito. Mover é apagar num dia e somar no
+  outro, no mesmo lançamento, que grava inteiro ou nada.
 - O plano relê a própria saída com as mesmas regras e só é devolvido se for uma célula limpa que
   vale `antes + valor`. Senão é erro de programação, não gravação.
 

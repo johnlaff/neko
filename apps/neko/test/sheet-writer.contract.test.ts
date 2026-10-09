@@ -131,6 +131,98 @@ describe.runIf(available)("writer on the test sheet", { timeout: 60_000 }, () =>
     );
   });
 
+  /** Several cells at once (a move), each checked against its own preview, then undone. */
+  const roundTripMany = async (placements: Placement[], expectNotes: ((b: string) => string)[]) => {
+    const s = await sheets();
+    const db = sqliteD1() as unknown as D1Database;
+    const id = randomUUID();
+    const before = await Promise.all(placements.map(read));
+    const preview = await previewEntry(s, placements);
+    const done = await commitEntry(
+      db,
+      s,
+      id,
+      placements,
+      preview.map((p) => p.fingerprint),
+    );
+    expect(done.state, JSON.stringify(done)).toBe("done");
+    for (const [i, p] of placements.entries()) {
+      const after = await read(p);
+      const plan = preview[i];
+      expect(after.cell.userEnteredValue?.formulaValue).toBe(plan?.formula || undefined);
+      expect(after.cell.note ?? "").toBe(expectNotes[i]?.(before[i]?.cell.note ?? ""));
+      const sign = p.column === "entrada" ? 1 : -1;
+      expect(after.saldo - (before[i]?.saldo ?? 0)).toBe(
+        sign * ((plan?.after ?? 0) - (plan?.before ?? 0)),
+      );
+    }
+    expect((await undoEntry(db, s, id)).state).toBe("undone");
+    for (const [i, p] of placements.entries()) {
+      const undone = await read(p);
+      expect(undone.cell.userEnteredValue).toEqual(before[i]?.cell.userEnteredValue);
+      expect(undone.cell.note ?? "").toBe(before[i]?.cell.note ?? "");
+    }
+  };
+
+  it("changes the value of a planned salary", async () => {
+    await roundTripMany(
+      [
+        {
+          ...at("2026-02-05", "entrada"),
+          section: null,
+          description: "Salário",
+          target: "line",
+          was: cents(400000),
+          amount: cents(412345),
+        },
+      ],
+      [(b) => b.replace("R$ 4.000,00 - Salário", "R$ 4.123,45 - Salário")],
+    );
+  });
+
+  it("removes a bill line from CONTAS", async () => {
+    await roundTripMany(
+      [
+        {
+          ...at("2026-03-10", "saida"),
+          section: "contas",
+          description: "Luz",
+          target: "line",
+          was: cents(15050),
+          amount: cents(0),
+        },
+      ],
+      [(b) => b.replace("R$ 150,50 - Luz\n", "")],
+    );
+  });
+
+  it("moves the salary to the day before, emptying its old cell", async () => {
+    const line = { section: null, description: "Salário", target: "line" } as const;
+    await roundTripMany(
+      [
+        { ...at("2026-01-05", "entrada"), ...line, was: cents(400000), amount: cents(0) },
+        { ...at("2026-01-04", "entrada"), ...line, amount: cents(400000) },
+      ],
+      [() => "", () => "R$ 4.000,00 - Salário"],
+    );
+  });
+
+  it("sets a card's line on its bill to a lower total", async () => {
+    await roundTripMany(
+      [
+        {
+          ...at("2026-09-10", "saida"),
+          section: "cartoes",
+          description: "Cartão A",
+          target: "card",
+          was: cents(30000),
+          amount: cents(29999),
+        },
+      ],
+      [(b) => b.replace("R$ 300,00 - Cartão A", "R$ 299,99 - Cartão A")],
+    );
+  });
+
   it("refuses to write when the cell changed after the preview", async () => {
     const s = await sheets();
     const p: Placement = {
