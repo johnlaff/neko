@@ -340,7 +340,7 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
             Small(if (busy) "Preenchendo…" else "Preencher", filled = false, enabled = frase.isNotBlank() && !busy, modifier = Modifier.widthIn(min = 136.dp)) { send() }
         }
         // Always there, so the screen reader hears each new line.
-        Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+        Box(Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
             if (said.isNotEmpty()) Text(said, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
     }
