@@ -148,7 +148,13 @@ com valores diferentes, valor negativo.
    - **A cada 3 meses:** Hoje mostra o gasto real por dia ao lado do valor, com "Trocar para" e
      "Manter" (que conta mais 3 meses).
    - **Desligar:** apaga só as linhas Previsto dos dias que vêm; o que o dono escreveu fica.
-4. **Mia.** Uma frase vira um item da fila, com o mesmo toque para aprovar.
+4. **Mia.** Uma frase vira um item da fila, com o mesmo toque para aprovar. Em Lançar, com a Mia
+   ligada, "Numa frase" ("farmácia 120 no azul em 3x ontem") preenche valor, como pagou, parcelas,
+   nome e dia; o dono confere e toca em Lançar, como sempre. Uma chamada ao Haiku com a ferramenta
+   `lancamento` obrigatória (`fillEntry`, rota `/api/mia/lancamento`), contada no limite do mês da
+   Mia. O motor (`entryFromMia`) só aceita o que confere: cartão que o dono tem, valor positivo, dia
+   a menos de um ano de hoje, até 24 parcelas; o resto fica em branco para o dono escolher. A Mia
+   nunca grava.
 
 ## Proteções da gravação (Fases 1+)
 

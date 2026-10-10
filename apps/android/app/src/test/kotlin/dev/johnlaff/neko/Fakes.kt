@@ -71,4 +71,9 @@ object Fakes {
         override suspend fun previsto(value: Long) = "e"
         override suspend fun keepPrevisto() = Unit
     }
+
+    /** Same, with Mia on: Lançar à mão opens with "Numa frase". */
+    val miaLauncher = object : dev.johnlaff.neko.ui.Launcher by launcher {
+        override val fill: (suspend (String, List<String>) -> dev.johnlaff.neko.data.MiaEntry?) = { _, _ -> null }
+    }
 }
