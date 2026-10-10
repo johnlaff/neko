@@ -31,12 +31,17 @@ export interface QueueOptionView {
   readonly lines: readonly QueueLine[];
 }
 
+/**
+ * One line of the sheet a launch changes, drawn as "12/11 · Saída · Bradesco João: R$ 1.319,41 →
+ * R$ 1.722,55". `cell` is the whole cell when it holds more than this line, so the day's total
+ * shows too.
+ */
 export interface QueueLine {
-  /** "Diário de 15/10", "Fatura do Inter de 01/12", "Economia de out". */
   readonly label: string;
-  /** Null for the Economia tab, which Neko does not read: `after` is then the change, signed. */
+  /** Null for a new line, and for the Economia tab, which Neko does not read: `after` is then the change, signed. */
   readonly before: Cents | null;
   readonly after: Cents;
+  readonly cell: { readonly label: string; readonly before: Cents; readonly after: Cents } | null;
 }
 
 export interface QueueItemView {
@@ -52,8 +57,8 @@ export interface QueueItemView {
   readonly adjustable: boolean;
   /** The bank text behind a single movement, normalized: launched as savings, it is remembered. */
   readonly origin: string | null;
-  /** One line on why the item is there, when its title does not say it. */
-  readonly note: string | null;
+  /** Why the item is there, in one plain sentence, without amounts. */
+  readonly note: string;
 }
 
 export const dayMonth = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
@@ -85,70 +90,116 @@ const forecastLine = (draft: Extract<Draft, { type: "forecast" }>, ledger: Ledge
   return {
     label:
       draft.days.length === 1 && only
-        ? `Diário de ${dayMonth(only)}`
+        ? `${dayMonth(only)} · Diário`
         : `Diário de ${draft.days.length} dias`,
     before: cents(before),
     after: cents(after),
+    cell: null,
   };
 };
 
-/** Each cell a draft changes, with its value now and after, in date order; Economia last. */
+/** Each line a draft changes, with its value now and after, in date order; Economia last. */
 export const draftLines = (
   draft: Draft,
   ledger: Ledger,
   cards: readonly CardConfig[],
 ): QueueLine[] => {
   if (draft.type === "forecast") return [forecastLine(draft, ledger)];
-  const cells = new Map<string, { p: Placement; before: Cents; delta: number }>();
-  for (const p of placeDraft(draft, cards)) {
-    const economia = p.target === "economia";
-    const key = `${p.date}|${economia ? "economia" : p.column}`;
+  const placements = placeDraft(draft, cards).sort(
+    (a, b) =>
+      Number(a.target === "economia") - Number(b.target === "economia") ||
+      a.date.localeCompare(b.date),
+  );
+  // What the whole cell holds before and after, when the line is not all of it.
+  const cells = new Map<string, { before: Cents; delta: number }>();
+  for (const p of placements) {
+    if (p.target === "economia") continue;
+    const key = `${p.date}|${p.column}`;
     const row = ledger.find((r) => r.date === p.date);
-    const cell = cells.get(key) ?? { p, before: row?.[p.column].amount ?? (0 as Cents), delta: 0 };
-    cell.delta += economia && p.column === "entrada" ? -p.amount : p.amount - (p.was ?? 0);
+    const cell = cells.get(key) ?? { before: row?.[p.column].amount ?? (0 as Cents), delta: 0 };
+    cell.delta += p.amount - (p.was ?? 0);
     // Real spending on a day with the Diário previsto takes the forecast off (see the writer).
     if (dropsForecast(p) && row) cell.delta -= forecastIn(row.diario);
     cells.set(key, cell);
   }
-  return [...cells.values()]
-    .sort(
-      (a, b) =>
-        Number(a.p.target === "economia") - Number(b.p.target === "economia") ||
-        a.p.date.localeCompare(b.p.date),
-    )
-    .map(({ p, before, delta }): QueueLine => {
-      if (p.target === "economia")
-        return {
-          label: `Economia de ${MONTHS[Number(p.date.slice(5, 7)) - 1]}`,
-          before: null,
-          after: cents(delta),
-        };
-      const what = p.target === "card" ? `Fatura do ${p.description}` : COLUMN[p.column];
-      return { label: `${what} de ${dayMonth(p.date)}`, before, after: cents(before + delta) };
-    });
+  const shown = new Set<string>();
+  return placements.map((p): QueueLine => {
+    if (p.target === "economia")
+      return {
+        label: `Economia de ${MONTHS[Number(p.date.slice(5, 7)) - 1]}`,
+        before: null,
+        after: cents(p.column === "entrada" ? -p.amount : p.amount),
+        cell: null,
+      };
+    const key = `${p.date}|${p.column}`;
+    const cell = cells.get(key);
+    const before = p.was ?? null;
+    const own = before ?? 0;
+    // The cell once per day and column, and only when something else is in it too.
+    const whole =
+      cell && !shown.has(key) && (cell.before !== own || cell.before + cell.delta !== p.amount)
+        ? {
+            label: `${COLUMN[p.column]} do dia`,
+            before: cell.before,
+            after: cents(cell.before + cell.delta),
+          }
+        : null;
+    shown.add(key);
+    return {
+      label: `${dayMonth(p.date)} · ${COLUMN[p.column]} · ${p.description}`,
+      before,
+      after: p.amount,
+      cell: whole,
+    };
+  });
 };
 
 const titleOf = (item: QueueItem): string => {
   const draft = item.options[0]?.draft;
-  if (!draft) return "Conta nova sua";
+  if (!draft) return item.account ? `Conta ${item.account}` : "Conta nova sua";
   if (draft.type === "forecast")
     return draft.value > 0
       ? "Diário previsto"
       : draft.days.length === 1
         ? "Fechar o dia"
         : "Fechar os dias";
-  if (draft.type === "card") return draft.card;
+  if (draft.type === "card") return `Fatura ${draft.card}`;
   if (draft.type === "fix") return draft.line.description;
   return draft.description;
 };
 
-const noteOf = (item: QueueItem): string | null => {
+/**
+ * Why the item is there, in one plain sentence. No amounts: the lines carry them, and hide them
+ * with the rest of the screen when values are hidden.
+ */
+const noteOf = (item: QueueItem): string => {
   const draft = item.options[0]?.draft;
-  if (draft?.type !== "forecast") return null;
-  if (draft.value > 0) return "Os dias que vêm recebem o Diário previsto.";
-  return draft.days.length === 1
-    ? "O dia passou: o previsto sai e fica só o que você gastou."
-    : "Os dias passaram: o previsto sai e fica só o que você gastou.";
+  switch (item.kind) {
+    case "conta-propria":
+      return `Você passou dinheiro entre suas contas. A conta ${item.account ?? "nova"} guarda dinheiro ou é do dia a dia? Pergunto só uma vez.`;
+    case "previsto":
+      if (draft?.type === "forecast" && draft.value > 0)
+        return "Os dias que vêm recebem o Diário previsto.";
+      return draft?.type === "forecast" && draft.days.length === 1
+        ? "O dia passou: o previsto sai e fica só o que você gastou."
+        : "Os dias passaram: o previsto sai e fica só o que você gastou.";
+    case "cartao":
+      return draft?.type === "card" && draft.bills.some((b) => b.amount < b.was)
+        ? "A fatura fechou com outro valor no banco."
+        : "O banco já tem compras nesta fatura que a planilha ainda não tem.";
+    case "entrada":
+      return draft?.type === "fix"
+        ? "Entrou um valor diferente do que a planilha previa."
+        : "Entrou dinheiro que a planilha ainda não tem.";
+    case "conta":
+      return "Esta conta foi paga com outro valor ou em outro dia.";
+    case "guardar":
+      return "Você guardou dinheiro e a planilha ainda não tem.";
+    case "resgate":
+      return "Você tirou dinheiro da reserva e a planilha ainda não tem.";
+    default:
+      return "Saiu dinheiro que a planilha ainda não tem.";
+  }
 };
 
 export const queueView = (

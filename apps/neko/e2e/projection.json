@@ -11430,9 +11430,14 @@
             },
             "lines": [
               {
-                "label": "Diário de 03/10",
-                "before": 5638,
-                "after": 9888
+                "label": "03/10 · Diário · PIX FEIRA DO BAIRRO",
+                "before": null,
+                "after": 4250,
+                "cell": {
+                  "label": "Diário do dia",
+                  "before": 5638,
+                  "after": 9888
+                }
               }
             ]
           }
@@ -11446,7 +11451,7 @@
         ],
         "adjustable": true,
         "origin": "pix feira do bairro",
-        "note": null
+        "note": "Saiu dinheiro que a planilha ainda não tem."
       },
       {
         "key": "mov:m3",
@@ -11465,9 +11470,10 @@
             },
             "lines": [
               {
-                "label": "Entrada de 04/10",
-                "before": 0,
-                "after": 15000
+                "label": "04/10 · Entrada · PIX RECEBIDO ANA",
+                "before": null,
+                "after": 15000,
+                "cell": null
               }
             ]
           }
@@ -11481,7 +11487,7 @@
         ],
         "adjustable": true,
         "origin": "pix recebido ana",
-        "note": null
+        "note": "Entrou dinheiro que a planilha ainda não tem."
       },
       {
         "key": "previsto:fechar:2026-10-04",
@@ -11498,9 +11504,10 @@
             },
             "lines": [
               {
-                "label": "Diário de 04/10",
+                "label": "04/10 · Diário",
                 "before": 9500,
-                "after": 0
+                "after": 0,
+                "cell": null
               }
             ]
           }
@@ -11509,6 +11516,79 @@
         "adjustable": false,
         "origin": null,
         "note": "O dia passou: o previsto sai e fica só o que você gastou."
+      },
+      {
+        "key": "card:cartao azul:2026-11-12=292270",
+        "kind": "cartao",
+        "date": "2026-11-12",
+        "title": "Fatura Cartão Azul",
+        "options": [
+          {
+            "label": "",
+            "draft": {
+              "type": "card",
+              "card": "Cartão Azul",
+              "bills": [
+                {
+                  "due": "2026-11-12",
+                  "was": 283807,
+                  "amount": 292270
+                }
+              ]
+            },
+            "lines": [
+              {
+                "label": "12/11 · Saída · Cartão Azul",
+                "before": 283807,
+                "after": 292270,
+                "cell": {
+                  "label": "Saída do dia",
+                  "before": 320026,
+                  "after": 328489
+                }
+              }
+            ]
+          }
+        ],
+        "bank": [],
+        "adjustable": false,
+        "origin": null,
+        "note": "O banco já tem compras nesta fatura que a planilha ainda não tem."
+      },
+      {
+        "key": "conta:outra",
+        "kind": "conta-propria",
+        "date": "2026-10-02",
+        "title": "Conta Banco Verde",
+        "options": [
+          {
+            "label": "Guarda dinheiro",
+            "draft": null,
+            "answer": "guardado",
+            "lines": []
+          },
+          {
+            "label": "É do dia a dia",
+            "draft": null,
+            "answer": "corrente",
+            "lines": []
+          }
+        ],
+        "bank": [
+          {
+            "date": "2026-10-02",
+            "amount": -50000,
+            "description": "PIX ENVIADO MESMA TITULARIDADE"
+          },
+          {
+            "date": "2026-10-02",
+            "amount": 50000,
+            "description": "PIX RECEBIDO MESMA TITULARIDADE"
+          }
+        ],
+        "adjustable": false,
+        "origin": null,
+        "note": "Você passou dinheiro entre suas contas. A conta Banco Verde guarda dinheiro ou é do dia a dia? Pergunto só uma vez."
       }
     ],
     "saldo": {

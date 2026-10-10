@@ -72,12 +72,48 @@ describe("bills: what the bank already knows against what the sheet expects", ()
       [visa],
       [line(25000, "2026-11"), line(12000, "2026-12", { installment: 1, installments: 2 })],
       today,
-      [{ card: "Visa", billMonth: "2026-11", total: cents(30000) }],
+      [{ cards: ["Visa"], billMonth: "2026-11", total: cents(30000) }],
     );
     expect(checks.map((c) => [c.due, c.bank, c.gap])).toEqual([
       ["2026-11-10", 30000, 0],
       ["2026-12-10", 12000, 12000],
     ]);
+  });
+
+  describe("a closed bill shared by holder and additional cards", () => {
+    const gio: CardConfig = { ...visa, name: "Visa Gio" };
+    // Sheet: Visa 300,00 and Visa Gio 100,00 on Nov 10; the bank's bill is 400,00.
+    const shared = ledger("2026-10-01", 92, 0, {
+      "2026-11-10": { saida: cell(40000, [item(30000, "Visa"), item(10000, "Visa Gio")]) },
+    });
+    const closed = [{ cards: ["Visa", "Visa Gio"], billMonth: "2026-11", total: cents(40000) }];
+    const gaps = (lines: BankCardLine[], total = 40000) =>
+      billChecks(shared, [visa, gio], lines, today, [{ ...closed[0]!, total: cents(total) }]).map(
+        (c) => [c.card, c.gap],
+      );
+
+    it("keeps the sheet's split when its sum is the bill", () => {
+      // The bank left a line out and put a later purchase on Gio: the sheet already adds up.
+      expect(gaps([line(29000, "2026-11"), line(12000, "2026-11", { card: "Visa Gio" })])).toEqual([
+        ["Visa", 0],
+        ["Visa Gio", 0],
+      ]);
+    });
+
+    it("follows the bank's lines when theirs add up to the bill", () => {
+      expect(
+        gaps([line(32000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })], 42000),
+      ).toEqual([
+        ["Visa", 2000],
+        ["Visa Gio", 0],
+      ]);
+    });
+
+    it("says nothing when neither adds up, rather than guess each card's share", () => {
+      expect(
+        gaps([line(31000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })], 42000),
+      ).toEqual([]);
+    });
   });
 
   it("knows a parcel the bank lists ahead with a shorter text or a rounded value", () => {

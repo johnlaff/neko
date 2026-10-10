@@ -2736,6 +2736,55 @@ main.mia-page form.mia-form > input {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+.q-note {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+/* What Lançar writes, as the sheet will read it: where, then before → after */
+.q-impact {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pill-active);
+}
+.q-impact-head {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--faint);
+}
+.q-impact ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.q-impact li {
+  display: grid;
+  gap: 1px;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.q-where {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.q-value {
+  color: var(--muted);
+}
+.q-value strong {
+  color: var(--text);
+  font-weight: 500;
+}
+.q-cell {
+  font-size: 0.8125rem;
+  color: var(--faint);
+}
+.q-impact details.formula > ul {
+  margin-top: 8px;
+}
 .q-ok {
   margin: 0;
   color: var(--pos);

@@ -309,14 +309,14 @@ describe("Para lançar: card bills", () => {
     });
   });
 
-  it("lowers an open bill only by rounding, and a closed one to its total", () => {
+  it("raises an open bill by a real amount only, and sets a closed one to its total", () => {
     expect(queue({ ledger: days, lines: [line("Visa", 30000, "2026-11")] })).toEqual([]);
+    // Cents of rounding on the parcels are not worth a change before the bill closes.
+    expect(queue({ ledger: days, lines: [line("Visa", 41099, "2026-11")] })).toEqual([]);
     expect(
-      queue({ ledger: days, lines: [line("Visa", 40999, "2026-11")] })[0]?.options[0]?.draft,
-    ).toMatchObject({
-      bills: [{ amount: 40999 }],
-    });
-    const closed = [{ card: "Visa", billMonth: "2026-11", total: cents(30000) }];
+      queue({ ledger: days, lines: [line("Visa", 41100, "2026-11")] })[0]?.options[0]?.draft,
+    ).toMatchObject({ bills: [{ amount: 41100 }] });
+    const closed = [{ cards: ["Visa"], billMonth: "2026-11", total: cents(30000) }];
     expect(queue({ ledger: days, closed })[0]?.options[0]?.draft).toMatchObject({
       bills: [{ was: 41000, amount: 30000 }],
     });

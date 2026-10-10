@@ -97,25 +97,55 @@ export const LaunchToast = () => {
   );
 };
 
-/**
- * "Diário de 15/10: R$ 0,00 → R$ 18,90", or "Economia de out: +R$ 500,00"; card parcels in later
- * bills are counted, not listed.
- */
-const Lines = ({ lines }: { lines: readonly QueueLine[] }) => {
-  const shown = lines.slice(0, 2);
-  const more = lines.length - shown.length;
+const signed = (c: number) => `${c < 0 ? "−" : "+"}${money(Math.abs(c))}`;
+
+/** One change, as the sheet will read: the line, its value now and after, and the day's total. */
+const Change = ({ line }: { line: QueueLine }) => (
+  <li>
+    <span className="q-where">{bankText(line.label)}</span>
+    <span className="q-value">
+      {line.before === null ? (
+        <strong>{signed(line.after)}</strong>
+      ) : (
+        <>
+          {money(line.before)} → <strong>{money(line.after)}</strong>
+        </>
+      )}
+    </span>
+    {line.cell && (
+      <span className="q-cell">
+        {line.cell.label}: {money(line.cell.before)} → {money(line.cell.after)}
+      </span>
+    )}
+  </li>
+);
+
+/** What Lançar writes in the sheet, line by line; past the first three, behind a tap. */
+const Impact = ({ lines }: { lines: readonly QueueLine[] }) => {
+  const first = lines.slice(0, 3);
+  const rest = lines.slice(3);
   return (
-    <p className="q-lines">
-      {shown.map((l) => (
-        <span key={l.label}>
-          {l.label}:{" "}
-          {l.before === null
-            ? `${l.after < 0 ? "−" : "+"}${money(Math.abs(l.after) as Cents)}`
-            : `${money(l.before)} → ${money(l.after)}`}
-        </span>
-      ))}
-      {more > 0 && <span>e mais {more === 1 ? "1 fatura" : `${more} faturas`}</span>}
-    </p>
+    <div className="q-impact">
+      <p className="q-impact-head">Na planilha</p>
+      <ul>
+        {first.map((l) => (
+          <Change key={`${l.label}|${l.before}|${l.after}`} line={l} />
+        ))}
+      </ul>
+      {rest.length > 0 && (
+        <details className="formula">
+          <summary>
+            <IconChevron />
+            Mais {rest.length === 1 ? "1 mudança" : `${rest.length} mudanças`}
+          </summary>
+          <ul>
+            {rest.map((l) => (
+              <Change key={`${l.label}|${l.before}|${l.after}`} line={l} />
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 };
 
@@ -435,8 +465,9 @@ const Row = ({
         <span className="name">{bankText(item.title)}</span>
         <span className="meta">{shortDate(item.date)}</span>
       </div>
+      <p className="q-note">{item.note}</p>
       {item.options.length > 1 && !question && (
-        <fieldset className="how" aria-label="O que é">
+        <fieldset className="how" aria-label="O que lançar">
           {item.options.map((o, i) => (
             <button
               key={o.label}
@@ -450,8 +481,7 @@ const Row = ({
           ))}
         </fieldset>
       )}
-      {option && option.lines.length > 0 && <Lines lines={option.lines} />}
-      {item.note && <p className="hint">{item.note}</p>}
+      {option && option.lines.length > 0 && <Impact lines={option.lines} />}
       {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
         <EntryForm
           draft={draft}
