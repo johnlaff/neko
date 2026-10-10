@@ -37,7 +37,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -88,6 +87,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
+import dev.johnlaff.neko.R
 import dev.johnlaff.neko.ui.Format.shortDate
 
 /** Room under the last panel so the floating dock never covers it. */
@@ -346,12 +346,22 @@ fun rememberMiaReturn(by: String): FocusRequester {
     return focus
 }
 
+/** The site's tab icons (icons.tsx), drawn the same on the dock and the rail. */
+private val Tab.icon: Int
+    get() = when (this) {
+        Tab.Hoje -> R.drawable.tab_hoje
+        Tab.Faturas -> R.drawable.tab_faturas
+        Tab.Mes -> R.drawable.tab_mes
+        Tab.Ajustes -> R.drawable.tab_ajustes
+    }
+
 /** Width from which the dock becomes a rail, Material's "expanded" window class. */
 val RAIL_FROM = 840.dp
 private val RAIL_ROOM = 128.dp
 
 /**
- * The floating pill dock, the site's: the current place in sage, the others quiet. On a wide
+ * The floating pill dock, the site's: each tab an icon over its name, the current place in sage,
+ * the others quiet. On a wide
  * window it stands on the left, level with the screen's title, as on the site.
  */
 @Composable
@@ -363,31 +373,41 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     // Tab names grow with the system text up to 130%: past that the four no longer fit one line,
     // and the screens above already carry the large text.
     val scale = LocalDensity.current.fontScale
-    val label = MaterialTheme.typography.labelLarge.fontSize * (minOf(scale, 1.3f) / scale)
+    val label = MaterialTheme.typography.labelMedium.fontSize * (minOf(scale, 1.3f) / scale)
     val item: @Composable (Tab, Modifier) -> Unit = { tab, m ->
         val on = tab == current
         val pill by animateColorAsState(if (on) l.surface2 else Color.Transparent, tween(200), label = "pill")
         val ink by animateColorAsState(if (on) l.text else l.muted, tween(200), label = "ink")
-        Text(
-            tab.label,
-            color = ink,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                fontSize = label,
-            ),
-            maxLines = 1,
-            softWrap = false,
-            modifier = m
+        Column(
+            m
                 .background(pill, RoundedCornerShape(12.dp))
                 .clickable(role = Role.Tab) {
                     if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                     onSelect(tab)
                 }
-                .semantics { selected = on }
-                .heightIn(min = 48.dp)
-                .wrapContentHeight()
-                .padding(horizontal = 16.dp),
-        )
+                .semantics(mergeDescendants = true) { selected = on }
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            androidx.compose.material3.Icon(
+                androidx.compose.ui.res.painterResource(tab.icon),
+                contentDescription = null,
+                tint = ink,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                tab.label,
+                color = ink,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                    fontSize = label,
+                ),
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
     }
     val frame = Modifier
         .background(l.surface, shape)

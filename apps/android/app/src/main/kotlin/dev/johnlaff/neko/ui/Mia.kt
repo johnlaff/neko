@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,6 +69,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.LinkAnnotation
@@ -224,11 +227,21 @@ fun MiaHead(topic: String) {
     val entry = LocalMia.current ?: return
     // With a conversation open she continues it, as Hoje's row says; otherwise she starts on this screen.
     val label = if (entry.talking()) "Continuar a conversa com a Mia" else "Perguntar à Mia ${miaSubject(topic)}"
-    IconButton(
-        onClick = { entry.open(topic, "head") },
-        modifier = Modifier.focusRequester(rememberMiaReturn("head")).semantics { contentDescription = label },
+    // Her mark with her name, as on the site, so the head says who answers.
+    val l = LocalLedger.current
+    Row(
+        Modifier
+            .focusRequester(rememberMiaReturn("head"))
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(role = Role.Button) { entry.open(topic, "head") }
+            .clearAndSetSemantics { contentDescription = label; role = Role.Button }
+            .heightIn(min = 48.dp)
+            .padding(start = 6.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        MiaMark(28.dp)
+        MiaMark(24.dp)
+        Text("Mia", color = l.text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
