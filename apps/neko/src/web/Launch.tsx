@@ -693,6 +693,9 @@ const Refresh = ({ syncedAt }: { syncedAt: string | null }) => {
   );
 };
 
+/** Items Para lançar shows before "Ver mais". */
+const QUEUE_SHOWN = 3;
+
 /** Para lançar on Hoje: what the bank showed and the sheet does not have yet, one item a line. */
 export const ParaLancar = ({
   bank,
@@ -711,9 +714,12 @@ export const ParaLancar = ({
     keys: new Set(),
   });
   const gone = hidden.of === queue ? hidden.keys : new Set<string>();
+  const [more, setMore] = useState(false);
   if (!queue) return null;
   const items = queue.filter((i) => !gone.has(i.key));
   if (items.length === 0 && !bank.saldo) return null;
+  // The first few, so Hoje stays short; the chip counts them all and "Ver mais" opens the rest.
+  const shown = more ? items : items.slice(0, QUEUE_SHOWN);
   return (
     <section className="panel" aria-labelledby="h-queue">
       <div className="panel-head">
@@ -730,7 +736,7 @@ export const ParaLancar = ({
         <Saldo bank={bank} writing={writing} />
       ) : (
         <ul className="queue">
-          {items.map((i) => (
+          {shown.map((i) => (
             <Row
               key={i.key}
               item={i}
@@ -753,6 +759,12 @@ export const ParaLancar = ({
             />
           ))}
         </ul>
+      )}
+      {shown.length < items.length && (
+        <button type="button" className="q-more" onClick={() => setMore(true)}>
+          <IconChevron />
+          Ver mais {items.length - shown.length}
+        </button>
       )}
       {!writing && items.length > 0 && (
         <p className="hint">Para lançar daqui, ligue Lançar pelo Neko em Ajustes.</p>

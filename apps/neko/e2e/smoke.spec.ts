@@ -118,6 +118,9 @@ for (const [path, heading] of [
 test("the bank shows only where it and the sheet differ", async ({ page }) => {
   const errors = await open(page, "/");
   const queue = page.getByRole("region", { name: "Para lançar" });
+  // The first three, then the rest behind "Ver mais".
+  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(3);
+  await queue.getByRole("button", { name: "Ver mais 2" }).click();
   await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(4);
   // Each item says why it is there and what Lançar writes, line by line, with the day's total.
   await expect(queue).toContainText("Saiu do banco e não está na planilha.");
