@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -85,7 +87,7 @@ fun MesScreen(
             }
             return@ScreenFrame
         }
-        item {
+        full {
             MonthNav(
                 m,
                 prev = v.months.getOrNull(idx - 1)?.let { p -> { picked = p.key } },
@@ -94,6 +96,7 @@ fun MesScreen(
         }
         item { Hero(m, v.months.filter { it.year == m.year }, history.takeIf { m.key == v.current }) { picked = it } }
         if (m.days.isNotEmpty()) item { Thermo(m, v.today, v.saving) }
+        column()
         if (m.outflows.isNotEmpty()) item { Outflows(m) }
         v.reserve?.let { r -> item { ReservePanel(r, v.years.firstOrNull { it.year == m.year }) } }
     }
@@ -144,15 +147,18 @@ internal fun ReservePanel(r: Reserve, year: YearTotals?) {
 @Composable
 private fun MonthNav(m: MonthItem, prev: (() -> Unit)?, next: (() -> Unit)?) {
     val l = LocalLedger.current
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        MonthArrow(R.drawable.ic_chevron_left, "Mês anterior", prev)
-        Text(
-            "${capitalize(monthName(m.month))} ${m.year}",
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f),
-        )
-        MonthArrow(R.drawable.ic_chevron_right, "Próximo mês", next)
+    // Capped like the site's 26rem, so on a tablet the arrows stay next to the month.
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Row(Modifier.widthIn(max = 416.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            MonthArrow(R.drawable.ic_chevron_left, "Mês anterior", prev)
+            Text(
+                "${capitalize(monthName(m.month))} ${m.year}",
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f),
+            )
+            MonthArrow(R.drawable.ic_chevron_right, "Próximo mês", next)
+        }
     }
 }
 

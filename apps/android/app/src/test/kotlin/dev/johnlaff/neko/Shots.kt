@@ -52,7 +52,7 @@ fun ComposeContentTestRule.shot(
             CompositionLocalProvider(LocalRail provides rail) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     content()
-                    tab?.let { Dock(it, {}, Modifier.align(if (rail) Alignment.CenterStart else Alignment.BottomCenter)) }
+                    tab?.let { Dock(it, {}, Modifier.align(if (rail) Alignment.TopStart else Alignment.BottomCenter)) }
                 }
             }
         }

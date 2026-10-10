@@ -130,10 +130,13 @@ fun HojeScreen(
         val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
         if (insights.isNotEmpty()) item { Insights(insights, onAjustes, { onScreen("faturas") }, onMonth) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
+        // A wide window's second column, as on the site: what to know, then what the bank found.
+        column()
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
-        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado. Não aparece mais." else "Lançado na planilha"; undo = it } }
+        // The sheet's health is one line when all is well: above the bank's list, in view (as on the site).
         item { Conference(v, review) }
+        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado. Não aparece mais." else "Lançado na planilha"; undo = it } }
     }
     UndoBar(
         undo, launcher, { undo = null },

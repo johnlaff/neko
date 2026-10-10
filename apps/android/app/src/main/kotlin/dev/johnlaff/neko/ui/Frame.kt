@@ -47,7 +47,8 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -95,6 +96,32 @@ internal val DOCK_ROOM = 88.dp
 /** The widest a screen's column gets, as on the site. */
 private val MAX_WIDTH = 640.dp
 
+/** The widest the two columns get on a wide window, the site's 72rem. */
+private val WIDE_MAX_WIDTH = 1152.dp
+
+/**
+ * A screen's panels in the phone's order. On a wide window (the rail's) they stand in two columns,
+ * as on the site: [column] starts the second one, and [full] panels go across above both.
+ */
+class Panels {
+    internal val above = mutableListOf<@Composable () -> Unit>()
+    internal val columns = mutableListOf(mutableListOf<@Composable () -> Unit>())
+
+    fun item(content: @Composable () -> Unit) {
+        columns.last() += content
+    }
+
+    /** Across the whole width, above the columns: the month's arrows on Mês. */
+    fun full(content: @Composable () -> Unit) {
+        above += content
+    }
+
+    /** The panels after this one go to the next column on a wide window. */
+    fun column() {
+        if (columns.last().isNotEmpty()) columns += mutableListOf<@Composable () -> Unit>()
+    }
+}
+
 /**
  * What every screen shares: the title with when the sheet was read, pull to read again, and the
  * calm loading and error panels while there is nothing to show yet.
@@ -109,7 +136,7 @@ fun <T> ScreenFrame(
     trailing: @Composable () -> Unit = {},
     /** The screen Mia's mark in the head asks her about; null leaves the mark out. */
     miaTopic: String? = null,
-    content: LazyListScope.(T) -> Unit,
+    content: Panels.(T) -> Unit,
 ) {
     val l = LocalLedger.current
     val haptics = LocalHapticFeedback.current
@@ -146,14 +173,9 @@ fun <T> ScreenFrame(
         },
         modifier = Modifier.fillMaxSize().background(l.bg),
     ) {
-        LazyColumn(
-            // A phone-width column on tablets and in landscape, not a stretched one.
-            Modifier.fillMaxHeight().padding(start = if (LocalRail.current) RAIL_ROOM else 0.dp)
-                .widthIn(max = MAX_WIDTH).fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding(),
-            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (LocalRail.current) 16.dp else DOCK_ROOM),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
+        val rail = LocalRail.current
+        val panels = v?.let { Panels().apply { content(it) } }
+        val head = @Composable {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(title, style = MaterialTheme.typography.displayLarge, modifier = Modifier.semantics { heading() })
@@ -184,11 +206,38 @@ fun <T> ScreenFrame(
                     if (miaTopic != null) MiaHead(miaTopic)
                     trailing()
                 }
+        }
+        if (rail && panels != null) {
+            // A wide window: the head and the full-width panels, then the columns side by side, each
+            // stacking its own panels so a short one leaves no hole beside a tall one.
+            Column(
+                Modifier.fillMaxHeight().padding(start = RAIL_ROOM).widthIn(max = WIDE_MAX_WIDTH).fillMaxWidth()
+                    .align(Alignment.TopCenter).safeDrawingPadding().verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                head()
+                panels.above.forEach { it() }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+                    panels.columns.forEach { col ->
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { col.forEach { it() } }
+                    }
+                }
             }
+            return@PullToRefreshBox
+        }
+        LazyColumn(
+            // A phone-width column on tablets in portrait, not a stretched one.
+            Modifier.fillMaxHeight().padding(start = if (rail) RAIL_ROOM else 0.dp)
+                .widthIn(max = MAX_WIDTH).fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding(),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (rail) 16.dp else DOCK_ROOM),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item { head() }
             when {
                 v == null && state.error != null -> item { ErrorPanel(state, onRefresh) }
                 v == null -> item { Skeleton() }
-                else -> content(v)
+                else -> panels?.let { p -> (p.above + p.columns.flatten()).forEach { item { it() } } }
             }
         }
     }
@@ -303,7 +352,7 @@ private val RAIL_ROOM = 128.dp
 
 /**
  * The floating pill dock, the site's: the current place in sage, the others quiet. On a wide
- * window it stands on the left, top to bottom, where the thumb and the eye don't reach across.
+ * window it stands on the left, level with the screen's title, as on the site.
  */
 @Composable
 fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
@@ -347,7 +396,7 @@ fun Dock(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
         .padding(4.dp)
     if (rail) {
         Column(
-            modifier.safeDrawingPadding().padding(start = 12.dp).width(IntrinsicSize.Max).then(frame),
+            modifier.safeDrawingPadding().padding(start = 12.dp, top = 16.dp).width(IntrinsicSize.Max).then(frame),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Tab.entries.forEach { item(it, Modifier.fillMaxWidth()) }

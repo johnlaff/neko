@@ -242,7 +242,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 }
                             }
-                            Dock(tab, { t -> fromMia = false; go(t) }, Modifier.align(if (rail) Alignment.CenterStart else Alignment.BottomCenter))
+                            Dock(tab, { t -> fromMia = false; go(t) }, Modifier.align(if (rail) Alignment.TopStart else Alignment.BottomCenter))
                             }
                             }
                             }

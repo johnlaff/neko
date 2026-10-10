@@ -2197,12 +2197,17 @@ button.setting.quiet {
   border-radius: 0;
   border-top: 1px solid var(--border);
   background: transparent;
-  color: var(--muted);
+  color: var(--text);
   font-weight: 500;
 }
+/* An action reads as one, in ink; only once done does it go quiet */
 button.setting.quiet:hover {
   background: transparent;
-  color: var(--text);
+  opacity: 0.8;
+}
+button.setting.quiet:disabled {
+  color: var(--muted);
+  opacity: 1;
 }
 .panel.list.learn details.formula summary {
   color: var(--text);

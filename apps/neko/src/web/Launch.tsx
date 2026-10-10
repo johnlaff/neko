@@ -124,7 +124,7 @@ const Change = ({ line }: { line: QueueLine }) => (
       {line.change === "economia"
         ? "na aba Economia"
         : line.before === null
-          ? "linha nova"
+          ? "Linha nova"
           : `era ${money(line.before)}`}
     </span>
     {line.diff !== null && line.diff !== 0 && <span className="q-diff">{signed(line.diff)}</span>}
