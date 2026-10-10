@@ -181,30 +181,44 @@ class AppModel(
 
     private fun readDevices() = side { _devices.value = neko.api.sessions() }
 
-    fun endSession(id: String) = side {
+    /** Which Ajustes group's last change failed ("banks", "devices"), so it can say so in place. */
+    private val _changeFailed = MutableStateFlow<String?>(null)
+    val changeFailed: StateFlow<String?> = _changeFailed
+
+    /** A change the owner asked for: unlike a read, its failure is said, under its own group. */
+    private fun change(group: String, run: suspend () -> Unit) {
+        viewModelScope.launch {
+            _changeFailed.value = null
+            runCatching { run() }.onFailure { e ->
+                if (e is ApiException && e.status == 401) signedOut() else _changeFailed.value = group
+            }
+        }
+    }
+
+    fun endSession(id: String) = change("devices") {
         neko.api.endSession(id)
         _devices.value = neko.api.sessions()
     }
 
     /** Ajustes › Bancos: the Worker reads a newly linked bank in the background. */
-    fun saveBanks(items: List<BankLink>) = side {
+    fun saveBanks(items: List<BankLink>) = change("banks") {
         neko.api.saveBanks(items)
         _banks.value = neko.api.banks()
     }
 
-    fun saveBankCards(cards: List<BankCard>) = side {
+    fun saveBankCards(cards: List<BankCard>) = change("banks") {
         neko.api.saveBankCards(cards)
         _banks.value = neko.api.banks()
     }
 
     /** Ajustes › Bancos: whether an account keeps savings; Para lançar changes with it. */
-    fun saveAccountUse(account: String, use: String) = side {
+    fun saveAccountUse(account: String, use: String) = change("banks") {
         neko.api.accountUse(account, use)
         _banks.value = neko.api.banks()
         readToday(shown = false, after = true)
     }
 
-    fun endOtherSessions() = side {
+    fun endOtherSessions() = change("devices") {
         neko.api.endOtherSessions()
         _devices.value = neko.api.sessions()
     }

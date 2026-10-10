@@ -220,6 +220,7 @@ fun AjustesScreen(
             item {
                 Column {
                 Group("Bancos") { Banks(b, f.cards.map { it.name }, banks) }
+                if (banks.failed) ChangeFailed()
                 Text(
                     "O banco só sugere itens em Para lançar; nada vai para a planilha sem você tocar em Lançar. O código da conexão fica no Meu Pluggy, na lista das suas conexões.",
                     color = LocalLedger.current.faint,
@@ -406,6 +407,8 @@ data class BanksList(
     val onSaveItems: (List<BankLink>) -> Unit = {},
     val onSaveCards: (List<BankCard>) -> Unit = {},
     val onAccountUse: (String, String) -> Unit = { _, _ -> },
+    /** The last change here failed: said under the group, as on the site. */
+    val failed: Boolean = false,
 )
 
 private const val MAX_BANKS = 5
@@ -508,6 +511,7 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
                 itemId.isNotBlank() && !UUID.matches(itemId.trim()) ->
                     "Esse código não parece o da conexão. Copie do Meu Pluggy, na lista das suas conexões."
                 UUID.matches(itemId.trim()) && label.isBlank() -> "Falta o nome do banco"
+                label.isNotBlank() && itemId.isBlank() -> "Falta o código da conexão, que fica no Meu Pluggy"
                 else -> null
             }
             why?.let {
@@ -573,6 +577,7 @@ data class DevicesList(
     val list: List<Device>? = null,
     val onEnd: (String) -> Unit = {},
     val onEndOthers: () -> Unit = {},
+    val failed: Boolean = false,
 )
 
 /** "Usado hoje", "Usado ontem", "Usado há 12 dias", from this phone's own clock. */
@@ -611,7 +616,19 @@ private fun Devices(d: DevicesList) {
                 d.onEndOthers,
             )
         }
+        if (d.failed) ChangeFailed()
     }
+}
+
+/** A change in Ajustes that did not go through, in the site's words. */
+@Composable
+private fun ChangeFailed() {
+    Text(
+        "Algo falhou no Neko. Tente de novo daqui a pouco.",
+        color = LocalLedger.current.neg,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp).semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 /** A switch's change with the system's on/off tick, as Android's own settings do. */
