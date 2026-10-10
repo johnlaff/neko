@@ -321,13 +321,13 @@
       "title": "Conta Banco Verde",
       "options": [
         {
-          "label": "Guarda dinheiro",
+          "label": "Guarda",
           "draft": null,
           "answer": "guardado",
           "lines": []
         },
         {
-          "label": "É do dia a dia",
+          "label": "Dia a dia",
           "draft": null,
           "answer": "corrente",
           "lines": []

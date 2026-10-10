@@ -452,8 +452,8 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
         bank,
         account: label.get(into) ?? "Banco",
         options: [
-          { label: "Guarda dinheiro", draft: null, answer: "guardado" },
-          { label: "É do dia a dia", draft: null, answer: "corrente" },
+          { label: "Guarda", draft: null, answer: "guardado" },
+          { label: "Dia a dia", draft: null, answer: "corrente" },
         ],
       });
     }

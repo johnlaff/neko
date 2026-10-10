@@ -127,7 +127,7 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await expect(queue).toContainText("R$ 2.838,07 → R$ 2.922,70");
   // A question about an account comes last, naming the account.
   await expect(queue.getByRole("listitem").last()).toContainText("Conta Banco Verde");
-  await expect(queue.getByRole("button", { name: "Guarda dinheiro" })).toBeVisible();
+  await expect(queue.getByRole("button", { name: "Guarda", exact: true })).toBeVisible();
   await queue.screenshot({ path: "test-results/para-lancar.png" });
   await queue.getByRole("button", { name: "Lançar" }).first().click();
   await expect(page.getByRole("status").filter({ hasText: "Lançado na planilha" })).toBeVisible();
