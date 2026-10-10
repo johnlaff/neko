@@ -96,6 +96,9 @@ internal fun PrevistoForm(
         if (off) {
             Text("O previsto sai dos dias que vêm. O que você escreveu no Diário fica como está.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
         } else {
+            if (p.suggestion == null) {
+                Text("A sugestão aparece quando o Neko tiver 4 semanas dos seus bancos. Até lá, digite o valor.")
+            }
             p.suggestion?.let { s ->
                 Text("Pelo banco, um dia seu custa ${money(s.perDay)}.")
                 Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
