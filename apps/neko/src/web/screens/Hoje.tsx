@@ -610,20 +610,21 @@ export const Hoje = () => (
                   )}
                 </section>
               ),
-              queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
+              // The sheet's health is one line when all is well: above the bank's list, in view.
               conference: <Conference issues={issues} sheet={sheet} />,
+              queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
             }}
             // Wide screens: each column takes the next panels in the phone's order, so the eye and
             // the keyboard go down one column and then the next. Today's number and what to do now,
             // then what to know, then what the bank found.
             two={[
               ["dial", "quick", "streak", "previsto", "insights", "save"],
-              ["recap", "next", "queue", "conference"],
+              ["recap", "next", "conference", "queue"],
             ]}
             three={[
               ["dial", "quick", "streak", "previsto"],
               ["insights", "save", "recap", "next"],
-              ["queue", "conference"],
+              ["conference", "queue"],
             ]}
           />
           <LaunchToast />
