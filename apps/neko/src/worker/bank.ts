@@ -101,15 +101,27 @@ export const bankInput = (
   const config = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const cardAccounts = new Set(rows.accounts.filter((a) => a.type === "CREDIT").map((a) => a.id));
   const billMonth = new Map(rows.bills.map((b) => [b.id, b.due_date.slice(0, 7)]));
+  // The latest bill the bank listed, per account: a line it left off is on a later one.
+  const lastListed = new Map<string, string>();
+  for (const b of rows.bills) {
+    const month = b.due_date.slice(0, 7);
+    if (month > (lastListed.get(b.account_id) ?? "")) lastListed.set(b.account_id, month);
+  }
+  const after = (account: string, month: string) => {
+    const last = lastListed.get(account);
+    if (!last || month > last) return month;
+    const [y = 0, m = 1] = last.split("-").map(Number);
+    return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  };
   const lines: BankCardLine[] = [];
   const movements: BankMovement[] = [];
   for (const t of rows.txns) {
     if (cardAccounts.has(t.account_id)) {
       const card = cardName(map, t.account_id, t.card_number);
       const days = card ? config.get(normalizeName(card)) : undefined;
-      const month =
-        (t.bill_id ? billMonth.get(t.bill_id) : undefined) ??
-        (days ? cycleContaining(days, localDate(t.date)).due.slice(0, 7) : undefined);
+      const cycle =
+        days && after(t.account_id, cycleContaining(days, localDate(t.date)).due.slice(0, 7));
+      const month = (t.bill_id ? billMonth.get(t.bill_id) : undefined) ?? cycle;
       if (!card || !month) continue;
       lines.push({
         card,
@@ -131,14 +143,12 @@ export const bankInput = (
         ...(t.id ? { id: t.id } : {}),
       });
   }
-  // A closed bill's total is final, though the bank may leave a line or two out of the list. It
-  // stands for the bill when the whole account is one card in the sheet; holder and additional
-  // split it by their lines, so theirs stay summed.
+  // A closed bill's total is final, though the bank may leave a line or two out of the list. With
+  // holder and additional cards on one account, it is the total of all of them (billChecks).
   const closed: ClosedBill[] = rows.bills.flatMap((b) => {
-    const names = new Set(map.filter((m) => m.accountId === b.account_id).map((m) => m.card));
-    const [card] = names;
-    return names.size === 1 && card
-      ? [{ card, billMonth: b.due_date.slice(0, 7), total: cents(b.total) }]
+    const names = [...new Set(map.filter((m) => m.accountId === b.account_id).map((m) => m.card))];
+    return names.length > 0
+      ? [{ cards: names, billMonth: b.due_date.slice(0, 7), total: cents(b.total) }]
       : [];
   });
   return { lines, movements, closed };

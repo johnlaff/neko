@@ -2712,15 +2712,14 @@ main.mia-page form.mia-form > input {
 }
 .q-head {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 16px;
+  column-gap: 16px;
   align-items: baseline;
 }
 .q-head > .name {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-weight: 500;
 }
 .q-head > .meta {
@@ -2736,6 +2735,57 @@ main.mia-page form.mia-form > input {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+.q-note {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+/* What Lançar writes, as the sheet will read it: where, then before → after */
+.q-impact {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pill-active);
+}
+.q-impact-head {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.q-impact ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.q-impact li {
+  display: grid;
+  gap: 1px;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.q-where {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.q-value {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.q-value strong {
+  color: var(--text);
+  font-weight: 500;
+}
+.q-cell {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.q-impact details.formula > ul {
+  margin-top: 8px;
+}
 .q-ok {
   margin: 0;
   color: var(--pos);
@@ -2743,7 +2793,19 @@ main.mia-page form.mia-form > input {
 .q-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+/* Ignorar closes the action row: quiet, at the far end */
+.q-actions > button.q-ignore {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--muted);
+}
+/* Room under the last item while Desfazer floats over it */
+main:has(.toast) .queue {
+  padding-bottom: 4.5rem;
 }
 button.small:not(.ghost) {
   min-height: 36px;

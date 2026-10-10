@@ -215,7 +215,11 @@ class AppModel(
         }
 
         override suspend fun undo(id: String): Boolean =
-            (neko.api.undo(id).state == "undone").also {
+            if (id.startsWith(IGNORED)) {
+                neko.api.unignore(id.removePrefix(IGNORED))
+                readToday(shown = false)
+                true
+            } else (neko.api.undo(id).state == "undone").also {
                 readToday(shown = false)
                 // Desfazer after the Diário previsto also puts its setting back.
                 read(Tab.Ajustes, shown = false)

@@ -67,11 +67,21 @@ describe("bank rows to the engine", () => {
     ]);
   });
 
-  it("gives a closed bill's total only when its account is one card in the sheet", () => {
-    expect(bankInput(rows, map, cards).closed).toEqual([]);
-    expect(bankInput(rows, map.slice(0, 1), cards).closed).toEqual([
-      { card: "Visa", billMonth: "2026-10", total: 98000 },
+  it("gives each listed bill's total with the cards of its account", () => {
+    expect(bankInput(rows, map, cards).closed).toEqual([
+      { cards: ["Visa", "Visa Gio"], billMonth: "2026-10", total: 98000 },
     ]);
+    expect(bankInput(rows, map.slice(0, 1), cards).closed).toEqual([
+      { cards: ["Visa"], billMonth: "2026-10", total: 98000 },
+    ]);
+  });
+
+  it("never puts a line the bank left off a listed bill on that bill", () => {
+    // Closes on the 29th by the card's cycle, but the bank already closed the bill due Oct 12
+    // without it: a purchase made on the closing day goes to the next one.
+    const late = txn({ account_id: "cartao", date: "2026-09-29", amount: 900 });
+    const { lines } = bankInput({ ...rows, txns: [...rows.txns, late] }, map, cards);
+    expect(lines.at(-1)).toMatchObject({ amount: 900, billMonth: "2026-11" });
   });
 
   it("drops card lines with no sheet name or no bill to land on", () => {
@@ -140,10 +150,34 @@ describe("Para lançar from the bank rows", () => {
         "mov:p1",
         "entrada",
         "PIX RECEBIDO",
-        [{ label: "Entrada de 05/10", before: 0, after: 5000 }],
+        [
+          {
+            label: "05/10 · Entrada",
+            change: "new",
+            before: null,
+            after: 5000,
+            diff: null,
+            cell: null,
+          },
+        ],
       ],
-      ["mov:p2", "diario", "PADARIA", [{ label: "Diário de 05/10", before: 0, after: 1990 }]],
+      [
+        "mov:p2",
+        "diario",
+        "PADARIA",
+        [
+          {
+            label: "05/10 · Diário",
+            change: "new",
+            before: null,
+            after: 1990,
+            diff: null,
+            cell: null,
+          },
+        ],
+      ],
     ]);
+    expect(view?.queue?.[0]?.note).toBe("Entrou dinheiro que a planilha ainda não tem.");
     expect(view?.queue?.[1]?.bank).toEqual([
       { date: "2026-10-05", amount: -1990, description: "PADARIA" },
     ]);

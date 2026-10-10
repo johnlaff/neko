@@ -132,7 +132,7 @@ fun HojeScreen(
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
-        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = "Lançado na planilha"; undo = it } }
+        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
         item { Conference(v, review) }
     }
     UndoBar(

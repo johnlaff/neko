@@ -105,6 +105,8 @@ export interface QueueItem {
   }[];
   /** The first is what Lançar does; more than one means the owner chooses. */
   readonly options: readonly QueueOption[];
+  /** For `conta-propria`: the name of the account asked about. */
+  readonly account?: string;
 }
 
 export interface QueueInput {
@@ -134,8 +136,11 @@ export interface QueueInput {
 
 /** How close a planned line's value must be for a movement to stand for it: a quarter. */
 const NEAR_SHARE = 0.25;
-/** A bill may go down before it closes only by this much: a cent of rounding on each parcel. */
-const ROUNDING = 10;
+/**
+ * Before a bill closes, the bank may not list every parcel yet and rounds each one its own way:
+ * only a rise of at least this much is worth a change. Once closed, the bill follows the bank.
+ */
+const OPEN_BILL_MIN = 100;
 
 /** A name fit for a note line: one line, no leading "R$", not too long. */
 const lineName = (description: string): string => {
@@ -445,21 +450,24 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
         kind: "conta-propria",
         date: t.in.date,
         bank,
+        account: label.get(into) ?? "Banco",
         options: [
-          { label: "Guardado", draft: null, answer: "guardado" },
-          { label: "Só mudou de conta", draft: null, answer: "corrente" },
+          { label: "Guarda", draft: null, answer: "guardado" },
+          { label: "Dia a dia", draft: null, answer: "corrente" },
         ],
       });
     }
   }
 
   // Card bills: the line follows the bank's total, up always, down once the bill closed.
-  const closed = new Set(input.closed.map((b) => `${normalizeName(b.card)}|${b.billMonth}`));
+  const closed = new Set(
+    input.closed.flatMap((b) => b.cards.map((c) => `${normalizeName(c)}|${b.billMonth}`)),
+  );
   const others = new Set(input.othersCards.map(normalizeName));
   const byCard = new Map<string, { due: LocalDate; was: Cents; amount: Cents }[]>();
   for (const c of billChecks(ledger, input.cards, input.lines, today, input.closed)) {
     const isClosed = closed.has(`${normalizeName(c.card)}|${c.due.slice(0, 7)}`);
-    if (c.gap === 0 || (c.gap < 0 && !isClosed && -c.gap > ROUNDING)) continue;
+    if (c.gap === 0 || (!isClosed && c.gap < OPEN_BILL_MIN)) continue;
     const bills = byCard.get(c.card) ?? [];
     bills.push({ due: c.due, was: c.sheet, amount: c.bank });
     byCard.set(c.card, bills);
@@ -540,7 +548,12 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
         },
       ],
     });
-  return items.sort((a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key));
+  // What changes the sheet first, by date; questions about an account last.
+  const question = (i: QueueItem) => Number(i.kind === "conta-propria");
+  return items.sort(
+    (a, b) =>
+      question(a) - question(b) || a.date.localeCompare(b.date) || a.key.localeCompare(b.key),
+  );
 };
 
 /** Yesterday's Saldo in the sheet against the money in the owner's accounts at the bank. */

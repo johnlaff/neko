@@ -309,14 +309,37 @@ describe("Para lançar: card bills", () => {
     });
   });
 
-  it("lowers an open bill only by rounding, and a closed one to its total", () => {
-    expect(queue({ ledger: days, lines: [line("Visa", 30000, "2026-11")] })).toEqual([]);
-    expect(
-      queue({ ledger: days, lines: [line("Visa", 40999, "2026-11")] })[0]?.options[0]?.draft,
-    ).toMatchObject({
-      bills: [{ amount: 40999 }],
+  it("never counts twice what the sheet already has: it sets the line to the bank's total, once", () => {
+    // The sheet holds the parcels and the purchases typed so far; the bank has one more purchase.
+    const lines = [
+      line("Visa", 30000, "2026-10", { installment: 1, installments: 2 }),
+      line("Visa", 11000, "2026-11", { description: "MERCADO" }),
+      line("Visa", 4290, "2026-11", { description: "FARMACIA" }),
+    ];
+    const [i] = queue({ ledger: days, lines });
+    expect(i?.options[0]?.draft).toEqual({
+      type: "card",
+      card: "Visa",
+      bills: [{ due: "2026-11-10", was: 41000, amount: 45290 }],
     });
-    const closed = [{ card: "Visa", billMonth: "2026-11", total: cents(30000) }];
+    const launched = ledger("2026-10-01", 130, 0, {
+      "2026-11-10": { saida: cell(45290, [item(45290, "Visa")]) },
+      "2026-12-12": {
+        saida: cell(20000, [item(20000, "Banco Gio")]),
+        entrada: cell(20000, [item(20000, "Banco Gio", null)]),
+      },
+    });
+    expect(queue({ ledger: launched, lines })).toEqual([]);
+  });
+
+  it("raises an open bill by a real amount only, and sets a closed one to its total", () => {
+    expect(queue({ ledger: days, lines: [line("Visa", 30000, "2026-11")] })).toEqual([]);
+    // Cents of rounding on the parcels are not worth a change before the bill closes.
+    expect(queue({ ledger: days, lines: [line("Visa", 41099, "2026-11")] })).toEqual([]);
+    expect(
+      queue({ ledger: days, lines: [line("Visa", 41100, "2026-11")] })[0]?.options[0]?.draft,
+    ).toMatchObject({ bills: [{ amount: 41100 }] });
+    const closed = [{ cards: ["Visa"], billMonth: "2026-11", total: cents(30000) }];
     expect(queue({ ledger: days, closed })[0]?.options[0]?.draft).toMatchObject({
       bills: [{ was: 41000, amount: 30000 }],
     });
