@@ -135,6 +135,12 @@ fun miaSources(reply: MiaReply): List<MiaSource> {
             MiaSource(v.tela, v.mes, label)
         }
         .take(2)
+        // Two Septembers of different years say which is which.
+        .let { out ->
+            out.map { src ->
+                if (src.mes != null && out.count { it.label == src.label } > 1) src.copy(label = "${src.label} de ${src.mes.take(4)}") else src
+            }
+        }
 }
 
 /** After an answer, two questions not asked yet, so the next one is a tap away. */
@@ -268,7 +274,7 @@ fun MiaPanel(
                 if (newest != null) MiaText(newest.reply, open)
             }
             // Only the newest answer offers its screens, so older ones stay plain text.
-            val sources = newest?.let(::miaSources).orEmpty()
+            val sources: List<MiaSource> = if (newest != null) miaSources(newest.reply) else emptyList()
             if (sources.isNotEmpty()) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     sources.forEach { src -> TextAction(src.label, { open(src.tela, src.mes) }, color = l.accent) }
