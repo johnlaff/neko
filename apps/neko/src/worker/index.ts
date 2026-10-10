@@ -155,6 +155,7 @@ app.use("/client-error", requireSession);
 app.use("/banks", requireSession);
 app.use("/banks/*", requireSession);
 app.use("/mia", requireSession);
+app.use("/mia/*", requireSession);
 app.use("/entries", requireSession);
 app.use("/entries/*", requireSession);
 app.use("/queue/*", requireSession);
@@ -230,7 +231,10 @@ app.post("/pluggy/webhook", async (c) => {
   if (!sameSecret(c.req.header(HOOK_HEADER) ?? "", secret))
     return c.json({ error: "forbidden" }, 403);
   const event = WebhookEvent.safeParse(await c.req.json().catch(() => null));
-  const itemId = event.success ? event.data.itemId : undefined;
+  // One refresh sends many events (transactions/created, /updated…); "item/updated" says it is
+  // done, so the bank is read once. The 06:00 cron catches anything a lost webhook left behind.
+  const itemId =
+    event.success && event.data.event === "item/updated" ? event.data.itemId : undefined;
   if (itemId && configured(c.env) && (await itemIds(c.env.DB)).includes(itemId))
     c.executionCtx.waitUntil(
       syncItem(c.env.DB, pluggy(c.env, fetch), itemId, todayIn(new Date())).catch((error) =>
@@ -556,6 +560,11 @@ export default Sentry.withSentry(sentry, {
       return;
     }
     const run = async () => {
+      // Housekeeping does not depend on the sheet: a failed read must not let the cache grow.
+      if (event.cron === MORNING)
+        await Promise.all([pruneSnapshots(env.DB), pruneSessions(env.DB)]).catch((error) =>
+          console.error("pruning failed", error),
+        );
       let data: Awaited<ReturnType<typeof getProjection>>;
       try {
         data = await getProjection(env, todayIn(new Date()));
@@ -566,11 +575,7 @@ export default Sentry.withSentry(sentry, {
         return;
       }
       if (event.cron === MORNING) {
-        await Promise.all([
-          pruneSnapshots(env.DB),
-          pruneSessions(env.DB),
-          backfillEdits(env).catch((error) => console.error("revision backfill failed", error)),
-        ]);
+        await backfillEdits(env).catch((error) => console.error("revision backfill failed", error));
         const morning = morningMessage(data);
         if (morning) await sendReminder(env, morning);
       } else if (event.cron === EVENING) {

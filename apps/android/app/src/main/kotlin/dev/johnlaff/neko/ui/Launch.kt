@@ -99,9 +99,19 @@ const val IGNORED = "ignored:"
 /** How long Desfazer stays after a launch. */
 private const val UNDO_MS = 10_000L
 
-internal fun reasonOf(e: Throwable) =
-    e.message?.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() }
-        ?: "Não gravou. Confira a conexão e tente de novo."
+/** Worker refusals whose message is written for the owner; any other text stays out of sight. */
+private val SPOKEN = setOf("busy", "write", "writing-off", "sheet-structure")
+
+/**
+ * Why an action failed, in Portuguese the owner can act on: the Worker's own words when it
+ * refused, and plain advice when the connection dropped (the same tap again writes once).
+ */
+internal fun reasonOf(e: Throwable): String = when {
+    e is ApiException && e.code in SPOKEN && !e.message.isNullOrBlank() ->
+        e.message!!.replaceFirstChar { it.uppercase() }
+    e is ApiException -> "Algo falhou no Neko. Tente de novo daqui a pouco."
+    else -> "A conexão caiu. Tente de novo: nada é gravado duas vezes."
+}
 
 /** `2026-10-03` ↔ `03/10/2026`, the way a date is typed here. */
 private fun typedDate(iso: String) = "${iso.substring(8, 10)}/${iso.substring(5, 7)}/${iso.take(4)}"

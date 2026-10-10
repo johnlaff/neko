@@ -34,7 +34,10 @@ class Api(
 ) {
     private val jsonType = "application/json".toMediaType()
 
-    /** Mia's answer takes a few model calls, well past OkHttp's 10 s read timeout. */
+    /**
+     * Mia's answer takes a few model calls, well past OkHttp's 10 s read timeout; a write to the
+     * sheet may wait on Google's minute quota. Both get the longer wait.
+     */
     private val patient = client.newBuilder().readTimeout(MIA_WAIT).callTimeout(MIA_WAIT).build()
 
     private suspend fun call(
@@ -119,7 +122,7 @@ class Api(
             put("draft", draft)
             if (key != null) put("key", key)
         }
-        return json.decodeFromString(call("/entries", body.asBody()))
+        return json.decodeFromString(call("/entries", body.asBody(), via = patient))
     }
 
     /** Atualizar agora: the banks read now instead of at the next morning sync. */
@@ -127,7 +130,7 @@ class Api(
         json.parseToJsonElement(call("/banks/refresh", JsonObject(emptyMap()).asBody())).jsonObject["ok"]?.jsonPrimitive?.booleanOrNull ?: false
 
     suspend fun undo(id: String): LaunchResult =
-        json.decodeFromString(call("/entries/$id/undo", JsonObject(emptyMap()).asBody()))
+        json.decodeFromString(call("/entries/$id/undo", JsonObject(emptyMap()).asBody(), via = patient))
 
     suspend fun ignore(key: String) {
         call("/queue/ignore", buildJsonObject { put("key", key) }.asBody())
@@ -145,8 +148,17 @@ class Api(
     }
 
     /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. */
-    suspend fun previsto(value: Long): LaunchResult =
-        json.decodeFromString(call("/entries/previsto", buildJsonObject { put("value", value) }.asBody()))
+    suspend fun previsto(id: String, value: Long): LaunchResult =
+        json.decodeFromString(
+            call(
+                "/entries/previsto",
+                buildJsonObject {
+                    put("id", id)
+                    put("value", value)
+                }.asBody(),
+                via = patient,
+            ),
+        )
 
     /** Keeps the Diário previsto's value: the review comes back in 3 months. */
     suspend fun keepPrevisto() {

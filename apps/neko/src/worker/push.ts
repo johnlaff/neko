@@ -235,20 +235,25 @@ export const sendReminder = async (env: Env, reminder: Reminder): Promise<void> 
   const vapid = vapidKeys(env);
   if (!vapid) return;
   for (const row of await liveSubscriptions(env.DB, new Date())) {
-    const payload = await buildPushPayload(
-      { data: JSON.stringify(reminder), options: { ttl: 6 * 3600, topic: reminder.tag } },
-      {
-        endpoint: row.endpoint,
-        expirationTime: null,
-        keys: { p256dh: row.p256dh, auth: row.auth },
-      },
-      vapid,
-    );
-    const res = await fetch(row.endpoint, payload);
-    if (res.status === 404 || res.status === 410)
-      await env.DB.prepare("DELETE FROM push_subscription WHERE endpoint = ?")
-        .bind(row.endpoint)
-        .run();
-    else if (!res.ok) console.error("push failed", res.status);
+    // One unreachable push service must not cost the other devices their reminder.
+    try {
+      const payload = await buildPushPayload(
+        { data: JSON.stringify(reminder), options: { ttl: 6 * 3600, topic: reminder.tag } },
+        {
+          endpoint: row.endpoint,
+          expirationTime: null,
+          keys: { p256dh: row.p256dh, auth: row.auth },
+        },
+        vapid,
+      );
+      const res = await fetch(row.endpoint, payload);
+      if (res.status === 404 || res.status === 410)
+        await env.DB.prepare("DELETE FROM push_subscription WHERE endpoint = ?")
+          .bind(row.endpoint)
+          .run();
+      else if (!res.ok) console.error("push failed", res.status);
+    } catch (error) {
+      console.error("push failed", error);
+    }
   }
 };

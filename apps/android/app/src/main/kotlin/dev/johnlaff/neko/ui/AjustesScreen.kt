@@ -85,14 +85,17 @@ private fun badDay(s: String?) = !s.isNullOrBlank() && s.trim().toIntOrNull().le
 
 /** What the fields hold, as typed. Lives above the list so scrolling never drops an edit. */
 class AjustesForm(v: AjustesView) {
-    val cards: List<CardConfig> = v.cards
-    private val reviewed = v.settings.reviewed
-    var daily by mutableStateOf(fromCents(v.settings.dailyForecast))
-    var budget by mutableStateOf(fromCents(v.settings.cycleBudget))
-    var usual by mutableStateOf(v.settings.usualCard ?: "")
-    val closing = mutableStateMapOf<String, String>().apply { v.settings.cards.forEach { put(it.name, it.closingDay.toString()) } }
-    val others = mutableStateListOf<String>().apply { addAll(v.settings.othersCards) }
-    var writing by mutableStateOf(v.settings.writing ?: true)
+    var cards: List<CardConfig> by mutableStateOf(v.cards)
+        private set
+    private var reviewed = v.settings.reviewed
+    var daily by mutableStateOf("")
+    var budget by mutableStateOf("")
+    var usual by mutableStateOf("")
+    val closing = mutableStateMapOf<String, String>()
+    val others = mutableStateListOf<String>()
+    var writing by mutableStateOf(true)
+    /** The writing switch as tapped here, sent until the Worker's settings show it. */
+    var tapped by mutableStateOf<Boolean?>(null)
     /** Fields left at least once: only those say they are wrong. */
     val left = mutableStateListOf<String>()
     /** Set by a switch, a picker or leaving a field: save without waiting for typing to stop. */
@@ -101,7 +104,10 @@ class AjustesForm(v: AjustesView) {
 
     fun invalid() = badMoney(daily) || badMoney(budget) || cards.any { badDay(closing[it.name]) }
 
-    /** The settings to send, as the site builds them; null while a field is invalid. */
+    /**
+     * The settings to send, as the site builds them; null while a field is invalid. Writing only
+     * once tapped here: left out, the Worker keeps it, so a stale form never turns it back on.
+     */
     fun payload(): UserSettings? = if (invalid()) null else UserSettings(
         dailyForecast = toCents(daily),
         cycleBudget = toCents(budget),
@@ -112,11 +118,30 @@ class AjustesForm(v: AjustesView) {
         },
         // Checked Conferência points are set on Hoje; saving here keeps them.
         reviewed = reviewed,
-        writing = writing,
+        writing = tapped,
     )
 
-    init {
+    /** Nothing typed or picked waits to be sent. */
+    fun idle() = !now && payload() == lastSent
+
+    /** Takes the settings as read (cached, then fresh from the Worker); call only while [idle]. */
+    fun load(v: AjustesView) {
+        cards = v.cards
+        reviewed = v.settings.reviewed
+        daily = fromCents(v.settings.dailyForecast)
+        budget = fromCents(v.settings.cycleBudget)
+        usual = v.settings.usualCard ?: ""
+        closing.clear()
+        v.settings.cards.forEach { closing[it.name] = it.closingDay.toString() }
+        others.clear()
+        others.addAll(v.settings.othersCards)
+        if (v.settings.writing == tapped) tapped = null
+        writing = tapped ?: v.settings.writing ?: true
         lastSent = payload()
+    }
+
+    init {
+        load(v)
     }
 }
 
@@ -143,6 +168,11 @@ fun AjustesScreen(
     Box(Modifier.fillMaxSize()) {
     val v = state.view
     val form = remember(v != null) { v?.let(::AjustesForm) }
+    // Fresh settings (after the cached ones, or changed on the site) replace the form's, unless an
+    // edit still waits to be sent.
+    LaunchedEffect(v) {
+        if (v != null && form != null && form.idle()) form.load(v)
+    }
     val payload = form?.payload()
     LaunchedEffect(payload, form?.now) {
         val f = form ?: return@LaunchedEffect
@@ -168,7 +198,7 @@ fun AjustesScreen(
                     SaveState.Idle -> Unit
                     SaveState.Saving -> Chip("Salvando…", ChipTone.Plain)
                     SaveState.Saved -> Chip("Salvo", ChipTone.Ok)
-                    SaveState.Failed -> Chip("Não salvou", ChipTone.Bad)
+                    SaveState.Failed -> Chip("Não salvou. Tente de novo", ChipTone.Bad)
                 }
             }
         },
@@ -263,6 +293,7 @@ private fun Writing(f: AjustesForm) {
         if (f.writing) "Grava só quando você toca em Lançar" else "Desligado, o Neko só mostra e não grava",
         modifier = Modifier.toggleable(f.writing, role = Role.Switch, onValueChange = toggled {
             f.writing = it
+            f.tapped = it
             f.now = true
         }),
     ) {

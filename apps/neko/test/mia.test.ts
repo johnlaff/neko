@@ -285,12 +285,16 @@ describe("routes", () => {
     );
     expect(res.status).toBe(401);
     const entry = await worker.fetch(
-      new Request("https://neko.test/api/mia/lancamento", { method: "POST", body: "{}" }),
+      new Request("https://neko.test/api/mia/lancamento", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
       env({ ANTHROPIC_API_KEY: "k" }),
       {} as ExecutionContext,
     );
-    // A POST without the session is turned away before Mia (the origin check comes first).
-    expect([401, 403]).toContain(entry.status);
+    // JSON passes the origin check, so only the session stands between a stranger and a paid call.
+    expect(entry.status).toBe(401);
   });
 });
 

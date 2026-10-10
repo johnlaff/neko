@@ -21,6 +21,7 @@ import { loadSettings, saveSettings } from "./settings.ts";
 import {
   commitEntry,
   googleSheets,
+  healOrphans,
   previewEntry,
   undoEntry,
   WriteError,
@@ -123,6 +124,22 @@ export const withLock = async <T>(db: D1Database, run: () => Promise<T>): Promis
 
 export class Busy extends Error {}
 
+/**
+ * A write keeps going when the phone loses the connection: the request would otherwise be
+ * cancelled between the journal and the read back. Sending the same id again then reports it.
+ */
+const finish = <T>(
+  c: { executionCtx: { waitUntil(p: Promise<unknown>): void } },
+  work: Promise<T>,
+): Promise<T> => {
+  try {
+    c.executionCtx.waitUntil(work.catch(() => undefined));
+  } catch {
+    // Tests call the app without an execution context.
+  }
+  return work;
+};
+
 const writerApi = async (env: Env) => {
   const key = env.NEKO_WRITER_SERVICE_ACCOUNT_JSON;
   if (!key) return null;
@@ -142,7 +159,10 @@ export const entries = new Hono<AppEnv>();
 
 entries.onError((err, c) => {
   if (err instanceof Busy)
-    return c.json({ error: "busy", message: "outro lançamento está gravando" }, 409);
+    return c.json(
+      { error: "busy", message: "outro lançamento está gravando. Espere e tente de novo" },
+      409,
+    );
   if (err instanceof WriteError) return c.json({ error: "write", message: err.message }, 422);
   throw err;
 });
@@ -173,22 +193,27 @@ entries.post("/", async (c) => {
   const body = Commit.parse(await c.req.json());
   const draft = body.draft as Draft;
   const env = c.env;
-  const data = await getProjection(env, todayIn(new Date()));
-  const api = await writerApi(env);
+  const [data, api] = await Promise.all([getProjection(env, todayIn(new Date())), writerApi(env)]);
   if (!api) throw new WriteError("o Neko ainda não pode gravar");
-  const result = await withLock(env.DB, () =>
-    draft.type === "forecast"
-      ? writeForecast(env.DB, api, body.id, draft.days, draft.value)
-      : commitEntry(env.DB, api, body.id, place(draft, data.cardsKnown), body.fingerprints),
-  );
-  if (result.state === "done" && body.key) {
+  const placements = draft.type === "forecast" ? [] : place(draft, data.cardsKnown);
+  const launch = async () => {
+    const result = await withLock(env.DB, async () => {
+      await healOrphans(env.DB, api, new Date(Date.now() - LOCK_MS).toISOString());
+      return draft.type === "forecast"
+        ? writeForecast(env.DB, api, body.id, draft.days, draft.value)
+        : commitEntry(env.DB, api, body.id, placements, body.fingerprints);
+    });
+    if (result.state === "done" && body.key) await remember(body.key);
+    return result;
+  };
+  const remember = async (key: string) => {
     await env.DB.prepare(
       "INSERT INTO queue_decision (key, state, entry_id, created_at) VALUES (?, 'launched', ?, ?) ON CONFLICT(key) DO UPDATE SET state = 'launched', entry_id = excluded.entry_id",
     )
-      .bind(body.key, body.id, new Date().toISOString())
+      .bind(key, body.id, new Date().toISOString())
       .run();
     // A Pix launched as savings: the next one from the same origin is proposed as savings.
-    const item = data.bank?.queue?.find((i) => i.key === body.key);
+    const item = data.bank?.queue?.find((i) => i.key === key);
     if (item?.kind === "diario" && draft.type === "new" && draft.kind === "reserva") {
       const origin = item.origin ?? "";
       const settings = await loadSettings(env.DB);
@@ -198,8 +223,8 @@ entries.post("/", async (c) => {
           savedOrigins: [...settings.savedOrigins, origin].slice(-100),
         });
     }
-  }
-  return c.json(result);
+  };
+  return c.json(await finish(c, launch()));
 });
 
 /**
@@ -208,7 +233,9 @@ entries.post("/", async (c) => {
  * value is saved only once the sheet has it.
  */
 entries.post("/previsto", async (c) => {
-  const { value } = z.object({ value: Money.max(10_000_00) }).parse(await c.req.json());
+  const { value, id } = z
+    .object({ value: Money.max(10_000_00), id: z.string().uuid().optional() })
+    .parse(await c.req.json());
   const env = c.env;
   const today = todayIn(new Date());
   const data = await getProjection(env, today);
@@ -222,13 +249,22 @@ entries.post("/previsto", async (c) => {
   if (days.length === 0) throw new WriteError("a planilha não tem a aba deste ano");
   const api = await writerApi(env);
   if (!api) throw new WriteError("o Neko ainda não pode gravar");
-  const result = await withLock(env.DB, () =>
-    writeForecast(env.DB, api, crypto.randomUUID(), days, cents(value)),
-  );
-  if (result.state === "done") {
+  // The app's id makes a retry after a dropped connection report the first write, not redo it.
+  const entryId = id ?? crypto.randomUUID();
+  const again = await env.DB.prepare("SELECT 1 FROM entry_op WHERE entry_id = ? LIMIT 1")
+    .bind(entryId)
+    .first();
+  const fill = async () => {
+    const result = await withLock(env.DB, () =>
+      writeForecast(env.DB, api, entryId, days, cents(value)),
+    );
+    if (result.state === "done" && !again) await keep(result.entryId);
+    return result;
+  };
+  const keep = async (entry: string) => {
     const settings = await loadSettings(env.DB);
     const undo = {
-      entry: result.entryId,
+      entry,
       dailyForecast: settings.dailyForecast,
       since: settings.previstoSince,
     };
@@ -238,8 +274,8 @@ entries.post("/previsto", async (c) => {
         ? { ...settings, dailyForecast: value, previstoSince: today, previstoUndo: undo }
         : { ...settings, previstoSince: null, previstoUndo: undo },
     );
-  }
-  return c.json(result);
+  };
+  return c.json(await finish(c, fill()));
 });
 
 /** Puts every cell back as it was, if the owner did not change it since; the item comes back. */
@@ -248,19 +284,22 @@ entries.post("/:id/undo", async (c) => {
   const env = c.env;
   const api = await writerApi(env);
   if (!api) throw new WriteError("o Neko ainda não pode gravar");
-  const result = await withLock(env.DB, () => undoEntry(env.DB, api, id));
-  await env.DB.prepare("DELETE FROM queue_decision WHERE entry_id = ?").bind(id).run();
-  // Desfazer after filling or changing the Diário previsto puts its setting back too.
-  const settings = await loadSettings(env.DB);
-  const before = settings.previstoUndo;
-  if (result.state === "undone" && before?.entry === id)
-    await saveSettings(env.DB, {
-      ...settings,
-      dailyForecast: before.dailyForecast,
-      previstoSince: before.since,
-      previstoUndo: null,
-    });
-  return c.json(result);
+  const undo = async () => {
+    const result = await withLock(env.DB, () => undoEntry(env.DB, api, id));
+    await env.DB.prepare("DELETE FROM queue_decision WHERE entry_id = ?").bind(id).run();
+    // Desfazer after filling or changing the Diário previsto puts its setting back too.
+    const settings = await loadSettings(env.DB);
+    const before = settings.previstoUndo;
+    if (result.state === "undone" && before?.entry === id)
+      await saveSettings(env.DB, {
+        ...settings,
+        dailyForecast: before.dailyForecast,
+        previstoSince: before.since,
+        previstoUndo: null,
+      });
+    return result;
+  };
+  return c.json(await finish(c, undo()));
 });
 
 /** Para lançar answers that write nothing to the sheet: ignore an item, or say what an account is. */

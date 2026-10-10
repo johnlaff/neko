@@ -223,7 +223,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
-    const [itemRows, accounts, txns, bills] = await Promise.all([
+    const [itemRows, accounts, txns, bills, decided] = await Promise.all([
       db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
       db.prepare("SELECT id, type, item_id, balance FROM bank_account").all<BankAccountRow>(),
       db
@@ -232,12 +232,13 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
         )
         .all<BankTxnRow>(),
       db.prepare("SELECT id, account_id, due_date, total FROM bank_bill").all<BankBillRow>(),
+      loadDecided(db),
     ]);
     return {
       items: items.n,
       syncedAt: items.at,
       itemRows: itemRows.results,
-      decided: await loadDecided(db),
+      decided,
       accounts: accounts.results,
       txns: txns.results,
       bills: bills.results,
@@ -260,8 +261,15 @@ const loadDecided = async (db: D1Database): Promise<string[]> => {
   }
 };
 
-/** Changes whenever a sync lands, a bank is linked or dropped, or an item is decided. */
-export const bankVersion = (rows: BankRows | null): string =>
-  rows
-    ? `${rows.items}:${rows.syncedAt ?? "-"}:${rows.accounts.length}:${rows.txns.length}:${rows.decided?.length ?? 0}:${rows.decided?.at(-1) ?? "-"}`
-    : "none";
+/**
+ * Changes whenever anything read from the banks changes: a hash of all of it, so a sync that
+ * moves one value, or ignoring one item and bringing back another, never serves an old snapshot.
+ */
+export const bankVersion = (rows: BankRows | null): string => {
+  if (!rows) return "none";
+  // FNV-1a, 32 bits: a cache key, not security.
+  const text = JSON.stringify(rows);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+  return `${rows.items}:${(h >>> 0).toString(36)}`;
+};

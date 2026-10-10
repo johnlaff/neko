@@ -206,14 +206,16 @@ export const syncItem = async (
             credit?.balanceDueDate ? civilDate(credit.balanceDueDate) : null,
           ),
       ];
-      const ids = txns.map((t) => t.id);
-      stmts.push(
-        db
-          .prepare(
-            `DELETE FROM bank_txn WHERE account_id = ? AND date >= ? AND id NOT IN (SELECT value FROM json_each(?))`,
-          )
-          .bind(a.id, from, JSON.stringify(ids)),
-      );
+      // An empty answer for an account that had movements is more likely a hiccup at Pluggy than
+      // 75 days with nothing: keep what was read before; the next sync drops what is really gone.
+      if (txns.length > 0)
+        stmts.push(
+          db
+            .prepare(
+              `DELETE FROM bank_txn WHERE account_id = ? AND date >= ? AND id NOT IN (SELECT value FROM json_each(?))`,
+            )
+            .bind(a.id, from, JSON.stringify(txns.map((t) => t.id))),
+        );
       for (const t of txns) {
         const card = t.creditCardMetadata;
         // Kept as Pluggy sends it; bank.ts dates each line by the card's cycle instead.
