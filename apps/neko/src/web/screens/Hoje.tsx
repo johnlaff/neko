@@ -567,6 +567,10 @@ export const Hoje = () => (
                   <Mia />
                 </div>
               ),
+              // What asks for a tap comes right after Lançar: the sheet's health (one line when all is
+              // well), then what the bank found. What to know follows.
+              conference: <Conference issues={issues} sheet={sheet} />,
+              queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
               streak: habit && <Streak habit={habit} />,
               previsto: <PrevistoReview previsto={previsto} />,
               // Over the plan, the red figure already says the bill is high: no second card.
@@ -610,21 +614,18 @@ export const Hoje = () => (
                   )}
                 </section>
               ),
-              // The sheet's health is one line when all is well: above the bank's list, in view.
-              conference: <Conference issues={issues} sheet={sheet} />,
-              queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
             }}
             // Wide screens: each column takes the next panels in the phone's order, so the eye and
             // the keyboard go down one column and then the next. Today's number and what to do now,
-            // then what to know, then what the bank found.
+            // then what to know.
             two={[
-              ["dial", "quick", "streak", "previsto", "insights", "save"],
-              ["recap", "next", "conference", "queue"],
+              ["dial", "quick", "conference", "queue"],
+              ["streak", "previsto", "insights", "save", "recap", "next"],
             ]}
             three={[
-              ["dial", "quick", "streak", "previsto"],
-              ["insights", "save", "recap", "next"],
+              ["dial", "quick"],
               ["conference", "queue"],
+              ["streak", "previsto", "insights", "save", "recap", "next"],
             ]}
           />
           <LaunchToast />
