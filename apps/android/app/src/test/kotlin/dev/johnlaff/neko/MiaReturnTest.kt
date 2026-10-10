@@ -6,7 +6,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import dev.johnlaff.neko.ui.LocalMia
-import dev.johnlaff.neko.ui.MiaButton
 import dev.johnlaff.neko.ui.MiaEntry
 import dev.johnlaff.neko.ui.MiaHead
 import dev.johnlaff.neko.ui.NekoTheme
@@ -30,14 +29,6 @@ class MiaReturnTest {
         entry.returning = "head"
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Perguntar à Mia sobre as faturas").assertIsFocused()
-        assertNull(entry.returning)
-    }
-
-    @Test fun rowTakesTheFocusBack() {
-        compose.setContent { NekoTheme { CompositionLocalProvider(LocalMia provides entry) { MiaButton(false) {} } } }
-        entry.returning = "row"
-        compose.waitForIdle()
-        compose.onNodeWithText("Perguntar à Mia", substring = true).assertIsFocused()
         assertNull(entry.returning)
     }
 }

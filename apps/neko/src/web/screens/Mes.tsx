@@ -34,16 +34,19 @@ const Evolution = () => {
   const first = history.data?.points[0];
   const delta = history.data?.delta ?? null;
   if (!first || delta === null) return null;
-  const since = `desde ${shortDate(first.today)}`;
+  // Against the month's end as the sheet showed it on the first reading, so it never reads as
+  // money the balance gained this month (that is "Saldo subiu" or "desceu" below).
+  const day = shortDate(first.today);
   return (
     <p className={`delta${delta > 0 ? " pos" : delta < 0 ? " neg" : ""}`}>
       {delta === 0 ? (
-        `Igual ${since}`
+        `Igual a ${day}`
       ) : (
         <>
-          <span aria-hidden="true">{delta > 0 ? "▲" : "▼"}</span>
-          <span className="sr-only">{delta > 0 ? "Melhorou" : "Piorou"}</span>{" "}
-          {money(Math.abs(delta))} <span className="muted">{since}</span>
+          <span aria-hidden="true">{delta > 0 ? "▲" : "▼"}</span> {money(Math.abs(delta))}{" "}
+          <span className="muted">
+            {delta > 0 ? "a mais" : "a menos"} que em {day}
+          </span>
         </>
       )}
     </p>
@@ -383,7 +386,9 @@ export const Mes = () => {
                     />
                     {result !== null && (
                       <p className="figure-line performance">
-                        <span className="muted">{result < 0 ? "Falta" : "Sobra"} no mês</span>
+                        <span className="muted">
+                          Saldo {result < 0 ? "desceu" : "subiu"} no mês
+                        </span>
                         <strong className={result > 0 ? "pos" : result < 0 ? "neg" : undefined}>
                           {money(Math.abs(result))}
                         </strong>
@@ -425,9 +430,9 @@ export const Mes = () => {
                       </dl>
                       {result !== null && (
                         <p>
-                          {result < 0 ? "Falta" : "Sobra"} é quanto o saldo{" "}
-                          {result < 0 ? "desceu" : "subiu"} no mês. Dinheiro guardado também sai da
-                          conta, então um mês em que você economizou pode aparecer com falta.
+                          O saldo {result < 0 ? "desceu" : "subiu"} é a diferença entre o começo e o
+                          fim do mês. Dinheiro guardado também sai da conta, então um mês em que
+                          você economizou pode aparecer com o saldo descendo.
                         </p>
                       )}
                       {saved > 0 && (

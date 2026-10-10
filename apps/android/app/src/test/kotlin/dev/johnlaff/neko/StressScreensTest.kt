@@ -78,7 +78,7 @@ class StressScreensTest {
     }
 
     @Test fun ajustesHugeText() = compose.shot(path("ajustes-200"), night = true, Device.HugeText, Tab.Ajustes) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices)
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher)
     }
 
     @Test fun simular() = compose.shot(path("simular"), night = true, Device.SmallLargeText) {
@@ -107,13 +107,13 @@ class StressScreensTest {
     }
 
     @Test fun ajustes() = compose.shot(path("ajustes"), night = false, Device.SmallLargeText, Tab.Ajustes) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices)
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher)
     }
 
-    // Hoje with Mia on: her mark beside the title and her row under the buttons.
+    // Hoje with Mia on: her mark and name beside the title.
     @Test fun hojeMia() = compose.shot(path("hoje-mia"), night = false, Device.SmallLargeText, Tab.Hoje) {
         androidx.compose.runtime.CompositionLocalProvider(dev.johnlaff.neko.ui.LocalMia provides Fakes.miaEntry) {
-            HojeScreen(ScreenState(today), {}, {}, Fakes.simulate, mia = dev.johnlaff.neko.data.MiaStatus(ligada = true), onMia = {})
+            HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
         }
     }
 

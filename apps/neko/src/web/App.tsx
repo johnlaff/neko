@@ -47,7 +47,13 @@ const prefetchScreens = () => {
 const Login = lazy(() => import("./Login.tsx").then((m) => ({ default: m.Login })));
 
 /** The tabs Mia can be asked about from the head, and what she is asked about there. */
-const MIA_TOPIC: Record<string, MiaTopic> = { "/": "hoje", "/faturas": "faturas", "/mes": "mes" };
+const MIA_TOPIC: Record<string, MiaTopic> = {
+  "/": "hoje",
+  "/faturas": "faturas",
+  "/mes": "mes",
+  // Ajustes has no numbers of its own: she starts with Hoje's, and the head stays the same on every tab.
+  "/ajustes": "hoje",
+};
 
 const TITLES: Record<string, string> = {
   "/": "Hoje",
@@ -116,6 +122,7 @@ const Masthead = () => {
         title={hidden ? "Mostrar valores" : "Esconder valores"}
       >
         {hidden ? <IconEyeOff /> : <IconEye />}
+        <span className="icon-label">Esconder valores</span>
       </button>
       <button
         type="button"
@@ -127,6 +134,7 @@ const Masthead = () => {
         title="Ler a planilha de novo (R)"
       >
         <IconRefresh />
+        <span className="icon-label">Ler a planilha</span>
       </button>
     </header>
   );

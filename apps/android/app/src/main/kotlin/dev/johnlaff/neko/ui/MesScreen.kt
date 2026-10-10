@@ -207,7 +207,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
         )
         m.result?.let { r ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${if (r < 0) "Falta" else "Sobra"} no mês", color = l.muted)
+                Text("Saldo ${if (r < 0) "desceu" else "subiu"} no mês", color = l.muted)
                 Text(
                     money(kotlin.math.abs(r)),
                     style = MaterialTheme.typography.titleMedium,
@@ -241,8 +241,8 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             }
             m.result?.let { r ->
                 Text(
-                    "${if (r < 0) "Falta" else "Sobra"} é quanto o saldo ${if (r < 0) "desceu" else "subiu"} no mês. " +
-                        "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com falta.",
+                    "O saldo ${if (r < 0) "desceu" else "subiu"} é a diferença entre o começo e o fim do mês. " +
+                        "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com o saldo descendo.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -266,14 +266,17 @@ private fun Evolution(h: HistoryView) {
     val l = LocalLedger.current
     val first = h.points.firstOrNull() ?: return
     val delta = h.delta ?: return
-    val since = "desde ${shortDate(first.today)}"
+    // Against the month's end as the sheet showed it on the first reading, so it never reads as
+    // money the balance gained this month (that is "Saldo subiu" or "desceu" below), as on the site.
+    val day = shortDate(first.today)
+    val since = "${if (delta > 0) "a mais" else "a menos"} que em $day"
     val style = MaterialTheme.typography.labelLarge
     if (delta == 0L) {
-        Text("Igual $since", color = l.muted, style = style)
+        Text("Igual a $day", color = l.muted, style = style)
         return
     }
     Row(Modifier.semantics(mergeDescendants = true) {
-        contentDescription = "${if (delta > 0) "Melhorou" else "Piorou"} ${money(kotlin.math.abs(delta))} $since"
+        contentDescription = "${money(kotlin.math.abs(delta))} $since"
     }) {
         Text("${if (delta > 0) "▲" else "▼"} ${money(kotlin.math.abs(delta))} ", color = if (delta > 0) l.pos else l.neg, style = style)
         Text(since, color = l.muted, style = style)
@@ -328,7 +331,7 @@ private fun Outflows(m: MonthItem) {
             )
         }
         (if (all) m.outflows else m.outflows.take(OUTFLOWS_SHOWN)).forEach { OutflowRow(it, top) }
-        if (rest > 0) TextAction(if (all) "Ver menos" else "Ver mais $rest", { all = !all })
+        if (rest > 0) TextAction(if (all) "Ver menos" else "Ver mais $rest", { all = !all }, open = all)
         if (m.fixed.isNotEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 androidx.compose.material3.Icon(painterResource(R.drawable.ic_repeat), contentDescription = null, tint = l.faint, modifier = Modifier.size(14.dp))
@@ -350,8 +353,8 @@ private fun OutflowRow(o: Outflow, top: Long) {
             // The whole line opens the destination's last months, as on the site.
             modifier = Modifier.clickable(onClickLabel = "ver os últimos meses") { open = !open },
             avatar = if (o.kind == "card") monogram(o.label) else o.label.take(1).uppercase(),
-            // What the line is about, when its words say so; otherwise a fixed line repeats and the rest is a bill (as on the site).
-            avatarIcon = if (o.kind == "card") null else if (o.fixed != null) R.drawable.ic_repeat else R.drawable.ic_receipt,
+            // What the line is about, when its words say so; otherwise a card, a fixed line that repeats or a bill (as on the site).
+            avatarIcon = if (o.kind == "card") R.drawable.ic_card else if (o.fixed != null) R.drawable.ic_repeat else R.drawable.ic_receipt,
             avatarVector = if (o.kind == "card") null else categoryIcon(o.label),
             card = o.label.takeIf { o.kind == "card" },
             meta = o.fixed?.installment?.let(::installmentLine),

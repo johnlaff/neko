@@ -191,6 +191,8 @@ fun AjustesScreen(
         state,
         { "" },
         onRefresh,
+        // Ajustes has no numbers of its own: Mia starts with Hoje's, and the head stays the same on every tab.
+        miaTopic = "hoje",
         trailing = {
             // TalkBack says "Salvo" / "Não salvou" without moving focus, as the autosave has no button.
             Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
@@ -219,7 +221,7 @@ fun AjustesScreen(
                 Column {
                 Group("Bancos") { Banks(b, f.cards.map { it.name }, banks) }
                 Text(
-                    "O Neko só lê o banco e nunca muda a planilha. O código da conexão fica no painel da Pluggy, na lista Connected Items (itens conectados).",
+                    "O Neko só lê o banco e nunca muda a planilha. O código da conexão fica no Meu Pluggy, na lista das suas conexões.",
                     color = LocalLedger.current.faint,
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
@@ -428,10 +430,27 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         b.items.forEach { i ->
             Setting(i.label, bankStatus(i), error = i.error != null) {
+                // Unlinking asks once more: getting the bank back means finding its code again (as on the site).
+                var asking by remember { mutableStateOf(false) }
                 TextButton(
-                    onClick = { list.onSaveItems(linked.filterNot { it.itemId == i.itemId }) },
+                    onClick = { asking = true },
                     modifier = Modifier.semantics { contentDescription = "Desligar ${i.label}" },
                 ) { Text("Desligar", color = l.muted) }
+                if (asking) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { asking = false },
+                        title = { Text("Desligar ${i.label}?", style = MaterialTheme.typography.headlineSmall) },
+                        text = { Text("Para ligar de novo, cole o código outra vez.", color = l.muted) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                asking = false
+                                list.onSaveItems(linked.filterNot { it.itemId == i.itemId })
+                            }) { Text("Desligar", color = l.neg) }
+                        },
+                        dismissButton = { TextButton(onClick = { asking = false }) { Text("Cancelar", color = l.text) } },
+                        containerColor = l.surface,
+                    )
+                }
             }
             i.accounts.filterNot { it.card }.forEach { a ->
                 // The answer to "guarda ou dia a dia", changeable here after Para lançar asked it.
