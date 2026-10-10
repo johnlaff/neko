@@ -108,12 +108,15 @@ private val MIA_TOPICS = mapOf(
 fun miaStarters(topic: String = "hoje"): List<String> =
     (MIA_TOPICS[topic].orEmpty() + MIA_TOPICS.values.flatten()).distinct().take(5)
 
-/** The empty screen's title, naming the screen she was opened from. */
-fun miaTitle(topic: String = "hoje"): String = when (topic) {
-    "faturas" -> "Pergunte sobre as faturas"
-    "mes" -> "Pergunte sobre o mês"
-    else -> "Pergunte sobre a sua planilha"
+/** What she is asked about, from the screen she was opened from: her title and her mark's name. */
+private fun miaSubject(topic: String): String = when (topic) {
+    "faturas" -> "sobre as faturas"
+    "mes" -> "sobre o mês"
+    else -> "sobre a sua planilha"
 }
+
+/** The empty screen's title, naming the screen she was opened from. */
+fun miaTitle(topic: String = "hoje"): String = "Pergunte ${miaSubject(topic)}"
 
 /** Exchanges sent back with a question; the Worker takes no more. */
 private const val MAX_HISTORY = 6
@@ -220,7 +223,7 @@ fun MiaButton(continuing: Boolean, onClick: () -> Unit) {
 fun MiaHead(topic: String) {
     val entry = LocalMia.current ?: return
     // With a conversation open she continues it, as Hoje's row says; otherwise she starts on this screen.
-    val label = if (entry.talking()) "Continuar a conversa com a Mia" else "Perguntar à Mia ${miaTitle(topic).removePrefix("Pergunte ")}"
+    val label = if (entry.talking()) "Continuar a conversa com a Mia" else "Perguntar à Mia ${miaSubject(topic)}"
     IconButton(
         onClick = { entry.open(topic, "head") },
         modifier = Modifier.focusRequester(rememberMiaReturn("head")).semantics { contentDescription = label },

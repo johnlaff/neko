@@ -543,6 +543,16 @@ button.icon:hover,
 a.icon:hover {
   background: var(--pill-active);
 }
+/* A link that looks like the icon buttons around it (Mia's mark in the head). */
+a.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition:
+    background-color 160ms ease-out,
+    scale 120ms ease-out;
+}
 .wide {
   width: 100%;
 }
@@ -2839,14 +2849,4 @@ form.entry {
   display: grid;
   gap: 10px;
   padding: 12px 16px 16px;
-}
-/* A link that looks like the icon buttons around it (Mia's mark in the head). */
-a.icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  transition:
-    background-color 160ms ease-out,
-    scale 120ms ease-out;
 }

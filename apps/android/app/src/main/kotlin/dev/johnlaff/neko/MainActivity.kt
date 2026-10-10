@@ -100,7 +100,7 @@ class MainActivity : ComponentActivity() {
                 var miaBy by rememberSaveable { mutableStateOf("row") }
                 val miaEntry = remember {
                     MiaEntry(
-                        open = { topic, by ->
+                        onOpen = { topic, by ->
                             miaTopic = topic
                             miaBy = by
                             miaTab = tab

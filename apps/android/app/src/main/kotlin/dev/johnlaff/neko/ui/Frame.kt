@@ -62,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -264,9 +265,14 @@ val LocalRail = staticCompositionLocalOf { false }
  * The ways into Mia from the tabs (the head mark and Hoje's row), null while she is off: opens her
  * about a screen ("hoje", "faturas", "mes") and, when she closes, hands the focus back to the way in.
  */
-class MiaEntry(val open: (topic: String, by: String) -> Unit, val talking: () -> Boolean) {
+class MiaEntry(private val onOpen: (topic: String, by: String) -> Unit, val talking: () -> Boolean) {
     /** "head" or "row" right after she closes, until that way in has the focus again. */
     var returning by mutableStateOf<String?>(null)
+
+    fun open(topic: String, by: String) {
+        returning = null
+        onOpen(topic, by)
+    }
 }
 
 val LocalMia = staticCompositionLocalOf<MiaEntry?> { null }
@@ -277,10 +283,16 @@ fun rememberMiaReturn(by: String): FocusRequester {
     val entry = LocalMia.current
     val focus = remember { FocusRequester() }
     LaunchedEffect(entry?.returning) {
-        if (entry != null && entry.returning == by) {
-            entry.returning = null
-            runCatching { focus.requestFocus() }
+        if (entry == null || entry.returning != by) return@LaunchedEffect
+        // Mia's screen may still be sliding out, or the way in not laid out yet: a few frames, then let go.
+        repeat(30) {
+            withFrameNanos { }
+            if (runCatching { focus.requestFocus() }.isSuccess) {
+                entry.returning = null
+                return@LaunchedEffect
+            }
         }
+        entry.returning = null
     }
     return focus
 }

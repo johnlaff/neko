@@ -26,13 +26,16 @@ export const miaStarters = (topic: MiaTopic = "hoje") =>
     .filter((q, i, all) => all.indexOf(q) === i)
     .slice(0, 5);
 
-/** The empty screen's title, naming the screen she was opened from. */
-export const miaTitle = (topic: MiaTopic = "hoje") =>
+/** What she is asked about, from the screen she was opened from: her title and her mark's name. */
+const miaSubject = (topic: MiaTopic = "hoje") =>
   topic === "faturas"
-    ? "Pergunte sobre as faturas"
+    ? "sobre as faturas"
     : topic === "mes"
-      ? "Pergunte sobre o mês"
-      : "Pergunte sobre a sua planilha";
+      ? "sobre o mês"
+      : "sobre a sua planilha";
+
+/** The empty screen's title, naming the screen she was opened from. */
+export const miaTitle = (topic: MiaTopic = "hoje") => `Pergunte ${miaSubject(topic)}`;
 
 /** Exchanges sent back with a question; the Worker takes no more. */
 const MAX_HISTORY = 6;
@@ -257,9 +260,7 @@ export const MiaHead = ({ topic }: { topic: MiaTopic }) => {
   if (!status.data?.ligada) return null;
   // With a conversation open she continues it, as the Hoje row says; otherwise she starts on this screen.
   const label =
-    talk.length > 0
-      ? "Continuar a conversa com a Mia"
-      : `Perguntar à Mia ${miaTitle(topic).replace("Pergunte ", "")}`;
+    talk.length > 0 ? "Continuar a conversa com a Mia" : `Perguntar à Mia ${miaSubject(topic)}`;
   return (
     <Link
       onClick={opened(".mia-head")}
