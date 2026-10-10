@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -220,6 +221,8 @@ fun MiaPanel(
     val focus = LocalFocusManager.current
     val input = remember { FocusRequester() }
     var seconds by remember { mutableStateOf(0) }
+    // Gone from the list, the field no longer holds the focus an answer might close.
+    DisposableEffect(Unit) { onDispose { chat.typing = false } }
     LaunchedEffect(chat.pending) {
         while (chat.pending) {
             seconds = ((System.currentTimeMillis() - chat.sentAt) / 1000).toInt()
@@ -265,6 +268,8 @@ fun MiaPanel(
     val newest = talk.lastOrNull()
     val line = when {
         chat.pending -> miaWaiting(seconds)
+        // Reached while asking: said where the wait was, so TalkBack reads it.
+        chat.limited -> "A Mia descansa até ${paused?.let(::shortDate) ?: "o mês que vem"}. Os números seguem nas telas."
         chat.failed -> "Não consegui falar com a Mia agora."
         else -> null
     }
@@ -277,8 +282,9 @@ fun MiaPanel(
     }
 
     Panel(Modifier.semantics { contentDescription = "Conversa com a Mia" }) {
-        if (resting) {
-            Text("A Mia descansa até ${paused?.let(::shortDate) ?: "o mês que vem"}. Os números seguem nas telas.", color = l.muted)
+        // Paused on opening: said first.
+        if (paused != null && !chat.limited) {
+            Text("A Mia descansa até ${shortDate(paused)}. Os números seguem nas telas.", color = l.muted)
         }
         talk.dropLast(1).forEach { x ->
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {

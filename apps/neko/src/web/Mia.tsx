@@ -222,11 +222,12 @@ export const Mia = () => {
           id={`${id}-panel`}
           className="panel mia"
           aria-label="Conversa com a Mia"
+          tabIndex={-1}
         >
-          {resting && (
+          {/* Paused on opening: said first. Reached while asking: said where the wait was, aloud. */}
+          {s.pausadaAte && !limited && (
             <p className="muted mia-lead">
-              A Mia descansa até {s.pausadaAte ? shortDate(s.pausadaAte) : "o mês que vem"}. Os
-              números seguem nas telas.
+              A Mia descansa até {shortDate(s.pausadaAte)}. Os números seguem nas telas.
             </p>
           )}
           {talk.length > 0 && (
@@ -259,9 +260,11 @@ export const Mia = () => {
             <p className="mia-status" aria-live="polite">
               {ask.isPending
                 ? miaWaiting(seconds)
-                : failed
-                  ? "Não consegui falar com a Mia agora."
-                  : ""}
+                : limited
+                  ? `A Mia descansa até ${s.pausadaAte ? shortDate(s.pausadaAte) : "o mês que vem"}. Os números seguem nas telas.`
+                  : failed
+                    ? "Não consegui falar com a Mia agora."
+                    : ""}
             </p>
             {failed && (
               <button
@@ -320,7 +323,7 @@ export const Mia = () => {
                 setTalk([]);
                 ask.reset();
                 // The button goes away with the conversation; the focus lands where the next one starts.
-                input.current?.focus();
+                (input.current ?? section.current)?.focus();
               }}
             >
               Nova conversa
