@@ -159,6 +159,8 @@ export const api = {
   keepPrevisto: () => request<{ ok: true }>("/queue/previsto/manter", { method: "POST" }),
   ignore: (key: string) =>
     request<{ ok: true }>("/queue/ignore", { method: "POST", body: JSON.stringify({ key }) }),
+  unignore: (key: string) =>
+    request<{ ok: true }>("/queue/unignore", { method: "POST", body: JSON.stringify({ key }) }),
   accountUse: (account: string, use: "guardado" | "corrente") =>
     request<{ ok: true }>("/queue/account", {
       method: "POST",

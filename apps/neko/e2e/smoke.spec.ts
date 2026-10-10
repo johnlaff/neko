@@ -91,6 +91,7 @@ const open = async (page: Page, path: string, body = projection) => {
       return route.fulfill({ json: { parts: [{ fingerprint: "f" }] } });
     if (pathname === "/api/entries")
       return route.fulfill({ json: { entryId: "e", state: "done" } });
+    if (pathname.startsWith("/api/queue/")) return route.fulfill({ json: { ok: true } });
     if (pathname === "/api/projection")
       return route.fulfill({ contentType: "application/json", body });
     if (pathname in API) return route.fulfill({ json: API[pathname] });
@@ -120,7 +121,7 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(4);
   // Each item says why it is there and what Lançar writes, line by line, with the day's total.
   await expect(queue).toContainText("Saiu dinheiro que a planilha ainda não tem.");
-  await expect(queue).toContainText("03/10 · Diário · PIX FEIRA DO BAIRRO");
+  await expect(queue).toContainText("03/10 · DiárioR$ 42,50 · linha nova");
   await expect(queue).toContainText("Diário do dia: R$ 56,38 → R$ 98,88");
   await expect(queue).toContainText("12/11 · Saída · Cartão Azul");
   await expect(queue).toContainText("R$ 2.838,07 → R$ 2.922,70");
@@ -131,6 +132,10 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await queue.getByRole("button", { name: "Lançar" }).first().click();
   await expect(page.getByRole("status").filter({ hasText: "Lançado na planilha" })).toBeVisible();
   await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(3);
+  // Ignorar takes an item away with Desfazer, like a launch.
+  await queue.getByRole("button", { name: "Ignorar" }).first().click();
+  await expect(page.getByRole("status").filter({ hasText: "Ignorado" })).toBeVisible();
+  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(2);
   await page.getByRole("link", { name: "Faturas", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Faturas no banco" })).toBeVisible();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();

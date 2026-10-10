@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -84,6 +85,9 @@ interface Launcher {
     val fill: (suspend (String, List<String>) -> MiaEntry?)? get() = null
 }
 
+/** An undo id for Ignorar: Desfazer brings the item back instead of undoing a launch. */
+const val IGNORED = "ignored:"
+
 /** How long Desfazer stays after a launch. */
 private const val UNDO_MS = 10_000L
 
@@ -111,10 +115,13 @@ private fun Change(line: QueueLine) {
         val before = line.before
         Text(
             buildAnnotatedString {
-                if (before == null) {
+                if (line.change == "economia") {
                     withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) {
                         append(Format.signed(line.after, if (line.after < 0) '−' else '+'))
                     }
+                } else if (before == null) {
+                    withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) { append(money(line.after)) }
+                    append(" · linha nova")
                 } else {
                     append("${money(before)} → ")
                     withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) { append(money(line.after)) }
@@ -406,7 +413,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.titleSmall)
             Text(shortDate(item.date), color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
         item.note?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
@@ -436,7 +443,14 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
                     if (item.adjustable && !isCard)
                         Small("Ajustar", filled = false, enabled = canWrite && !busy) { adjusting = true }
                 }
-                Small("Ignorar", filled = false, enabled = !busy) { run { it.ignore(item.key) } }
+                // Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer.
+                Spacer(Modifier.weight(1f))
+                TextAction("Ignorar", {
+                    if (!busy) run {
+                        it.ignore(item.key)
+                        onLaunched("$IGNORED${item.key}")
+                    }
+                }, l.muted)
             }
         }
         error?.let { Failed(it) }

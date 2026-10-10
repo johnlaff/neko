@@ -2712,15 +2712,14 @@ main.mia-page form.mia-form > input {
 }
 .q-head {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 16px;
+  column-gap: 16px;
   align-items: baseline;
 }
 .q-head > .name {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-weight: 500;
 }
 .q-head > .meta {
@@ -2752,7 +2751,7 @@ main.mia-page form.mia-form > input {
 .q-impact-head {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--faint);
+  color: var(--muted);
 }
 .q-impact ul {
   list-style: none;
@@ -2773,6 +2772,7 @@ main.mia-page form.mia-form > input {
 }
 .q-value {
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .q-value strong {
   color: var(--text);
@@ -2780,7 +2780,8 @@ main.mia-page form.mia-form > input {
 }
 .q-cell {
   font-size: 0.8125rem;
-  color: var(--faint);
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .q-impact details.formula > ul {
   margin-top: 8px;
@@ -2792,7 +2793,15 @@ main.mia-page form.mia-form > input {
 .q-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+/* Ignorar is the way out, not a third choice: quiet, at the far end */
+.q-actions > button.q-ignore {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--muted);
 }
 button.small:not(.ghost) {
   min-height: 36px;

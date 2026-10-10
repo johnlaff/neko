@@ -15,7 +15,12 @@ import { IconChevron } from "./icons.tsx";
 /** How long Desfazer stays on screen after a launch. */
 const UNDO_MS = 10_000;
 
-type Toast = { readonly entryId: string | null; readonly text: string } | null;
+/** `ignored` brings back an item Ignorar took away; `entryId` undoes a launch. */
+type Toast = {
+  readonly entryId: string | null;
+  readonly text: string;
+  readonly ignored?: string;
+} | null;
 let toast: Toast = null;
 const listeners = new Set<() => void>();
 export const showToast = (t: Toast) => {
@@ -64,11 +69,17 @@ export const LaunchToast = () => {
   const t = useToast();
   const queryClient = useQueryClient();
   const undo = useMutation({
-    mutationFn: (id: string) => api.undoEntry(id),
-    onSuccess: (r) => {
+    mutationFn: async (t: NonNullable<Toast>) => {
+      if (t.ignored) {
+        await api.unignore(t.ignored);
+        return true;
+      }
+      return t.entryId ? (await api.undoEntry(t.entryId)).state === "undone" : false;
+    },
+    onSuccess: (undone) => {
       showToast({
         entryId: null,
-        text: r.state === "undone" ? "Desfeito" : "A planilha mudou depois. Desfaça por lá",
+        text: undone ? "Desfeito" : "A planilha mudou depois. Desfaça por lá",
       });
       queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
@@ -83,12 +94,12 @@ export const LaunchToast = () => {
   return (
     <div className="toast" role="status">
       <span>{t.text}</span>
-      {t.entryId && (
+      {(t.entryId || t.ignored) && (
         <button
           type="button"
           className="ghost small"
           disabled={undo.isPending}
-          onClick={() => t.entryId && undo.mutate(t.entryId)}
+          onClick={() => undo.mutate(t)}
         >
           {undo.isPending ? "Desfazendo…" : "Desfazer"}
         </button>
@@ -104,8 +115,12 @@ const Change = ({ line }: { line: QueueLine }) => (
   <li>
     <span className="q-where">{bankText(line.label)}</span>
     <span className="q-value">
-      {line.before === null ? (
+      {line.change === "economia" ? (
         <strong>{signed(line.after)}</strong>
+      ) : line.before === null ? (
+        <>
+          <strong>{money(line.after)}</strong> · linha nova
+        </>
       ) : (
         <>
           {money(line.before)} → <strong>{money(line.after)}</strong>
@@ -448,8 +463,10 @@ const Row = ({
     mutationFn: async (a: { ignore: true } | { use: "guardado" | "corrente" }) => {
       if ("ignore" in a) await api.ignore(item.key);
       else await api.accountUse(item.key.replace(/^conta:/, ""), a.use);
+      return "ignore" in a;
     },
-    onSuccess: () => {
+    onSuccess: (ignored) => {
+      if (ignored) showToast({ entryId: null, text: "Ignorado", ignored: item.key });
       onGone(item.key);
       queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
@@ -534,7 +551,7 @@ const Row = ({
           )}
           <button
             type="button"
-            className="ghost small"
+            className="text-link q-ignore"
             disabled={busy}
             onClick={() => answer.mutate({ ignore: true })}
           >

@@ -17,11 +17,12 @@ describe("queue lines", () => {
         [],
       );
     expect(saving("reserva")).toEqual([
-      { label: "15/10 · Saída · Reserva", before: null, after: 50000, cell: null },
-      { label: "Economia de out", before: null, after: 50000, cell: null },
+      { label: "15/10 · Saída · Reserva", change: "new", before: null, after: 50000, cell: null },
+      { label: "Economia de out", change: "economia", before: null, after: 50000, cell: null },
     ]);
     expect(saving("resgate")[1]).toEqual({
       label: "Economia de out",
+      change: "economia",
       before: null,
       after: -50000,
       cell: null,
@@ -48,6 +49,7 @@ describe("queue lines", () => {
     ).toEqual([
       {
         label: "12/11 · Saída · Visa",
+        change: "edit",
         before: 31941,
         after: 40255,
         cell: { label: "Saída do dia", before: 41941, after: 50255 },

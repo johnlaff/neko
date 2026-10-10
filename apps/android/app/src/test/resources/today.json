@@ -179,7 +179,8 @@
           },
           "lines": [
             {
-              "label": "03/10 · Diário · PIX FEIRA DO BAIRRO",
+              "label": "03/10 · Diário",
+              "change": "new",
               "before": null,
               "after": 4250,
               "cell": {
@@ -219,7 +220,8 @@
           },
           "lines": [
             {
-              "label": "04/10 · Entrada · PIX RECEBIDO ANA",
+              "label": "04/10 · Entrada",
+              "change": "new",
               "before": null,
               "after": 15000,
               "cell": null
@@ -256,6 +258,7 @@
           "lines": [
             {
               "label": "04/10 · Diário",
+              "change": "edit",
               "before": 9500,
               "after": 0,
               "cell": null
@@ -290,6 +293,7 @@
           "lines": [
             {
               "label": "12/11 · Saída · Cartão Azul",
+              "change": "edit",
               "before": 283807,
               "after": 292270,
               "cell": {

@@ -73,7 +73,14 @@ data class PrevistoReview(val real: Long, val from: String)
  * which Neko does not read, `before` is null and `after` is the change, signed.
  */
 @Serializable
-data class QueueLine(val label: String, val before: Long? = null, val after: Long, val cell: QueueCell? = null)
+data class QueueLine(
+    val label: String,
+    val before: Long? = null,
+    val after: Long,
+    val cell: QueueCell? = null,
+    /** "edit", "new" (a new line) or "economia" (a signed change to the month's Economia). */
+    val change: String = "edit",
+)
 
 /** The whole cell around a changed line, when it holds more than that line. */
 @Serializable

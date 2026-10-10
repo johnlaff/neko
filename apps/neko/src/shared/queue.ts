@@ -38,6 +38,8 @@ export interface QueueOptionView {
  */
 export interface QueueLine {
   readonly label: string;
+  /** A line that changes value, a new line, or the month's Economia (a signed change). */
+  readonly change: "edit" | "new" | "economia";
   /** Null for a new line, and for the Economia tab, which Neko does not read: `after` is then the change, signed. */
   readonly before: Cents | null;
   readonly after: Cents;
@@ -92,6 +94,7 @@ const forecastLine = (draft: Extract<Draft, { type: "forecast" }>, ledger: Ledge
       draft.days.length === 1 && only
         ? `${dayMonth(only)} · Diário`
         : `Diário de ${draft.days.length} dias`,
+    change: "edit",
     before: cents(before),
     after: cents(after),
     cell: null,
@@ -127,6 +130,7 @@ export const draftLines = (
     if (p.target === "economia")
       return {
         label: `Economia de ${MONTHS[Number(p.date.slice(5, 7)) - 1]}`,
+        change: "economia",
         before: null,
         after: cents(p.column === "entrada" ? -p.amount : p.amount),
         cell: null,
@@ -147,6 +151,7 @@ export const draftLines = (
     shown.add(key);
     return {
       label: `${dayMonth(p.date)} · ${COLUMN[p.column]} · ${p.description}`,
+      change: before === null ? "new" : "edit",
       before,
       after: p.amount,
       cell: whole,
@@ -202,6 +207,12 @@ const noteOf = (item: QueueItem): string => {
   }
 };
 
+/** "03/10 · Diário · Padaria" under the title "Padaria" reads "03/10 · Diário". */
+const untitled = (lines: QueueLine[], title: string): QueueLine[] =>
+  lines.map((l) =>
+    l.label.endsWith(` · ${title}`) ? { ...l, label: l.label.slice(0, -` · ${title}`.length) } : l,
+  );
+
 export const queueView = (
   items: readonly QueueItem[],
   ledger: Ledger,
@@ -219,7 +230,7 @@ export const queueView = (
             label: o.label,
             draft: o.draft,
             ...(o.answer ? { answer: o.answer } : {}),
-            lines: o.draft ? draftLines(o.draft, ledger, cards) : [],
+            lines: o.draft ? untitled(draftLines(o.draft, ledger, cards), titleOf(item)) : [],
           })),
           bank: item.bank,
           adjustable: item.options.some(
