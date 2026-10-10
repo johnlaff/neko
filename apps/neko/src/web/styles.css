@@ -2396,6 +2396,7 @@ form.setting.bank-add > input {
 }
 .mia-bar > button.mia-restart {
   min-height: 44px;
+  white-space: nowrap;
   font-size: 0.875rem;
 }
 .mia-body {
@@ -2411,9 +2412,11 @@ form.setting.bank-add > input {
 p.mia-lead {
   margin: 0;
 }
-/* While typing, the keyboard takes the room: the suggested questions step aside. */
-.mia-composer:has(input:focus) > .mia-suggest {
-  display: none;
+/* While typing on a phone, the keyboard takes the room: the suggested questions step aside. */
+@media (pointer: coarse) {
+  .mia-composer:has(input:focus) > .mia-suggest {
+    display: none;
+  }
 }
 .mia-bar > h1:focus {
   outline: none;
