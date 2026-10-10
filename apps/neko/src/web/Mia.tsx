@@ -123,11 +123,6 @@ interface Exchange {
   reply: MiaReply;
 }
 
-const failure = (e: unknown) => {
-  if (limitHit(e)) return "A Mia descansa até o mês que vem.";
-  return "Não consegui falar com a Mia agora.";
-};
-
 const limitHit = (e: unknown) => e instanceof ApiError && e.status === 429;
 
 /** Seconds since `on` turned true, ticking once a second; 0 while off. */
@@ -151,6 +146,8 @@ export const Mia = () => {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [talk, setTalk] = useState<readonly Exchange[]>([]);
+  // The month's limit was reached: she rests until the page is opened again, whatever is cleared.
+  const [limited, setLimited] = useState(false);
   const last = useRef<HTMLLIElement>(null);
   const section = useRef<HTMLElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -169,7 +166,9 @@ export const Mia = () => {
     },
     // The limit was reached: the status brings the day she is back, and the panel rests.
     onError: (e) => {
-      if (limitHit(e)) void queryClient.invalidateQueries({ queryKey: ["mia"] });
+      if (!limitHit(e)) return;
+      setLimited(true);
+      void queryClient.invalidateQueries({ queryKey: ["mia"] });
     },
   });
   const seconds = useSeconds(ask.isPending);
@@ -186,14 +185,19 @@ export const Mia = () => {
     const pergunta = q.trim();
     if (pergunta && !ask.isPending) ask.mutate(pergunta);
   };
-  const resting = Boolean(s.pausadaAte) || limitHit(ask.error);
+  const resting = Boolean(s.pausadaAte) || limited;
+  const failed = ask.isError && !limitHit(ask.error);
   // A question that just failed waits in "Tentar de novo", not again among the chips.
   const asked = [
     ...talk.map((x) => x.pergunta),
     ...(ask.isError && ask.variables ? [ask.variables] : []),
   ];
   const chips =
-    typed.trim() || ask.isPending ? [] : talk.length === 0 ? MIA_SUGGESTIONS : miaNext(asked);
+    typed.trim() || ask.isPending
+      ? []
+      : talk.length === 0
+        ? MIA_SUGGESTIONS.filter((q) => !asked.includes(q))
+        : miaNext(asked);
 
   return (
     <>
@@ -219,9 +223,10 @@ export const Mia = () => {
           className="panel mia"
           aria-label="Conversa com a Mia"
         >
-          {s.pausadaAte && (
+          {resting && (
             <p className="muted mia-lead">
-              A Mia descansa até {shortDate(s.pausadaAte)}. Os números seguem nas telas.
+              A Mia descansa até {s.pausadaAte ? shortDate(s.pausadaAte) : "o mês que vem"}. Os
+              números seguem nas telas.
             </p>
           )}
           {talk.length > 0 && (
@@ -252,9 +257,13 @@ export const Mia = () => {
           <div className="mia-wait">
             {ask.isPending && <span className="mia-dots" aria-hidden="true" />}
             <p className="mia-status" aria-live="polite">
-              {ask.isPending ? miaWaiting(seconds) : ask.isError ? failure(ask.error) : ""}
+              {ask.isPending
+                ? miaWaiting(seconds)
+                : failed
+                  ? "Não consegui falar com a Mia agora."
+                  : ""}
             </p>
-            {ask.isError && !limitHit(ask.error) && (
+            {failed && (
               <button
                 type="button"
                 className="text-link mia-retry"
