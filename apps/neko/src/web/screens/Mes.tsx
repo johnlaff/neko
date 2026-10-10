@@ -42,8 +42,8 @@ const Evolution = () => {
     // never competes with the colored "Saldo desceu" below.
     <p className="delta muted">
       {delta === 0
-        ? `Fim do mês: igual ao previsto em ${day}`
-        : `Fim do mês: ${money(Math.abs(delta))} ${delta > 0 ? "a mais" : "a menos"} que o previsto em ${day}`}
+        ? `Igual ao previsto em ${day}`
+        : `${money(Math.abs(delta))} ${delta > 0 ? "a mais" : "a menos"} que o previsto em ${day}`}
     </p>
   );
 };
