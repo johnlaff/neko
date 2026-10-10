@@ -464,49 +464,57 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     input.closed.flatMap((b) => b.cards.map((c) => `${normalizeName(c)}|${b.billMonth}`)),
   );
   const others = new Set(input.othersCards.map(normalizeName));
+  // Someone else's card is paid back by an Entrada of the same name on the due day: one line.
+  const payback = (card: string, due: LocalDate) => {
+    if (!others.has(normalizeName(card))) return undefined;
+    const lines = ledger
+      .find((r) => r.date === due)
+      ?.entrada.items.filter((i) => normalizeName(i.description) === normalizeName(card));
+    return lines?.length === 1 ? lines[0] : undefined;
+  };
   const byCard = new Map<string, { due: LocalDate; was: Cents; amount: Cents }[]>();
   for (const c of billChecks(ledger, input.cards, input.lines, today, input.closed)) {
     const isClosed = closed.has(`${normalizeName(c.card)}|${c.due.slice(0, 7)}`);
-    if (c.gap === 0 || (!isClosed && c.gap < OPEN_BILL_MIN)) continue;
+    const moves = c.gap !== 0 && (isClosed || c.gap >= OPEN_BILL_MIN);
+    const amount = moves ? c.bank : c.sheet;
+    // A payback that differs from its bill is worth fixing even when the bill itself is right.
+    const back = payback(c.card, c.due);
+    if (!moves && (!back || back.amount === amount)) continue;
     const bills = byCard.get(c.card) ?? [];
-    bills.push({ due: c.due, was: c.sheet, amount: c.bank });
+    bills.push({ due: c.due, was: c.sheet, amount });
     byCard.set(c.card, bills);
   }
   for (const [card, bills] of byCard) {
     const first = bills[0];
     if (!first) continue;
     const draft: Draft = { type: "card", card, bills };
-    // Someone else's card: the reimbursement planned on the due day, same name, may follow.
-    const also = others.has(normalizeName(card))
-      ? bills.flatMap((b) => {
-          const line = ledger
-            .find((r) => r.date === b.due)
-            ?.entrada.items.filter((i) => normalizeName(i.description) === normalizeName(card));
-          const one = line?.length === 1 ? line[0] : undefined;
-          const amount = one ? one.amount + b.amount - b.was : 0;
-          return one && amount >= 0
-            ? [
-                {
-                  line: {
-                    date: b.due,
-                    column: "entrada" as const,
-                    section: one.section,
-                    description: one.description,
-                    amount: one.amount,
-                  },
-                  amount: cents(amount),
-                },
-              ]
-            : [];
-        })
-      : [];
+    // The payback follows the whole bill, not just the change: Gio pays back what her card spent.
+    const also = bills.flatMap((b) => {
+      const one = payback(card, b.due);
+      return one && one.amount !== b.amount
+        ? [
+            {
+              line: {
+                date: b.due,
+                column: "entrada" as const,
+                section: one.section,
+                description: one.description,
+                amount: one.amount,
+              },
+              amount: b.amount,
+            },
+          ]
+        : [];
+    });
+    const billChanges = bills.some((b) => b.amount !== b.was);
     push({
       key: `card:${normalizeName(card)}:${bills.map((b) => `${b.due}=${b.amount}`).join(",")}`,
       kind: "cartao",
       date: first.due,
       bank: [],
-      options:
-        also.length > 0
+      options: !billChanges
+        ? [{ label: "", draft: { ...draft, also } }]
+        : also.length > 0
           ? [
               { label: "Só a fatura", draft },
               { label: "Fatura e reembolso", draft: { ...draft, also } },
