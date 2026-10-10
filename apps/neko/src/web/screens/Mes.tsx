@@ -384,7 +384,11 @@ export const Mes = () => {
                       })}
                     />
                     {year.some((x) => key(x.year, x.month) > nowKey) && (
-                      <p className="columns-key">Barras claras: previsão da planilha</p>
+                      <p className="columns-key">
+                        {/* A sample of the bar itself: "claras" read wrong in the dark theme. */}
+                        <span className="swatch" aria-hidden="true" />
+                        Previsão da planilha
+                      </p>
                     )}
                     {result !== null && (
                       <p className="figure-line performance">

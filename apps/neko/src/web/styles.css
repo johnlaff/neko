@@ -1348,9 +1348,18 @@ fieldset.panel > legend {
   gap: 4px;
 }
 .columns-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
   font-size: 0.75rem;
   color: var(--faint);
+}
+.columns-key > .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border);
 }
 .delta {
   margin: 0;
