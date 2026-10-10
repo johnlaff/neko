@@ -149,6 +149,14 @@ export const PrevistoSetting = ({
             if (amount !== null && amount > 0 && !run.isPending) run.mutate(amount);
           }}
         >
+          {!s && (
+            <p className="q-lines">
+              <span>
+                A sugestão aparece quando o Neko tiver 4 semanas dos seus bancos. Até lá, digite o
+                valor.
+              </span>
+            </p>
+          )}
           {s && (
             <>
               <p className="q-lines">
