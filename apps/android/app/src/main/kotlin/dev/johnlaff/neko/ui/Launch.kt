@@ -31,6 +31,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.johnlaff.neko.data.ApiException
 import dev.johnlaff.neko.data.MiaEntry
 import dev.johnlaff.neko.data.QueueItem
 import dev.johnlaff.neko.data.QueueLine
@@ -47,6 +51,7 @@ import dev.johnlaff.neko.ui.Format.fromCents
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.shortDate
 import dev.johnlaff.neko.ui.Format.toCents
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -170,7 +175,8 @@ fun EntryForm(
     var error by remember { mutableStateOf<String?>(null) }
     val amount = toCents(typed)?.takeIf { it > 0 }
     val iso = isoDate(date, start.take(4))
-    val ok = amount != null && iso != null && name.isNotBlank()
+    // A sentence that left the way of paying open asks the owner to pick one.
+    val ok = amount != null && iso != null && name.isNotBlank() && (draft != null || how.isNotEmpty())
 
     fun build(): JsonObject? {
         if (amount == null || iso == null || name.isBlank()) return null
@@ -195,14 +201,13 @@ fun EntryForm(
     val colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val fill = launcher.fill
+        // A new sentence replaces every field, so nothing from the last one stays behind.
         if (draft == null && fill != null) SaySentence(cards, fill) { e ->
-            e.amount?.let { typed = fromCents(it) }
-            if (e.kind == "cartao" && e.card != null) {
-                how = "card:${e.card}"
-                count = e.installments ?: 1
-            } else e.kind?.let { how = it }
-            e.date?.let { date = typedDate(it) }
-            e.description?.let { name = it.take(80) }
+            typed = e.amount?.let(::fromCents) ?: ""
+            how = if (e.kind == "cartao" && e.card != null) "card:${e.card}" else e.kind ?: ""
+            count = if (e.kind == "cartao") e.installments ?: 1 else 1
+            date = typedDate(e.date ?: today)
+            name = e.description?.take(80) ?: ""
         }
         OutlinedTextField(
             value = typed,
@@ -278,24 +283,35 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
     val l = LocalLedger.current
     val scope = rememberCoroutineScope()
     var frase by rememberSaveable { mutableStateOf("") }
-    var said by remember { mutableStateOf<String?>(null) }
+    val focus = LocalFocusManager.current
+    val sentence = remember { FocusRequester() }
+    var said by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    // With Mia on, the sentence is what the form opens for.
+    LaunchedEffect(Unit) { runCatching { sentence.requestFocus() } }
 
     fun send() {
         if (frase.isBlank() || busy) return
         busy = true
-        said = null
+        said = ""
         scope.launch {
-            said = runCatching { fill(frase.trim(), cards) }.fold(
-                { e ->
-                    if (e != null) {
-                        onFill(e)
-                        "A Mia preencheu. Confira e lance."
-                    } else "A Mia não entendeu. Diga o valor e como pagou."
-                },
-                { if ((it as? dev.johnlaff.neko.data.ApiException)?.status == 429) "A Mia usou o limite do mês e volta logo." else "A Mia não respondeu. Preencha abaixo." },
-            )
-            busy = false
+            said = try {
+                val e = fill(frase.trim(), cards)
+                if (e == null) "A Mia não entendeu. Diga o valor e como pagou."
+                else {
+                    onFill(e)
+                    // The keyboard closes, so the filled fields and Lançar show.
+                    focus.clearFocus()
+                    if (e.kind == null) "A Mia preencheu. Escolha como pagou e lance." else "A Mia preencheu. Confira e lance."
+                }
+            } catch (c: CancellationException) {
+                throw c
+            } catch (t: Throwable) {
+                if ((t as? ApiException)?.status == 429) "A Mia descansa até o mês que vem. Preencha abaixo."
+                else "A Mia não respondeu. Preencha abaixo."
+            } finally {
+                busy = false
+            }
         }
     }
 
@@ -310,13 +326,12 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                 keyboardActions = KeyboardActions(onGo = { send() }),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).focusRequester(sentence),
             )
             Small(if (busy) "Preenchendo…" else "Preencher", filled = false, enabled = frase.isNotBlank() && !busy) { send() }
         }
-        said?.let {
-            Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-        }
+        // Always there, so the screen reader hears each new line.
+        Text(said, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
     }
 }
 

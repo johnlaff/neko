@@ -63,5 +63,6 @@ export const entryFromMia = (
   if (date) out.date = date;
   const name = typeof r.nome === "string" ? r.nome.trim().slice(0, 80) : "";
   if (name) out.description = name;
-  return out;
+  // Without a value or a way of paying, there is nothing worth calling filled.
+  return out.amount === undefined && out.kind === undefined ? null : out;
 };

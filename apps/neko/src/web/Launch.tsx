@@ -1,6 +1,6 @@
 import type { Cents, Draft, EntryKind, LocalDate, MiaEntry } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { type QueueItemView, type QueueLine, saldoView } from "../shared/queue.ts";
 import type { BankView } from "../shared/types.ts";
 import { ApiError, api } from "./api.ts";
@@ -162,8 +162,16 @@ export const EntryForm = ({
   const amount = toCents(typed);
   const card = how.startsWith("card:") ? how.slice(5) : null;
   const parcels = PARCELS.includes(count) ? PARCELS : [...PARCELS, count].sort((a, b) => a - b);
+  const mia = useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
+  // Lançar com a Mia, by hand only, while she is on and not resting for the month.
+  const say = !draft && mia.data?.ligada === true && !mia.data.pausadaAte;
   const ok =
-    amount !== null && amount > 0 && name.trim() !== "" && /^\d{4}-\d{2}-\d{2}$/.test(date);
+    amount !== null &&
+    amount > 0 &&
+    name.trim() !== "" &&
+    // A sentence that left the way of paying open asks the owner to pick one.
+    (draft !== undefined || how !== "") &&
+    /^\d{4}-\d{2}-\d{2}$/.test(date);
 
   const build = (): Draft | null => {
     if (!ok || amount === null) return null;
@@ -187,17 +195,16 @@ export const EntryForm = ({
           );
       }}
     >
-      {!draft && (
+      {say && (
         <SaySentence
           cards={cards}
+          // A new sentence replaces every field, so nothing from the last one stays behind.
           onFill={(e) => {
-            if (e.amount !== undefined) setTyped(reais(e.amount));
-            if (e.kind === "cartao" && e.card) {
-              setHow(`card:${e.card}`);
-              setCount(e.installments ?? 1);
-            } else if (e.kind) setHow(e.kind);
-            if (e.date) setDate(e.date);
-            if (e.description) setName(e.description);
+            setTyped(e.amount !== undefined ? reais(e.amount) : "");
+            setHow(e.kind === "cartao" && e.card ? `card:${e.card}` : (e.kind ?? ""));
+            setCount(e.kind === "cartao" ? (e.installments ?? 1) : 1);
+            setDate(e.date ?? today);
+            setName(e.description ?? "");
           }}
         />
       )}
@@ -210,8 +217,8 @@ export const EntryForm = ({
           id={`${id}-v`}
           inputMode="decimal"
           autoComplete="off"
-          // biome-ignore lint/a11y/noAutofocus: the value is what this form opens for
-          autoFocus
+          // biome-ignore lint/a11y/noAutofocus: the value is what this form opens for, unless Mia is on
+          autoFocus={!say}
           placeholder="0,00"
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
@@ -296,25 +303,32 @@ const SaySentence = ({
   onFill: (e: MiaEntry) => void;
 }) => {
   const id = useId();
-  const status = useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
+  const input = useRef<HTMLInputElement>(null);
   const [frase, setFrase] = useState("");
   const [said, setSaid] = useState<string | null>(null);
   const fill = useMutation({
     mutationFn: () => api.miaEntry(frase.trim(), cards),
     onSuccess: ({ lancamento }) => {
-      if (lancamento) {
-        onFill(lancamento);
-        setSaid("A Mia preencheu. Confira e lance.");
-      } else setSaid("A Mia não entendeu. Diga o valor e como pagou.");
+      if (!lancamento) {
+        setSaid("A Mia não entendeu. Diga o valor e como pagou.");
+        return;
+      }
+      onFill(lancamento);
+      setSaid(
+        lancamento.kind
+          ? "A Mia preencheu. Confira e lance."
+          : "A Mia preencheu. Escolha como pagou e lance.",
+      );
+      // The phone keyboard closes, so the filled fields and Lançar show.
+      input.current?.blur();
     },
     onError: (e) =>
       setSaid(
         e instanceof ApiError && e.status === 429
-          ? "A Mia usou o limite do mês e volta logo."
+          ? "A Mia descansa até o mês que vem. Preencha abaixo."
           : "A Mia não respondeu. Preencha abaixo.",
       ),
   });
-  if (!status.data?.ligada || status.data.pausadaAte) return null;
   const send = () => {
     if (frase.trim() && !fill.isPending) {
       setSaid(null);
@@ -328,7 +342,10 @@ const SaySentence = ({
       </label>
       <span className="say-row">
         <input
+          ref={input}
           id={`${id}-f`}
+          // biome-ignore lint/a11y/noAutofocus: with Mia on, the sentence is what the form opens for
+          autoFocus
           autoComplete="off"
           maxLength={300}
           placeholder="Padaria 12,50 no Pix"

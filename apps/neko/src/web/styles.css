@@ -2665,16 +2665,17 @@ form.entry {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
-  align-items: center;
+  align-items: stretch;
+}
+/* Wide enough for Preenchendo…, so the field does not jump while Mia works */
+.say-row button {
+  min-width: 8.5rem;
 }
 .say-row input {
   min-width: 0;
 }
 .say .hint {
   margin: 0;
-}
-.say .hint:empty {
-  display: none;
 }
 /* Inside Para lançar the form is part of the item, not a second card */
 .panel form.entry.panel {

@@ -63,5 +63,9 @@ describe("entryFromMia", () => {
     expect(entryFromMia(said({ tipo: "nao_entendi" }), today, cards)).toBeNull();
     expect(entryFromMia({ valor: "muito" }, today, cards)).toBeNull();
     expect(entryFromMia(null, today, cards)).toBeNull();
+    // An unknown card and no value leave nothing worth filling.
+    expect(
+      entryFromMia(said({ tipo: "cartao", cartao: "Visa", valor: 0 }), today, cards),
+    ).toBeNull();
   });
 });
