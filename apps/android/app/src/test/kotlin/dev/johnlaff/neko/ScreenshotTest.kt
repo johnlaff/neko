@@ -184,7 +184,7 @@ class ScreenshotTest {
 
     // Mia's mark in the head of a tab, and her screen opened from it.
     @Test fun miaTopoDark() = shot("mia-topo-dark", night = true) {
-        androidx.compose.runtime.CompositionLocalProvider(dev.johnlaff.neko.ui.LocalMiaHead provides {}) {
+        androidx.compose.runtime.CompositionLocalProvider(dev.johnlaff.neko.ui.LocalMia provides Fakes.miaEntry) {
             FaturasScreen(ScreenState(invoices), {}, {})
         }
     }

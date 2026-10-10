@@ -12,7 +12,7 @@ export type MiaTopic = "hoje" | "faturas" | "mes";
 /** Questions Mia answers well, one tap each (specs/004-mia), led by the screen she came from. */
 const MIA_TOPICS: Record<MiaTopic, readonly string[]> = {
   hoje: ["Quanto cabe por dia?", "Como está minha reserva?"],
-  faturas: ["Quanto vem na próxima fatura?", "Qual cartão está mais alto?"],
+  faturas: ["Quanto vem nas próximas faturas?", "Qual fatura está mais alta?"],
   mes: [
     "Quanto saiu no mês passado?",
     "Este mês está melhor que o anterior?",
@@ -31,7 +31,7 @@ export const miaTitle = (topic: MiaTopic = "hoje") =>
   topic === "faturas"
     ? "Pergunte sobre as faturas"
     : topic === "mes"
-      ? "Pergunte sobre os meses"
+      ? "Pergunte sobre o mês"
       : "Pergunte sobre a sua planilha";
 
 /** Exchanges sent back with a question; the Worker takes no more. */
@@ -253,18 +253,24 @@ export const Mia = () => {
  */
 export const MiaHead = ({ topic }: { topic: MiaTopic }) => {
   const status = useMiaStatus();
+  const { talk } = useChat();
   if (!status.data?.ligada) return null;
+  // With a conversation open she continues it, as the Hoje row says; otherwise she starts on this screen.
+  const label =
+    talk.length > 0
+      ? "Continuar a conversa com a Mia"
+      : `Perguntar à Mia ${miaTitle(topic).replace("Pergunte ", "")}`;
   return (
     <Link
       onClick={opened(".mia-head")}
       to="/mia"
       search={topic === "hoje" ? {} : { de: topic }}
       className="icon mia-head"
-      aria-label="Perguntar à Mia"
+      aria-label={label}
       aria-keyshortcuts="M"
-      title="Perguntar à Mia (M)"
+      title={`${label} (M)`}
     >
-      <BrandMark width={24} className="mia-mark" />
+      <BrandMark width={28} className="mia-mark" />
     </Link>
   );
 };

@@ -85,6 +85,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
 import dev.johnlaff.neko.ui.Format.shortDate
 
 /** Room under the last panel so the floating dock never covers it. */
@@ -105,6 +106,8 @@ fun <T> ScreenFrame(
     readAt: (T) -> String,
     onRefresh: () -> Unit,
     trailing: @Composable () -> Unit = {},
+    /** The screen Mia's mark in the head asks her about; null leaves the mark out. */
+    miaTopic: String? = null,
     content: LazyListScope.(T) -> Unit,
 ) {
     val l = LocalLedger.current
@@ -177,9 +180,7 @@ fun <T> ScreenFrame(
                         }
                     }
                     // Mia beside the title on the tabs she can talk about, as in the site's head.
-                    val topic = when (title) { "Hoje" -> "hoje"; "Faturas" -> "faturas"; "Mês" -> "mes"; else -> null }
-                    val mia = LocalMiaHead.current
-                    if (topic != null && mia != null) MiaHead { mia(topic) }
+                    if (miaTopic != null) MiaHead(miaTopic)
                     trailing()
                 }
             }
@@ -259,8 +260,30 @@ private fun ErrorPanel(state: ScreenState<*>, onRetry: () -> Unit) {
 /** True on a wide window (tablet, unfolded phone, desktop): the dock stands on the left as a rail. */
 val LocalRail = staticCompositionLocalOf { false }
 
-/** Opens Mia on the screen she is asked from ("hoje", "faturas", "mes"); null while she is off. */
-val LocalMiaHead = androidx.compose.runtime.compositionLocalOf<((String) -> Unit)?> { null }
+/**
+ * The ways into Mia from the tabs (the head mark and Hoje's row), null while she is off: opens her
+ * about a screen ("hoje", "faturas", "mes") and, when she closes, hands the focus back to the way in.
+ */
+class MiaEntry(val open: (topic: String, by: String) -> Unit, val talking: () -> Boolean) {
+    /** "head" or "row" right after she closes, until that way in has the focus again. */
+    var returning by mutableStateOf<String?>(null)
+}
+
+val LocalMia = staticCompositionLocalOf<MiaEntry?> { null }
+
+/** The focus of a way into Mia, taken back when she closes onto it, as on the site. */
+@Composable
+fun rememberMiaReturn(by: String): FocusRequester {
+    val entry = LocalMia.current
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(entry?.returning) {
+        if (entry != null && entry.returning == by) {
+            entry.returning = null
+            runCatching { focus.requestFocus() }
+        }
+    }
+    return focus
+}
 
 /** Width from which the dock becomes a rail, Material's "expanded" window class. */
 val RAIL_FROM = 840.dp

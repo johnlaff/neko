@@ -100,7 +100,7 @@ typealias AskMia = suspend (MiaAsk) -> MiaReply
 /** Questions Mia answers well, one tap each, led by the screen she came from (the site's MIA_TOPICS). */
 private val MIA_TOPICS = mapOf(
     "hoje" to listOf("Quanto cabe por dia?", "Como está minha reserva?"),
-    "faturas" to listOf("Quanto vem na próxima fatura?", "Qual cartão está mais alto?"),
+    "faturas" to listOf("Quanto vem nas próximas faturas?", "Qual fatura está mais alta?"),
     "mes" to listOf("Quanto saiu no mês passado?", "Este mês está melhor que o anterior?", "Quanto gastei com mercado este ano?"),
 )
 
@@ -111,7 +111,7 @@ fun miaStarters(topic: String = "hoje"): List<String> =
 /** The empty screen's title, naming the screen she was opened from. */
 fun miaTitle(topic: String = "hoje"): String = when (topic) {
     "faturas" -> "Pergunte sobre as faturas"
-    "mes" -> "Pergunte sobre os meses"
+    "mes" -> "Pergunte sobre o mês"
     else -> "Pergunte sobre a sua planilha"
 }
 
@@ -184,6 +184,7 @@ fun MiaButton(continuing: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         Modifier.fillMaxWidth()
+            .focusRequester(rememberMiaReturn("row"))
             .background(l.surface, shape)
             .border(1.dp, l.border, shape)
             .clip(shape)
@@ -216,9 +217,15 @@ fun MiaButton(continuing: Boolean, onClick: () -> Unit) {
  * questions about the one it was opened from.
  */
 @Composable
-fun MiaHead(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = "Perguntar à Mia" }) {
-        MiaMark(24.dp)
+fun MiaHead(topic: String) {
+    val entry = LocalMia.current ?: return
+    // With a conversation open she continues it, as Hoje's row says; otherwise she starts on this screen.
+    val label = if (entry.talking()) "Continuar a conversa com a Mia" else "Perguntar à Mia ${miaTitle(topic).removePrefix("Pergunte ")}"
+    IconButton(
+        onClick = { entry.open(topic, "head") },
+        modifier = Modifier.focusRequester(rememberMiaReturn("head")).semantics { contentDescription = label },
+    ) {
+        MiaMark(28.dp)
     }
 }
 

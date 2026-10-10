@@ -36,8 +36,8 @@ describe("Mia panel", () => {
   it("starts with five questions, those about the screen she was opened from first", () => {
     const faturas = miaStarters("faturas");
     expect(faturas.slice(0, 2)).toEqual([
-      "Quanto vem na próxima fatura?",
-      "Qual cartão está mais alto?",
+      "Quanto vem nas próximas faturas?",
+      "Qual fatura está mais alta?",
     ]);
     expect(faturas).toHaveLength(5);
     expect(new Set(faturas).size).toBe(5);
@@ -47,7 +47,7 @@ describe("Mia panel", () => {
   it("suggests two questions not asked yet", () => {
     expect(miaNext(["Quanto cabe por dia?"])).toEqual([
       "Como está minha reserva?",
-      "Quanto vem na próxima fatura?",
+      "Quanto vem nas próximas faturas?",
     ]);
     const all = [...miaStarters("hoje"), ...miaStarters("faturas"), ...miaStarters("mes")];
     expect(miaNext(all)).toEqual([]);

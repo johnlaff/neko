@@ -16,7 +16,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.CompositionLocalProvider
 import dev.johnlaff.neko.ui.LocalRail
-import dev.johnlaff.neko.ui.LocalMiaHead
+import dev.johnlaff.neko.ui.LocalMia
+import dev.johnlaff.neko.ui.MiaEntry
 import dev.johnlaff.neko.ui.RAIL_FROM
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -95,11 +96,23 @@ class MainActivity : ComponentActivity() {
                 var miaTopic by rememberSaveable { mutableStateOf("hoje") }
                 // The tab under her, where closing her lands.
                 var miaTab by rememberSaveable { mutableStateOf(Tab.Hoje) }
-                val openMia = { topic: String ->
-                    miaTopic = topic
-                    miaTab = tab
-                    fromMia = false
-                    miaOpen = true
+                // Which way in was used ("head" or "row"), so closing her hands it the focus back.
+                var miaBy by rememberSaveable { mutableStateOf("row") }
+                val miaEntry = remember {
+                    MiaEntry(
+                        open = { topic, by ->
+                            miaTopic = topic
+                            miaBy = by
+                            miaTab = tab
+                            fromMia = false
+                            miaOpen = true
+                        },
+                        talking = { model.miaChat.talk.isNotEmpty() },
+                    )
+                }
+                val closeMia = {
+                    miaOpen = false
+                    miaEntry.returning = miaBy
                 }
                 // Switching shows the last reading at once; only one older than a minute is read
                 // again, silently (refresh, a pull or "Tentar de novo" read now and say so).
@@ -138,7 +151,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 // Registered last, so on Mia's screen back closes her first.
-                BackHandler(enabled = session == Session.SignedIn && miaOpen) { miaOpen = false }
+                BackHandler(enabled = session == Session.SignedIn && miaOpen) { closeMia() }
                 BoxWithConstraints(Modifier.fillMaxSize().background(LocalLedger.current.bg)) {
                     val rail = maxWidth >= RAIL_FROM
                     when (session) {
@@ -178,12 +191,12 @@ class MainActivity : ComponentActivity() {
                             if (inMia) {
                                 MiaScreen(
                                     mia, model::askMia, model.miaChat, model.viewModelScope,
-                                    onBack = { miaOpen = false },
+                                    onBack = closeMia,
                                     onScreen = { tela -> leaveMia { toScreen(tela) } },
                                     onMonth = { key -> leaveMia { toMonth(key) } },
                                     topic = miaTopic,
                                 )
-                            } else CompositionLocalProvider(LocalMiaHead provides openMia.takeIf { mia?.ligada == true }) {
+                            } else CompositionLocalProvider(LocalMia provides miaEntry.takeIf { mia?.ligada == true }) {
                             Box(Modifier.fillMaxSize()) {
                             AnimatedContent(tab, transitionSpec = { tabChange(initialState, targetState, shift) }, label = "tab") { t ->
                                 saved.SaveableStateProvider(t.name) {
@@ -194,7 +207,7 @@ class MainActivity : ComponentActivity() {
                                             today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
                                             simulateAsk = simulateAsk,
                                             mia = mia,
-                                            onMia = { openMia("hoje") },
+                                            onMia = { miaEntry.open("hoje", "row") },
                                             miaTalking = model.miaChat.talk.isNotEmpty(),
                                             review = model::review,
                                             launcher = model.launcher,

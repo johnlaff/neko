@@ -26,6 +26,9 @@ object Fakes {
     )
 
     /** The same invented reply as the site's smoke test (e2e/smoke.spec.ts). */
+    /** Mia on, nothing said yet: her mark shows in the head. */
+    val miaEntry = dev.johnlaff.neko.ui.MiaEntry(open = { _, _ -> }, talking = { false })
+
     val miaExchange = dev.johnlaff.neko.ui.MiaExchange(
         "Quanto saiu no mês passado?",
         dev.johnlaff.neko.data.MiaReply(
