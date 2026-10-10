@@ -183,6 +183,7 @@
               "change": "new",
               "before": null,
               "after": 4250,
+              "diff": null,
               "cell": {
                 "label": "Diário do dia",
                 "before": 5638,
@@ -224,6 +225,7 @@
               "change": "new",
               "before": null,
               "after": 15000,
+              "diff": null,
               "cell": null
             }
           ]
@@ -261,6 +263,7 @@
               "change": "edit",
               "before": 9500,
               "after": 0,
+              "diff": -9500,
               "cell": null
             }
           ]
@@ -269,7 +272,7 @@
       "bank": [],
       "adjustable": false,
       "origin": null,
-      "note": "O dia passou: o previsto sai e fica só o que você gastou."
+      "note": "Nada gasto nesse dia: o previsto sai."
     },
     {
       "key": "card:cartao azul:2026-11-12=292270",
@@ -296,6 +299,7 @@
               "change": "edit",
               "before": 283807,
               "after": 292270,
+              "diff": 8463,
               "cell": {
                 "label": "Saída do dia",
                 "before": 320026,
@@ -308,7 +312,7 @@
       "bank": [],
       "adjustable": false,
       "origin": null,
-      "note": "O banco já tem compras nesta fatura que a planilha ainda não tem."
+      "note": "Faltam compras do banco nesta fatura. Lançar troca o valor pelo total do banco, sem somar nada duas vezes."
     },
     {
       "key": "conta:outra",

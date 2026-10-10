@@ -2796,12 +2796,26 @@ main.mia-page form.mia-form > input {
   align-items: center;
   gap: 8px;
 }
-/* Ignorar is the way out, not a third choice: quiet, at the far end */
-.q-actions > button.q-ignore {
+/* "O banco mostrou" and Ignorar share the item's last row */
+.q-foot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.q-foot > details {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.q-foot > button.q-ignore {
   margin-left: auto;
   min-height: 44px;
   padding: 0 4px;
   color: var(--muted);
+}
+/* Room under the last item while Desfazer floats over it */
+main:has(.toast) .queue {
+  padding-bottom: 4.5rem;
 }
 button.small:not(.ghost) {
   min-height: 36px;

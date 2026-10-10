@@ -80,6 +80,8 @@ data class QueueLine(
     val cell: QueueCell? = null,
     /** "edit", "new" (a new line) or "economia" (a signed change to the month's Economia). */
     val change: String = "edit",
+    /** How much an edited line goes up or down; null for new lines and the Economia. */
+    val diff: Long? = null,
 )
 
 /** The whole cell around a changed line, when it holds more than that line. */

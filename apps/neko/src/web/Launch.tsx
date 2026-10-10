@@ -124,6 +124,7 @@ const Change = ({ line }: { line: QueueLine }) => (
       ) : (
         <>
           {money(line.before)} → <strong>{money(line.after)}</strong>
+          {line.diff !== null && line.diff !== 0 && ` (${signed(line.diff)})`}
         </>
       )}
     </span>
@@ -477,7 +478,7 @@ const Row = ({
   const busy = launch.isPending || answer.isPending;
   const error = launch.error ?? answer.error;
   return (
-    <li className="q-item">
+    <li className="q-item" data-key={item.key}>
       <div className="q-head">
         <span className="name">{bankText(item.title)}</span>
         <span className="meta">{shortDate(item.date)}</span>
@@ -549,6 +550,36 @@ const Row = ({
               )}
             </>
           )}
+        </div>
+      )}
+      {error && (
+        <p className="setting-error" role="alert">
+          {message(error)}
+        </p>
+      )}
+      <div className="q-foot">
+        {item.bank.length > 0 && (
+          <details className="formula">
+            <summary>
+              <IconChevron />O banco mostrou
+            </summary>
+            <ul className="q-bank">
+              {item.bank.map((m) => (
+                <li key={`${m.date}|${m.amount}|${m.description}`}>
+                  <span>
+                    {shortDate(m.date)} · {bankText(m.description)}
+                  </span>
+                  <span className={m.amount > 0 ? "pos" : undefined}>
+                    {m.amount > 0 ? "+" : "−"}
+                    {money(Math.abs(m.amount))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        {/* Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer */}
+        {!adjusting && (
           <button
             type="button"
             className="text-link q-ignore"
@@ -557,33 +588,8 @@ const Row = ({
           >
             Ignorar
           </button>
-        </div>
-      )}
-      {error && (
-        <p className="setting-error" role="alert">
-          {message(error)}
-        </p>
-      )}
-      {item.bank.length > 0 && (
-        <details className="formula">
-          <summary>
-            <IconChevron />O banco mostrou
-          </summary>
-          <ul className="q-bank">
-            {item.bank.map((m) => (
-              <li key={`${m.date}|${m.amount}|${m.description}`}>
-                <span>
-                  {shortDate(m.date)} · {bankText(m.description)}
-                </span>
-                <span className={m.amount > 0 ? "pos" : undefined}>
-                  {m.amount > 0 ? "+" : "−"}
-                  {money(Math.abs(m.amount))}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
+        )}
+      </div>
     </li>
   );
 };
@@ -672,7 +678,20 @@ export const ParaLancar = ({
               item={i}
               writing={writing}
               today={today}
-              onGone={(k) => setHidden({ of: queue, keys: new Set(gone).add(k) })}
+              onGone={(k) => {
+                // Focus moves to the next item's first answer, so a run of items goes tap by tap.
+                const at = items.findIndex((x) => x.key === k);
+                const next = items[at + 1] ?? items[at - 1];
+                setHidden({ of: queue, keys: new Set(gone).add(k) });
+                if (next)
+                  requestAnimationFrame(() =>
+                    document
+                      .querySelector<HTMLButtonElement>(
+                        `li[data-key="${CSS.escape(next.key)}"] .q-actions button:not(:disabled)`,
+                      )
+                      ?.focus(),
+                  );
+              }}
             />
           ))}
         </ul>

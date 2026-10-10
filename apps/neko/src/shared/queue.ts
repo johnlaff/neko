@@ -43,6 +43,8 @@ export interface QueueLine {
   /** Null for a new line, and for the Economia tab, which Neko does not read: `after` is then the change, signed. */
   readonly before: Cents | null;
   readonly after: Cents;
+  /** How much an edited line goes up or down; null for new lines and the Economia. */
+  readonly diff: Cents | null;
   readonly cell: { readonly label: string; readonly before: Cents; readonly after: Cents } | null;
 }
 
@@ -97,6 +99,7 @@ const forecastLine = (draft: Extract<Draft, { type: "forecast" }>, ledger: Ledge
     change: "edit",
     before: cents(before),
     after: cents(after),
+    diff: cents(after - before),
     cell: null,
   };
 };
@@ -133,6 +136,7 @@ export const draftLines = (
         change: "economia",
         before: null,
         after: cents(p.column === "entrada" ? -p.amount : p.amount),
+        diff: null,
         cell: null,
       };
     const key = `${p.date}|${p.column}`;
@@ -154,6 +158,7 @@ export const draftLines = (
       change: before === null ? "new" : "edit",
       before,
       after: p.amount,
+      diff: before === null ? null : cents(p.amount - before),
       cell: whole,
     };
   });
@@ -191,7 +196,7 @@ const noteOf = (item: QueueItem): string => {
     case "cartao":
       return draft?.type === "card" && draft.bills.some((b) => b.amount < b.was)
         ? "A fatura fechou com outro valor no banco."
-        : "O banco já tem compras nesta fatura que a planilha ainda não tem.";
+        : "Faltam compras do banco nesta fatura. Lançar troca o valor pelo total do banco, sem somar nada duas vezes.";
     case "entrada":
       return draft?.type === "fix"
         ? "Entrou um valor diferente do que a planilha previa."
@@ -205,6 +210,16 @@ const noteOf = (item: QueueItem): string => {
     default:
       return "Saiu dinheiro que a planilha ainda não tem.";
   }
+};
+
+/** A day that passed with nothing spent says so, instead of "fica só o que você gastou". */
+const closesToNothing = (item: QueueItem, ledger: Ledger): string | null => {
+  const draft = item.options[0]?.draft;
+  if (draft?.type !== "forecast" || draft.value !== 0) return null;
+  if (forecastLine(draft, ledger).after !== 0) return null;
+  return draft.days.length === 1
+    ? "Nada gasto nesse dia: o previsto sai."
+    : "Nada gasto nesses dias: o previsto sai.";
 };
 
 /** "03/10 · Diário · Padaria" under the title "Padaria" reads "03/10 · Diário". */
@@ -238,7 +253,7 @@ export const queueView = (
           ),
           origin:
             item.bank.length === 1 && item.bank[0] ? originKey(item.bank[0].description) : null,
-          note: noteOf(item),
+          note: closesToNothing(item, ledger) ?? noteOf(item),
         },
       ];
     } catch (error) {

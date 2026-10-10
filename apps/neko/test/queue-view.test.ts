@@ -17,14 +17,29 @@ describe("queue lines", () => {
         [],
       );
     expect(saving("reserva")).toEqual([
-      { label: "15/10 · Saída · Reserva", change: "new", before: null, after: 50000, cell: null },
-      { label: "Economia de out", change: "economia", before: null, after: 50000, cell: null },
+      {
+        label: "15/10 · Saída · Reserva",
+        change: "new",
+        before: null,
+        after: 50000,
+        diff: null,
+        cell: null,
+      },
+      {
+        label: "Economia de out",
+        change: "economia",
+        before: null,
+        after: 50000,
+        diff: null,
+        cell: null,
+      },
     ]);
     expect(saving("resgate")[1]).toEqual({
       label: "Economia de out",
       change: "economia",
       before: null,
       after: -50000,
+      diff: null,
       cell: null,
     });
   });
@@ -52,6 +67,7 @@ describe("queue lines", () => {
         change: "edit",
         before: 31941,
         after: 40255,
+        diff: 8314,
         cell: { label: "Saída do dia", before: 41941, after: 50255 },
       },
     ]);

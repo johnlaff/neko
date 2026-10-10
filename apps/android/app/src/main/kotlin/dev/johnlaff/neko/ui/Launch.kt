@@ -125,6 +125,7 @@ private fun Change(line: QueueLine) {
                 } else {
                     append("${money(before)} → ")
                     withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) { append(money(line.after)) }
+                    line.diff?.takeIf { it != 0L }?.let { append(" (${Format.signed(it, if (it < 0) '−' else '+')})") }
                 }
             },
             color = l.muted,
@@ -443,19 +444,22 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
                     if (item.adjustable && !isCard)
                         Small("Ajustar", filled = false, enabled = canWrite && !busy) { adjusting = true }
                 }
-                // Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer.
-                Spacer(Modifier.weight(1f))
-                TextAction("Ignorar", {
-                    if (!busy) run {
-                        it.ignore(item.key)
-                        onLaunched("$IGNORED${item.key}")
-                    }
-                }, l.muted)
             }
         }
         error?.let { Failed(it) }
+        // "O banco mostrou" and Ignorar share the item's last row; Ignorar is the way out, quiet,
+        // at the far end, with Desfazer.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            if (item.bank.isNotEmpty()) TextAction("O banco mostrou", { bank = !bank }, open = bank)
+            Spacer(Modifier.weight(1f))
+            if (launcher != null && !adjusting) TextAction("Ignorar", {
+                if (!busy) run {
+                    it.ignore(item.key)
+                    onLaunched("$IGNORED${item.key}")
+                }
+            }, l.muted)
+        }
         if (item.bank.isNotEmpty()) Column {
-            TextAction("O banco mostrou", { bank = !bank }, open = bank)
             Reveal(bank) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     item.bank.forEach { m ->

@@ -150,13 +150,31 @@ describe("Para lançar from the bank rows", () => {
         "mov:p1",
         "entrada",
         "PIX RECEBIDO",
-        [{ label: "05/10 · Entrada", change: "new", before: null, after: 5000, cell: null }],
+        [
+          {
+            label: "05/10 · Entrada",
+            change: "new",
+            before: null,
+            after: 5000,
+            diff: null,
+            cell: null,
+          },
+        ],
       ],
       [
         "mov:p2",
         "diario",
         "PADARIA",
-        [{ label: "05/10 · Diário", change: "new", before: null, after: 1990, cell: null }],
+        [
+          {
+            label: "05/10 · Diário",
+            change: "new",
+            before: null,
+            after: 1990,
+            diff: null,
+            cell: null,
+          },
+        ],
       ],
     ]);
     expect(view?.queue?.[0]?.note).toBe("Entrou dinheiro que a planilha ainda não tem.");
