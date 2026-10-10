@@ -110,10 +110,10 @@ class StressScreensTest {
         AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher)
     }
 
-    // Hoje with Mia on: her mark beside the title and her row under the buttons.
+    // Hoje with Mia on: her mark and name beside the title.
     @Test fun hojeMia() = compose.shot(path("hoje-mia"), night = false, Device.SmallLargeText, Tab.Hoje) {
         androidx.compose.runtime.CompositionLocalProvider(dev.johnlaff.neko.ui.LocalMia provides Fakes.miaEntry) {
-            HojeScreen(ScreenState(today), {}, {}, Fakes.simulate, mia = dev.johnlaff.neko.data.MiaStatus(ligada = true), onMia = {})
+            HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
         }
     }
 

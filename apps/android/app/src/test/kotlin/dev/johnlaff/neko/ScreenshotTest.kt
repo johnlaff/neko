@@ -213,10 +213,6 @@ class ScreenshotTest {
         )
     }
 
-    @Test fun miaHojeLight() = shot("mia-hoje-light", night = false, scrollTo = "Perguntar à Mia") {
-        HojeScreen(TodayState(view), {}, {}, mia = dev.johnlaff.neko.data.MiaStatus(ligada = true), onMia = {}, miaTalking = true)
-    }
-
     @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Faturas no banco") {
         FaturasScreen(ScreenState(invoices), {}, {})
     }

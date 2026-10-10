@@ -96,8 +96,8 @@ class MainActivity : ComponentActivity() {
                 var miaTopic by rememberSaveable { mutableStateOf("hoje") }
                 // The tab under her, where closing her lands.
                 var miaTab by rememberSaveable { mutableStateOf(Tab.Hoje) }
-                // Which way in was used ("head" or "row"), so closing her hands it the focus back.
-                var miaBy by rememberSaveable { mutableStateOf("row") }
+                // Which way in was used (now only "head"), so closing her hands it the focus back.
+                var miaBy by rememberSaveable { mutableStateOf("head") }
                 val miaEntry = remember {
                     MiaEntry(
                         onOpen = { topic, by ->
@@ -206,9 +206,6 @@ class MainActivity : ComponentActivity() {
                                         HojeScreen(
                                             today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
                                             simulateAsk = simulateAsk,
-                                            mia = mia,
-                                            onMia = { miaEntry.open("hoje", "row") },
-                                            miaTalking = model.miaChat.talk.isNotEmpty(),
                                             review = model::review,
                                             launcher = model.launcher,
                                             onScreen = toScreen,

@@ -230,26 +230,6 @@ const refocusOpener = () => {
   requestAnimationFrame(look);
 };
 
-/** "Perguntar à Mia" on Hoje: hidden until the key is set, a way into her screen. */
-export const Mia = () => {
-  const status = useMiaStatus();
-  const { talk } = useChat();
-  if (!status.data?.ligada) return null;
-  return (
-    // A quiet row, not a third big button: Hoje already has Lançar and Simular.
-    <Link to="/mia" className="alert mia-ask" onClick={opened(".mia-ask")}>
-      <BrandMark width={40} className="mia-mark" />
-      <span className="alert-text">
-        <strong>Perguntar à Mia</strong>
-        <span>
-          {talk.length > 0 ? "Continuar a conversa" : "Respostas com os números da sua planilha"}
-        </span>
-      </span>
-      <IconChevron />
-    </Link>
-  );
-};
-
 /**
  * Mia in the head of Hoje, Faturas and Mês, beside "ler de novo": her screen from any tab, her
  * first questions about the one it was opened from.

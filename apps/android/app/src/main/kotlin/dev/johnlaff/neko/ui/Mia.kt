@@ -181,44 +181,6 @@ fun miaWaiting(seconds: Int): String = when {
 }
 
 /**
- * The site's "Perguntar à Mia" (web/Mia.tsx): a quiet row under Lançar and Simular, not a third
- * big button, leading to Mia's own screen. It says so when a conversation is waiting there.
- */
-@Composable
-fun MiaButton(continuing: Boolean, onClick: () -> Unit) {
-    val l = LocalLedger.current
-    val shape = RoundedCornerShape(12.dp)
-    Row(
-        Modifier.fillMaxWidth()
-            .focusRequester(rememberMiaReturn("row"))
-            .background(l.surface, shape)
-            .border(1.dp, l.border, shape)
-            .clip(shape)
-            .clickable(onClickLabel = "Abrir a Mia", role = Role.Button, onClick = onClick)
-            .semantics(mergeDescendants = true) {}
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        MiaMark(40.dp)
-        Column(Modifier.weight(1f)) {
-            Text("Perguntar à Mia", style = MaterialTheme.typography.titleMedium)
-            Text(
-                if (continuing) "Continuar a conversa" else "Respostas com os números da sua planilha",
-                color = l.muted,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-        androidx.compose.material3.Icon(
-            androidx.compose.ui.res.painterResource(dev.johnlaff.neko.R.drawable.ic_chevron_right),
-            null,
-            tint = l.faint,
-            modifier = Modifier.size(16.dp),
-        )
-    }
-}
-
-/**
  * Mia in the head of Hoje, Faturas and Mês (the site's MiaHead): her screen from any tab, her first
  * questions about the one it was opened from.
  */

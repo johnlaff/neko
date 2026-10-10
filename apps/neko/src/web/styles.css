@@ -2700,21 +2700,6 @@ main.mia-page form.mia-form > input {
   height: 14px;
   flex: none;
 }
-/* "Perguntar à Mia": an alert-like row under the quick buttons, a way into her screen. */
-.quick > a.alert.mia-ask {
-  grid-column: 1 / -1;
-  min-height: 64px;
-  text-align: left;
-}
-.quick > a.alert.mia-ask > .alert-text > span {
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-.quick > a.alert.mia-ask > svg {
-  width: 16px;
-  height: 16px;
-  color: var(--faint);
-}
 /* Reserva: what is kept leads; the method's numbers follow in a short ledger. */
 .panel.reserve > p.reserve-kept {
   margin: 4px 0 0;
