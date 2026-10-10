@@ -2302,14 +2302,16 @@ button.setting.quiet:disabled {
 .streak > summary::-webkit-details-marker {
   display: none;
 }
+/* A disclosure, so its chevron points down and turns up as it opens, like every other one */
 .streak > summary > svg {
   width: 16px;
   height: 16px;
   color: var(--faint);
+  rotate: 90deg;
   transition: rotate 200ms ease-out;
 }
 .streak[open] > summary > svg {
-  rotate: 90deg;
+  rotate: -90deg;
 }
 .streak > p {
   margin: 4px 0 8px;

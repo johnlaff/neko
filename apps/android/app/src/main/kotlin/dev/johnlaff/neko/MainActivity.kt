@@ -226,12 +226,13 @@ class MainActivity : ComponentActivity() {
                                         val save by model.save.collectAsStateWithLifecycle()
                                         val devices by model.devices.collectAsStateWithLifecycle()
                                         val banks by model.banks.collectAsStateWithLifecycle()
+                                        val failed by model.changeFailed.collectAsStateWithLifecycle()
                                         AjustesScreen(
                                             ajustes, save, { model.refresh(Tab.Ajustes) }, model::saveSettings, model::logout,
                                             remindersSwitch(),
-                                            DevicesList(devices, model::endSession, model::endOtherSessions),
+                                            DevicesList(devices, model::endSession, model::endOtherSessions, failed == "devices"),
                                             lockSwitch(),
-                                            BanksList(banks, model::saveBanks, model::saveBankCards, model::saveAccountUse),
+                                            BanksList(banks, model::saveBanks, model::saveBankCards, model::saveAccountUse, failed == "banks"),
                                             model::restoreReviewed,
                                             launcher = model.launcher,
                                         )
