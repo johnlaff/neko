@@ -243,12 +243,15 @@ const BankBills = ({ bank }: { bank: BankView }) => (
             </span>
             <span className="value">{money(c.bank)}</span>
             <span className="meta">
-              Na planilha {money(c.sheet)}
-              {c.parcels > 0 && c.parcels === c.bank
-                ? " · No banco, por enquanto só as parcelas"
-                : c.parcels > 0
-                  ? ` · ${money(c.parcels)} do banco são parcelas`
-                  : ""}
+              {/* Each amount named: the one on the right is the bank's. */}
+              No banco · na planilha {money(c.sheet)}
+              {c.parcels > 0 && (
+                <span className="meta-line">
+                  {c.parcels === c.bank
+                    ? "Por enquanto, o banco só mostra as parcelas"
+                    : `${money(c.parcels)} disso são parcelas`}
+                </span>
+              )}
             </span>
           </li>
         ))}

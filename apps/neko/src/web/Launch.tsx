@@ -85,14 +85,27 @@ export const LaunchToast = () => {
     },
     onError: (e) => showToast({ entryId: null, text: message(e) }),
   });
+  // The clock stops while the pointer or the keyboard is on Desfazer, and starts over after.
+  const [held, setHeld] = useState(false);
+  // A toast that leaves under the pointer gets no mouseleave: the next one starts unheld.
   useEffect(() => {
-    if (!t || undo.isPending) return;
+    if (!t) setHeld(false);
+  }, [t]);
+  useEffect(() => {
+    if (!t || undo.isPending || held) return;
     const timer = setTimeout(() => showToast(null), UNDO_MS);
     return () => clearTimeout(timer);
-  }, [t, undo.isPending]);
+  }, [t, undo.isPending, held]);
   if (!t) return null;
   return (
-    <div className="toast" role="status">
+    <div
+      className="toast"
+      role="status"
+      onMouseEnter={() => setHeld(true)}
+      onMouseLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={() => setHeld(false)}
+    >
       <span>{t.text}</span>
       {(t.entryId || t.ignored) && (
         <button
