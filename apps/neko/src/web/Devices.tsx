@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Device } from "./api.ts";
+import { ConfirmSetting } from "./Confirm.tsx";
 import { IconLaptop, IconPhone } from "./icons.tsx";
 
 const MOBILE = /iPhone|iPad|Android/;
@@ -52,14 +53,14 @@ export const Devices = () => {
         ))}
         {others > 1 && (
           <li>
-            <button
-              type="button"
-              className="setting danger"
+            <ConfirmSetting
+              action={`Sair dos outros ${others} aparelhos`}
+              question={`Sair dos outros ${others} aparelhos?`}
+              detail="Cada um precisará entrar de novo com a passkey. Este continua conectado."
+              confirm="Sair"
               disabled={endOthers.isPending}
-              onClick={() => endOthers.mutate()}
-            >
-              Sair dos outros {others} aparelhos
-            </button>
+              onConfirm={() => endOthers.mutate()}
+            />
           </li>
         )}
       </ul>

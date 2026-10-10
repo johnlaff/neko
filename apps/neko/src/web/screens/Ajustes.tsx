@@ -4,6 +4,7 @@ import type { PrevistoView } from "../../shared/types.ts";
 import { api, type KeptSetting, type UserSettings } from "../api.ts";
 import { Banks } from "../Banks.tsx";
 import { Board } from "../Board.tsx";
+import { ConfirmSetting } from "../Confirm.tsx";
 import { Devices } from "../Devices.tsx";
 import { money, toCents } from "../format.ts";
 import { resetHints } from "../Hint.tsx";
@@ -143,15 +144,7 @@ const Form = ({
       <section className="group" aria-labelledby="g-forecast">
         <h2 id="g-forecast">Ritmo</h2>
         <div className="panel list">
-          {previsto !== null && (
-            <div className="setting">
-              <span className="label">
-                Diário
-                <span className="sub">Pelo Diário previsto, em Planilha</span>
-              </span>
-              <span>{money(previsto)}</span>
-            </div>
-          )}
+          {/* With the Diário previsto on, its value lives in one place: Planilha › Diário previsto. */}
           {previsto === null && (
             <label className="setting">
               <span className="label">
@@ -283,35 +276,6 @@ const Form = ({
   );
 };
 
-/** Sair deste aparelho asks once more in place, as the app does: coming back needs the passkey. */
-const SignOut = ({ onOut }: { onOut: () => void }) => {
-  const [asking, setAsking] = useState(false);
-  return asking ? (
-    <div className="setting">
-      <span className="label" role="status">
-        Sair deste aparelho?
-        <span className="sub">Para voltar, entre de novo com a passkey.</span>
-      </span>
-      <span className="confirm">
-        <button type="button" className="ghost small" onClick={() => setAsking(false)}>
-          Cancelar
-        </button>
-        <button
-          type="button"
-          className="ghost small danger"
-          onClick={() => api.logout().then(onOut)}
-        >
-          Sair
-        </button>
-      </span>
-    </div>
-  ) : (
-    <button type="button" className="setting danger" onClick={() => setAsking(true)}>
-      Sair deste aparelho
-    </button>
-  );
-};
-
 export const Ajustes = () => {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
@@ -360,7 +324,15 @@ export const Ajustes = () => {
                   Política de privacidade
                   <IconChevron />
                 </a>
-                <SignOut onOut={() => queryClient.invalidateQueries({ queryKey: ["me"] })} />
+                <ConfirmSetting
+                  action="Sair deste aparelho"
+                  question="Sair deste aparelho?"
+                  detail="Para voltar, entre de novo com a passkey."
+                  confirm="Sair"
+                  onConfirm={() =>
+                    api.logout().then(() => queryClient.invalidateQueries({ queryKey: ["me"] }))
+                  }
+                />
               </div>
             </section>
           ),

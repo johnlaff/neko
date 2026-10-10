@@ -3093,3 +3093,7 @@ form.entry {
   align-items: center;
   min-height: 44px;
 }
+/* A second line under a row's meta (Faturas no banco: what of the bank's amount are parcels). */
+.meta-line {
+  display: block;
+}

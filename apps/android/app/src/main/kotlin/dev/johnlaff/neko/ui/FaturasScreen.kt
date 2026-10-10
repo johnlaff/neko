@@ -211,9 +211,10 @@ private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
                 value = money(c.bank),
                 avatar = monogram(c.card),
                 card = c.card,
-                meta = "Na planilha ${money(c.sheet)}" + when {
-                    c.parcels > 0 && c.parcels == c.bank -> " · No banco, por enquanto só as parcelas"
-                    c.parcels > 0 -> " · ${money(c.parcels)} do banco são parcelas"
+                // Each amount named, as on the site: the one on the right is the bank's.
+                meta = "No banco · na planilha ${money(c.sheet)}" + when {
+                    c.parcels > 0 && c.parcels == c.bank -> "\nPor enquanto, o banco só mostra as parcelas"
+                    c.parcels > 0 -> "\n${money(c.parcels)} disso são parcelas"
                     else -> ""
                 },
                 chips = { if (c.gap > 0) Chip("${money(c.gap)} acima da planilha", ChipTone.Warn) },

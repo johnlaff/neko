@@ -688,8 +688,8 @@ private fun Field(
 @Composable
 private fun Pace(f: AjustesForm, dailyAuto: Long, previsto: Long?) {
     val dailyBad = "daily" in f.left && badMoney(f.daily)
-    if (previsto != null) Setting("Diário", "Pelo Diário previsto, em Planilha") { Text(Format.money(previsto)) }
-    else Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
+    // With the Diário previsto on, its value lives in one place: Planilha › Diário previsto (as on the site).
+    if (previsto == null) Setting("Diário", if (dailyBad) "Use um valor como 177,00" else "Em branco, vem da planilha", dailyBad) {
         Field(
             f.daily, { f.daily = it }, { f.left += "daily"; f.now = true },
             placeholder = fromCents(dailyAuto), description = "Diário", money = true, error = dailyBad, width = 150,

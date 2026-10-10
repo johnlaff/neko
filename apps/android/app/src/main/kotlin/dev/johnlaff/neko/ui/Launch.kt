@@ -680,9 +680,11 @@ fun UndoBar(
     var text by remember(entryId) { mutableStateOf(if (entryId != null) done else null) }
     var busy by remember(entryId) { mutableStateOf(false) }
     var id by remember(entryId) { mutableStateOf(entryId) }
+    // Longer when the system asks for it (TalkBack, a user's "time to take action" setting).
+    val a11y = androidx.compose.ui.platform.LocalAccessibilityManager.current
     LaunchedEffect(entryId, text, busy) {
         if (text == null || busy) return@LaunchedEffect
-        delay(UNDO_MS)
+        delay(a11y?.calculateRecommendedTimeoutMillis(UNDO_MS, containsIcons = false, containsText = true, containsControls = true) ?: UNDO_MS)
         onDone()
     }
     val shown = text ?: return
