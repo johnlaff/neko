@@ -2367,22 +2367,93 @@ form.setting.bank-add > input {
   padding: 6px 10px;
 }
 
-/* Mia on Hoje: a toggle like the simulator, then a quiet conversation. Values are links. */
-.quick > .mia-ask,
-.quick > .panel.mia {
-  grid-column: 1 / -1;
+/* Mia's screen: the whole page, her bar on top, the question field pinned where the dock was.
+   The page itself scrolls, so a phone keyboard that shrinks it keeps the field in sight. */
+.mia-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: 40rem;
+  margin: 0 auto;
 }
-.quick > .panel.mia {
+.mia-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: calc(env(safe-area-inset-top) + 8px) var(--gutter) 8px calc(var(--gutter) - 10px);
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--border);
+}
+.mia-bar > h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  font-size: 1.375rem;
+}
+.mia-bar > button.mia-restart {
+  min-height: 44px;
+  font-size: 0.875rem;
+}
+.mia-body {
+  flex: 1;
   display: grid;
-  gap: 12px;
-  text-align: left;
+  align-content: start;
+  gap: 16px;
+  padding: 20px var(--gutter) 24px;
+}
+.mia-body:focus {
+  outline: none;
 }
 p.mia-lead {
   margin: 0;
 }
+main.mia-page p.mia-q {
+  justify-self: end;
+  max-width: 85%;
+  padding: 8px 14px;
+  border-radius: 18px 18px 4px 18px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.9375rem;
+}
+/* Before the first question: what she does, and the questions she answers well, one per line. */
+.mia-empty {
+  display: grid;
+  gap: 8px;
+  padding-top: 12vh;
+}
+main.mia-page .mia-empty > h2 {
+  font: 400 1.5rem / 1.2 var(--serif);
+}
+main.mia-page .mia-empty > p {
+  margin: 0 0 12px;
+  max-width: 32ch;
+}
+.mia-starters {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.mia-starters > button.chip-button {
+  flex: none;
+  padding: 0 16px;
+}
+.mia-composer {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 10px;
+  padding: 10px var(--gutter) calc(env(safe-area-inset-bottom) + 12px);
+  background: var(--bg);
+  box-shadow: 0 -1px 0 var(--border);
+}
 .mia-talk {
   display: grid;
-  gap: 14px;
+  gap: 24px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2438,10 +2509,15 @@ a.mia-value {
     opacity: 0.35;
   }
 }
-/* The new answer takes the focus to be read, not to be acted on. */
-.mia-talk > li:focus,
-.panel.mia:focus {
+/* The new answer takes the focus to be read, not to be acted on; it lands under the bar. */
+.mia-talk > li:focus {
   outline: none;
+}
+/* On her screen the owner's question is a quiet bubble to the right; her answer stays plain text. */
+main.mia-page .mia-talk > li {
+  display: grid;
+  gap: 10px;
+  scroll-margin-top: calc(env(safe-area-inset-top) + 76px);
 }
 /* Where the numbers came from, as quiet ways out under the answer. */
 p.mia-sources {
@@ -2466,12 +2542,6 @@ a.mia-source > svg {
 }
 .mia-wait > button.mia-retry {
   min-height: 44px;
-  font-size: 0.875rem;
-}
-.panel.mia > button.mia-restart {
-  justify-self: start;
-  min-height: 44px;
-  color: var(--muted);
   font-size: 0.875rem;
 }
 /* One row that slides sideways on a phone; wrapped, the questions stacked one per line */
@@ -2499,7 +2569,7 @@ form.mia-form {
   display: flex;
   gap: 8px;
 }
-.panel.mia form.mia-form > input {
+main.mia-page form.mia-form > input {
   flex: 1;
   min-width: 0;
   min-height: 44px;
@@ -2528,26 +2598,20 @@ form.mia-form {
   height: 14px;
   flex: none;
 }
-/* "Perguntar à Mia": an alert-like row under the quick buttons; the chevron turns when open. */
-.quick > button.alert.mia-ask {
-  width: 100%;
+/* "Perguntar à Mia": an alert-like row under the quick buttons, a way into her screen. */
+.quick > a.alert.mia-ask {
+  grid-column: 1 / -1;
   min-height: 64px;
-  font: inherit;
   text-align: left;
-  cursor: pointer;
 }
-.quick > button.alert.mia-ask > .alert-text > span {
+.quick > a.alert.mia-ask > .alert-text > span {
   font-size: 0.8125rem;
   color: var(--muted);
 }
-.quick > button.alert.mia-ask > svg {
+.quick > a.alert.mia-ask > svg {
   width: 16px;
   height: 16px;
   color: var(--faint);
-  transition: transform 160ms ease;
-}
-.quick > button.alert.mia-ask[aria-expanded="true"] > svg {
-  transform: rotate(90deg);
 }
 /* Reserva: what is kept leads; the method's numbers follow in a short ledger. */
 .panel.reserve > p.reserve-kept {

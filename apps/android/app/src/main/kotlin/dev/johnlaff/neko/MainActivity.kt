@@ -52,6 +52,8 @@ import dev.johnlaff.neko.ui.LockScreen
 import dev.johnlaff.neko.ui.LockSwitch
 import dev.johnlaff.neko.ui.LoginScreen
 import dev.johnlaff.neko.ui.MesScreen
+import dev.johnlaff.neko.ui.MiaScreen
+import androidx.lifecycle.viewModelScope
 import dev.johnlaff.neko.ui.NekoTheme
 import dev.johnlaff.neko.ui.BanksList
 import dev.johnlaff.neko.ui.DevicesList
@@ -84,6 +86,8 @@ class MainActivity : ComponentActivity() {
             NekoTheme {
                 val session by model.session.collectAsStateWithLifecycle()
                 var tab by rememberSaveable { mutableStateOf(Tab.Hoje) }
+                // Mia's own screen, over the tabs and without the dock, as the site's /mia.
+                var miaOpen by rememberSaveable { mutableStateOf(false) }
                 // Switching shows the last reading at once; only one older than a minute is read
                 // again, silently (refresh, a pull or "Tentar de novo" read now and say so).
                 val go = { t: Tab ->
@@ -93,18 +97,26 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(request, session) {
                     val r = request ?: return@LaunchedEffect
                     if (session != Session.SignedIn) return@LaunchedEffect
+                    miaOpen = false
                     go(r.tab)
                     if (r.simulate) simulateAsk++
                     request = null
                 }
                 // Signing out from Ajustes and back in lands on Hoje, which is read on sign-in.
-                LaunchedEffect(session) { if (session == Session.SignedOut) tab = Tab.Hoje }
+                LaunchedEffect(session) {
+                    if (session == Session.SignedOut) {
+                        tab = Tab.Hoje
+                        miaOpen = false
+                    }
+                }
                 // Coming back to the app after a while reads the sheet again, silently, like the site does.
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     if (session == Session.SignedIn) model.show(tab)
                 }
                 // Back from another place returns to Hoje before leaving the app.
                 BackHandler(enabled = session == Session.SignedIn && tab != Tab.Hoje) { go(Tab.Hoje) }
+                // Registered last, so on Mia's screen back closes her first.
+                BackHandler(enabled = session == Session.SignedIn && miaOpen) { miaOpen = false }
                 BoxWithConstraints(Modifier.fillMaxSize().background(LocalLedger.current.bg)) {
                     val rail = maxWidth >= RAIL_FROM
                     when (session) {
@@ -121,26 +133,39 @@ class MainActivity : ComponentActivity() {
                             val shift = with(LocalDensity.current) { 24.dp.roundToPx() }
                             // Each tab keeps its scroll, picked month and open panels while away.
                             val saved = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+                            val mia by model.mia.collectAsStateWithLifecycle()
+                            val toScreen = { tela: String ->
+                                go(when (tela) { "faturas" -> Tab.Faturas; "mes" -> Tab.Mes; else -> Tab.Hoje })
+                            }
+                            val toMonth = { key: String? ->
+                                monthAsk = MonthAsk(key)
+                                go(Tab.Mes)
+                            }
+                            val miaNow = mia
+                            if (miaOpen && miaNow != null && miaNow.ligada) {
+                                // A value's screen opens in place of hers; back from it returns to Hoje.
+                                MiaScreen(
+                                    miaNow, model::askMia, model.miaChat, model.viewModelScope,
+                                    onBack = { miaOpen = false },
+                                    onScreen = { miaOpen = false; toScreen(it) },
+                                    onMonth = { miaOpen = false; toMonth(it) },
+                                )
+                            } else {
                             AnimatedContent(tab, transitionSpec = { tabChange(initialState, targetState, shift) }, label = "tab") { t ->
                                 saved.SaveableStateProvider(t.name) {
                                 when (t) {
                                     Tab.Hoje -> {
                                         val today by model.today.collectAsStateWithLifecycle()
-                                        val mia by model.mia.collectAsStateWithLifecycle()
                                         HojeScreen(
                                             today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
                                             simulateAsk = simulateAsk,
                                             mia = mia,
-                                            askMia = model::askMia,
+                                            onMia = { miaOpen = true },
+                                            miaTalking = model.miaChat.talk.isNotEmpty(),
                                             review = model::review,
                                             launcher = model.launcher,
-                                            onScreen = { tela ->
-                                                go(when (tela) { "faturas" -> Tab.Faturas; "mes" -> Tab.Mes; else -> Tab.Hoje })
-                                            },
-                                            onMonth = { key ->
-                                                monthAsk = MonthAsk(key)
-                                                go(Tab.Mes)
-                                            },
+                                            onScreen = toScreen,
+                                            onMonth = toMonth,
                                         )
                                     }
                                     Tab.Faturas -> {
@@ -171,6 +196,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             Dock(tab, go, Modifier.align(if (rail) Alignment.CenterStart else Alignment.BottomCenter))
+                            }
                         }
                     }
                 }

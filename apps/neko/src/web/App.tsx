@@ -21,6 +21,7 @@ import {
   IconSettings,
   IconToday,
 } from "./icons.tsx";
+import { MiaScreen } from "./Mia.tsx";
 import { toggleValues, useValuesHidden } from "./privacy.ts";
 import { syncPush } from "./Reminders.tsx";
 import { reportError } from "./report.ts";
@@ -54,7 +55,7 @@ const TITLES: Record<string, string> = {
 
 /**
  * Keyboard shortcuts: a key presses whatever on screen declares it in aria-keyshortcuts (1 to 4
- * the tabs, R read again, L Lançar, arrows the month), so the hint and the action never drift.
+ * the tabs, R read again, L Lançar, arrows the month, Esc out of Mia), so the hint and the action never drift.
  * Never while typing in a field or with a dialog open.
  */
 const isTyping = (t: EventTarget | null) =>
@@ -89,10 +90,6 @@ const Masthead = () => {
     setAsked(true);
     q.refetch().finally(() => setAsked(false));
   };
-  useEffect(() => {
-    window.addEventListener("keydown", onShortcut);
-    return () => window.removeEventListener("keydown", onShortcut);
-  }, []);
   return (
     <header className="masthead">
       <div className="masthead-title">
@@ -133,8 +130,22 @@ const Masthead = () => {
 const Shell = () => {
   // Amounts are formatted while rendering, so the screen remounts when values hide or show.
   const hidden = useValuesHidden();
+  const path = useRouterState({ select: (s) => s.location.pathname });
   useEffect(prefetchScreens, []);
   useEffect(syncPush, []);
+  useEffect(() => {
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+  }, []);
+  // Mia's screen is the whole page: her own bar on top, the question field where the dock was.
+  if (path === "/mia")
+    return (
+      <main className="mia-page">
+        <Fragment key={hidden ? "hidden" : "shown"}>
+          <Outlet />
+        </Fragment>
+      </main>
+    );
   return (
     <>
       <main className="page">
@@ -183,6 +194,11 @@ const routeTree = rootRoute.addChildren([
   }),
   createRoute({
     getParentRoute: () => rootRoute,
+    path: "/mia",
+    component: MiaScreen,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
     path: "/ajustes",
     component: lazyRouteComponent(screens.ajustes, "Ajustes"),
   }),
@@ -212,8 +228,13 @@ const router = createRouter({
 
 const TAB_ORDER = ["/", "/faturas", "/mes", "/ajustes"];
 router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
-  const from = TAB_ORDER.indexOf(fromLocation?.pathname ?? "/");
-  const to = TAB_ORDER.indexOf(toLocation.pathname);
+  // Mia's screen sits past the tabs: opening it goes forward, leaving it goes back.
+  const place = (path: string) => {
+    const i = TAB_ORDER.indexOf(path);
+    return i === -1 ? TAB_ORDER.length : i;
+  };
+  const from = place(fromLocation?.pathname ?? "/");
+  const to = place(toLocation.pathname);
   document.documentElement.dataset.nav = to >= from ? "forward" : "back";
 });
 

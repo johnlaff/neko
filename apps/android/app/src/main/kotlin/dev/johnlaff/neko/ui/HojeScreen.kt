@@ -82,13 +82,14 @@ fun HojeScreen(
     /** Grows each time the "Simular" shortcut is used: opens the simulator again. */
     simulateAsk: Int = 0,
     mia: MiaStatus? = null,
-    askMia: AskMia? = null,
-    /** Opens the screen a value of Mia's came from: "hoje", "faturas" or "mes". */
+    /** Opens Mia's own screen; null hides the row. */
+    onMia: (() -> Unit)? = null,
+    /** A conversation waits on Mia's screen: the row offers to continue it. */
+    miaTalking: Boolean = false,
+    /** Opens another screen: "hoje", "faturas" or "mes". */
     onScreen: (String) -> Unit = {},
     /** Opens Mês on a month ("2025-10"), or on the current one for null, as the site's alerts do. */
     onMonth: (String?) -> Unit = { onScreen("mes") },
-    miaOpen: Boolean = false,
-    miaTalk: List<MiaExchange> = emptyList(),
     review: Review? = null,
     launcher: Launcher? = null,
     /** Opens Lançar à mão, as the "Lançar" shortcut and the prints do. */
@@ -97,12 +98,8 @@ fun HojeScreen(
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
     var undo by remember { mutableStateOf<String?>(null) }
-    // Mia's conversation lives here, so it outlasts the panel closing or scrolling away.
-    val miaChat = remember { MiaChat(miaTalk) }
-    val miaScope = rememberCoroutineScope()
     var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
-    var asking by rememberSaveable { mutableStateOf(miaOpen) }
     LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh) { v ->
         item { Hero(v) }
@@ -125,10 +122,7 @@ fun HojeScreen(
             }
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
-        if (mia?.ligada == true && askMia != null) {
-            item { MiaButton(asking) { asking = !asking } }
-            if (asking) item { MiaPanel(mia, askMia, onScreen, miaChat, miaScope, onMonth) }
-        }
+        if (mia?.ligada == true && onMia != null) item { MiaButton(miaTalking, onMia) }
         v.habit?.let { h -> item { Streak(h) } }
         if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).

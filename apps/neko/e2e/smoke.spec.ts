@@ -153,11 +153,16 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
   expect(errors).toEqual([]);
 });
 
-test("Mia answers with the engine's values, each one a link to its screen", async ({ page }) => {
+test("Mia answers on her own screen with the engine's values, each one a link", async ({
+  page,
+}) => {
   const errors = await open(page, "/");
-  await page.getByRole("button", { name: "Perguntar à Mia" }).click();
+  await page.getByRole("link", { name: /Perguntar à Mia/ }).click();
+  await expect(page).toHaveURL(/\/mia$/);
+  // Her screen is the whole page: no tabs, a way back.
+  await expect(page.getByRole("navigation", { name: "Telas" })).toHaveCount(0);
   await page.getByRole("button", { name: "Quanto saiu no mês passado?" }).click();
-  const answer = page.getByRole("region", { name: "Conversa com a Mia" });
+  const answer = page.getByRole("list", { name: "Conversa com a Mia" });
   await expect(answer.getByRole("link", { name: /5\.123,40/ })).toHaveAttribute(
     "href",
     "/mes?m=2026-09",
@@ -169,11 +174,16 @@ test("Mia answers with the engine's values, each one a link to its screen", asyn
     "href",
     "/mes?m=2026-09",
   );
-  await expect(answer.getByRole("button", { name: "Quanto cabe por dia?" })).toBeVisible();
-  await expect(answer.getByRole("button", { name: "Quanto saiu no mês passado?" })).toHaveCount(0);
-  await answer.screenshot({ path: "test-results/mia.png" });
-  await answer.getByRole("button", { name: "Nova conversa" }).click();
-  await expect(answer.getByRole("button", { name: "Como está minha reserva?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Quanto cabe por dia?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Quanto saiu no mês passado?" })).toHaveCount(0);
+  await page.screenshot({ path: "test-results/mia.png" });
+  // Leaving and coming back finds the conversation where it was.
+  await page.getByRole("button", { name: "Voltar" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.getByRole("link", { name: /Continuar a conversa/ }).click();
+  await expect(answer.getByRole("link", { name: "Ver setembro" })).toBeVisible();
+  await page.getByRole("button", { name: "Nova conversa" }).click();
+  await expect(page.getByRole("button", { name: "Como está minha reserva?" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 

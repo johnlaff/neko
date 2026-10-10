@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { Fragment, type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type QueryClient, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
+import { Fragment, type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ApiError, api, type MiaReply } from "./api.ts";
 import { BrandMark } from "./BrandMark.tsx";
 import { money, monthName, shortDate } from "./format.ts";
-import { IconChevron } from "./icons.tsx";
+import { IconChevron, IconChevronLeft } from "./icons.tsx";
 
 /** Questions Mia answers well, one tap each (specs/004-mia). */
 export const MIA_SUGGESTIONS = [
@@ -73,7 +73,7 @@ export const MiaText = ({ reply }: { reply: MiaReply }) => {
 
 /**
  * The screens an answer's numbers came from, as plain ways out: "Ver setembro", "Ver faturas".
- * Hoje is left out, since Mia lives there. Two at most, so the answer stays the main thing.
+ * Hoje is left out, the screen she is opened from. Two at most, so the answer stays the main thing.
  */
 export const miaSources = (reply: MiaReply) => {
   const seen = new Map<
@@ -123,213 +123,297 @@ interface Exchange {
   reply: MiaReply;
 }
 
+/**
+ * The conversation, kept outside the screen: leaving Mia to check a month and coming back finds
+ * it where it was, an answer still on its way included. It ends with the page or "Nova conversa".
+ */
+interface Chat {
+  talk: readonly Exchange[];
+  /** The question waiting for its answer, and since when. */
+  pending: { pergunta: string; since: number } | null;
+  /** The question that just failed, waiting in "Tentar de novo". */
+  failed: string | null;
+  /** The month's limit was reached: she rests until the page is opened again, whatever is cleared. */
+  limited: boolean;
+}
+let chat: Chat = { talk: [], pending: null, failed: null, limited: false };
+const listeners = new Set<() => void>();
+const setChat = (next: Partial<Chat>) => {
+  chat = { ...chat, ...next };
+  for (const l of listeners) l();
+};
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
+const useChat = () => useSyncExternalStore(subscribe, () => chat);
+
 const limitHit = (e: unknown) => e instanceof ApiError && e.status === 429;
 
-/** Seconds since `on` turned true, ticking once a second; 0 while off. */
-const useSeconds = (on: boolean) => {
-  const [seconds, setSeconds] = useState(0);
-  useEffect(() => {
-    setSeconds(0);
-    if (!on) return;
-    const started = Date.now();
-    const t = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
-    return () => clearInterval(t);
-  }, [on]);
-  return seconds;
+const ask = async (pergunta: string, queryClient: QueryClient) => {
+  if (chat.pending) return;
+  const recent = chat.talk.slice(-MAX_HISTORY);
+  setChat({ pending: { pergunta, since: Date.now() }, failed: null });
+  try {
+    const reply = await api.askMia({
+      pergunta,
+      historico: recent.map((x) => ({ pergunta: x.pergunta, resposta: x.reply.texto })),
+      valores: Object.assign({}, ...recent.map((x) => x.reply.valores)),
+    });
+    setChat({ talk: [...chat.talk, { n: chat.talk.length, pergunta, reply }], pending: null });
+  } catch (e) {
+    // The limit was reached: the status brings the day she is back, and the screen rests.
+    if (limitHit(e)) {
+      setChat({ pending: null, limited: true });
+      void queryClient.invalidateQueries({ queryKey: ["mia"] });
+    } else setChat({ pending: null, failed: pergunta });
+  }
 };
 
-/** "Perguntar à Mia" on Hoje: hidden until the key is set, a conversation once opened. */
+/** Seconds since `since`, ticking once a second; 0 while nothing waits. */
+const useSeconds = (since: number | undefined) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (since === undefined) return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [since]);
+  return since === undefined ? 0 : Math.max(0, Math.floor((now - since) / 1000));
+};
+
+const useMiaStatus = () => useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
+
+/** "Perguntar à Mia" on Hoje: hidden until the key is set, a way into her screen. */
 export const Mia = () => {
-  const id = useId();
+  const status = useMiaStatus();
+  const { talk } = useChat();
+  if (!status.data?.ligada) return null;
+  return (
+    // A quiet row, not a third big button: Hoje already has Lançar and Simular.
+    <Link to="/mia" className="alert mia-ask">
+      <BrandMark width={40} className="mia-mark" />
+      <span className="alert-text">
+        <strong>Perguntar à Mia</strong>
+        <span>
+          {talk.length > 0 ? "Continuar a conversa" : "Respostas com os números da sua planilha"}
+        </span>
+      </span>
+      <IconChevron />
+    </Link>
+  );
+};
+
+/**
+ * While Mia's screen is open, a phone keyboard shrinks the page instead of covering it, so the
+ * question field stays in sight above the keys (Chrome's interactive-widget; others ignore it).
+ */
+const useKeyboardResizes = () => {
+  useEffect(() => {
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (!meta) return;
+    const before = meta.content;
+    meta.content = `${before}, interactive-widget=resizes-content`;
+    return () => {
+      meta.content = before;
+    };
+  }, []);
+};
+
+/**
+ * Mia's own screen: the whole page for the conversation, the question field pinned at the bottom.
+ * No tabs here; the arrow (or Esc, or the phone's back) returns to where she was opened from.
+ */
+export const MiaScreen = () => {
   const queryClient = useQueryClient();
-  const status = useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
-  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const canGoBack = useCanGoBack();
+  const router = useRouter();
+  const status = useMiaStatus();
+  const { talk, pending, failed, limited } = useChat();
   const [typed, setTyped] = useState("");
-  const [talk, setTalk] = useState<readonly Exchange[]>([]);
-  // The month's limit was reached: she rests until the page is opened again, whatever is cleared.
-  const [limited, setLimited] = useState(false);
   const last = useRef<HTMLLIElement>(null);
-  const section = useRef<HTMLElement>(null);
+  const body = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  const ask = useMutation({
-    mutationFn: (pergunta: string) => {
-      const recent = talk.slice(-MAX_HISTORY);
-      return api.askMia({
-        pergunta,
-        historico: recent.map((x) => ({ pergunta: x.pergunta, resposta: x.reply.texto })),
-        valores: Object.assign({}, ...recent.map((x) => x.reply.valores)),
-      });
-    },
-    onSuccess: (reply, pergunta) => {
-      setTalk([...talk, { n: talk.length, pergunta, reply }]);
-      setTyped("");
-    },
-    // The limit was reached: the status brings the day she is back, and the panel rests.
-    onError: (e) => {
-      if (!limitHit(e)) return;
-      setLimited(true);
-      void queryClient.invalidateQueries({ queryKey: ["mia"] });
-    },
-  });
-  const seconds = useSeconds(ask.isPending);
-  // The new answer takes the focus, so a screen reader reads it and a phone keyboard closes. Only
-  // while the owner is still here: an answer that comes late never pulls them away from elsewhere.
+  const seconds = useSeconds(pending?.since);
+  useKeyboardResizes();
+  // The newest answer is read from its top, under the bar, and takes the focus: a screen reader
+  // reads it and a phone keyboard closes. Only while the owner is still here: an answer that
+  // comes late never pulls them away from a field they moved on to.
   useEffect(() => {
     const here = document.activeElement;
-    if (talk.length > 0 && (here === document.body || section.current?.contains(here)))
-      last.current?.focus();
+    if (talk.length === 0 || !last.current) return;
+    if (here !== document.body && here !== input.current && !body.current?.contains(here)) return;
+    last.current.scrollIntoView({ block: "start" });
+    last.current.focus({ preventScroll: true });
   }, [talk.length]);
+  // A question just sent shows at the bottom with the wait under it.
+  useEffect(() => {
+    if (pending) window.scrollTo({ top: document.documentElement.scrollHeight });
+  }, [pending]);
+  const back = () => (canGoBack ? router.history.back() : navigate({ to: "/" }));
+
   const s = status.data;
-  if (!s?.ligada) return null;
   const send = (q: string) => {
     const pergunta = q.trim();
-    if (pergunta && !ask.isPending) ask.mutate(pergunta);
+    if (!pergunta || chat.pending) return;
+    setTyped("");
+    void ask(pergunta, queryClient);
   };
-  const resting = Boolean(s.pausadaAte) || limited;
-  const failed = ask.isError && !limitHit(ask.error);
+  const resting = Boolean(s?.pausadaAte) || limited;
   // A question that just failed waits in "Tentar de novo", not again among the chips.
-  const asked = [
-    ...talk.map((x) => x.pergunta),
-    ...(ask.isError && ask.variables ? [ask.variables] : []),
-  ];
-  const chips =
-    typed.trim() || ask.isPending
-      ? []
-      : talk.length === 0
-        ? MIA_SUGGESTIONS.filter((q) => !asked.includes(q))
-        : miaNext(asked);
+  const asked = [...talk.map((x) => x.pergunta), ...(failed ? [failed] : [])];
+  const starters = MIA_SUGGESTIONS.filter((q) => !asked.includes(q));
+  const next = talk.length === 0 || typed.trim() || pending || resting ? [] : miaNext(asked);
 
   return (
     <>
-      {/* A quiet row, not a third big button: Hoje already has Lançar and Simular. */}
-      <button
-        type="button"
-        className="alert mia-ask"
-        aria-expanded={open}
-        aria-controls={`${id}-panel`}
-        onClick={() => setOpen(!open)}
-      >
-        <BrandMark width={40} className="mia-mark" />
-        <span className="alert-text">
-          <strong>Perguntar à Mia</strong>
-          <span>Respostas com os números da sua planilha</span>
-        </span>
-        <IconChevron />
-      </button>
-      {open && (
-        <section
-          ref={section}
-          id={`${id}-panel`}
-          className="panel mia"
-          aria-label="Conversa com a Mia"
-          tabIndex={-1}
+      <header className="mia-bar">
+        <button
+          type="button"
+          className="icon"
+          onClick={back}
+          aria-label="Voltar"
+          aria-keyshortcuts="Escape"
+          title="Voltar (Esc)"
         >
-          {/* Paused on opening: said first. Reached while asking: said where the wait was, aloud. */}
-          {s.pausadaAte && !limited && (
-            <p className="muted mia-lead">
-              A Mia descansa até {shortDate(s.pausadaAte)}. Os números seguem nas telas.
-            </p>
-          )}
-          {talk.length > 0 && (
-            <ol className="mia-talk">
-              {talk.map((x, i) => {
-                const newest = i === talk.length - 1;
-                // Only the newest answer offers its screens, so older ones stay plain text.
-                const sources = newest ? miaSources(x.reply) : [];
-                return (
-                  <li key={x.n} ref={newest ? last : undefined} tabIndex={newest ? -1 : undefined}>
-                    <p className="mia-q">{x.pergunta}</p>
-                    <MiaText reply={x.reply} />
-                    {sources.length > 0 && (
-                      <p className="mia-sources">
-                        {sources.map((src) => (
-                          <ScreenLink key={src.key} v={src} className="mia-source">
-                            {src.label}
-                            <IconChevron />
-                          </ScreenLink>
-                        ))}
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-          <div className="mia-wait">
-            {ask.isPending && <span className="mia-dots" aria-hidden="true" />}
-            <p className="mia-status" aria-live="polite">
-              {ask.isPending
-                ? miaWaiting(seconds)
-                : limited
-                  ? "A Mia descansa até o mês que vem. Os números seguem nas telas."
-                  : failed
-                    ? "Não consegui falar com a Mia agora."
-                    : ""}
-            </p>
-            {failed && (
-              <button
-                type="button"
-                className="text-link mia-retry"
-                onClick={() => ask.variables && send(ask.variables)}
-              >
-                Tentar de novo
-              </button>
+          <IconChevronLeft />
+        </button>
+        <h1>
+          <BrandMark width={28} className="mia-mark" />
+          Mia
+        </h1>
+        {talk.length > 0 && !pending && (
+          <button
+            type="button"
+            className="text-link mia-restart"
+            onClick={() => {
+              setChat({ talk: [], failed: null });
+              // The button goes away with the conversation; the focus lands where the next one starts.
+              (input.current ?? body.current)?.focus();
+            }}
+          >
+            Nova conversa
+          </button>
+        )}
+      </header>
+      <div className="mia-body" ref={body} tabIndex={-1}>
+        {s && !s.ligada ? (
+          <p className="muted mia-lead">A Mia não está ligada neste Neko.</p>
+        ) : (
+          <>
+            {/* Paused on opening: said first. Reached while asking: said where the wait was, aloud. */}
+            {s?.pausadaAte && !limited && (
+              <p className="muted mia-lead">
+                A Mia descansa até {shortDate(s.pausadaAte)}. Os números seguem nas telas.
+              </p>
             )}
-          </div>
-          {chips.length > 0 && !resting && (
+            {talk.length === 0 && !pending && (
+              <div className="mia-empty">
+                <h2>Pergunte sobre a sua planilha</h2>
+                <p className="muted">
+                  A Mia responde com os números das telas do Neko, e cada um leva à tela de onde
+                  veio.
+                </p>
+                {!resting && (
+                  <div className="mia-starters">
+                    {starters.map((q) => (
+                      <button key={q} type="button" className="chip-button" onClick={() => send(q)}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {(talk.length > 0 || pending) && (
+              <ol className="mia-talk" aria-label="Conversa com a Mia">
+                {talk.map((x, i) => {
+                  const newest = i === talk.length - 1 && !pending;
+                  // Only the newest answer offers its screens, so older ones stay plain text.
+                  const sources = newest ? miaSources(x.reply) : [];
+                  return (
+                    <li
+                      key={x.n}
+                      ref={i === talk.length - 1 ? last : undefined}
+                      tabIndex={i === talk.length - 1 ? -1 : undefined}
+                    >
+                      <p className="mia-q">{x.pergunta}</p>
+                      <MiaText reply={x.reply} />
+                      {sources.length > 0 && (
+                        <p className="mia-sources">
+                          {sources.map((src) => (
+                            <ScreenLink key={src.key} v={src} className="mia-source">
+                              {src.label}
+                              <IconChevron />
+                            </ScreenLink>
+                          ))}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+                {pending && (
+                  <li>
+                    <p className="mia-q">{pending.pergunta}</p>
+                  </li>
+                )}
+              </ol>
+            )}
+            <div className="mia-wait">
+              {pending && <span className="mia-dots" aria-hidden="true" />}
+              <p className="mia-status" aria-live="polite">
+                {pending
+                  ? miaWaiting(seconds)
+                  : limited
+                    ? "A Mia descansa até o mês que vem. Os números seguem nas telas."
+                    : failed
+                      ? "Não consegui falar com a Mia agora."
+                      : ""}
+              </p>
+              {failed && !pending && !limited && (
+                <button type="button" className="text-link mia-retry" onClick={() => send(failed)}>
+                  Tentar de novo
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      {s?.ligada && !resting && (
+        <div className="mia-composer">
+          {next.length > 0 && (
             // A new row starts at its first question, not where the last one was slid to.
             <div className="mia-suggest" key={talk.length}>
-              {chips.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  className="chip-button"
-                  disabled={ask.isPending}
-                  onClick={() => send(q)}
-                >
+              {next.map((q) => (
+                <button key={q} type="button" className="chip-button" onClick={() => send(q)}>
                   {q}
                 </button>
               ))}
             </div>
           )}
-          {!resting && (
-            <form
-              className="mia-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                send(typed);
-              }}
-            >
-              <input
-                ref={input}
-                aria-label="Pergunta para a Mia"
-                placeholder={talk.length > 0 ? "Outra pergunta?" : "Pergunte algo"}
-                maxLength={500}
-                autoComplete="off"
-                enterKeyHint="send"
-                value={typed}
-                onChange={(e) => setTyped(e.target.value)}
-              />
-              <button type="submit" disabled={!typed.trim() || ask.isPending}>
-                Enviar
-              </button>
-            </form>
-          )}
-          {talk.length > 0 && !ask.isPending && (
-            <button
-              type="button"
-              className="text-link mia-restart"
-              onClick={() => {
-                setTalk([]);
-                ask.reset();
-                // The button goes away with the conversation; the focus lands where the next one starts.
-                (input.current ?? section.current)?.focus();
-              }}
-            >
-              Nova conversa
+          <form
+            className="mia-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(typed);
+            }}
+          >
+            <input
+              ref={input}
+              aria-label="Pergunta para a Mia"
+              placeholder={talk.length > 0 ? "Outra pergunta?" : "Pergunte algo"}
+              maxLength={500}
+              autoComplete="off"
+              enterKeyHint="send"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+            />
+            <button type="submit" disabled={!typed.trim() || Boolean(pending)}>
+              Enviar
             </button>
-          )}
-        </section>
+          </form>
+        </div>
       )}
     </>
   );
