@@ -243,8 +243,9 @@ const BankBills = ({ bank }: { bank: BankView }) => (
             </span>
             <span className="value">{money(c.bank)}</span>
             <span className="meta">
-              {/* The bank's amount is the row value; the sheet's is named here. */}
-              Na planilha: {money(c.sheet)}
+              {/* The bank's amount is the row value, still growing until the bill closes; the
+                  sheet's is named here. */}
+              Até agora no banco. Na planilha: {money(c.sheet)}
               {c.parcels > 0 && (
                 <span className="meta-line">
                   {c.parcels === c.bank

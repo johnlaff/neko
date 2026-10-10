@@ -181,21 +181,26 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
                 });
               }}
             >
-              <input
-                aria-label="Nome do banco"
-                placeholder="Banco"
-                value={label}
-                maxLength={40}
-                onChange={(e) => setLabel(e.target.value)}
-              />
-              <input
-                aria-label="Código da conexão no Meu Pluggy"
-                placeholder="Código"
-                value={itemId}
-                spellCheck={false}
-                aria-invalid={itemId.trim() !== "" && !UUID.test(itemId.trim())}
-                onChange={(e) => setItemId(e.target.value)}
-              />
+              {/* Labels stay visible above the fields, so they are still named once filled. */}
+              <label>
+                <span>Banco</span>
+                <input
+                  aria-label="Nome do banco"
+                  value={label}
+                  maxLength={40}
+                  onChange={(e) => setLabel(e.target.value)}
+                />
+              </label>
+              <label>
+                <span>Código</span>
+                <input
+                  aria-label="Código da conexão no Meu Pluggy"
+                  value={itemId}
+                  spellCheck={false}
+                  aria-invalid={itemId.trim() !== "" && !UUID.test(itemId.trim())}
+                  onChange={(e) => setItemId(e.target.value)}
+                />
+              </label>
               <button type="submit" className="ghost small" disabled={!valid || items.isPending}>
                 Ligar
               </button>

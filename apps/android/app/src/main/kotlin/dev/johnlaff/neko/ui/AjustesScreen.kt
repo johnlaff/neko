@@ -493,12 +493,12 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     label, { label = it.take(40) },
-                    placeholder = { Text("Banco") }, singleLine = true,
+                    label = { Text("Banco") }, singleLine = true,
                     modifier = Modifier.weight(1f).semantics { contentDescription = "Nome do banco" },
                 )
                 OutlinedTextField(
                     itemId, { itemId = it },
-                    placeholder = { Text("Código") }, singleLine = true,
+                    label = { Text("Código") }, singleLine = true,
                     isError = itemId.isNotBlank() && !UUID.matches(itemId.trim()),
                     modifier = Modifier.weight(1.4f).semantics { contentDescription = "Código da conexão no Meu Pluggy" },
                 )
