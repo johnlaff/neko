@@ -248,6 +248,9 @@ class AppModel(
     /** Hoje's "Perguntar à Mia"; the Worker runs the tools and checks the answer. */
     suspend fun askMia(ask: MiaAsk): MiaReply = neko.api.askMia(ask)
 
+    /** Mia's conversation, kept while the app lives, so leaving her screen and coming back finds it. */
+    val miaChat = MiaChat()
+
     /** Hoje's simulator; the Worker does the math, as for every other figure. */
     suspend fun simulate(amount: Long, count: Int): InstallmentSimulation? = neko.api.simulate(amount, count)
 
@@ -378,6 +381,8 @@ class AppModel(
         _devices.value = null
         _banks.value = null
         _mia.value = null
+        miaChat.clear()
+        miaChat.limited = false
         _save.value = SaveState.Idle
         saved = null
         _session.value = Session.SignedOut
