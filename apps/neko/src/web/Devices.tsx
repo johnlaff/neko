@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type Device } from "./api.ts";
+import { api, type Device, reasonOf } from "./api.ts";
 import { ConfirmSetting } from "./Confirm.tsx";
 import { IconLaptop, IconPhone } from "./icons.tsx";
 
@@ -64,6 +64,11 @@ export const Devices = () => {
           </li>
         )}
       </ul>
+      {(end.error ?? endOthers.error) && (
+        <p className="hint error" role="alert">
+          {reasonOf(end.error ?? endOthers.error)}
+        </p>
+      )}
     </section>
   );
 };

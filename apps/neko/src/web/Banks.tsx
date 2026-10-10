@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { api, type BanksResponse, type UserSettings } from "./api.ts";
+import { api, type BanksResponse, reasonOf, type UserSettings } from "./api.ts";
 import { shortDate } from "./format.ts";
 
 const MAX_BANKS = 5;
@@ -55,7 +55,11 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
     ? "Esse código não parece o da conexão. Copie do Meu Pluggy, na lista das suas conexões."
     : UUID.test(itemId.trim()) && label.trim() === ""
       ? "Falta o nome do banco"
-      : null;
+      : label.trim() !== "" && itemId.trim() === ""
+        ? "Falta o código da conexão, que fica no Meu Pluggy"
+        : null;
+  // Any change here that fails says so, under the list, and the form keeps what was typed.
+  const failed = [items, cards, uses].find((m) => m.isError)?.error;
   const pick = (accountId: string, number: string | null, card: string) =>
     cards.mutate(tie(data.cards, accountId, number, card));
   const options = (empty: string) => (
@@ -219,6 +223,11 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
           </li>
         )}
       </ul>
+      {failed && (
+        <p className="hint error" role="alert">
+          {reasonOf(failed)}
+        </p>
+      )}
       <p className="footnote">
         O banco só sugere itens em Para lançar; nada vai para a planilha sem você tocar em Lançar. O
         código da conexão fica no Meu Pluggy, na lista das suas conexões.
