@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab icon: 24dp, 1.75dp round stroke as the site's IconToday, tinted by the dock. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M6.5,5h11a3,3 0,0 1,3,3v9a3,3 0,0 1,-3,3h-11a3,3 0,0 1,-3,-3v-9a3,3 0,0 1,3,-3z" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M3.5,10h17M8,3v4M16,3v4" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M10.5,15a1.5,1.5 0,1 0,3,0a1.5,1.5 0,1 0,-3,0z" />
+</vector>
