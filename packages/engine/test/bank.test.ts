@@ -132,6 +132,18 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     ]);
   });
 
+  it("adds no parcels ahead when the bank put the whole plan on one bill", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [1, 2, 3, 4].map((k) =>
+        line(k === 1 ? 2397 : 2396, "2026-11", { installment: k, installments: 4 }),
+      ),
+      today,
+    );
+    expect(checks.map((c) => [c.due, c.parcels])).toEqual([["2026-11-10", 9585]]);
+  });
+
   it("knows a parcel the bank lists ahead with a shorter text or a rounded value", () => {
     const checks = billChecks(
       days,

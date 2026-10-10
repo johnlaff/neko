@@ -87,6 +87,13 @@ const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
   for (const l of lines) {
     const { installment: n, installments: total } = l;
     if (n === null || total === null || n >= total) continue;
+    // The bill already lists the last parcel too: the bank put the whole plan on this bill.
+    if (
+      lines.some(
+        (o) => o.billMonth === l.billMonth && samePurchase(o, { ...l, installment: total }),
+      )
+    )
+      continue;
     for (let k = n + 1; k <= total; k++) {
       const next = { ...l, installment: k, billMonth: nextMonth(l.billMonth, k - n) };
       if (!out.some((o) => o.billMonth === next.billMonth && samePurchase(o, next))) out.push(next);
