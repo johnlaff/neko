@@ -11,6 +11,7 @@ export * from "./insights.ts";
 export * from "./installments.ts";
 export * from "./ledger.ts";
 export * from "./mia.ts";
+export * from "./mia-entry.ts";
 export * from "./money.ts";
 export * from "./projection.ts";
 export * from "./queue.ts";

@@ -1,4 +1,4 @@
-import type { Draft } from "@neko/engine";
+import type { Draft, MiaEntry } from "@neko/engine";
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
@@ -135,6 +135,11 @@ export const api = {
     request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
   mia: () => request<MiaStatus>("/mia"),
   askMia: (ask: MiaAsk) => request<MiaReply>("/mia", { method: "POST", body: JSON.stringify(ask) }),
+  miaEntry: (frase: string, cartoes: readonly string[]) =>
+    request<{ lancamento: MiaEntry | null }>("/mia/lancamento", {
+      method: "POST",
+      body: JSON.stringify({ frase, cartoes }),
+    }),
   previewEntry: (draft: Draft) =>
     request<{ parts: { fingerprint: string }[] }>("/entries/preview", {
       method: "POST",

@@ -86,6 +86,15 @@ class ScreensContractTest {
         }
     }
 
+    /** Lançar com a Mia (apps/neko/test/mia.test.ts): the fields a sentence gave. */
+    @Test fun miaEntry() {
+        val e = json.decodeFromString<dev.johnlaff.neko.data.MiaEntryReply>(text("mia-lancamento.json")).lancamento!!
+        assertEquals("diario", e.kind)
+        assertEquals(4590L, e.amount)
+        assertEquals("Padaria", e.description)
+        assertEquals(null, e.card)
+    }
+
     /** A Mia reply (apps/neko/test/mia.test.ts): a total, a difference and a percent. */
     @Test fun mia() {
         val v = json.decodeFromString<MiaReply>(text("mia.json"))

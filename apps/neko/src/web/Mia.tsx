@@ -57,7 +57,7 @@ interface Exchange {
 }
 
 const failure = (e: unknown) => {
-  if (e instanceof ApiError && e.status === 429) return "A Mia usou o limite do mês e volta logo.";
+  if (e instanceof ApiError && e.status === 429) return "A Mia descansa até o mês que vem.";
   return "Não consegui falar com a Mia agora. Os números seguem nas telas.";
 };
 

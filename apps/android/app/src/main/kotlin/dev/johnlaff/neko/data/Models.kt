@@ -266,6 +266,20 @@ data class RemindersView(val morning: Reminder? = null, val evening: Reminder? =
 @Serializable
 data class MiaStatus(val ligada: Boolean = false, val usadoPct: Int = 0, val pausadaAte: String? = null)
 
+/** Lançar com a Mia: the fields a sentence gave; each one only when the engine trusted it. */
+@Serializable
+data class MiaEntry(
+    val kind: String? = null,
+    val amount: Long? = null,
+    val date: String? = null,
+    val description: String? = null,
+    val card: String? = null,
+    val installments: Int? = null,
+)
+
+@Serializable
+data class MiaEntryReply(val lancamento: MiaEntry? = null)
+
 /** A value the engine handed out: money in `cents`, or a whole percent in `pct`. */
 @Serializable
 data class MiaValue(

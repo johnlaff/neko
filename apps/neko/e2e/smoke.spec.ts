@@ -74,6 +74,19 @@ const open = async (page: Page, path: string, body = projection) => {
     const { pathname } = new URL(route.request().url());
     if (pathname === "/api/mia" && route.request().method() === "POST")
       return route.fulfill({ json: MIA_REPLY });
+    if (pathname === "/api/mia/lancamento")
+      return route.fulfill({
+        json: {
+          lancamento: {
+            kind: "cartao",
+            card: "Cartão Azul",
+            installments: 4,
+            amount: 12_000,
+            date: "2026-10-04",
+            description: "Farmácia",
+          },
+        },
+      });
     if (pathname === "/api/entries/preview")
       return route.fulfill({ json: { parts: [{ fingerprint: "f" }] } });
     if (pathname === "/api/entries")
@@ -228,6 +241,33 @@ test("Lançar à mão asks the value, how it was paid and the name, then offers 
   await form.getByRole("button", { name: "Lançar" }).click();
   await expect(page.getByRole("button", { name: "Desfazer" })).toBeVisible();
   await expect(form).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("Lançar com a Mia fills the form from one sentence, and only Lançar writes", async ({
+  page,
+}) => {
+  const data = JSON.parse(projection);
+  data.cardsKnown[0].closingEstimated = false;
+  const errors = await open(page, "/", JSON.stringify(data));
+  await page.getByRole("button", { name: "Lançar", exact: true }).first().click();
+  const form = page.getByRole("form", { name: "Lançar à mão" });
+  await form.getByLabel("Numa frase").fill("farmácia 120 no azul em 4x ontem");
+  // Enter fills; it does not launch.
+  await form.getByLabel("Numa frase").press("Enter");
+  await expect(form.getByText("A Mia preencheu. Confira e lance.")).toBeVisible();
+  await expect(form.getByLabel("Valor")).toHaveValue("120,00");
+  await expect(form.getByRole("button", { name: "Cartão Azul" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(form.getByRole("button", { name: "4×" })).toHaveAttribute("aria-pressed", "true");
+  await expect(form.getByLabel("Nome")).toHaveValue("Farmácia");
+  await expect(form.getByLabel("Dia")).toHaveValue("2026-10-04");
+  await expect(page.getByRole("button", { name: "Desfazer" })).toHaveCount(0);
+  await form.screenshot({ path: "test-results/lancar-com-a-mia.png" });
+  await form.getByRole("button", { name: "Lançar" }).click();
+  await expect(page.getByRole("button", { name: "Desfazer" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 

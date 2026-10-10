@@ -1,7 +1,10 @@
 import {
   checkAnswer,
+  entryFromMia,
   type LocalDate,
+  MIA_ENTRY_TYPES,
   MIA_PERIODS,
+  type MiaEntry,
   type Projection,
   type RefValue,
   refBook,
@@ -219,7 +222,24 @@ export const FALLBACK =
 type Block = z.infer<typeof ContentBlock>;
 type Turn = { role: "user" | "assistant"; content: string | readonly unknown[] };
 
-const call = async (deps: MiaDeps, model: Model, messages: readonly Turn[]) => {
+/** The conversation's prompt and tools; Lançar com a Mia brings its own. */
+interface Setup {
+  readonly system: string;
+  readonly tools: readonly unknown[];
+  readonly tool_choice: unknown;
+}
+
+const call = async (
+  deps: MiaDeps,
+  model: Model,
+  messages: readonly Turn[],
+  setup: Setup = {
+    system: SYSTEM,
+    tools: TOOLS,
+    // Haiku can be made to always call a tool, so it always ends in responder.
+    tool_choice: model === HAIKU ? { type: "any" } : { type: "auto" },
+  },
+) => {
   const res = await deps.fetch(API, {
     method: "POST",
     headers: {
@@ -231,10 +251,9 @@ const call = async (deps: MiaDeps, model: Model, messages: readonly Turn[]) => {
       model,
       max_tokens: MAX_TOKENS[model],
       output_config: { effort: EFFORT[model] },
-      system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
-      tools: TOOLS,
-      // Haiku can be made to always call a tool, so it always ends in responder.
-      tool_choice: model === HAIKU ? { type: "any" } : { type: "auto" },
+      system: [{ type: "text", text: setup.system, cache_control: { type: "ephemeral" } }],
+      tools: setup.tools,
+      tool_choice: setup.tool_choice,
       messages,
     }),
   });
@@ -361,6 +380,63 @@ export const askMia = async (
   return second.kind === "answer"
     ? { texto: second.texto, valores: second.valores, modelo: SONNET }
     : { texto: FALLBACK, valores: {}, modelo: null };
+};
+
+const ENTRY_SYSTEM = `Você é a Mia, do Neko. O dono descreve numa frase algo que gastou ou recebeu, \
+e você preenche o formulário de lançamento da planilha dele, no método da Escola do Breno. Você não \
+grava nada: ele confere e lança.
+
+- tipo: "pix" para Pix, débito ou dinheiro (vai no Diário); "entrada" para dinheiro que chegou \
+(salário, reembolso, Pix recebido); "conta" para conta fixa ou boleto (aluguel, luz, internet, \
+escola); "cartao" para compra no cartão de crédito; "nao_entendi" se a frase não é um lançamento.
+- valor: em reais, como 45.9. Use 0 se a frase não diz o valor.
+- dia: AAAA-MM-DD. A frase traz a data de hoje; "ontem", "sexta" e afins contam a partir dela. \
+Sem dia na frase, use hoje.
+- nome: curto, como numa planilha: "Padaria", "Uber", "Salário". Vazio se não der para saber.
+- cartao: só com tipo "cartao", exatamente um dos cartões listados na frase; vazio se não der para \
+saber qual.
+- parcelas: 1 à vista, ou o número de parcelas que a frase disser.`;
+
+export const ENTRY_TOOL = {
+  name: "lancamento",
+  description: "Os campos do lançamento que a frase descreve.",
+  input_schema: obj({
+    tipo: { type: "string", enum: [...MIA_ENTRY_TYPES] },
+    valor: { type: "number" },
+    dia: { type: "string" },
+    nome: { type: "string" },
+    cartao: { type: "string" },
+    parcelas: { type: "integer" },
+  }),
+  strict: true,
+};
+
+/** What the screen sends: the sentence and the cards it offers in Lançar à mão. */
+export const MiaEntryRequest = z.object({
+  frase: z.string().trim().min(1).max(300),
+  cartoes: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
+});
+export type MiaEntryRequest = z.infer<typeof MiaEntryRequest>;
+
+/** One Haiku call that must fill the form; the engine keeps only the fields it can trust. */
+export const fillEntry = async (
+  deps: MiaDeps,
+  today: LocalDate,
+  req: MiaEntryRequest,
+): Promise<MiaEntry | null> => {
+  const cards = req.cartoes.length ? req.cartoes.join(", ") : "nenhum";
+  const msg = await call(
+    deps,
+    HAIKU,
+    [{ role: "user", content: `[hoje: ${today}] [cartões: ${cards}] ${req.frase}` }],
+    {
+      system: ENTRY_SYSTEM,
+      tools: [ENTRY_TOOL],
+      tool_choice: { type: "tool", name: "lancamento" },
+    },
+  );
+  const use = msg.content.find(isToolUse);
+  return use ? entryFromMia(use.input, today, req.cartoes) : null;
 };
 
 /** `AAAA-MM` of a day, the ledger's month. */

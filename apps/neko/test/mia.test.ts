@@ -8,9 +8,12 @@ import {
   askMia,
   CAP_MICRO_USD,
   costMicroUsd,
+  ENTRY_TOOL,
   FALLBACK,
+  fillEntry,
   HAIKU,
   type MiaDeps,
+  MiaEntryRequest,
   MiaRequest,
   recordUsage,
   SONNET,
@@ -208,6 +211,68 @@ describe("spending", () => {
   });
 });
 
+describe("fillEntry: Mia fills Lançar, the engine keeps what it trusts", () => {
+  const entry = (frase: string, cartoes: string[] = []) =>
+    MiaEntryRequest.parse({ frase, cartoes });
+  const filled = (input: Record<string, unknown>) =>
+    fakeApi({ [HAIKU]: [{ content: [tool("lancamento", input)] }] });
+
+  it("forces one Haiku call to the form tool, with today and the cards in the sentence", async () => {
+    const api = filled({
+      tipo: "cartao",
+      valor: 120,
+      dia: "2026-10-04",
+      nome: "Farmácia",
+      cartao: "Nubank",
+      parcelas: 3,
+    });
+    const out = await fillEntry(
+      api.deps,
+      TODAY,
+      entry("farmácia 120 no nubank em 3x ontem", ["Nubank"]),
+    );
+    expect(out).toEqual({
+      kind: "cartao",
+      card: "Nubank",
+      installments: 3,
+      amount: 12000,
+      date: "2026-10-04",
+      description: "Farmácia",
+    });
+    expect(api.sent).toHaveLength(1);
+    const body = api.sent[0]?.body ?? {};
+    expect(body.model).toBe(HAIKU);
+    expect(body.tool_choice).toEqual({ type: "tool", name: "lancamento" });
+    expect(body.messages).toEqual([
+      {
+        role: "user",
+        content: "[hoje: 2026-10-05] [cartões: Nubank] farmácia 120 no nubank em 3x ontem",
+      },
+    ]);
+    expect(api.recorded).toHaveLength(1);
+  });
+
+  it("gives nothing when the sentence is not an entry", async () => {
+    const api = filled({
+      tipo: "nao_entendi",
+      valor: 0,
+      dia: "",
+      nome: "",
+      cartao: "",
+      parcelas: 1,
+    });
+    expect(await fillEntry(api.deps, TODAY, entry("oi Mia"))).toBeNull();
+  });
+
+  it("has a strict, closed form tool", () => {
+    expect(ENTRY_TOOL.strict).toBe(true);
+    expect(ENTRY_TOOL.input_schema.additionalProperties).toBe(false);
+    expect(ENTRY_TOOL.input_schema.required).toEqual(
+      Object.keys(ENTRY_TOOL.input_schema.properties),
+    );
+  });
+});
+
 describe("routes", () => {
   const env = (over: Partial<Env> = {}) =>
     ({ DB: sqliteD1() as unknown as D1Database, ...over }) as Env;
@@ -219,6 +284,13 @@ describe("routes", () => {
       {} as ExecutionContext,
     );
     expect(res.status).toBe(401);
+    const entry = await worker.fetch(
+      new Request("https://neko.test/api/mia/lancamento", { method: "POST", body: "{}" }),
+      env({ ANTHROPIC_API_KEY: "k" }),
+      {} as ExecutionContext,
+    );
+    // A POST without the session is turned away before Mia (the origin check comes first).
+    expect([401, 403]).toContain(entry.status);
   });
 });
 
@@ -237,6 +309,38 @@ describe("android contract", () => {
     const reply = await askMia(api.deps, P, TODAY, ask("Entrou mais em setembro?"));
     expect(Object.keys(reply.valores)).toEqual(["v2", "v3", "v4"]);
     const path = join(import.meta.dirname, "../../android/app/src/test/resources/mia.json");
+    if (process.env.UPDATE_CONTRACT) writeFileSync(path, `${JSON.stringify(reply, null, 2)}\n`);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual(reply);
+  });
+
+  it("matches a filled Lançar form", async () => {
+    const api = fakeApi({
+      [HAIKU]: [
+        {
+          content: [
+            tool("lancamento", {
+              tipo: "pix",
+              valor: 45.9,
+              dia: "2026-10-05",
+              nome: "Padaria",
+              cartao: "",
+              parcelas: 1,
+            }),
+          ],
+        },
+      ],
+    });
+    const reply = {
+      lancamento: await fillEntry(
+        api.deps,
+        TODAY,
+        MiaEntryRequest.parse({ frase: "padaria 45,90 no pix" }),
+      ),
+    };
+    const path = join(
+      import.meta.dirname,
+      "../../android/app/src/test/resources/mia-lancamento.json",
+    );
     if (process.env.UPDATE_CONTRACT) writeFileSync(path, `${JSON.stringify(reply, null, 2)}\n`);
     expect(JSON.parse(readFileSync(path, "utf8"))).toEqual(reply);
   });

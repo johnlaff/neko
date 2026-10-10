@@ -160,7 +160,7 @@ fun MiaPanel(
                     talk = talk + MiaExchange(pergunta, it)
                     typed = ""
                 }.onFailure { e ->
-                    failure = if (e is ApiException && e.status == 429) "A Mia usou o limite do mês e volta logo."
+                    failure = if (e is ApiException && e.status == 429) "A Mia descansa até o mês que vem."
                     else "Não consegui falar com a Mia agora. Os números seguem nas telas."
                 }
                 pending = false
