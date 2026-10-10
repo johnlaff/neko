@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -205,7 +207,11 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             },
             onSelect = onPick,
         )
-        if (year.any { it.future }) Text("Barras claras: previsão da planilha", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        // A sample of the bar itself, as on the site: "claras" read wrong in the dark theme.
+        if (year.any { it.future }) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(Modifier.size(10.dp).border(1.5.dp, l.faint, CircleShape))
+            Text("Previsão da planilha", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        }
         m.result?.let { r ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Saldo ${if (r < 0) "desceu" else "subiu"} no mês", color = l.muted)
