@@ -12,7 +12,7 @@ import {
 } from "@neko/engine";
 import { type QueueItemView, type SaldoView, saldoView } from "./queue.ts";
 import { sheetCellUrl } from "./sheet.ts";
-import type { DailySource, PrevistoView, ProjectionResponse } from "./types.ts";
+import type { DailySource, IgnoredItem, PrevistoView, ProjectionResponse } from "./types.ts";
 
 /** Conferência looks back this far: older differences are history, not something to fix today. */
 export const HEALTH_DAYS = 60;
@@ -76,6 +76,8 @@ export interface TodayView {
   readonly bankMissing: readonly MissingMovement[] | null;
   /** Para lançar; null with no bank linked. */
   readonly queue: readonly QueueItemView[] | null;
+  /** Para lançar items set aside with Ignorar, to bring back; empty with no bank. */
+  readonly ignored: readonly IgnoredItem[];
   /** When the banks were last read, beside Atualizar agora; null with no bank linked yet. */
   readonly bankSyncedAt: string | null;
   /** "Saldo bate" against the bank, shown when the queue is empty. */
@@ -119,6 +121,7 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     recap: p.recap ?? null,
     bankMissing: r.bank ? r.bank.missing.map((m) => ({ ...m, line: noteLine(m) })) : null,
     queue: r.bank ? (r.bank.queue ?? []) : null,
+    ignored: r.bank?.ignored ?? [],
     bankSyncedAt: r.bank?.syncedAt ?? null,
     saldo: saldoView(r.bank?.saldo),
     writing: r.writing ?? false,

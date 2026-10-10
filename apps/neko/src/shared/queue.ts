@@ -191,8 +191,8 @@ const noteOf = (item: QueueItem): string => {
       if (draft?.type === "forecast" && draft.value > 0)
         return "Os dias que vêm recebem o Diário previsto.";
       return draft?.type === "forecast" && draft.days.length === 1
-        ? "O dia passou: o previsto sai e fica só o que você gastou."
-        : "Os dias passaram: o previsto sai e fica só o que você gastou.";
+        ? "O dia passou: no Diário dele fica o que você gastou, não o previsto."
+        : "Os dias passaram: no Diário deles fica o que você gastou, não o previsto.";
     case "cartao":
       if (draft?.type === "card" && draft.bills.every((b) => b.amount === b.was))
         return "O reembolso não bate com a fatura.";
@@ -214,14 +214,14 @@ const noteOf = (item: QueueItem): string => {
   }
 };
 
-/** A day that passed with nothing spent says so, instead of "fica só o que você gastou". */
+/** A day that passed with nothing spent says so, instead of "fica o que você gastou". */
 const closesToNothing = (item: QueueItem, ledger: Ledger): string | null => {
   const draft = item.options[0]?.draft;
   if (draft?.type !== "forecast" || draft.value !== 0) return null;
   if (forecastLine(draft, ledger).after !== 0) return null;
   return draft.days.length === 1
-    ? "Nada gasto nesse dia: o previsto sai."
-    : "Nada gasto nesses dias: o previsto sai.";
+    ? "Você não gastou nada nesse dia: o Diário dele fica zerado."
+    : "Você não gastou nada nesses dias: o Diário deles fica zerado.";
 };
 
 /** "03/10 · Diário · Padaria" under the title "Padaria" reads "03/10 · Diário". */

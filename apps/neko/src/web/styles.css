@@ -948,7 +948,8 @@ input.switch:checked::after {
   width: 20px;
   height: 20px;
 }
-/* The head's icons say their names where the window has room for them (desktop). */
+/* The head's icons say their names where the window has room for them (desktop). A phone keeps
+   the eye and the circling arrow alone: a word each pushed "Planilha lida" onto two lines. */
 .masthead .icon-label {
   display: none;
 }
@@ -3083,4 +3084,12 @@ form.entry {
   display: grid;
   gap: 10px;
   padding: 12px 16px 16px;
+}
+/* Para lançar's ignored items, behind a tap at its foot: each one comes back with a tap. */
+.q-ignored {
+  margin-top: 8px;
+}
+.q-ignored .q-bank > li {
+  align-items: center;
+  min-height: 44px;
 }

@@ -127,7 +127,8 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   // Each item says why it is there and what Lançar writes, line by line, with the day's total.
   await expect(queue).toContainText("Saiu do banco e não está na planilha.");
   await expect(queue).toContainText("Nada muda na planilha até você tocar em Lançar.");
-  await expect(queue).toContainText("03/10 · DiárioR$ 42,50Linha nova");
+  await expect(queue).toContainText("Linha nova na planilha03/10 · DiárioR$ 42,50");
+  await expect(queue.getByText("1 ignorado")).toBeVisible();
   await expect(queue).toContainText("Diário do diaR$ 56,38 → R$ 98,88");
   await expect(queue).toContainText(
     "12/11 · Saída · Cartão AzulR$ 2.922,70era R$ 2.838,07+R$ 84,63",

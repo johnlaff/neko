@@ -70,6 +70,13 @@ export interface PrevistoView {
 }
 
 /** Only divergences: the bank never changes a balance, a bill or the projection. */
+export interface IgnoredItem {
+  readonly key: string;
+  readonly date: string;
+  /** The item's title, as Para lançar showed it. */
+  readonly title: string;
+}
+
 export interface BankView {
   /** Last time any linked bank was read; null before the first read. */
   readonly syncedAt: string | null;
@@ -79,6 +86,8 @@ export interface BankView {
   readonly missing: readonly BankMovement[];
   /** Para lançar: what the bank showed and the sheet does not have yet. */
   readonly queue?: readonly QueueItemView[];
+  /** Items set aside with Ignorar, still in the bank's window: one tap brings each back. */
+  readonly ignored?: readonly IgnoredItem[];
   /** Yesterday's Saldo against the accounts; null without a balance to compare. */
   readonly saldo?: SaldoCheck | null;
 }
