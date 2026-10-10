@@ -2,7 +2,7 @@ import type { Cents, Draft, EntryKind, LocalDate, MiaEntry } from "@neko/engine"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { type QueueItemView, type QueueLine, saldoView } from "../shared/queue.ts";
-import type { BankView } from "../shared/types.ts";
+import type { BankView, IgnoredItem } from "../shared/types.ts";
 import { ApiError, api, once, reasonOf } from "./api.ts";
 import { bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
 import { IconChevron } from "./icons.tsx";
@@ -114,33 +114,49 @@ const signed = (c: number) => `${c < 0 ? "−" : "+"}${money(Math.abs(c))}`;
  * One change, read like a ledger line: where on the left, the new value on the right, and under
  * them what it was and by how much it moves.
  */
-const Change = ({ line }: { line: QueueLine }) => (
-  <li className="q-change">
-    <span className="q-where">{bankText(line.label)}</span>
-    <strong className="q-new">
-      {line.change === "economia" ? signed(line.after) : money(line.after)}
-    </strong>
-    <span className="q-was">
-      {line.change === "economia"
-        ? "na aba Economia"
-        : line.before === null
-          ? "Linha nova"
-          : `era ${money(line.before)}`}
-    </span>
-    {line.diff !== null && line.diff !== 0 && <span className="q-diff">{signed(line.diff)}</span>}
-  </li>
-);
+const Change = ({ line, allNew }: { line: QueueLine; allNew: boolean }) => {
+  // When every line is new the box's head says so once; each line then needs no "Linha nova".
+  const was =
+    line.change === "economia"
+      ? "na aba Economia"
+      : line.before === null
+        ? allNew
+          ? null
+          : "Linha nova"
+        : `era ${money(line.before)}`;
+  return (
+    <li className="q-change">
+      <span className="q-where">{bankText(line.label)}</span>
+      <strong className="q-new">
+        {line.change === "economia" ? signed(line.after) : money(line.after)}
+      </strong>
+      {was && <span className="q-was">{was}</span>}
+      {line.diff !== null && line.diff !== 0 && <span className="q-diff">{signed(line.diff)}</span>}
+    </li>
+  );
+};
+
+/** Whether Lançar only adds lines (no line it changes, nothing in the Economia tab). */
+const onlyNew = (lines: readonly QueueLine[]) =>
+  lines.every((l) => l.before === null && l.change !== "economia");
 
 /** What Lançar writes in the sheet; past the first three, behind a tap. */
 const Impact = ({ lines }: { lines: readonly QueueLine[] }) => {
   const first = lines.slice(0, 3);
   const rest = lines.slice(3);
+  const allNew = onlyNew(lines);
   return (
     <div className="q-impact">
-      <p className="q-impact-head">Na planilha</p>
+      <p className="q-impact-head">
+        {!allNew
+          ? "Na planilha"
+          : lines.length === 1
+            ? "Linha nova na planilha"
+            : `${lines.length} linhas novas na planilha`}
+      </p>
       <ul>
         {first.map((l) => (
-          <Change key={`${l.label}|${l.before}|${l.after}`} line={l} />
+          <Change key={`${l.label}|${l.before}|${l.after}`} line={l} allNew={allNew} />
         ))}
       </ul>
       {rest.length > 0 && (
@@ -151,7 +167,7 @@ const Impact = ({ lines }: { lines: readonly QueueLine[] }) => {
           </summary>
           <ul>
             {rest.map((l) => (
-              <Change key={`${l.label}|${l.before}|${l.after}`} line={l} />
+              <Change key={`${l.label}|${l.before}|${l.after}`} line={l} allNew={allNew} />
             ))}
           </ul>
         </details>
@@ -769,6 +785,44 @@ export const ParaLancar = ({
       {!writing && items.length > 0 && (
         <p className="hint">Para lançar daqui, ligue Lançar pelo Neko em Ajustes.</p>
       )}
+      <Ignored items={bank.ignored ?? []} />
     </section>
+  );
+};
+
+/** What Ignorar set aside, behind a tap: any of it comes back after Desfazer is gone. */
+const Ignored = ({ items }: { items: readonly IgnoredItem[] }) => {
+  const queryClient = useQueryClient();
+  const back = useMutation({
+    mutationFn: api.unignore,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projection"] }),
+  });
+  if (items.length === 0) return null;
+  return (
+    <details className="formula q-ignored">
+      <summary>
+        <IconChevron />
+        {items.length === 1 ? "1 ignorado" : `${items.length} ignorados`}
+      </summary>
+      <ul className="q-bank">
+        {items.map((i) => (
+          <li key={i.key}>
+            <span>
+              {shortDate(i.date)} · {bankText(i.title)}
+            </span>
+            <button
+              type="button"
+              className="text-link"
+              disabled={back.isPending}
+              aria-label={`Trazer de volta ${bankText(i.title)}`}
+              onClick={() => back.mutate(i.key)}
+            >
+              Trazer de volta
+            </button>
+          </li>
+        ))}
+      </ul>
+      {back.isError && <p className="hint error">{message(back.error)}</p>}
+    </details>
   );
 };

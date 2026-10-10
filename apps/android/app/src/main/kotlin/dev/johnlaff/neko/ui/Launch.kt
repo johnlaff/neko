@@ -47,6 +47,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.ApiException
 import dev.johnlaff.neko.data.MiaEntry
+import dev.johnlaff.neko.data.IgnoredItem
 import dev.johnlaff.neko.data.QueueItem
 import dev.johnlaff.neko.data.QueueLine
 import dev.johnlaff.neko.data.SaldoView
@@ -129,15 +131,16 @@ private fun isoDate(typed: String, year: String): String? {
  * and by how much it moves under them.
  */
 @Composable
-private fun Change(line: QueueLine) {
+private fun Change(line: QueueLine, allNew: Boolean) {
     val l = LocalLedger.current
     val sign = { c: Long -> Format.signed(c, if (c < 0) '−' else '+') }
     val before = line.before
     val where = Format.bankText(line.label)
     val value = if (line.change == "economia") sign(line.after) else money(line.after)
+    // When every line is new the box's head says so once; each line then needs no "Linha nova" (as on the site).
     val was = when {
         line.change == "economia" -> "na aba Economia"
-        before == null -> "Linha nova"
+        before == null -> if (allNew) null else "Linha nova"
         else -> "era ${money(before)}"
     }
     val diff = line.diff?.takeIf { it != 0L }?.let(sign)
@@ -146,7 +149,7 @@ private fun Change(line: QueueLine) {
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(where, color = l.text, style = MaterialTheme.typography.bodyMedium)
             Text(value, color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-            Text(listOfNotNull(was, diff).joinToString(" · "), color = l.muted, style = MaterialTheme.typography.bodySmall)
+            if (was != null || diff != null) Text(listOfNotNull(was, diff).joinToString(" · "), color = l.muted, style = MaterialTheme.typography.bodySmall)
         }
         return
     }
@@ -155,8 +158,8 @@ private fun Change(line: QueueLine) {
             Text(where, Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.bodyMedium)
             Text(value, color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(was, Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall)
+        if (was != null || diff != null) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(was.orEmpty(), Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall)
             diff?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodySmall, maxLines = 1) }
         }
     }
@@ -171,12 +174,20 @@ private fun Impact(lines: List<QueueLine>, key: String) {
         Modifier.fillMaxWidth().background(l.text.copy(alpha = 0.08f), RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Na planilha", color = l.faint, style = MaterialTheme.typography.labelMedium)
-        lines.take(3).forEach { Change(it) }
+        val allNew = lines.all { it.before == null && it.change != "economia" }
+        Text(
+            when {
+                !allNew -> "Na planilha"
+                lines.size == 1 -> "Linha nova na planilha"
+                else -> "${lines.size} linhas novas na planilha"
+            },
+            color = l.faint, style = MaterialTheme.typography.labelMedium,
+        )
+        lines.take(3).forEach { Change(it, allNew) }
         val rest = lines.drop(3)
         if (rest.isNotEmpty()) {
             TextAction(if (rest.size == 1) "Mais 1 mudança" else "Mais ${rest.size} mudanças", { all = !all }, open = all)
-            Reveal(all) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { rest.forEach { Change(it) } } }
+            Reveal(all) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { rest.forEach { Change(it, allNew) } } }
         }
     }
 }
@@ -570,7 +581,7 @@ private fun Refresh(syncedAt: String?, launcher: Launcher?) {
                     reading = false
                 }
             }
-        })
+        }, l.accent)
     }
 }
 
@@ -617,6 +628,41 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
         if (shown.size < left.size) TextAction("Ver mais ${left.size - shown.size}", { more = true }, open = false)
         if (!v.writing && left.isNotEmpty())
             Text("Para lançar daqui, ligue Lançar pelo Neko em Ajustes.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        if (launcher != null) Ignored(v.ignored, launcher)
+    }
+}
+
+/** What Ignorar set aside, behind a tap: any of it comes back after Desfazer is gone (as on the site). */
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.Ignored(items: List<IgnoredItem>, launcher: Launcher) {
+    if (items.isEmpty()) return
+    val l = LocalLedger.current
+    val scope = rememberCoroutineScope()
+    var open by rememberSaveable { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    TextAction(if (items.size == 1) "1 ignorado" else "${items.size} ignorados", { open = !open }, open = open)
+    Reveal(open) {
+        Column {
+            items.forEach { i ->
+                val title = Format.bankText(i.title)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("${shortDate(i.date)} · $title", Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall)
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            if (!busy) {
+                                busy = true
+                                scope.launch {
+                                    runCatching { launcher.undo("$IGNORED${i.key}") }
+                                    busy = false
+                                }
+                            }
+                        },
+                        enabled = !busy,
+                        modifier = Modifier.semantics { contentDescription = "Trazer de volta $title" },
+                    ) { Text("Trazer de volta", color = l.accent, style = MaterialTheme.typography.labelLarge) }
+                }
+            }
+        }
     }
 }
 

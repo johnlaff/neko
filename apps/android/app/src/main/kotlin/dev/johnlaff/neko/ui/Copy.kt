@@ -50,7 +50,7 @@ object Copy {
         )
         "closing-estimated" -> Line(
             "Qual dia fecha o ${i.card}?",
-            "Fecha ≈ ${shortDate(i.closing ?: return null)}. Confirme em Ajustes",
+            "Estimado: fecha perto de ${shortDate(i.closing ?: return null)}. Confirme em Ajustes",
         )
         else -> null
     }

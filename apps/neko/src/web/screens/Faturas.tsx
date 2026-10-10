@@ -105,9 +105,9 @@ export const Faturas = () => {
                       {usual.card.name}
                     </h2>
                     <span className={`chip ${usual.closesInDays <= 3 ? "warn" : "ok"}`}>
-                      {/* An estimated day says so, as everywhere else: ≈ */}
-                      {usual.card.closingEstimated && "≈ "}
+                      {/* An estimated day says so in words: a lone ≈ needed Ajustes to explain it. */}
                       {closesIn(usual.closesInDays)}
+                      {usual.card.closingEstimated && " · estimado"}
                     </span>
                   </div>
                   <BigMoney cents={usual.onSheet} tone="plain" />
@@ -245,9 +245,9 @@ const BankBills = ({ bank }: { bank: BankView }) => (
             <span className="meta">
               Na planilha {money(c.sheet)}
               {c.parcels > 0 && c.parcels === c.bank
-                ? " · No banco, só parcelas"
+                ? " · No banco, por enquanto só as parcelas"
                 : c.parcels > 0
-                  ? ` · Parcelas ${money(c.parcels)}`
+                  ? ` · ${money(c.parcels)} do banco são parcelas`
                   : ""}
             </span>
           </li>

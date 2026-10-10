@@ -57,9 +57,9 @@ private fun shortMonth(iso: String) = capitalize(monthName(iso.substring(5, 7).t
 private fun UsualPanel(u: UsualBill) {
     Panel {
         PanelHead(u.card, card = u.card) {
-            // An estimated day says so, as everywhere else: ≈
+            // An estimated day says so in words, as on the site: a lone ≈ needed Ajustes to explain it.
             Chip(
-                (if (u.closingEstimated) "≈ " else "") + Format.closesIn(u.closesInDays),
+                Format.closesIn(u.closesInDays) + if (u.closingEstimated) " · estimado" else "",
                 if (u.closesInDays <= 3) ChipTone.Warn else ChipTone.Ok,
             )
         }
@@ -212,8 +212,8 @@ private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
                 avatar = monogram(c.card),
                 card = c.card,
                 meta = "Na planilha ${money(c.sheet)}" + when {
-                    c.parcels > 0 && c.parcels == c.bank -> " · No banco, só parcelas"
-                    c.parcels > 0 -> " · Parcelas ${money(c.parcels)}"
+                    c.parcels > 0 && c.parcels == c.bank -> " · No banco, por enquanto só as parcelas"
+                    c.parcels > 0 -> " · ${money(c.parcels)} do banco são parcelas"
                     else -> ""
                 },
                 chips = { if (c.gap > 0) Chip("${money(c.gap)} acima da planilha", ChipTone.Warn) },

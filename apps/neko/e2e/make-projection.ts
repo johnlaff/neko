@@ -199,6 +199,8 @@ const queue = buildQueue({
 const bank = {
   syncedAt: "2026-10-05T09:00:00.000Z",
   queue: queueView(queue, rows, cards),
+  // One item set aside with Ignorar, to bring back from Para lançar's foot.
+  ignored: [{ key: "ignorado-exemplo", date: "2026-10-02", title: "Pix Lanchonete da Esquina" }],
   saldo: saldoCheck(rows, TODAY, [
     { label: "Banco Azul", balance: cents(2_353_747), readOn: TODAY },
   ]),
