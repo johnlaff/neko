@@ -126,7 +126,7 @@ export const Thermo = ({
     grid.current?.querySelector<HTMLButtonElement>(`[data-day="${next}"]`)?.focus();
   };
   return (
-    <section className="panel half thermo">
+    <section className="panel thermo">
       <div className="panel-head">
         <h2>Saldo dia a dia</h2>
         {shown ? (

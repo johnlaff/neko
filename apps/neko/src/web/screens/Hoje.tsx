@@ -12,6 +12,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HEALTH_DAYS, issueKey, SAVE_LEAD } from "../../shared/today.ts";
 import { api, type DailySource, type ProjectionResponse } from "../api.ts";
+import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
 import { CategoryIcon } from "../CategoryIcon.tsx";
@@ -437,170 +438,195 @@ export const Hoje = () => (
       const [shown, rest] = splitDays(groupUpcomingByDay(p.upcoming));
       return (
         <>
-          {cs ? (
-            <section className="panel hero today half">
-              <div className="panel-head">
-                <h2>{month ? `Diário de ${monthName(Number(p.today.slice(5, 7)))}` : cs.card}</h2>
-                {/* Over the plan, the figure already says so in red, and behind the Diário the line
+          <Board
+            panels={{
+              dial: cs ? (
+                <section className="panel hero today">
+                  <div className="panel-head">
+                    <h2>
+                      {month ? `Diário de ${monthName(Number(p.today.slice(5, 7)))}` : cs.card}
+                    </h2>
+                    {/* Over the plan, the figure already says so in red, and behind the Diário the line
                     under it says by how much: the chip would repeat either. */}
-                {!over && !(month && cs.daysBehind > 0) && (
-                  <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
-                    {cs.paceGap >= 0 ? "No ritmo" : month ? "Acima do previsto" : "Acima do ritmo"}
-                  </span>
-                )}
-              </div>
-              <div className="dial">
-                <Gauge
-                  value={cs.accumulated}
-                  total={cs.budget}
-                  mark={cs.paceExpected}
-                  over={over || cs.paceGap < 0}
-                  bad={over}
-                />
-                <p className="dial-label">
-                  <span className="caption">{over ? "Passou do plano" : "Hoje cabem"}</span>
-                  <BigMoney cents={over ? cs.overBy : cs.perDay} tone={over ? "neg" : undefined} />
-                  <span className="caption">
-                    {over
-                      ? month
-                        ? "neste mês"
-                        : "neste ciclo"
-                      : cs.daysLeft === 1
-                        ? month
-                          ? "até o mês acabar, hoje"
-                          : "até a fatura fechar, hoje"
-                        : "por dia"}
-                  </span>
-                </p>
-              </div>
-              {/* How far ahead of the Diário the month went, in days without spending. */}
-              {month && cs.daysBehind > 0 && !over && (
-                <p className="behind">
-                  {money(-cs.paceGap)} acima do previsto. Uns {days(cs.daysBehind)} sem gastar e
-                  você volta ao previsto.
-                </p>
-              )}
-              {cs.daysLeft > 1 && (
-                <div className="chips">
-                  <span className="chip plain">
-                    {month ? "Até" : "Fecha"} {shortDate(cs.closing)} · {days(cs.daysLeft)}
-                  </span>
-                </div>
-              )}
-              <details className="formula">
-                <summary>
-                  <IconChevron />
-                  Como calculei
-                </summary>
-                {month ? (
-                  <>
-                    <p>
-                      {money(cs.budget)} de Diário previsto no mês ({money(p.dailyForecast)} por
-                      dia) menos {money(cs.accumulated)} gastos até ontem nos seus cartões e no Pix,
-                      como o banco mostra, dividido por {days(cs.daysLeft)}.
+                    {!over && !(month && cs.daysBehind > 0) && (
+                      <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
+                        {cs.paceGap >= 0
+                          ? "No ritmo"
+                          : month
+                            ? "Acima do previsto"
+                            : "Acima do ritmo"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="dial">
+                    <Gauge
+                      value={cs.accumulated}
+                      total={cs.budget}
+                      mark={cs.paceExpected}
+                      over={over || cs.paceGap < 0}
+                      bad={over}
+                    />
+                    <p className="dial-label">
+                      <span className="caption">{over ? "Passou do plano" : "Hoje cabem"}</span>
+                      <BigMoney
+                        cents={over ? cs.overBy : cs.perDay}
+                        tone={over ? "neg" : undefined}
+                      />
+                      <span className="caption">
+                        {over
+                          ? month
+                            ? "neste mês"
+                            : "neste ciclo"
+                          : cs.daysLeft === 1
+                            ? month
+                              ? "até o mês acabar, hoje"
+                              : "até a fatura fechar, hoje"
+                            : "por dia"}
+                      </span>
                     </p>
-                    <p>
-                      O ponto no arco é o previsto até ontem: o mês está{" "}
-                      {money(Math.abs(cs.paceGap))} {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
+                  </div>
+                  {/* How far ahead of the Diário the month went, in days without spending. */}
+                  {month && cs.daysBehind > 0 && !over && (
+                    <p className="behind">
+                      {money(-cs.paceGap)} acima do previsto. Uns {days(cs.daysBehind)} sem gastar e
+                      você volta ao previsto.
                     </p>
-                  </>
-                ) : (
-                  <>
-                    <p>
-                      {money(cs.budget)}{" "}
-                      {cs.budgetSource === "diario"
-                        ? `de diário no ciclo (${money(p.dailyForecast)} por dia, ${dailySourceText(daily.source)})`
-                        : "planejados para o ciclo"}{" "}
-                      menos {money(cs.accumulated)} na fatura, dividido por {days(cs.daysLeft)}.
-                    </p>
-                    <p>
-                      O ponto no arco é o ritmo de hoje: a fatura está {money(Math.abs(cs.paceGap))}{" "}
-                      {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
-                    </p>
-                  </>
-                )}
-              </details>
-              <Hint id="hoje">{month ? HINTS.hojeMes : HINTS.hoje}</Hint>
-            </section>
-          ) : (
-            <section className="page-head empty-cards">
-              <BrandMark width={64} className="quiet-mark" />
-              <h2>Nenhum cartão na planilha</h2>
-              <p className="muted">{CARDS_COME_FROM}</p>
-            </section>
-          )}
-
-          {/* Beside the dial on wide screens: what to do now, then what to look at. */}
-          <div className={cs ? "half stack" : "stack"}>
-            <div className="quick">
-              {writing ? (
-                <ManualLaunch
-                  cards={cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name)}
-                  today={p.today}
-                />
-              ) : (
-                todayUrl && (
-                  <a
-                    className="button"
-                    href={todayUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-keyshortcuts="L"
-                    title="Lançar na planilha (L)"
-                  >
-                    <IconPlus />
-                    Lançar
-                  </a>
-                )
-              )}
-              {cs && <Simulator cs={cs} months={p.months} />}
-              <Mia />
-            </div>
-            {habit && <Streak habit={habit} />}
-            <PrevistoReview previsto={previsto} />
-
-            {/* Over the plan, the red figure already says the bill is high: no second card. */}
-            <Insights
-              items={(p.insights ?? []).filter((i) => !(over && i.kind === "bill-above-average"))}
-            />
-            {p.saving &&
-              p.saving.date >= p.today &&
-              p.saving.date <= addDays(p.today, SAVE_LEAD) && (
-                <SaveCard save={p.saving} today={p.today} />
-              )}
-          </div>
-
-          {/* Missing on projections cached before it existed. */}
-          {p.recap && <RecapPanel r={p.recap} />}
-
-          <section className="panel half">
-            <div className="panel-head">
-              <h2>Próximos 7 dias</h2>
-              {p.upcoming.length > 0 && <span className="meta">{p.upcoming.length} itens</span>}
-            </div>
-            {p.upcoming.length === 0 ? (
-              <p className="muted">Nada lançado nos próximos 7 dias.</p>
-            ) : (
-              <>
-                <Days days={shown} today={p.today} />
-                {rest.length > 0 && (
+                  )}
+                  {cs.daysLeft > 1 && (
+                    <div className="chips">
+                      <span className="chip plain">
+                        {month ? "Até" : "Fecha"} {shortDate(cs.closing)} · {days(cs.daysLeft)}
+                      </span>
+                    </div>
+                  )}
                   <details className="formula">
                     <summary>
                       <IconChevron />
-                      Ver mais {rest.length === 1 ? "1 dia" : `${rest.length} dias`}
+                      Como calculei
                     </summary>
-                    <Days days={rest} today={p.today} />
+                    {month ? (
+                      <>
+                        <p>
+                          {money(cs.budget)} de Diário previsto no mês ({money(p.dailyForecast)} por
+                          dia) menos {money(cs.accumulated)} gastos até ontem nos seus cartões e no
+                          Pix, como o banco mostra, dividido por {days(cs.daysLeft)}.
+                        </p>
+                        <p>
+                          O ponto no arco é o previsto até ontem: o mês está{" "}
+                          {money(Math.abs(cs.paceGap))} {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p>
+                          {money(cs.budget)}{" "}
+                          {cs.budgetSource === "diario"
+                            ? `de diário no ciclo (${money(p.dailyForecast)} por dia, ${dailySourceText(daily.source)})`
+                            : "planejados para o ciclo"}{" "}
+                          menos {money(cs.accumulated)} na fatura, dividido por {days(cs.daysLeft)}.
+                        </p>
+                        <p>
+                          O ponto no arco é o ritmo de hoje: a fatura está{" "}
+                          {money(Math.abs(cs.paceGap))} {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
+                        </p>
+                      </>
+                    )}
                   </details>
-                )}
-              </>
-            )}
-          </section>
-
-          {/* One column beside Próximos on wide screens, so a short Conferência leaves no hole. */}
-          <div className="half stack">
-            {bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />}
-            <Conference issues={issues} sheet={sheet} />
-          </div>
+                  <Hint id="hoje">{month ? HINTS.hojeMes : HINTS.hoje}</Hint>
+                </section>
+              ) : (
+                <section className="page-head empty-cards">
+                  <BrandMark width={64} className="quiet-mark" />
+                  <h2>Nenhum cartão na planilha</h2>
+                  <p className="muted">{CARDS_COME_FROM}</p>
+                </section>
+              ),
+              quick: (
+                <div className="quick">
+                  {writing ? (
+                    <ManualLaunch
+                      cards={cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name)}
+                      today={p.today}
+                    />
+                  ) : (
+                    todayUrl && (
+                      <a
+                        className="button"
+                        href={todayUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-keyshortcuts="L"
+                        title="Lançar na planilha (L)"
+                      >
+                        <IconPlus />
+                        Lançar
+                      </a>
+                    )
+                  )}
+                  {cs && <Simulator cs={cs} months={p.months} />}
+                  <Mia />
+                </div>
+              ),
+              streak: habit && <Streak habit={habit} />,
+              previsto: <PrevistoReview previsto={previsto} />,
+              // Over the plan, the red figure already says the bill is high: no second card.
+              insights: (
+                <Insights
+                  items={(p.insights ?? []).filter(
+                    (i) => !(over && i.kind === "bill-above-average"),
+                  )}
+                />
+              ),
+              save: p.saving &&
+                p.saving.date >= p.today &&
+                p.saving.date <= addDays(p.today, SAVE_LEAD) && (
+                  <SaveCard save={p.saving} today={p.today} />
+                ),
+              // Missing on projections cached before it existed.
+              recap: p.recap && <RecapPanel r={p.recap} />,
+              next: (
+                <section className="panel">
+                  <div className="panel-head">
+                    <h2>Próximos 7 dias</h2>
+                    {p.upcoming.length > 0 && (
+                      <span className="meta">{p.upcoming.length} itens</span>
+                    )}
+                  </div>
+                  {p.upcoming.length === 0 ? (
+                    <p className="muted">Nada lançado nos próximos 7 dias.</p>
+                  ) : (
+                    <>
+                      <Days days={shown} today={p.today} />
+                      {rest.length > 0 && (
+                        <details className="formula">
+                          <summary>
+                            <IconChevron />
+                            Ver mais {rest.length === 1 ? "1 dia" : `${rest.length} dias`}
+                          </summary>
+                          <Days days={rest} today={p.today} />
+                        </details>
+                      )}
+                    </>
+                  )}
+                </section>
+              ),
+              // The sheet's health is one line when all is well: above the bank's list, in view.
+              conference: <Conference issues={issues} sheet={sheet} />,
+              queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
+            }}
+            // Wide screens: each column takes the next panels in the phone's order, so the eye and
+            // the keyboard go down one column and then the next. Today's number and what to do now,
+            // then what to know, then what the bank found.
+            two={[
+              ["dial", "quick", "streak", "previsto", "insights", "save"],
+              ["recap", "next", "conference", "queue"],
+            ]}
+            three={[
+              ["dial", "quick", "streak", "previsto"],
+              ["insights", "save", "recap", "next"],
+              ["conference", "queue"],
+            ]}
+          />
           <LaunchToast />
         </>
       );

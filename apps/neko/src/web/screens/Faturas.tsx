@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { institutionOf } from "../../shared/institutions.ts";
 import type { BankView } from "../../shared/types.ts";
+import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
@@ -55,8 +56,6 @@ export const Faturas = () => {
               estimated: c.card.closingEstimated,
             });
         }
-        const halvesBefore = (usual && p.history.length > 0 ? 1 : 0) + (mine.length > 1 ? 1 : 0);
-        const paired = halvesBefore % 2 === 1;
         const outros = (others.length > 0 || empty.length > 0) && (
           <section className="panel">
             <h2>Outros cartões</h2>
@@ -95,126 +94,121 @@ export const Faturas = () => {
           : [];
         const shown = bars.find((b) => b.key === picked) ?? bars.at(-1);
         return (
-          <>
-            {usual && (
-              <section className="panel hero">
-                <div className="panel-head">
-                  <h2 className="with-mark">
-                    {/* The bank's mark only: two letters next to the name would just repeat it. */}
-                    {institutionOf(usual.card.name) && <CardAvatar name={usual.card.name} />}
-                    {usual.card.name}
-                  </h2>
-                  <span className={`chip ${usual.closesInDays <= 3 ? "warn" : "ok"}`}>
-                    {/* An estimated day says so, as everywhere else: ≈ */}
-                    {usual.card.closingEstimated && "≈ "}
-                    {closesIn(usual.closesInDays)}
-                  </span>
-                </div>
-                <BigMoney cents={usual.onSheet} tone="plain" />
-                <ol className="timeline" aria-label="Datas da fatura">
-                  <li className="step now">
-                    <span className="label">Fecha</span>
-                    <span className="date">{shortDate(usual.cycle.closing)}</span>
-                    {usual.card.closingEstimated && <span className="sub">Estimado</span>}
-                  </li>
-                  <li className="step">
-                    <span className="label">Vence</span>
-                    <span className="date">{shortDate(usual.cycle.due)}</span>
-                    <span className="sub">Sai da conta</span>
-                  </li>
-                </ol>
-                <Hint id="faturas">{HINTS.faturas}</Hint>
-              </section>
-            )}
-
-            {usual && p.history.length > 0 && shown && (
-              <section className="panel half">
-                <div className="panel-head">
-                  <h2>Histórico</h2>
-                  {p.openVsAverage !== null && (
-                    <span className={`chip ${p.openVsAverage <= 0 ? "ok" : "warn"}`}>
-                      {money(Math.abs(p.openVsAverage))} {p.openVsAverage <= 0 ? "abaixo" : "acima"}{" "}
-                      da média
+          <Board
+            panels={{
+              hero: usual && (
+                <section className="panel hero">
+                  <div className="panel-head">
+                    <h2 className="with-mark">
+                      {/* The bank's mark only: two letters next to the name would just repeat it. */}
+                      {institutionOf(usual.card.name) && <CardAvatar name={usual.card.name} />}
+                      {usual.card.name}
+                    </h2>
+                    <span className={`chip ${usual.closesInDays <= 3 ? "warn" : "ok"}`}>
+                      {/* An estimated day says so, as everywhere else: ≈ */}
+                      {usual.card.closingEstimated && "≈ "}
+                      {closesIn(usual.closesInDays)}
                     </span>
-                  )}
-                </div>
-                {/* The open bill is already the hero's number: until a bar is picked, the line
-                    shows the average the bars are read against. */}
-                {picked === null && p.historyAverage !== null ? (
-                  <p className="figure-line">
-                    <span className="muted">
-                      <i className="key dashed" />
-                      Média
-                    </span>
-                    <strong>{money(p.historyAverage)}</strong>
-                  </p>
-                ) : (
-                  <p className="figure-line">
-                    <span className="muted">
-                      {shortMonth(shown.key)}
-                      {shown.open ? ", aberta" : ""}
-                    </span>
-                    <strong>{money(shown.amount)}</strong>
-                  </p>
-                )}
-                <Columns
-                  label={`Faturas do ${usual.card.name}`}
-                  selected={shown.key}
-                  onSelect={setPicked}
-                  guide={p.historyAverage}
-                  items={bars.map((b) => ({
-                    key: b.key,
-                    label: shortMonth(b.key),
-                    value: b.amount,
-                    description: `${shortMonth(b.key)}${b.open ? ", fatura aberta" : ""}: ${money(b.amount)}`,
-                    tone: b.key === shown.key ? "ink" : undefined,
-                  }))}
-                />
-              </section>
-            )}
-
-            {mine.length > 1 && (
-              <section className="panel half">
-                <div className="panel-head">
-                  <h2>Comprar hoje</h2>
-                  <span className="meta">Mais prazo primeiro</span>
-                </div>
-                <ul className="rows lead">
-                  {buyGroups.map((g, i) => (
-                    // The first group waits longest; every card in it is as good as the others.
-                    <li key={g.key} className={`bill${i === 0 ? " best" : ""}`}>
-                      <CardAvatar name={g.cards[0]?.card.name ?? ""} />
-                      <span className="name">{g.cards.map((c) => c.card.name).join(", ")}</span>
-                      <span className="value">{days(g.payInDays)}</span>
-                      <span className="meta">
-                        Paga em {shortDate(g.due)} · Melhor dia {g.estimated ? "≈ " : ""}
-                        {g.best}
-                      </span>
+                  </div>
+                  <BigMoney cents={usual.onSheet} tone="plain" />
+                  <ol className="timeline" aria-label="Datas da fatura">
+                    <li className="step now">
+                      <span className="label">Fecha</span>
+                      <span className="date">{shortDate(usual.cycle.closing)}</span>
+                      {usual.card.closingEstimated && <span className="sub">Estimado</span>}
                     </li>
-                  ))}
-                </ul>
-                {mine.some((c) => c.card.closingEstimated) && (
-                  <Link className="text-link" to="/ajustes">
-                    Dias com ≈ são estimados. Corrigir em Ajustes
-                  </Link>
-                )}
-              </section>
-            )}
-
-            {/* Half width only when it has a partner on its row; then the bank bills join it in
-                that column, so the short card leaves no hole beside a tall one. */}
-            {outros && paired ? (
-              <div className="half stack">
-                {outros}
-                {bank && <BankBills bank={bank} />}
-              </div>
-            ) : (
-              <>
-                {outros}
-                {bank && <BankBills bank={bank} />}
-              </>
-            )}
-          </>
+                    <li className="step">
+                      <span className="label">Vence</span>
+                      <span className="date">{shortDate(usual.cycle.due)}</span>
+                      <span className="sub">Sai da conta</span>
+                    </li>
+                  </ol>
+                  <Hint id="faturas">{HINTS.faturas}</Hint>
+                </section>
+              ),
+              history: usual && p.history.length > 0 && shown && (
+                <section className="panel">
+                  <div className="panel-head">
+                    <h2>Histórico</h2>
+                    {p.openVsAverage !== null && (
+                      <span className={`chip ${p.openVsAverage <= 0 ? "ok" : "warn"}`}>
+                        {money(Math.abs(p.openVsAverage))}{" "}
+                        {p.openVsAverage <= 0 ? "abaixo" : "acima"} da média
+                      </span>
+                    )}
+                  </div>
+                  {/* The open bill is already the hero's number: until a bar is picked, the line
+                    shows the average the bars are read against. */}
+                  {picked === null && p.historyAverage !== null ? (
+                    <p className="figure-line">
+                      <span className="muted">
+                        <i className="key dashed" />
+                        Média
+                      </span>
+                      <strong>{money(p.historyAverage)}</strong>
+                    </p>
+                  ) : (
+                    <p className="figure-line">
+                      <span className="muted">
+                        {shortMonth(shown.key)}
+                        {shown.open ? ", aberta" : ""}
+                      </span>
+                      <strong>{money(shown.amount)}</strong>
+                    </p>
+                  )}
+                  <Columns
+                    label={`Faturas do ${usual.card.name}`}
+                    selected={shown.key}
+                    onSelect={setPicked}
+                    guide={p.historyAverage}
+                    items={bars.map((b) => ({
+                      key: b.key,
+                      label: shortMonth(b.key),
+                      value: b.amount,
+                      description: `${shortMonth(b.key)}${b.open ? ", fatura aberta" : ""}: ${money(b.amount)}`,
+                      tone: b.key === shown.key ? "ink" : undefined,
+                    }))}
+                  />
+                </section>
+              ),
+              buy: mine.length > 1 && (
+                <section className="panel">
+                  <div className="panel-head">
+                    <h2>Comprar hoje</h2>
+                    <span className="meta">Mais prazo primeiro</span>
+                  </div>
+                  <ul className="rows lead">
+                    {buyGroups.map((g, i) => (
+                      // The first group waits longest; every card in it is as good as the others.
+                      <li key={g.key} className={`bill${i === 0 ? " best" : ""}`}>
+                        <CardAvatar name={g.cards[0]?.card.name ?? ""} />
+                        <span className="name">{g.cards.map((c) => c.card.name).join(", ")}</span>
+                        <span className="value">{days(g.payInDays)}</span>
+                        <span className="meta">
+                          Paga em {shortDate(g.due)} · Melhor dia {g.estimated ? "≈ " : ""}
+                          {g.best}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {mine.some((c) => c.card.closingEstimated) && (
+                    <Link className="text-link" to="/ajustes">
+                      Dias com ≈ são estimados. Corrigir em Ajustes
+                    </Link>
+                  )}
+                </section>
+              ),
+              outros,
+              bank: bank && <BankBills bank={bank} />,
+            }}
+            // Wide screens: each column takes the next panels in the phone's order, the open bill
+            // first and what the bank already has last.
+            two={[
+              ["hero", "history"],
+              ["buy", "outros", "bank"],
+            ]}
+            three={[["hero"], ["history", "buy"], ["outros", "bank"]]}
+          />
         );
       }}
     </WithProjection>
