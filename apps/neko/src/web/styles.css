@@ -2846,8 +2846,8 @@ main.mia-page form.mia-form > input {
   .q-impact li.q-change {
     grid-template-columns: 1fr;
   }
-  .q-new,
-  .q-diff {
+  .q-impact .q-new,
+  .q-impact .q-diff {
     justify-self: start;
   }
 }
