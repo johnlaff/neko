@@ -2412,6 +2412,68 @@ a.mia-value {
 .mia-status:empty {
   display: none;
 }
+/* The wait: three soft dots and a line that changes as it goes on; a retry when it failed. */
+.mia-wait {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mia-wait:not(:has(> :not(:empty))) {
+  display: none;
+}
+.mia-dots {
+  display: inline-block;
+  width: 22px;
+  height: 6px;
+  background: radial-gradient(circle, var(--mia) 2.5px, transparent 3px) 0 0 / 8px 6px repeat-x;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mia-dots {
+    animation: mia-wait 1.2s ease-in-out infinite;
+  }
+}
+@keyframes mia-wait {
+  50% {
+    opacity: 0.35;
+  }
+}
+/* The new answer takes the focus to be read, not to be acted on. */
+.mia-talk > li:focus,
+.panel.mia:focus {
+  outline: none;
+}
+/* Where the numbers came from, as quiet ways out under the answer. */
+p.mia-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 6px 0 0;
+}
+a.mia-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+a.mia-source > svg {
+  width: 14px;
+  height: 14px;
+}
+.mia-wait > button.mia-retry {
+  min-height: 44px;
+  font-size: 0.875rem;
+}
+.panel.mia > button.mia-restart {
+  justify-self: start;
+  min-height: 44px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
 /* One row that slides sideways on a phone; wrapped, the questions stacked one per line */
 .mia-suggest {
   display: flex;
