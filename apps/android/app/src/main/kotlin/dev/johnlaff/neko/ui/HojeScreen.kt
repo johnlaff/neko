@@ -124,7 +124,7 @@ fun HojeScreen(
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
         if (mia?.ligada == true && askMia != null) {
             item { MiaButton(asking) { asking = !asking } }
-            if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk) }
+            if (asking) item { MiaPanel(mia, askMia, onScreen, miaTalk, onMonth) }
         }
         v.habit?.let { h -> item { Streak(h) } }
         if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
