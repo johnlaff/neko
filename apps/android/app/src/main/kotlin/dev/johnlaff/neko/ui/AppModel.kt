@@ -117,7 +117,7 @@ class AppModel(
     /** Hoje read now, as asked (the refresh button, a pull, "Tentar de novo"). */
     fun refresh() = readToday(shown = true)
 
-    private fun readToday(shown: Boolean) = load(_today, { neko.today.refresh() }, shown) { v ->
+    private fun readToday(shown: Boolean, after: Boolean = false) = load(_today, { neko.today.refresh() }, shown, after) { v ->
         effects.todayChanged(v)
         prefetch()
         side { _mia.value = neko.api.mia() }
@@ -156,15 +156,15 @@ class AppModel(
         Tab.Ajustes -> _ajustes
     }
 
-    private fun read(tab: Tab, shown: Boolean) = when (tab) {
-        Tab.Hoje -> readToday(shown)
-        Tab.Faturas -> load(_invoices, { neko.api.invoices().also { neko.caches.invoices.write(it) } }, shown)
+    private fun read(tab: Tab, shown: Boolean, after: Boolean = false) = when (tab) {
+        Tab.Hoje -> readToday(shown, after)
+        Tab.Faturas -> load(_invoices, { neko.api.invoices().also { neko.caches.invoices.write(it) } }, shown, after)
         Tab.Mes -> {
-            load(_months, { neko.api.months().also { neko.caches.months.write(it) } }, shown)
+            load(_months, { neko.api.months().also { neko.caches.months.write(it) } }, shown, after)
             side { _history.value = neko.api.history().also { neko.caches.history.write(it) } }
         }
         Tab.Ajustes -> {
-            load(_ajustes, { neko.api.ajustes().also { neko.caches.ajustes.write(it) } }, shown)
+            load(_ajustes, { neko.api.ajustes().also { neko.caches.ajustes.write(it) } }, shown, after)
             readDevices()
             side { _banks.value = neko.api.banks() }
         }
@@ -230,47 +230,47 @@ class AppModel(
         override suspend fun launch(draft: JsonObject, key: String?): String = write("launch:$draft") { id ->
             val r = neko.api.launch(id, draft, key)
             if (r.state != "done") throw ApiException(422, "write", r.error ?: "Não gravou. A planilha ficou como estava.")
-            readToday(shown = false)
+            readToday(shown = false, after = true)
             r.entryId
         }
 
         override suspend fun refreshBanks(): Boolean =
-            neko.api.refreshBanks().also { readToday(shown = false) }
+            neko.api.refreshBanks().also { readToday(shown = false, after = true) }
 
         override suspend fun undo(id: String): Boolean =
             if (id.startsWith(IGNORED)) {
                 neko.api.unignore(id.removePrefix(IGNORED))
-                readToday(shown = false)
+                readToday(shown = false, after = true)
                 true
             } else write("undo:$id") { _ ->
                 (neko.api.undo(id).state == "undone").also {
-                    readToday(shown = false)
+                    readToday(shown = false, after = true)
                     // Desfazer after the Diário previsto also puts its setting back.
-                    read(Tab.Ajustes, shown = false)
+                    read(Tab.Ajustes, shown = false, after = true)
                 }
             }
 
         override suspend fun ignore(key: String) {
             neko.api.ignore(key)
-            readToday(shown = false)
+            readToday(shown = false, after = true)
         }
 
         override suspend fun account(account: String, use: String) {
             neko.api.accountUse(account, use)
-            readToday(shown = false)
+            readToday(shown = false, after = true)
         }
 
         override suspend fun previsto(value: Long): String = write("previsto:$value") { id ->
             val r = neko.api.previsto(id, value)
             if (r.state != "done") throw ApiException(422, "write", r.error ?: "Não gravou. A planilha ficou como estava.")
-            readToday(shown = false)
-            read(Tab.Ajustes, shown = false)
+            readToday(shown = false, after = true)
+            read(Tab.Ajustes, shown = false, after = true)
             r.entryId
         }
 
         override suspend fun keepPrevisto() {
             neko.api.keepPrevisto()
-            readToday(shown = false)
+            readToday(shown = false, after = true)
         }
     }
 
@@ -303,13 +303,15 @@ class AppModel(
         state: MutableStateFlow<ScreenState<T>>,
         read: suspend () -> T,
         shown: Boolean,
+        /** The sheet just changed (a write): a read already on its way may predate it. */
+        after: Boolean = false,
         done: (T) -> Unit = {},
     ) {
         val spin = shown || state.value.view == null
         // Already reading: a refresh asked meanwhile spins until that read lands.
         if (!reading.add(state)) {
             if (spin) state.update { it.copy(loading = true) }
-            again.add(state)
+            if (after) again.add(state)
             return
         }
         if (spin) state.update { it.copy(loading = true) }
@@ -328,7 +330,7 @@ class AppModel(
                 }
                 state.update { it.copy(loading = false, error = readError(e), detail = (e as? ApiException)?.message) }
             }
-            if (again.remove(state)) load(state, read, shown = false, done)
+            if (again.remove(state)) load(state, read, shown = false, done = done)
         }
     }
 
