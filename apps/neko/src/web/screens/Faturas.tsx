@@ -243,7 +243,7 @@ const BankBills = ({ bank }: { bank: BankView }) => (
             </span>
             <span className="value">{money(c.bank)}</span>
             <span className="meta">
-              Planilha {money(c.sheet)}
+              Na planilha {money(c.sheet)}
               {c.parcels > 0 && c.parcels === c.bank
                 ? " · No banco, só parcelas"
                 : c.parcels > 0

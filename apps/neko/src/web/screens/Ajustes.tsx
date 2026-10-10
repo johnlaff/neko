@@ -283,6 +283,35 @@ const Form = ({
   );
 };
 
+/** Sair deste aparelho asks once more in place, as the app does: coming back needs the passkey. */
+const SignOut = ({ onOut }: { onOut: () => void }) => {
+  const [asking, setAsking] = useState(false);
+  return asking ? (
+    <div className="setting">
+      <span className="label" role="status">
+        Sair deste aparelho?
+        <span className="sub">Para voltar, entre de novo com a passkey.</span>
+      </span>
+      <span className="confirm">
+        <button type="button" className="ghost small" onClick={() => setAsking(false)}>
+          Cancelar
+        </button>
+        <button
+          type="button"
+          className="ghost small danger"
+          onClick={() => api.logout().then(onOut)}
+        >
+          Sair
+        </button>
+      </span>
+    </div>
+  ) : (
+    <button type="button" className="setting danger" onClick={() => setAsking(true)}>
+      Sair deste aparelho
+    </button>
+  );
+};
+
 export const Ajustes = () => {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
@@ -331,15 +360,7 @@ export const Ajustes = () => {
                   Política de privacidade
                   <IconChevron />
                 </a>
-                <button
-                  type="button"
-                  className="setting danger"
-                  onClick={() =>
-                    api.logout().then(() => queryClient.invalidateQueries({ queryKey: ["me"] }))
-                  }
-                >
-                  Sair deste aparelho
-                </button>
+                <SignOut onOut={() => queryClient.invalidateQueries({ queryKey: ["me"] })} />
               </div>
             </section>
           ),
@@ -456,7 +477,8 @@ const HowItWorks = ({ reviewed: s }: { reviewed: UserSettings }) => {
         {/* Only where there is a keyboard to press them. */}
         <p className="learn-text keys">
           Atalhos: <kbd>1</kbd> a <kbd>4</kbd> trocam de tela, <kbd>R</kbd> lê a planilha,{" "}
-          <kbd>L</kbd> abre o lançamento, <kbd>←</kbd> <kbd>→</kbd> trocam o mês.
+          <kbd>L</kbd> abre o lançamento, <kbd>←</kbd> <kbd>→</kbd> trocam o mês, <kbd>M</kbd> abre
+          a Mia e <kbd>Esc</kbd> volta dela.
         </p>
         <button
           type="button"

@@ -207,7 +207,7 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
         )
         m.result?.let { r ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${if (r < 0) "Falta" else "Sobra"} no mês", color = l.muted)
+                Text("Saldo ${if (r < 0) "desceu" else "subiu"} no mês", color = l.muted)
                 Text(
                     money(kotlin.math.abs(r)),
                     style = MaterialTheme.typography.titleMedium,
@@ -241,8 +241,8 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             }
             m.result?.let { r ->
                 Text(
-                    "${if (r < 0) "Falta" else "Sobra"} é quanto o saldo ${if (r < 0) "desceu" else "subiu"} no mês. " +
-                        "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com falta.",
+                    "O saldo ${if (r < 0) "desceu" else "subiu"} é a diferença entre o começo e o fim do mês. " +
+                        "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com o saldo descendo.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -267,7 +267,7 @@ private fun Evolution(h: HistoryView) {
     val first = h.points.firstOrNull() ?: return
     val delta = h.delta ?: return
     // Against the month's end as the sheet showed it on the first reading, so it never reads as
-    // money the balance gained this month (that is "Sobra" or "Falta" below), as on the site.
+    // money the balance gained this month (that is "Saldo subiu" or "desceu" below), as on the site.
     val day = shortDate(first.today)
     val since = "${if (delta > 0) "a mais" else "a menos"} que em $day"
     val style = MaterialTheme.typography.labelLarge

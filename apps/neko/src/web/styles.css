@@ -1454,6 +1454,15 @@ button.setting.danger {
   color: var(--neg);
   font-weight: 500;
 }
+/* A second tap in place, for what is hard to get back (a bank's link, this device's session). */
+.setting .confirm {
+  display: flex;
+  gap: 8px;
+}
+button.ghost.danger {
+  color: var(--neg);
+  border-color: var(--neg);
+}
 button.setting.danger:hover {
   background: transparent;
   opacity: 0.8;
