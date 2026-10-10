@@ -3,6 +3,7 @@ package dev.johnlaff.neko.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -115,12 +117,12 @@ private fun Lines(lines: List<QueueLine>) {
 }
 
 @Composable
-internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(10.dp)
     val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)
     if (filled) Button(
-        onClick, Modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
+        onClick, modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         // Dimmed when off, as the site's disabled buttons.
         colors = ButtonDefaults.buttonColors(
             containerColor = l.text,
@@ -130,7 +132,7 @@ internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, onCli
         ),
     ) { Text(text, color = l.bg, style = MaterialTheme.typography.labelLarge) }
     else OutlinedButton(
-        onClick, Modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
+        onClick, modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = BorderStroke(1.dp, if (enabled) l.borderInput else l.borderInput.copy(alpha = 0.5f)),
     ) { Text(text, color = if (enabled) l.text else l.text.copy(alpha = 0.5f), style = MaterialTheme.typography.labelLarge) }
@@ -302,7 +304,13 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
                     onFill(e)
                     // The keyboard closes, so the filled fields and Lançar show.
                     focus.clearFocus()
-                    if (e.kind == null) "A Mia preencheu. Escolha como pagou e lance." else "A Mia preencheu. Confira e lance."
+                    // The line names what is still missing, so Lançar off is never a puzzle.
+                    when {
+                        e.amount == null -> "A Mia preencheu. Diga o valor e lance."
+                        e.kind == null -> "A Mia preencheu. Escolha como pagou e lance."
+                        e.description == null -> "A Mia preencheu. Dê um nome e lance."
+                        else -> "A Mia preencheu. Confira e lance."
+                    }
                 }
             } catch (c: CancellationException) {
                 throw c
@@ -328,10 +336,13 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
                 modifier = Modifier.weight(1f).focusRequester(sentence),
             )
-            Small(if (busy) "Preenchendo…" else "Preencher", filled = false, enabled = frase.isNotBlank() && !busy) { send() }
+            // A fixed width, so the sentence field does not jump while Mia works.
+            Small(if (busy) "Preenchendo…" else "Preencher", filled = false, enabled = frase.isNotBlank() && !busy, modifier = Modifier.widthIn(min = 136.dp)) { send() }
         }
         // Always there, so the screen reader hears each new line.
-        Text(said, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+        Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+            if (said.isNotEmpty()) Text(said, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 

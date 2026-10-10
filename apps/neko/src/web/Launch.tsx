@@ -314,10 +314,15 @@ const SaySentence = ({
         return;
       }
       onFill(lancamento);
+      // The line names what is still missing, so Lançar off is never a puzzle.
       setSaid(
-        lancamento.kind
-          ? "A Mia preencheu. Confira e lance."
-          : "A Mia preencheu. Escolha como pagou e lance.",
+        lancamento.amount === undefined
+          ? "A Mia preencheu. Diga o valor e lance."
+          : !lancamento.kind
+            ? "A Mia preencheu. Escolha como pagou e lance."
+            : !lancamento.description
+              ? "A Mia preencheu. Dê um nome e lance."
+              : "A Mia preencheu. Confira e lance.",
       );
       // The phone keyboard closes, so the filled fields and Lançar show.
       input.current?.blur();
