@@ -43,6 +43,7 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
   });
   const [label, setLabel] = useState("");
   const [itemId, setItemId] = useState("");
+  const [unlinking, setUnlinking] = useState<string | null>(null);
   const data = list.data;
   if (!data?.items || (!data.configured && data.items.length === 0)) return null;
 
@@ -70,17 +71,46 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
             <div className="setting">
               <span className="label">
                 {i.label}
-                <span className={i.error ? "sub error" : "sub"}>{status(i)}</span>
+                {unlinking === i.itemId ? (
+                  <span className="sub" role="status">
+                    Desligar? Para ligar de novo, cole o código outra vez.
+                  </span>
+                ) : (
+                  <span className={i.error ? "sub error" : "sub"}>{status(i)}</span>
+                )}
               </span>
-              <button
-                type="button"
-                className="ghost small"
-                disabled={items.isPending}
-                aria-label={`Desligar ${i.label}`}
-                onClick={() => items.mutate(linked.filter((l) => l.itemId !== i.itemId))}
-              >
-                Desligar
-              </button>
+              {/* Unlinking asks once more in place: getting the bank back means finding its code again. */}
+              {unlinking === i.itemId ? (
+                <span className="confirm">
+                  <button type="button" className="ghost small" onClick={() => setUnlinking(null)}>
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost small danger"
+                    disabled={items.isPending}
+                    aria-label={`Desligar ${i.label}`}
+                    onClick={() =>
+                      items.mutate(
+                        linked.filter((l) => l.itemId !== i.itemId),
+                        { onSuccess: () => setUnlinking(null) },
+                      )
+                    }
+                  >
+                    Desligar
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="ghost small"
+                  disabled={items.isPending}
+                  aria-label={`Desligar ${i.label}`}
+                  onClick={() => setUnlinking(i.itemId)}
+                >
+                  Desligar
+                </button>
+              )}
             </div>
             {i.accounts
               .filter((a) => !a.card)
@@ -174,8 +204,8 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
         )}
       </ul>
       <p className="footnote">
-        O Neko só lê o banco e nunca muda a planilha. O código da conexão fica no painel da Pluggy,
-        na lista Connected Items (itens conectados).
+        O Neko só lê o banco e nunca muda a planilha. O código da conexão fica no Meu Pluggy, na
+        lista das suas conexões.
       </p>
     </section>
   );

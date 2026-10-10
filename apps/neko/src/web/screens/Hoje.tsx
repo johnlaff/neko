@@ -38,7 +38,6 @@ import {
 } from "../icons.tsx";
 import { LaunchToast, ManualLaunch, ParaLancar } from "../Launch.tsx";
 import { CARDS_COME_FROM, HINTS } from "../learn.ts";
-import { Mia } from "../Mia.tsx";
 import { Simulator } from "../Pace.tsx";
 import { PrevistoReview } from "../Previsto.tsx";
 import { Streak } from "../Streak.tsx";
@@ -254,6 +253,8 @@ const Conference = ({
   const [justHid, setJustHid] = useState<readonly string[] | null>(null);
   const seen = new Set(settings.data?.reviewed ?? []);
   const open = issues.filter((i) => !seen.has(issueKey(i)));
+  // All clear says nothing: the panel stays only while a point is open or one was just hidden.
+  if (open.length === 0 && !justHid) return null;
   return (
     <section className="panel">
       <div className="panel-head">
@@ -564,12 +565,11 @@ export const Hoje = () => (
                     )
                   )}
                   {cs && <Simulator cs={cs} months={p.months} />}
-                  <Mia />
                 </div>
               ),
-              // What asks for a tap comes right after Lançar: the sheet's health (one line when all is
+              // What asks for a tap comes right after Lançar: the sheet's points (none when all is
               // well), then what the bank found. What to know follows.
-              conference: <Conference issues={issues} sheet={sheet} />,
+              conference: issues.length > 0 && <Conference issues={issues} sheet={sheet} />,
               queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
               streak: habit && <Streak habit={habit} />,
               previsto: <PrevistoReview previsto={previsto} />,

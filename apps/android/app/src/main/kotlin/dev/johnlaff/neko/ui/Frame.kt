@@ -311,11 +311,11 @@ private fun ErrorPanel(state: ScreenState<*>, onRetry: () -> Unit) {
 val LocalRail = staticCompositionLocalOf { false }
 
 /**
- * The ways into Mia from the tabs (the head mark and Hoje's row), null while she is off: opens her
+ * The ways into Mia from the tabs (the head mark), null while she is off: opens her
  * about a screen ("hoje", "faturas", "mes") and, when she closes, hands the focus back to the way in.
  */
 class MiaEntry(private val onOpen: (topic: String, by: String) -> Unit, val talking: () -> Boolean) {
-    /** "head" or "row" right after she closes, until that way in has the focus again. */
+    /** "head" right after she closes, until that way in has the focus again. */
     var returning by mutableStateOf<String?>(null)
 
     fun open(topic: String, by: String) {

@@ -178,7 +178,7 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
   page,
 }) => {
   const errors = await open(page, "/");
-  await page.getByRole("link", { name: /Respostas com os números/ }).click();
+  await page.getByRole("link", { name: /^Perguntar à Mia/ }).click();
   await expect(page).toHaveURL(/\/mia$/);
   // Her screen is the whole page: no tabs, a way back.
   await expect(page.getByRole("navigation", { name: "Telas" })).toHaveCount(0);
@@ -201,9 +201,10 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
   // Leaving and coming back finds the conversation where it was.
   await page.getByRole("button", { name: "Voltar" }).click();
   await expect(page).toHaveURL(/\/$/);
-  // Back on Hoje, the keyboard carries on from the row Mia was opened from.
-  await expect(page.getByRole("link", { name: /^Perguntar à Mia Continuar/ })).toBeFocused();
-  await page.getByRole("link", { name: /^Perguntar à Mia Continuar/ }).click();
+  // Back on Hoje, the keyboard carries on from her mark in the head, now saying she remembers.
+  const resume = page.getByRole("link", { name: "Continuar a conversa com a Mia" });
+  await expect(resume).toBeFocused();
+  await resume.click();
   await expect(answer.getByRole("link", { name: "Ver setembro" })).toBeVisible();
   await page.getByRole("button", { name: "Nova conversa" }).click();
   await expect(page.getByRole("button", { name: "Como está minha reserva?" })).toBeVisible();

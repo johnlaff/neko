@@ -121,7 +121,7 @@ class ScreenshotTest {
     }
 
     @Test fun ajustesDark() = shot("ajustes-dark", night = true) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true))
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true), launcher = Fakes.launcher)
     }
 
     // The Diário previsto (specs/005-lancamentos, Fase 3): the value with the bank's suggestion,
@@ -211,10 +211,6 @@ class ScreenshotTest {
             onScreen = {},
             topic = "faturas",
         )
-    }
-
-    @Test fun miaHojeLight() = shot("mia-hoje-light", night = false, scrollTo = "Perguntar à Mia") {
-        HojeScreen(TodayState(view), {}, {}, mia = dev.johnlaff.neko.data.MiaStatus(ligada = true), onMia = {}, miaTalking = true)
     }
 
     @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Faturas no banco") {

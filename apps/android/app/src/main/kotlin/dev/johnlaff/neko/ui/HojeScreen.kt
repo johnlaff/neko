@@ -64,7 +64,6 @@ import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.data.MonthRecap
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
-import dev.johnlaff.neko.data.MiaStatus
 import dev.johnlaff.neko.data.UpcomingDay
 import dev.johnlaff.neko.ui.Format.days
 import dev.johnlaff.neko.ui.Format.money
@@ -81,11 +80,6 @@ fun HojeScreen(
     simulatorOpen: Boolean = false,
     /** Grows each time the "Simular" shortcut is used: opens the simulator again. */
     simulateAsk: Int = 0,
-    mia: MiaStatus? = null,
-    /** Opens Mia's own screen; null hides the row. */
-    onMia: (() -> Unit)? = null,
-    /** A conversation waits on Mia's screen: the row offers to continue it. */
-    miaTalking: Boolean = false,
     /** Opens another screen: "hoje", "faturas" or "mes". */
     onScreen: (String) -> Unit = {},
     /** Opens Mês on a month ("2025-10"), or on the current one for null, as the site's alerts do. */
@@ -97,6 +91,8 @@ fun HojeScreen(
 ) {
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
+    // What Conferência's last tap hid: kept here, so the panel stays to bring them back.
+    var hidPoints by rememberSaveable { mutableStateOf<List<String>?>(null) }
     var undo by remember { mutableStateOf<String?>(null) }
     var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
@@ -122,10 +118,9 @@ fun HojeScreen(
             }
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
-        if (mia?.ligada == true && onMia != null) item { MiaButton(miaTalking, onMia) }
-        // What asks for a tap comes right after Lançar, as on the site: the sheet's health (one line
-        // when all is well), then what the bank found. What to know follows.
-        item { Conference(v, review) }
+        // What asks for a tap comes right after Lançar, as on the site: the sheet's points (none when
+        // all is well), then what the bank found. What to know follows.
+        if (v.issues.isNotEmpty() || hidPoints != null) item { Conference(v, review, hidPoints) { hidPoints = it } }
         if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado. Não aparece mais." else "Lançado na planilha"; undo = it } }
         // A wide window's second column, as on the site: what to know.
         column()
@@ -524,12 +519,10 @@ private fun issueKey(i: HealthIssue) = "${i.kind}|${i.date}|${i.ref.tab}!${i.ref
  * an old difference nobody will fix does not keep the panel yellow; a new one shows up again.
  */
 @Composable
-private fun Conference(v: TodayView, review: Review?) {
+private fun Conference(v: TodayView, review: Review?, justHid: List<String>?, setJustHid: (List<String>?) -> Unit) {
     val l = LocalLedger.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    // What the last tap hid, so it can come back with one more tap.
-    var justHid by rememberSaveable { mutableStateOf<List<String>?>(null) }
     // Which save is on its way (hide or undo), so the button says so; and whether the last one failed.
     var busy by remember { mutableStateOf<Boolean?>(null) }
     var failed by remember { mutableStateOf(false) }
@@ -538,7 +531,7 @@ private fun Conference(v: TodayView, review: Review?) {
     LaunchedEffect(v.issues) {
         if (v.issues != seen) {
             seen = v.issues
-            if (v.issues.any { issueKey(it.issue) in justHid.orEmpty() }) justHid = null
+            if (v.issues.any { issueKey(it.issue) in justHid.orEmpty() }) setJustHid(null)
         }
     }
     // The Worker leaves checked points out; until Hoje is read again, the ones just hidden stay out here.
@@ -585,7 +578,7 @@ private fun Conference(v: TodayView, review: Review?) {
                         busy = true
                         scope.launch {
                             failed = !review(keys, true)
-                            if (!failed) justHid = keys
+                            if (!failed) setJustHid(keys)
                             busy = null
                         }
                     }
@@ -611,7 +604,7 @@ private fun Conference(v: TodayView, review: Review?) {
                         busy = false
                         scope.launch {
                             failed = !review(hid, false)
-                            if (!failed) justHid = null
+                            if (!failed) setJustHid(null)
                             busy = null
                         }
                     }
