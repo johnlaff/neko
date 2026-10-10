@@ -160,7 +160,7 @@ export const entries = new Hono<AppEnv>();
 entries.onError((err, c) => {
   if (err instanceof Busy)
     return c.json(
-      { error: "busy", message: "outro lançamento está gravando. Espere e toque de novo" },
+      { error: "busy", message: "outro lançamento está gravando. Espere e tente de novo" },
       409,
     );
   if (err instanceof WriteError) return c.json({ error: "write", message: err.message }, 422);
