@@ -121,7 +121,7 @@ class ScreenshotTest {
     }
 
     @Test fun ajustesDark() = shot("ajustes-dark", night = true) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true))
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true), launcher = Fakes.launcher)
     }
 
     // The Diário previsto (specs/005-lancamentos, Fase 3): the value with the bank's suggestion,

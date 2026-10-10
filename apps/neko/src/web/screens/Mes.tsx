@@ -34,16 +34,19 @@ const Evolution = () => {
   const first = history.data?.points[0];
   const delta = history.data?.delta ?? null;
   if (!first || delta === null) return null;
-  const since = `desde ${shortDate(first.today)}`;
+  // Against the month's end as the sheet showed it on the first reading, so it never reads as
+  // money the balance gained this month (that is "Sobra" or "Falta" below).
+  const day = shortDate(first.today);
   return (
     <p className={`delta${delta > 0 ? " pos" : delta < 0 ? " neg" : ""}`}>
       {delta === 0 ? (
-        `Igual ${since}`
+        `Igual a ${day}`
       ) : (
         <>
-          <span aria-hidden="true">{delta > 0 ? "▲" : "▼"}</span>
-          <span className="sr-only">{delta > 0 ? "Melhorou" : "Piorou"}</span>{" "}
-          {money(Math.abs(delta))} <span className="muted">{since}</span>
+          <span aria-hidden="true">{delta > 0 ? "▲" : "▼"}</span> {money(Math.abs(delta))}{" "}
+          <span className="muted">
+            {delta > 0 ? "a mais" : "a menos"} que em {day}
+          </span>
         </>
       )}
     </p>

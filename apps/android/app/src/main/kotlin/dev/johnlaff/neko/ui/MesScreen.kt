@@ -266,14 +266,17 @@ private fun Evolution(h: HistoryView) {
     val l = LocalLedger.current
     val first = h.points.firstOrNull() ?: return
     val delta = h.delta ?: return
-    val since = "desde ${shortDate(first.today)}"
+    // Against the month's end as the sheet showed it on the first reading, so it never reads as
+    // money the balance gained this month (that is "Sobra" or "Falta" below), as on the site.
+    val day = shortDate(first.today)
+    val since = "${if (delta > 0) "a mais" else "a menos"} que em $day"
     val style = MaterialTheme.typography.labelLarge
     if (delta == 0L) {
-        Text("Igual $since", color = l.muted, style = style)
+        Text("Igual a $day", color = l.muted, style = style)
         return
     }
     Row(Modifier.semantics(mergeDescendants = true) {
-        contentDescription = "${if (delta > 0) "Melhorou" else "Piorou"} ${money(kotlin.math.abs(delta))} $since"
+        contentDescription = "${money(kotlin.math.abs(delta))} $since"
     }) {
         Text("${if (delta > 0) "▲" else "▼"} ${money(kotlin.math.abs(delta))} ", color = if (delta > 0) l.pos else l.neg, style = style)
         Text(since, color = l.muted, style = style)
