@@ -201,13 +201,13 @@ export const Faturas = () => {
               outros,
               bank: bank && <BankBills bank={bank} />,
             }}
-            // Wide screens: the open bill and where to buy today, then its history, then the
-            // other cards and what the bank already has.
+            // Wide screens: each column takes the next panels in the phone's order, the open bill
+            // first and what the bank already has last.
             two={[
-              ["hero", "buy"],
-              ["history", "outros", "bank"],
+              ["hero", "history"],
+              ["buy", "outros", "bank"],
             ]}
-            three={[["hero", "buy"], ["history"], ["outros", "bank"]]}
+            three={[["hero"], ["history", "buy"], ["outros", "bank"]]}
           />
         );
       }}

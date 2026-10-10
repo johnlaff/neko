@@ -613,16 +613,17 @@ export const Hoje = () => (
               queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
               conference: <Conference issues={issues} sheet={sheet} />,
             }}
-            // Wide screens: how much fits today and what is coming on the left, what to do now
-            // beside it, and what the bank found in a column of its own when there is room.
+            // Wide screens: each column takes the next panels in the phone's order, so the eye and
+            // the keyboard go down one column and then the next. Today's number and what to do now,
+            // then what to know, then what the bank found.
             two={[
-              ["dial", "next", "conference"],
-              ["quick", "streak", "previsto", "insights", "save", "recap", "queue"],
+              ["dial", "quick", "streak", "previsto", "insights", "save"],
+              ["recap", "next", "queue", "conference"],
             ]}
             three={[
-              ["dial", "next", "conference"],
-              ["quick", "streak", "previsto", "insights", "save", "recap"],
-              ["queue"],
+              ["dial", "quick", "streak", "previsto"],
+              ["insights", "save", "recap", "next"],
+              ["queue", "conference"],
             ]}
           />
           <LaunchToast />

@@ -470,12 +470,12 @@ export const Mes = () => {
                   <ReservePanel r={p.reserve} year={p.years?.find((y) => y.year === m.year)} />
                 ),
               }}
-              // Wide screens: the month and the reserve, then its days, then where it went.
+              // Wide screens: each column takes the next panels in the phone's order.
               two={[
                 ["hero", "thermo"],
                 ["outflows", "reserve"],
               ]}
-              three={[["hero", "reserve"], ["thermo"], ["outflows"]]}
+              three={[["hero"], ["thermo"], ["outflows", "reserve"]]}
             />
           </>
         );

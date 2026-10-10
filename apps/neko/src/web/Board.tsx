@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
+import { type CSSProperties, type ReactNode, useLayoutEffect, useRef } from "react";
 
 /** Grid rows are this tall on wide screens; a panel spans as many as its height needs. */
 const ROW = 4;
@@ -7,8 +7,9 @@ const GAP = 20;
 /**
  * A screen's panels: one after the other on a phone, in side-by-side columns on wider screens (two
  * from 48rem, three from 90rem), each column stacking its panels on its own, so a short panel never
- * leaves a hole beside a tall one. `two` and `three` list each column's panels; a column left with
- * no panel drops out.
+ * leaves a hole beside a tall one. `two` and `three` list each column's panels, in the phone's
+ * order column after column, so the keyboard reads down one column and then the next; a column left
+ * with no panel drops out.
  *
  * The page keeps the phone's order and every panel stays mounted at any width: CSS only moves each
  * panel to its column (grid-auto-flow dense) and lets it span the rows its height needs. So the
@@ -25,7 +26,7 @@ export const Board = <K extends string>({
   three?: K[][];
 }) => {
   const board = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = board.current;
     if (!el) return;
     // Measured before paint, so a panel that grows (a section opened) pushes the next one down.

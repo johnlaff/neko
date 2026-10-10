@@ -344,10 +344,10 @@ export const Ajustes = () => {
             </section>
           ),
         }}
-        // Wide screens: the plan and the sheet, then the banks and this device, then how it works.
+        // Wide screens: each column takes the next groups in the phone's order.
         two={[
-          ["form", "writing", "device", "devices"],
-          ["banks", "learn", "session"],
+          ["form", "writing"],
+          ["banks", "device", "devices", "learn", "session"],
         ]}
         three={[
           ["form", "writing"],
