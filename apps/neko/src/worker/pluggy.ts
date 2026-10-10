@@ -148,6 +148,8 @@ export const pluggy = (env: Pick<Env, "PLUGGY_CLIENT_ID" | "PLUGGY_CLIENT_SECRET
         `/v2/transactions?accountId=${encodeURIComponent(accountId)}&dateFrom=${from}`,
       ),
     bills: (accountId: string) => all(Bill, `/bills?accountId=${encodeURIComponent(accountId)}`),
+    /** Asks Pluggy to read the bank again now; its webhook says when that is done. */
+    update: (itemId: string) => call("PATCH", `/items/${encodeURIComponent(itemId)}`, {}),
     webhooks: () => all(Webhook, "/webhooks"),
     createWebhook: (url: string, secret: string) =>
       call("POST", "/webhooks", { event: "all", url, headers: { [HOOK_HEADER]: secret } }),
@@ -294,6 +296,19 @@ export const syncAll = async (db: D1Database, api: Pluggy, today: LocalDate): Pr
       console.error("bank sync failed", id, error);
     });
   return failed;
+};
+
+/**
+ * "Atualizar agora": asks each bank for news, then reads what Pluggy already has. What the banks
+ * answer later arrives by the webhook. A bank that refuses the update is still read.
+ */
+export const refreshAll = async (
+  db: D1Database,
+  api: Pluggy,
+  today: LocalDate,
+): Promise<number> => {
+  await Promise.allSettled((await itemIds(db)).map((id) => api.update(id)));
+  return syncAll(db, api, today);
 };
 
 /** Registers this site's webhook once; later runs find it and do nothing. */

@@ -120,11 +120,13 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   const queue = page.getByRole("region", { name: "Para lançar" });
   await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(4);
   // Each item says why it is there and what Lançar writes, line by line, with the day's total.
-  await expect(queue).toContainText("Saiu dinheiro que a planilha ainda não tem.");
-  await expect(queue).toContainText("03/10 · DiárioR$ 42,50 · linha nova");
-  await expect(queue).toContainText("Diário do dia: R$ 56,38 → R$ 98,88");
-  await expect(queue).toContainText("12/11 · Saída · Cartão Azul");
-  await expect(queue).toContainText("R$ 2.838,07 → R$ 2.922,70");
+  await expect(queue).toContainText("Saiu do banco e não está na planilha.");
+  await expect(queue).toContainText("Nada muda na planilha até você tocar em Lançar.");
+  await expect(queue).toContainText("03/10 · DiárioR$ 42,50linha nova");
+  await expect(queue).toContainText("Diário do diaR$ 56,38 → R$ 98,88");
+  await expect(queue).toContainText(
+    "12/11 · Saída · Cartão AzulR$ 2.922,70era R$ 2.838,07+R$ 84,63",
+  );
   // A question about an account comes last, naming the account.
   await expect(queue.getByRole("listitem").last()).toContainText("Conta Banco Verde");
   await expect(queue.getByRole("button", { name: "Guarda", exact: true })).toBeVisible();
@@ -154,7 +156,7 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
   );
   const queue = page.getByRole("region", { name: "Para lançar" });
   await expect(queue).toContainText("Fechar o dia");
-  await expect(queue).toContainText("04/10 · DiárioR$ 95,00 → R$ 0,00");
+  await expect(queue).toContainText("04/10 · DiárioR$ 0,00era R$ 95,00−R$ 95,00");
   const review = page.getByRole("region", { name: "Diário previsto" });
   await expect(review.getByRole("button", { name: "Trocar para R$ 100,00" })).toBeVisible();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();

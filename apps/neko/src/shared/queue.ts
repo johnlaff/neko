@@ -186,7 +186,7 @@ const noteOf = (item: QueueItem): string => {
   const draft = item.options[0]?.draft;
   switch (item.kind) {
     case "conta-propria":
-      return `Você passou dinheiro entre suas contas. A conta ${item.account ?? "nova"} guarda dinheiro ou é do dia a dia? Pergunto só uma vez.`;
+      return `Dinheiro passou entre suas contas. A conta ${item.account ?? "nova"} guarda dinheiro ou é do dia a dia?`;
     case "previsto":
       if (draft?.type === "forecast" && draft.value > 0)
         return "Os dias que vêm recebem o Diário previsto.";
@@ -194,21 +194,23 @@ const noteOf = (item: QueueItem): string => {
         ? "O dia passou: o previsto sai e fica só o que você gastou."
         : "Os dias passaram: o previsto sai e fica só o que você gastou.";
     case "cartao":
+      if (draft?.type === "card" && draft.bills.every((b) => b.amount === b.was))
+        return "O reembolso não bate com a fatura.";
       return draft?.type === "card" && draft.bills.some((b) => b.amount < b.was)
         ? "A fatura fechou com outro valor no banco."
-        : "Faltam compras do banco nesta fatura. Lançar troca o valor pelo total do banco, sem somar nada duas vezes.";
+        : "O banco já tem compras que a planilha não tem.";
     case "entrada":
       return draft?.type === "fix"
-        ? "Entrou um valor diferente do que a planilha previa."
-        : "Entrou dinheiro que a planilha ainda não tem.";
+        ? "Entrou um valor diferente do previsto."
+        : "Entrou no banco e não está na planilha.";
     case "conta":
-      return "Esta conta foi paga com outro valor ou em outro dia.";
+      return "Paga com outro valor ou em outro dia.";
     case "guardar":
-      return "Você guardou dinheiro e a planilha ainda não tem.";
+      return "Você guardou dinheiro e a planilha não tem.";
     case "resgate":
-      return "Você tirou dinheiro da reserva e a planilha ainda não tem.";
+      return "Você tirou da reserva e a planilha não tem.";
     default:
-      return "Saiu dinheiro que a planilha ainda não tem.";
+      return "Saiu do banco e não está na planilha.";
   }
 };
 

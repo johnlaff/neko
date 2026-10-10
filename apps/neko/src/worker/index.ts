@@ -44,6 +44,7 @@ import {
   HOOK_HEADER,
   itemIds,
   pluggy,
+  refreshAll,
   sameSecret,
   syncAll,
   syncItem,
@@ -356,6 +357,13 @@ app.put("/banks", async (c) => {
   ]);
   if (configured(c.env)) c.executionCtx.waitUntil(bankSync(c.env));
   return c.json({ ok: true });
+});
+
+/** Atualizar agora, from Para lançar: the banks are read now instead of at the next cron. */
+app.post("/banks/refresh", async (c) => {
+  if (!configured(c.env)) return c.json({ ok: false });
+  const failed = await refreshAll(c.env.DB, pluggy(c.env, fetch), todayIn(new Date()));
+  return c.json({ ok: failed === 0 });
 });
 
 /** Reads every linked bank and makes sure Pluggy knows where to send news. */

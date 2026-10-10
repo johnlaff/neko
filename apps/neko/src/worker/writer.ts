@@ -449,7 +449,8 @@ const result = async (db: D1Database, entryId: string): Promise<CommitResult> =>
 /**
  * Writes an entry, part by part. `entryId` is the idempotency key: sending the same entry again
  * returns what was written the first time. `fingerprints` are the ones `previewEntry` returned;
- * if any cell changed since the preview, nothing more is written. If a part fails, the parts
+ * if any cell changed since the preview, nothing more is written. Without them (Para lançar, one
+ * tap), each changed line must still hold the value the queue saw, or the write stops. If a part fails, the parts
  * already written are undone, so an entry lands whole or not at all.
  */
 export const commitEntry = async (
@@ -457,10 +458,10 @@ export const commitEntry = async (
   api: SheetsApi,
   entryId: string,
   placements: readonly Placement[],
-  fingerprints: readonly string[],
+  fingerprints: readonly string[] | undefined,
   now: () => string = () => new Date().toISOString(),
 ): Promise<CommitResult> => {
-  if (fingerprints.length !== placements.length)
+  if (fingerprints && fingerprints.length !== placements.length)
     throw new WriteError("a prévia não corresponde ao lançamento");
   const existing = await opsOf(db, entryId);
   // Sent again: a finished entry (written, failed or undone) is reported, not written twice.
@@ -491,7 +492,7 @@ export const commitEntry = async (
         .prepare("DELETE FROM entry_op WHERE entry_id = ? AND part = ?")
         .bind(entryId, part)
         .run();
-    } else if ((await fingerprint(cell)) !== fingerprints[part]) {
+    } else if (fingerprints && (await fingerprint(cell)) !== fingerprints[part]) {
       await rollBack(db, api, entryId, part, now);
       throw new WriteError(
         `${placeOf(p)} mudou na planilha agora há pouco; confira e lance de novo`,

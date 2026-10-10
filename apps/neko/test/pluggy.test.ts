@@ -6,6 +6,7 @@ import {
   civilDate,
   ensureWebhook,
   pluggy,
+  refreshAll,
   sameSecret,
   syncAll,
   syncItem,
@@ -72,6 +73,7 @@ const fakeApi = (state: { txns: unknown[]; hooks?: { id: string; url: string }[]
       const next = start + 2 < state.txns.length ? `/v2/transactions?after=${start + 2}` : null;
       return json({ results: page, next });
     }
+    if (url.pathname.startsWith("/items/") && init?.method === "PATCH") return json({ id: "x" });
     if (url.pathname === "/webhooks" && init?.method === "POST") {
       state.hooks?.push({ id: "h", url: JSON.parse(String(init.body)).url });
       return json({ id: "h" });
@@ -110,6 +112,17 @@ describe("pluggy boundary", () => {
 });
 
 describe("bank sync", () => {
+  it("Atualizar agora asks each bank for news, then reads what Pluggy has", async () => {
+    const db = await withItem();
+    const { api, calls } = fakeApi({ txns: [txn("t1")] });
+    expect(await refreshAll(db as never, api, TODAY)).toBe(0);
+    expect(calls.indexOf(`PATCH /items/${ITEM}`)).toBeGreaterThan(-1);
+    expect(calls.indexOf(`PATCH /items/${ITEM}`)).toBeLessThan(
+      calls.indexOf(`GET /accounts?itemId=${ITEM}`),
+    );
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM bank_txn").get()).toEqual({ n: 1 });
+  });
+
   it("stores accounts, every page of transactions, parcels and bills in cents", async () => {
     const db = await withItem();
     const { api, calls } = fakeApi({ txns: [txn("t1"), txn("t2"), txn("t3")] });
