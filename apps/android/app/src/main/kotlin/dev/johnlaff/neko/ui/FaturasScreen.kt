@@ -211,8 +211,8 @@ private fun BankBills(b: BankBills, onAjustes: () -> Unit) {
                 value = money(c.bank),
                 avatar = monogram(c.card),
                 card = c.card,
-                // Each amount named, as on the site: the one on the right is the bank's.
-                meta = "No banco · na planilha ${money(c.sheet)}" + when {
+                // Both amounts named in one sentence, as on the site, so neither has to be guessed.
+                meta = "${money(c.bank)} no banco, ${money(c.sheet)} na planilha" + when {
                     c.parcels > 0 && c.parcels == c.bank -> "\nPor enquanto, o banco só mostra as parcelas"
                     c.parcels > 0 -> "\n${money(c.parcels)} disso são parcelas"
                     else -> ""

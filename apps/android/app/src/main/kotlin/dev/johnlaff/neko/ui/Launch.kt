@@ -258,6 +258,20 @@ fun EntryForm(
     val iso = isoDate(date, start.take(4))
     // A sentence that left the way of paying open asks the owner to pick one.
     val ok = amount != null && iso != null && name.isNotBlank() && (draft != null || how.isNotEmpty())
+    // What still keeps Lançar off, said beside it; and a day outside this month, said before it goes (as on the site).
+    val missing = when {
+        amount == null -> if (typed.isBlank()) "Falta o valor" else "Escreva o valor como 42,50"
+        name.isBlank() -> "Falta o nome"
+        draft == null && how.isEmpty() -> "Escolha como pagou"
+        iso == null -> "Falta o dia"
+        else -> null
+    }
+    val away = when {
+        missing != null || iso == null -> null
+        iso > today -> "Vai para ${shortDate(iso)}, um dia que ainda não chegou"
+        iso.take(7) != today.take(7) -> "Vai para ${shortDate(iso)}, fora deste mês"
+        else -> null
+    }
 
     fun build(): JsonObject? {
         if (amount == null || iso == null || name.isBlank()) return null
@@ -335,6 +349,9 @@ fun EntryForm(
             modifier = Modifier.fillMaxWidth(),
         )
         error?.let { Failed(it) }
+        (missing ?: away)?.let {
+            Text(it, color = l.muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Small(if (busy) "Lançando…" else "Lançar", filled = true, enabled = ok && !busy) {
                 val d = build() ?: return@Small
@@ -465,7 +482,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
             Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.titleSmall)
             Text(shortDate(item.date), color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        item.note?.let { Text(it, dim, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
+        item.note?.takeIf { it.isNotBlank() }?.let { Text(it, dim, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
         if (item.options.size > 1 && !question) {
             FlowRow(Modifier.selectableGroup().then(dim), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.options.forEachIndexed { i, o -> Choice(o.label, choice == i) { if (!busy) choice = i } }

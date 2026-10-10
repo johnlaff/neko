@@ -277,6 +277,27 @@ export const EntryForm = ({
     // A sentence that left the way of paying open asks the owner to pick one.
     (draft !== undefined || how !== "") &&
     /^\d{4}-\d{2}-\d{2}$/.test(date);
+  // What still keeps Lançar off, said beside it; and a day outside this month, said before it goes.
+  const missing =
+    amount === null || amount <= 0
+      ? typed.trim() === ""
+        ? "Falta o valor"
+        : "Escreva o valor como 42,50"
+      : name.trim() === ""
+        ? "Falta o nome"
+        : draft === undefined && how === ""
+          ? "Escolha como pagou"
+          : !/^\d{4}-\d{2}-\d{2}$/.test(date)
+            ? "Falta o dia"
+            : null;
+  const away =
+    missing !== null
+      ? null
+      : date > today
+        ? `Vai para ${shortDate(date)}, um dia que ainda não chegou`
+        : date.slice(0, 7) !== today.slice(0, 7)
+          ? `Vai para ${shortDate(date)}, fora deste mês`
+          : null;
 
   const build = (): Draft | null => {
     if (!ok || amount === null) return null;
@@ -384,6 +405,9 @@ export const EntryForm = ({
           {message(launch.error)}
         </p>
       )}
+      <p className="hint" aria-live="polite">
+        {missing ?? away}
+      </p>
       <div className="actions">
         <button type="submit" disabled={!ok || launch.isPending}>
           {launch.isPending ? "Lançando…" : "Lançar"}
@@ -556,7 +580,7 @@ const Row = ({
           <span className="name">{bankText(item.title)}</span>
           <span className="meta">{shortDate(item.date)}</span>
         </div>
-        <p className="q-note">{item.note}</p>
+        {item.note && <p className="q-note">{item.note}</p>}
         {item.options.length > 1 && !question && (
           <fieldset className="how" aria-label="O que lançar">
             {item.options.map((o, i) => (
