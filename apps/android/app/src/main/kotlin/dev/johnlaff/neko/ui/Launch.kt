@@ -228,7 +228,7 @@ internal fun Failed(text: String) {
 }
 
 /**
- * Valor, como pagou and Lançar. With a draft (Ajustar, or the Saldo's difference) only value, day
+ * Valor, tipo and Lançar. With a draft (Ajustar, or the Saldo's difference) only value, day
  * and name change; by hand the owner also says how it was paid, and the parcels on a card.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -262,7 +262,7 @@ fun EntryForm(
     val missing = when {
         amount == null -> if (typed.isBlank()) "Falta o valor" else "Escreva o valor como 42,50"
         name.isBlank() -> "Falta o nome"
-        draft == null && how.isEmpty() -> "Escolha como pagou"
+        draft == null && how.isEmpty() -> "Escolha o tipo"
         iso == null -> "Falta o dia"
         else -> null
     }
@@ -317,7 +317,7 @@ fun EntryForm(
             modifier = Modifier.fillMaxWidth(),
         )
         if (draft == null) {
-            Text("Como pagou", color = l.muted, style = MaterialTheme.typography.labelLarge)
+            Text("Tipo", color = l.muted, style = MaterialTheme.typography.labelLarge)
             val ways = listOf("diario" to "Pix ou débito", "entrada" to "Entrada", "conta" to "Conta") +
                 cards.map { "card:$it" to it }
             FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -395,7 +395,7 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
         scope.launch {
             said = try {
                 val e = fill(frase.trim(), cards)
-                if (e == null) "A Mia não entendeu. Diga o valor e como pagou."
+                if (e == null) "A Mia não entendeu. Diga o valor e o tipo."
                 else {
                     onFill(e)
                     // The keyboard closes, so the filled fields and Lançar show.
@@ -403,7 +403,7 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
                     // The line names what is still missing, so Lançar off is never a puzzle.
                     when {
                         e.amount == null -> "A Mia preencheu. Diga o valor e lance."
-                        e.kind == null -> "A Mia preencheu. Escolha como pagou e lance."
+                        e.kind == null -> "A Mia preencheu. Escolha o tipo e lance."
                         e.description == null -> "A Mia preencheu. Dê um nome e lance."
                         else -> "A Mia preencheu. Confira e lance."
                     }

@@ -243,8 +243,8 @@ const BankBills = ({ bank }: { bank: BankView }) => (
             </span>
             <span className="value">{money(c.bank)}</span>
             <span className="meta">
-              {/* Both amounts named in one sentence, so neither has to be guessed. */}
-              {money(c.bank)} no banco, {money(c.sheet)} na planilha
+              {/* The bank's amount is the row value; the sheet's is named here. */}
+              Na planilha: {money(c.sheet)}
               {c.parcels > 0 && (
                 <span className="meta-line">
                   {c.parcels === c.bank

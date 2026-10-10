@@ -237,7 +237,7 @@ type Editable = Extract<Draft, { type: "new" } | { type: "fix" }>;
 const reais = (c: number) => (c / 100).toFixed(2).replace(".", ",");
 
 /**
- * Valor, como pagou and Lançar. With a draft from Para lançar (Ajustar), only value, day and name
+ * Valor, tipo and Lançar. With a draft from Para lançar (Ajustar), only value, day and name
  * change; by hand, the owner also says how it was paid, and the parcels on a card.
  */
 export const EntryForm = ({
@@ -286,7 +286,7 @@ export const EntryForm = ({
       : name.trim() === ""
         ? "Falta o nome"
         : draft === undefined && how === ""
-          ? "Escolha como pagou"
+          ? "Escolha o tipo"
           : !/^\d{4}-\d{2}-\d{2}$/.test(date)
             ? "Falta o dia"
             : null;
@@ -353,7 +353,7 @@ export const EntryForm = ({
       {!draft && (
         <>
           <span className="field" id={`${id}-how`}>
-            Como pagou
+            Tipo
           </span>
           <fieldset className="how" aria-labelledby={`${id}-how`}>
             {[...HOW, ...cards.map((c) => ({ kind: `card:${c}`, label: c }))].map((o) => (
@@ -439,7 +439,7 @@ const SaySentence = ({
     mutationFn: () => api.miaEntry(frase.trim(), cards),
     onSuccess: ({ lancamento }) => {
       if (!lancamento) {
-        setSaid("A Mia não entendeu. Diga o valor e como pagou.");
+        setSaid("A Mia não entendeu. Diga o valor e o tipo.");
         return;
       }
       onFill(lancamento);
@@ -448,7 +448,7 @@ const SaySentence = ({
         lancamento.amount === undefined
           ? "A Mia preencheu. Diga o valor e lance."
           : !lancamento.kind
-            ? "A Mia preencheu. Escolha como pagou e lance."
+            ? "A Mia preencheu. Escolha o tipo e lance."
             : !lancamento.description
               ? "A Mia preencheu. Dê um nome e lance."
               : "A Mia preencheu. Confira e lance.",
