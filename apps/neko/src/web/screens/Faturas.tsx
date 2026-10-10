@@ -249,7 +249,7 @@ const BankBills = ({ bank }: { bank: BankView }) => (
                 <span className="meta-line">
                   {c.parcels === c.bank
                     ? "Por enquanto, o banco só mostra as parcelas"
-                    : `${money(c.parcels)} disso são parcelas`}
+                    : `${money(c.parcels)} da fatura do banco são parcelas`}
                 </span>
               )}
             </span>

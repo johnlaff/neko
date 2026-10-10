@@ -221,7 +221,7 @@ fun AjustesScreen(
                 Column {
                 Group("Bancos") { Banks(b, f.cards.map { it.name }, banks) }
                 Text(
-                    "O Neko só lê o banco e nunca muda a planilha. O código da conexão fica no Meu Pluggy, na lista das suas conexões.",
+                    "O banco só sugere itens em Para lançar; nada vai para a planilha sem você tocar em Lançar. O código da conexão fica no Meu Pluggy, na lista das suas conexões.",
                     color = LocalLedger.current.faint,
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),

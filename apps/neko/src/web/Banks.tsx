@@ -204,8 +204,8 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
         )}
       </ul>
       <p className="footnote">
-        O Neko só lê o banco e nunca muda a planilha. O código da conexão fica no Meu Pluggy, na
-        lista das suas conexões.
+        O banco só sugere itens em Para lançar; nada vai para a planilha sem você tocar em Lançar. O
+        código da conexão fica no Meu Pluggy, na lista das suas conexões.
       </p>
     </section>
   );

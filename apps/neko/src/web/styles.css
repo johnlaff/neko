@@ -302,7 +302,8 @@ button.icon svg {
   gap: 6px;
 }
 
-a.button > svg {
+a.button > svg,
+button.add > svg {
   width: 18px;
   height: 18px;
   flex: none;
