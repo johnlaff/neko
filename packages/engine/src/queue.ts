@@ -358,7 +358,8 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
       const tied = found.filter(
         (f) => Math.abs(f.l.amount - m.amount) === Math.abs(best.l.amount - m.amount),
       );
-      for (const t of tied) t.used = true;
+      // Only the line taken: the other tied one stays free for a second payment.
+      best.used = true;
       const date = days.has(m.date) ? m.date : best.l.date;
       push({
         key,

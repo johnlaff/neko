@@ -333,6 +333,24 @@ export const Ajustes = () => {
   );
 };
 
+/**
+ * Changes one thing on the settings as the Worker has them now, as the Android app does: what this
+ * screen read may be stale (Android may have changed it since), and the fields set elsewhere (bank
+ * cards, account answers, the writing switch) are left out so the Worker keeps the saved ones.
+ */
+const saveFresh = async (
+  patch: Partial<Pick<UserSettings, "writing" | "reviewed">>,
+): Promise<UserSettings> => {
+  const {
+    bankCards: _b,
+    accountUse: _a,
+    savedOrigins: _o,
+    writing: _w,
+    ...form
+  } = await api.settings();
+  return api.saveSettings({ ...form, ...patch });
+};
+
 /** The writing kill switch (specs/005-lancamentos): off, Neko only shows; nothing is written. */
 const Writing = ({
   settings: s,
@@ -343,7 +361,7 @@ const Writing = ({
 }) => {
   const queryClient = useQueryClient();
   const save = useMutation({
-    mutationFn: api.saveSettings,
+    mutationFn: (writing: boolean) => saveFresh({ writing }),
     onSuccess: (saved) => {
       queryClient.setQueryData(["settings"], saved);
       queryClient.invalidateQueries({ queryKey: ["projection"] });
@@ -372,7 +390,7 @@ const Writing = ({
             aria-checked={on}
             checked={on}
             disabled={save.isPending}
-            onChange={(e) => save.mutate({ ...s, writing: e.target.checked })}
+            onChange={(e) => save.mutate(e.target.checked)}
           />
         </label>
         {previsto && <PrevistoSetting previsto={previsto} writing={on} />}
@@ -388,7 +406,7 @@ const HowItWorks = ({ reviewed: s }: { reviewed: UserSettings }) => {
   const queryClient = useQueryClient();
   // Conferência points set aside on Hoje come back here, all at once, whenever wanted.
   const restore = useMutation({
-    mutationFn: api.saveSettings,
+    mutationFn: () => saveFresh({ reviewed: [] }),
     onSuccess: (saved) => {
       queryClient.setQueryData(["settings"], saved);
       setRestored(true);
@@ -429,7 +447,7 @@ const HowItWorks = ({ reviewed: s }: { reviewed: UserSettings }) => {
             type="button"
             className="setting quiet"
             disabled={restore.isPending || restored}
-            onClick={() => restore.mutate({ ...s, reviewed: [] })}
+            onClick={() => restore.mutate()}
           >
             {restored
               ? "Os pontos voltam em Hoje"

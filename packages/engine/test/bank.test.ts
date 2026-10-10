@@ -116,6 +116,22 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     });
   });
 
+  it("keeps apart two equal purchases a month apart", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [
+        line(10000, "2026-11", { installment: 1, installments: 3 }),
+        line(10000, "2026-11", { installment: 2, installments: 3 }),
+      ],
+      today,
+    );
+    expect(checks.map((c) => [c.due, c.parcels])).toEqual([
+      ["2026-11-10", 20000],
+      ["2026-12-10", 20000],
+    ]);
+  });
+
   it("knows a parcel the bank lists ahead with a shorter text or a rounded value", () => {
     const checks = billChecks(
       days,

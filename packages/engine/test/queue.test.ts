@@ -195,6 +195,19 @@ describe("Para lançar: account movements", () => {
     expect(i?.options.map((o) => o.label)).toEqual(["Água de 2026-10-10", "Gás de 2026-10-10"]);
   });
 
+  it("a tie still leaves the other planned line for a second payment", () => {
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-10": {
+        saida: cell(20000, [item(10000, "Água", "contas"), item(10000, "Gás", "contas")]),
+      },
+    });
+    const items = queue({
+      ledger: days,
+      movements: [mov("2026-10-10", -10500, "DEBITO"), mov("2026-10-11", -10300, "DEBITO")],
+    });
+    expect(items.map((i) => i.kind)).toEqual(["conta", "conta"]);
+  });
+
   it("leaves out what was launched or ignored, and what is older than the window", () => {
     const movements = [mov("2026-10-15", -1890, "PIX"), mov("2026-09-01", -500, "PIX")];
     expect(queue({ movements, decided: new Set(["mov:2026-10-15--1890"]) })).toEqual([]);

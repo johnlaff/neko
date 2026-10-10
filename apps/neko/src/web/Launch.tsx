@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { type QueueItemView, type QueueLine, saldoView } from "../shared/queue.ts";
 import type { BankView } from "../shared/types.ts";
-import { ApiError, api } from "./api.ts";
+import { ApiError, api, once, reasonOf } from "./api.ts";
 import { bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
 import { IconChevron } from "./icons.tsx";
 
@@ -36,17 +36,16 @@ const useToast = () =>
     () => toast,
   );
 
-const message = (e: unknown) =>
-  e instanceof ApiError || (e instanceof Error && e.message)
-    ? (e as Error).message.replace(/^./, (c) => c.toUpperCase())
-    : "Não gravou. Confira a conexão e tente de novo.";
+const message = reasonOf;
 
 /** One request: the Worker writes only if each changed line still holds what Neko showed. */
 const useLaunch = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ draft, key }: { draft: Draft; key?: string }) => {
-      const result = await api.launch({ id: crypto.randomUUID(), draft, ...(key ? { key } : {}) });
+      const result = await once(`launch:${JSON.stringify(draft)}`, (id) =>
+        api.launch({ id, draft, ...(key ? { key } : {}) }),
+      );
       if (result.state !== "done")
         throw new Error(result.error ?? "Não gravou. A planilha ficou como estava.");
       return result;
@@ -68,7 +67,10 @@ export const LaunchToast = () => {
         await api.unignore(t.ignored);
         return true;
       }
-      return t.entryId ? (await api.undoEntry(t.entryId)).state === "undone" : false;
+      const entryId = t.entryId;
+      return entryId
+        ? (await once(`undo:${entryId}`, () => api.undoEntry(entryId))).state === "undone"
+        : false;
     },
     onSuccess: (undone) => {
       showToast({

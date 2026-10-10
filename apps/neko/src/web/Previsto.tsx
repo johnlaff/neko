@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import type { PrevistoView } from "../shared/types.ts";
-import { api } from "./api.ts";
+import { api, once, reasonOf } from "./api.ts";
 import { money, shortDate, toCents } from "./format.ts";
 import { IconChevron } from "./icons.tsx";
 import { showToast } from "./Launch.tsx";
@@ -20,7 +20,7 @@ const useSetPrevisto = (onDone: () => void) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (value: number) => {
-      const r = await api.previsto(value);
+      const r = await once(`previsto:${value}`, (id) => api.previsto(id, value));
       if (r.state !== "done")
         throw new Error(r.error ?? "Não gravou. A planilha ficou como estava.");
       return { ...r, value };
@@ -37,10 +37,7 @@ const useSetPrevisto = (onDone: () => void) => {
   });
 };
 
-const failure = (e: unknown) =>
-  e instanceof Error && e.message
-    ? e.message.replace(/^./, (c) => c.toUpperCase())
-    : "Não gravou. Confira a conexão e tente de novo.";
+const failure = reasonOf;
 
 /** Ajustes › Planilha: on, off, and the value per day. */
 export const PrevistoSetting = ({

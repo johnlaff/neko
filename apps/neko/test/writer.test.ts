@@ -12,6 +12,7 @@ import {
   commitEntry,
   fingerprint,
   googleSheets,
+  healOrphans,
   locate,
   previewEntry,
   type SheetsApi,
@@ -74,7 +75,15 @@ const fakeSheet = () => {
     if (offset === SHEET_MAP.offsets.saldo) {
       const v = (r: number, c: number) => evaluate(cells.get(key(tab, r, c))?.value ?? {});
       const { entrada, saida, diario } = SHEET_MAP.offsets;
+      // Like the sheet's first day ('2026'!BS33 + …), a year starts from the year before's Saldo.
       let saldo = 1000;
+      for (const [k, c] of cells) {
+        const [t = "", , c2 = ""] = k.split(":");
+        if (t === String(ECONOMIA) || Number(t) >= Number(tab)) continue;
+        const o = Number(c2) % SHEET_MAP.blockWidth;
+        const sign = o === entrada ? 1 : o === saida || o === diario ? -1 : 0;
+        saldo += sign * evaluate(c.value);
+      }
       for (let block = 0; block <= col - offset; block += SHEET_MAP.blockWidth)
         for (let r = SHEET_MAP.firstDayRow; r <= (block === col - offset ? row : 32); r++)
           saldo += v(r, block + entrada) - v(r, block + saida) - v(r, block + diario);
@@ -113,14 +122,14 @@ const fakeSheet = () => {
         ),
       };
     },
-    async writeCells(sheetId, list) {
+    async writeCells(list) {
       const fail = list
-        .map((c) => hooks.failWrite(key(String(sheetId), c.row, c.col)))
+        .map((c) => hooks.failWrite(key(String(c.sheetId), c.row, c.col)))
         .find(Boolean);
       if (fail) throw new Error(fail);
       batches.push(list.length);
       for (const c of list) {
-        const k = key(String(sheetId), c.row, c.col);
+        const k = key(String(c.sheetId), c.row, c.col);
         writes.push(k);
         cells.set(k, hooks.mangle(k, { value: c.value, note: c.note }));
       }
@@ -298,8 +307,97 @@ describe("entry writer", () => {
     const before = ps.map((p) => sheet.get(p));
     const r = await write(db, sheet.api, "fone", ps);
     expect(r.state).toBe("failed");
-    expect(r.parts.map((p) => p.state)).toEqual(["undone", "undone", "failed"]);
+    // One request for every bill: Google refused it whole, so no cell changed.
+    expect(r.parts.map((p) => p.state)).toEqual(["failed", "failed", "failed"]);
     expect(ps.map((p) => sheet.get(p))).toEqual(before);
+    expect(sheet.writes).toHaveLength(0);
+
+    // Without the refusal the three bills, across two year tabs, land in one request.
+    sheet.hooks.failWrite = () => null;
+    const ok = await write(db, sheet.api, "fone2", ps);
+    expect(ok.state).toBe("done");
+    expect(sheet.batches).toEqual([3]);
+  });
+
+  it("writes a shared card's bill and its payback on the same day together", async () => {
+    const { sheet, db } = setup();
+    const due = d("2026-11-12");
+    sheet.set(
+      { date: due, column: "saida" },
+      { formulaValue: "=SUM(1032,74)" },
+      "CARTÕES\nR$ 1.032,74 - Gio",
+    );
+    sheet.set({ date: due, column: "entrada" }, { formulaValue: "=SUM(710)" }, "R$ 710,00 - Gio");
+    const ps: Placement[] = [
+      {
+        date: due,
+        column: "saida",
+        section: "cartoes",
+        description: "Gio",
+        target: "card",
+        was: cents(103274),
+        amount: cents(118485),
+      },
+      {
+        date: due,
+        column: "entrada",
+        section: null,
+        description: "Gio",
+        target: "line",
+        was: cents(71000),
+        amount: cents(118485),
+      },
+    ];
+    const r = await write(db, sheet.api, "gio", ps);
+    expect(r.error).toBeUndefined();
+    expect(r.state).toBe("done");
+    expect(sheet.batches).toEqual([2]);
+    expect(sheet.get({ date: due, column: "entrada" }).effectiveValue?.numberValue).toBe(1184.85);
+    expect((await undoEntry(db, sheet.api, "gio", fixedNow)).state).toBe("undone");
+    expect(sheet.get({ date: due, column: "saida" }).effectiveValue?.numberValue).toBe(1032.74);
+  });
+
+  it("takes back an entry a crashed request left halfway, before the next launch", async () => {
+    const { sheet, db } = setup();
+    const ps = placeEntry(
+      { kind: "entrada", amount: cents(100), description: "Pix", date: d("2026-10-20") },
+      cards,
+    );
+    const before = sheet.get(ps[0] as Placement);
+    await write(db, sheet.api, "old", ps);
+    // The old part-by-part writer died before marking the part done.
+    await db
+      .prepare("UPDATE entry_op SET state = 'writing', updated_at = '2026-10-09T00:00:00.000Z'")
+      .run();
+    await healOrphans(db, sheet.api, "2026-10-09T02:00:00.000Z", fixedNow);
+    expect(sheet.get(ps[0] as Placement)).toEqual(before);
+    const ops = await db.prepare("SELECT state FROM entry_op").all<{ state: string }>();
+    expect(ops.results.map((o) => o.state)).toEqual(["failed"]);
+  });
+
+  it("finishes a launch whose connection dropped before the read back, without writing twice", async () => {
+    const { sheet, db } = setup();
+    const ps = placeEntry(
+      { kind: "entrada", amount: cents(100), description: "Pix", date: d("2026-10-20") },
+      cards,
+    );
+    const read = sheet.api.readRow;
+    let writes = 0;
+    sheet.api.writeCells = ((orig) => async (list) => {
+      await orig(list);
+      writes++;
+      // The Worker loses the request right after Google applied the write.
+      sheet.api.readRow = async () => {
+        sheet.api.readRow = read;
+        throw new Error("network lost");
+      };
+    })(sheet.api.writeCells);
+    await expect(commitEntry(db, sheet.api, "drop", ps, undefined, fixedNow)).rejects.toThrow(
+      /network/,
+    );
+    const r = await commitEntry(db, sheet.api, "drop", ps, undefined, fixedNow);
+    expect(r.state).toBe("done");
+    expect(writes).toBe(1);
   });
 
   it("puts the cell back when the sheet does not show what was written", async () => {

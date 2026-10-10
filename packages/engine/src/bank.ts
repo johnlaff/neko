@@ -79,7 +79,8 @@ const samePurchase = (a: BankCardLine, b: BankCardLine): boolean => {
 /**
  * The bank lists only the parcels already on a bill; the rest of each purchase is already owed.
  * Parcel n of N on month M puts n+1..N on the months after, unless that parcel is already known.
- * Two purchases with the same text, parcel value and count read as one.
+ * A parcel already known on the same bill reads as the same one; on another bill it is another
+ * purchase with the same text.
  */
 const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
   const out = [...lines];
@@ -88,7 +89,7 @@ const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
     if (n === null || total === null || n >= total) continue;
     for (let k = n + 1; k <= total; k++) {
       const next = { ...l, installment: k, billMonth: nextMonth(l.billMonth, k - n) };
-      if (!out.some((o) => samePurchase(o, next))) out.push(next);
+      if (!out.some((o) => o.billMonth === next.billMonth && samePurchase(o, next))) out.push(next);
     }
   }
   return out;

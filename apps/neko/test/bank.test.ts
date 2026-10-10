@@ -1,7 +1,14 @@
 import { type CardConfig, localDate } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import { UserSettings } from "../src/shared/types.ts";
-import { type BankRows, bankInput, bankVersion, bankView, loadBank } from "../src/worker/bank.ts";
+import {
+  type BankRows,
+  type BankTxnRow,
+  bankInput,
+  bankVersion,
+  bankView,
+  loadBank,
+} from "../src/worker/bank.ts";
 import { sqliteD1 } from "./d1.ts";
 
 // Invented bank: ids, names and amounts are made up (public repo).
@@ -101,6 +108,16 @@ describe("bank tables", () => {
     const read = await loadBank(db as never);
     expect(read).toMatchObject({ items: 1, syncedAt: "2026-10-08T09:00:00Z", txns: [] });
     expect(bankVersion(read)).not.toBe("none");
+  });
+
+  it("change version with any decision or bank value, not just a count", () => {
+    const base: BankRows = { items: 1, syncedAt: "t", accounts: [], txns: [], bills: [] };
+    const a = bankVersion({ ...base, decided: ["mov:a", "mov:z"] });
+    expect(bankVersion({ ...base, decided: ["mov:b", "mov:z"] })).not.toBe(a);
+    const t = { ...rows.txns[0] } as BankTxnRow;
+    expect(bankVersion({ ...base, txns: [{ ...t, amount: t.amount + 1 }] })).not.toBe(
+      bankVersion({ ...base, txns: [t] }),
+    );
   });
 
   it("missing tables leave the sheet's screens alone", async () => {

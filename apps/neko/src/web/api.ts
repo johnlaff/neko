@@ -67,11 +67,16 @@ export class ApiError extends Error {
   }
 }
 
-const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
+/** How long a call may wait, like the app's: 30 s, and 90 s for Mia and writes to the sheet. */
+const WAIT = 30_000;
+const LONG_WAIT = 90_000;
+
+const request = async <T>(path: string, init?: RequestInit, wait = WAIT): Promise<T> => {
   const res = await fetch(`/api${path}`, {
     ...init,
     headers: { "content-type": "application/json", ...init?.headers },
     credentials: "same-origin",
+    signal: AbortSignal.timeout(wait),
   });
   const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
   if (!res.ok)
@@ -79,6 +84,36 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   // The service worker answers with the last good copy when the network is down.
   if (res.headers.get("x-neko-offline")) Object.assign(body, { offline: true });
   return body as T;
+};
+
+/** Worker refusals whose message is written for the owner; any other text stays out of sight. */
+const SPOKEN = new Set(["busy", "write", "writing-off", "sheet-structure"]);
+
+/**
+ * Why an action failed, in Portuguese the owner can act on: the Worker's own words when it
+ * refused, and plain advice when the connection dropped (the same tap again writes once).
+ */
+export const reasonOf = (e: unknown): string => {
+  if (e instanceof ApiError && SPOKEN.has(e.code) && e.message)
+    return e.message.replace(/^./, (c) => c.toUpperCase());
+  if (e instanceof ApiError) return "O Neko não conseguiu agora. Tente de novo daqui a pouco.";
+  return "A conexão caiu antes da resposta. Toque de novo: nada é gravado duas vezes.";
+};
+
+/** Ids of writes whose answer never came: the same write again sends the same id, which writes once. */
+const unanswered = new Map<string, string>();
+
+export const once = async <T>(what: string, run: (id: string) => Promise<T>): Promise<T> => {
+  const id = unanswered.get(what) ?? crypto.randomUUID();
+  unanswered.set(what, id);
+  try {
+    const result = await run(id);
+    unanswered.delete(what);
+    return result;
+  } catch (e) {
+    if (e instanceof ApiError) unanswered.delete(what);
+    throw e;
+  }
 };
 
 export const api = {
@@ -134,25 +169,31 @@ export const api = {
   saveBanks: (items: readonly { itemId: string; label: string }[]) =>
     request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
   mia: () => request<MiaStatus>("/mia"),
-  askMia: (ask: MiaAsk) => request<MiaReply>("/mia", { method: "POST", body: JSON.stringify(ask) }),
+  askMia: (ask: MiaAsk) =>
+    request<MiaReply>("/mia", { method: "POST", body: JSON.stringify(ask) }, LONG_WAIT),
   miaEntry: (frase: string, cartoes: readonly string[]) =>
-    request<{ lancamento: MiaEntry | null }>("/mia/lancamento", {
-      method: "POST",
-      body: JSON.stringify({ frase, cartoes }),
-    }),
+    request<{ lancamento: MiaEntry | null }>(
+      "/mia/lancamento",
+      {
+        method: "POST",
+        body: JSON.stringify({ frase, cartoes }),
+      },
+      LONG_WAIT,
+    ),
   /** One request: the Worker reads each cell and writes only if every changed line still holds what Neko saw. */
   launch: (body: { id: string; draft: Draft; key?: string }) =>
-    request<LaunchResult>("/entries", { method: "POST", body: JSON.stringify(body) }),
+    request<LaunchResult>("/entries", { method: "POST", body: JSON.stringify(body) }, LONG_WAIT),
   /** Atualizar agora: the banks read now instead of at the next morning sync. */
   refreshBanks: () => request<{ ok: boolean }>("/banks/refresh", { method: "POST" }),
   undoEntry: (id: string) =>
-    request<LaunchResult>(`/entries/${encodeURIComponent(id)}/undo`, { method: "POST" }),
+    request<LaunchResult>(`/entries/${encodeURIComponent(id)}/undo`, { method: "POST" }, LONG_WAIT),
   /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. */
-  previsto: (value: number) =>
-    request<LaunchResult>("/entries/previsto", {
-      method: "POST",
-      body: JSON.stringify({ value }),
-    }),
+  previsto: (id: string, value: number) =>
+    request<LaunchResult>(
+      "/entries/previsto",
+      { method: "POST", body: JSON.stringify({ id, value }) },
+      LONG_WAIT,
+    ),
   /** The review every 3 months, answered "keep the value". */
   keepPrevisto: () => request<{ ok: true }>("/queue/previsto/manter", { method: "POST" }),
   ignore: (key: string) =>

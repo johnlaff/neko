@@ -31,6 +31,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 sealed interface Session {
@@ -201,16 +202,35 @@ class AppModel(
         _devices.value = neko.api.sessions()
     }
 
+    /** Ids of writes whose answer never came: tapping again sends the same id, which writes once. */
+    private val unanswered = mutableMapOf<String, String>()
+
+    /**
+     * A write to the sheet. It runs on the model's scope, so leaving the screen or scrolling the
+     * item away does not cancel it halfway; the caller only waits for it. When the connection
+     * drops, the id is kept for the same write, and the Worker reports the first one.
+     */
+    private suspend fun <T> write(what: String, block: suspend (String) -> T): T =
+        viewModelScope.async {
+            val id = unanswered.getOrPut(what) { java.util.UUID.randomUUID().toString() }
+            try {
+                block(id).also { unanswered.remove(what) }
+            } catch (e: ApiException) {
+                unanswered.remove(what)
+                throw e
+            }
+        }.await()
+
     /** Para lançar and Lançar à mão; each answer reads Hoje again, which drops what was done. */
     val launcher = object : Launcher {
         override val fill: (suspend (String, List<String>) -> MiaEntry?)?
             get() = _mia.value?.takeIf { it.ligada && it.pausadaAte == null }?.let { { f, c -> neko.api.miaEntry(f, c) } }
 
-        override suspend fun launch(draft: JsonObject, key: String?): String {
-            val r = neko.api.launch(java.util.UUID.randomUUID().toString(), draft, key)
+        override suspend fun launch(draft: JsonObject, key: String?): String = write("launch:$draft") { id ->
+            val r = neko.api.launch(id, draft, key)
             if (r.state != "done") throw ApiException(422, "write", r.error ?: "Não gravou. A planilha ficou como estava.")
             readToday(shown = false)
-            return r.entryId
+            r.entryId
         }
 
         override suspend fun refreshBanks(): Boolean =
@@ -221,10 +241,12 @@ class AppModel(
                 neko.api.unignore(id.removePrefix(IGNORED))
                 readToday(shown = false)
                 true
-            } else (neko.api.undo(id).state == "undone").also {
-                readToday(shown = false)
-                // Desfazer after the Diário previsto also puts its setting back.
-                read(Tab.Ajustes, shown = false)
+            } else write("undo:$id") { _ ->
+                (neko.api.undo(id).state == "undone").also {
+                    readToday(shown = false)
+                    // Desfazer after the Diário previsto also puts its setting back.
+                    read(Tab.Ajustes, shown = false)
+                }
             }
 
         override suspend fun ignore(key: String) {
@@ -237,12 +259,12 @@ class AppModel(
             readToday(shown = false)
         }
 
-        override suspend fun previsto(value: Long): String {
-            val r = neko.api.previsto(value)
+        override suspend fun previsto(value: Long): String = write("previsto:$value") { id ->
+            val r = neko.api.previsto(id, value)
             if (r.state != "done") throw ApiException(422, "write", r.error ?: "Não gravou. A planilha ficou como estava.")
             readToday(shown = false)
             read(Tab.Ajustes, shown = false)
-            return r.entryId
+            r.entryId
         }
 
         override suspend fun keepPrevisto() {
@@ -267,6 +289,12 @@ class AppModel(
     private val reading = mutableSetOf<MutableStateFlow<out ScreenState<*>>>()
 
     /**
+     * Screens asked to read again while a read was on its way. That read may have left before a
+     * write (Lançar, Desfazer), so one more follows it: the screen never settles on the old sheet.
+     */
+    private val again = mutableSetOf<MutableStateFlow<out ScreenState<*>>>()
+
+    /**
      * Reads one screen. A [shown] read (asked for) spins the head; a silent one does only when
      * there is nothing to show yet, and when it fails the last reading stays, marked offline.
      */
@@ -280,6 +308,7 @@ class AppModel(
         // Already reading: a refresh asked meanwhile spins until that read lands.
         if (!reading.add(state)) {
             if (spin) state.update { it.copy(loading = true) }
+            again.add(state)
             return
         }
         if (spin) state.update { it.copy(loading = true) }
@@ -298,6 +327,7 @@ class AppModel(
                 }
                 state.update { it.copy(loading = false, error = readError(e), detail = (e as? ApiException)?.message) }
             }
+            if (again.remove(state)) load(state, read, shown = false, done)
         }
     }
 
