@@ -335,7 +335,7 @@ private fun Previsto(
     ) {
         Switch(checked = p.on, onCheckedChange = null, enabled = can, colors = switchColors())
     }
-    if (p.on && can && open == null) TextAction("Trocar o valor", { open = "on" })
+    if (p.on && can && open == null) TextAction("Trocar o valor", { open = "on" }, color = LocalLedger.current.accent)
     val go = launcher ?: return
     open?.let { mode ->
         PrevistoForm(
@@ -906,7 +906,7 @@ private fun HowItWorks(reviewed: Int, restore: (suspend () -> Boolean)?) {
             Hints.reset(context)
             reset = true
         }
-    })
+    }, color = if (reset) l.muted else l.accent)
     // Conferência points set aside on Hoje come back here, all at once, whenever wanted.
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }

@@ -198,13 +198,14 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                     key = x.key,
                     label = capitalize(monthName(x.month).take(1)),
                     value = x.endSheet,
-                    description = "${capitalize(monthName(x.month))}: ${money(x.endSheet)}",
+                    description = "${capitalize(monthName(x.month))}: ${money(x.endSheet)}" + if (x.future) ", previsão da planilha" else "",
                     picked = x.key == m.key,
                     faint = x.future,
                 )
             },
             onSelect = onPick,
         )
+        if (year.any { it.future }) Text("Barras claras: previsão da planilha", color = l.faint, style = MaterialTheme.typography.labelMedium)
         m.result?.let { r ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Saldo ${if (r < 0) "desceu" else "subiu"} no mês", color = l.muted)
@@ -352,6 +353,7 @@ private fun OutflowRow(o: Outflow, top: Long) {
             card = o.label.takeIf { o.kind == "card" },
             meta = o.fixed?.installment?.let(::installmentLine),
             chips = { if (o.others) Chip("De outra pessoa", ChipTone.Plain) },
+            open = open.takeIf { o.trend.isNotEmpty() },
             below = {
                 // Display only: the line's amount scaled to the month's largest line.
                 Meter(if (top <= 0) 0f else o.amount.toFloat() / top)

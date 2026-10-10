@@ -56,7 +56,7 @@ private fun shortMonth(iso: String) = capitalize(monthName(iso.substring(5, 7).t
 @Composable
 private fun UsualPanel(u: UsualBill) {
     Panel {
-        PanelHead(u.card, card = u.card) {
+        PanelHead("${u.card} · ${shortMonth(u.due)}", card = u.card) {
             // An estimated day says so in words, as on the site: a lone ≈ needed Ajustes to explain it.
             Chip(
                 Format.closesIn(u.closesInDays) + if (u.closingEstimated) " · estimado" else "",

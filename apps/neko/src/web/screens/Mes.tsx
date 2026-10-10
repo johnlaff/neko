@@ -128,7 +128,11 @@ const OutflowRow = ({
         </span>
       </span>
       <span className="value">
-        {money(o.amount)}
+        {/* The chevron says the line opens, as every other disclosure does. */}
+        <span className="opens">
+          {money(o.amount)}
+          <IconChevron />
+        </span>
         {o.change != null && o.change !== 0 && (
           <small className={o.change > 0 ? "neg" : undefined}>
             <span aria-hidden="true">{o.change > 0 ? "▲" : "▼"} </span>
@@ -373,12 +377,15 @@ export const Mes = () => {
                           key: k,
                           label: capitalize(monthName(x.month).charAt(0)),
                           value: x.endSheet,
-                          description: `${capitalize(monthName(x.month))}: ${money(x.endSheet)}`,
+                          description: `${capitalize(monthName(x.month))}: ${money(x.endSheet)}${k > nowKey ? ", previsão da planilha" : ""}`,
                           tone:
                             k === key(m.year, m.month) ? "ink" : k > nowKey ? "faint" : undefined,
                         };
                       })}
                     />
+                    {year.some((x) => key(x.year, x.month) > nowKey) && (
+                      <p className="columns-key">Barras claras: previsão da planilha</p>
+                    )}
                     {result !== null && (
                       <p className="figure-line performance">
                         <span className="muted">
