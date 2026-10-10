@@ -221,7 +221,7 @@ fun AjustesScreen(
                 Column {
                 Group("Bancos") { Banks(b, f.cards.map { it.name }, banks) }
                 Text(
-                    "O Neko só lê o banco e nunca muda a planilha. O código da conexão fica no Meu Pluggy, na lista das suas conexões.",
+                    "O banco só sugere itens em Para lançar; nada vai para a planilha sem você tocar em Lançar. O código da conexão fica no Meu Pluggy, na lista das suas conexões.",
                     color = LocalLedger.current.faint,
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
@@ -493,12 +493,12 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     label, { label = it.take(40) },
-                    placeholder = { Text("Banco") }, singleLine = true,
+                    label = { Text("Banco") }, singleLine = true,
                     modifier = Modifier.weight(1f).semantics { contentDescription = "Nome do banco" },
                 )
                 OutlinedTextField(
                     itemId, { itemId = it },
-                    placeholder = { Text("Código") }, singleLine = true,
+                    label = { Text("Código") }, singleLine = true,
                     isError = itemId.isNotBlank() && !UUID.matches(itemId.trim()),
                     modifier = Modifier.weight(1.4f).semantics { contentDescription = "Código da conexão no Meu Pluggy" },
                 )

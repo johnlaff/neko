@@ -516,6 +516,7 @@ export const ManualLaunch = ({ cards, today }: { cards: readonly string[]; today
     <>
       <button
         type="button"
+        className="add"
         aria-expanded={open}
         aria-keyshortcuts="L"
         title="Lançar (L)"
