@@ -269,18 +269,11 @@ private fun Evolution(h: HistoryView) {
     // Against the month's end as the sheet showed it on the first reading, so it never reads as
     // money the balance gained this month (that is "Saldo subiu" or "desceu" below), as on the site.
     val day = shortDate(first.today)
-    val since = "${if (delta > 0) "a mais" else "a menos"} que em $day"
-    val style = MaterialTheme.typography.labelLarge
-    if (delta == 0L) {
-        Text("Igual a $day", color = l.muted, style = style)
-        return
-    }
-    Row(Modifier.semantics(mergeDescendants = true) {
-        contentDescription = "${money(kotlin.math.abs(delta))} $since"
-    }) {
-        Text("${if (delta > 0) "▲" else "▼"} ${money(kotlin.math.abs(delta))} ", color = if (delta > 0) l.pos else l.neg, style = style)
-        Text(since, color = l.muted, style = style)
-    }
+    // Neutral, and naming the forecast: it is a change in the projection, not a result, so it
+    // never competes with the colored "Saldo desceu" below, as on the site.
+    val text = if (delta == 0L) "Fim do mês: igual ao previsto em $day"
+    else "Fim do mês: ${money(kotlin.math.abs(delta))} ${if (delta > 0) "a mais" else "a menos"} que o previsto em $day"
+    Text(text, color = l.muted, style = MaterialTheme.typography.labelLarge)
 }
 
 @Composable

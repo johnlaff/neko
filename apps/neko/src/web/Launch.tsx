@@ -5,7 +5,7 @@ import { type QueueItemView, type QueueLine, saldoView } from "../shared/queue.t
 import type { BankView, IgnoredItem } from "../shared/types.ts";
 import { ApiError, api, once, reasonOf } from "./api.ts";
 import { bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
-import { IconChevron } from "./icons.tsx";
+import { IconChevron, IconPlus } from "./icons.tsx";
 
 /**
  * Para lançar and Lançar à mão (specs/005-lancamentos, Fase 2). The screen sends drafts the
@@ -521,6 +521,7 @@ export const ManualLaunch = ({ cards, today }: { cards: readonly string[]; today
         title="Lançar (L)"
         onClick={() => setOpen(!open)}
       >
+        <IconPlus />
         Lançar
       </button>
       {open && <EntryForm cards={cards} today={today} onClose={() => setOpen(false)} />}
