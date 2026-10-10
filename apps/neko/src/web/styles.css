@@ -2358,6 +2358,17 @@ button.setting.quiet:disabled {
   fill: var(--faint);
 }
 /* Mia wears the same mark with her amber eyes */
+/* Her mark with her name, so the head says who answers without a hover */
+a.icon.mia-head {
+  width: auto;
+  gap: 6px;
+  padding: 0 10px 0 6px;
+  text-decoration: none;
+}
+.mia-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
 .mia-mark .brand-eye {
   fill: var(--mia);
 }

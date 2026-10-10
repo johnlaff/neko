@@ -271,7 +271,8 @@ export const MiaHead = ({ topic }: { topic: MiaTopic }) => {
       aria-keyshortcuts="M"
       title={`${label} (M)`}
     >
-      <BrandMark width={28} className="mia-mark" />
+      <BrandMark width={24} className="mia-mark" />
+      <span className="mia-name">Mia</span>
     </Link>
   );
 };
