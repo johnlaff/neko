@@ -241,6 +241,31 @@ describe("entry writer", () => {
     expect(sheet.writes).toEqual([]);
   });
 
+  it("in one tap, without a preview, changes a line only while it holds the value it expects", async () => {
+    const { sheet, db } = setup();
+    const at = { date: d("2026-11-10"), column: "saida" } as const;
+    sheet.set(at, { formulaValue: "=SUM(500)" }, "R$ 500,00 - Cartão A");
+    const raise = (was: number): Placement[] => [
+      {
+        ...at,
+        section: null,
+        description: "Cartão A",
+        target: "line",
+        was: cents(was),
+        amount: cents(65000),
+      },
+    ];
+    // The owner changed the line to 600,00 after Neko read it: nothing is written.
+    sheet.set(at, { formulaValue: "=SUM(600)" }, "R$ 600,00 - Cartão A");
+    await expect(
+      commitEntry(db, sheet.api, "x", raise(50000), undefined, fixedNow),
+    ).rejects.toThrow();
+    expect(sheet.writes).toEqual([]);
+    const r = await commitEntry(db, sheet.api, "y", raise(60000), undefined, fixedNow);
+    expect(r.state).toBe("done");
+    expect(sheet.get(at)).toMatchObject({ note: "R$ 650,00 - Cartão A" });
+  });
+
   it("refuses a cell it does not fully understand, naming the day", async () => {
     const { sheet } = setup();
     const ps = placeEntry(

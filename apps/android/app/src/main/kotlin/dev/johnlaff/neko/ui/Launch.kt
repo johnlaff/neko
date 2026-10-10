@@ -1,5 +1,14 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,10 +48,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,8 +78,10 @@ import kotlinx.serialization.json.put
  * The app sends back drafts the Worker built; it never decides a cell.
  */
 interface Launcher {
-    /** Reads the cells, then writes; the launch's id, for Desfazer. Throws with the reason. */
+    /** Writes in one request, refusing a line that changed; the launch's id, for Desfazer. */
     suspend fun launch(draft: JsonObject, key: String?): String
+    /** Atualizar agora: the banks read now; false when one did not answer. */
+    suspend fun refreshBanks(): Boolean = false
     suspend fun undo(id: String): Boolean
     suspend fun ignore(key: String)
     suspend fun account(account: String, use: String)
@@ -105,33 +113,33 @@ private fun isoDate(typed: String, year: String): String? {
     }.getOrNull()
 }
 
-/** One change, as the sheet will read: the line, its value now and after, and the day's total. */
+/**
+ * One change, read like a ledger line (web Change): where and the new value on top, what it was
+ * and by how much it moves under them.
+ */
 @Composable
 private fun Change(line: QueueLine) {
     val l = LocalLedger.current
+    val sign = { c: Long -> Format.signed(c, if (c < 0) '−' else '+') }
     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        Text(Format.bankText(line.label), color = l.muted, style = MaterialTheme.typography.bodyMedium)
-        val before = line.before
-        Text(
-            buildAnnotatedString {
-                if (line.change == "economia") {
-                    withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) {
-                        append(Format.signed(line.after, if (line.after < 0) '−' else '+'))
-                    }
-                } else if (before == null) {
-                    withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) { append(money(line.after)) }
-                    append(" · linha nova")
-                } else {
-                    append("${money(before)} → ")
-                    withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) { append(money(line.after)) }
-                    line.diff?.takeIf { it != 0L }?.let { append(" (${Format.signed(it, if (it < 0) '−' else '+')})") }
-                }
-            },
-            color = l.muted,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        line.cell?.let {
-            Text("${it.label}: ${money(it.before)} → ${money(it.after)}", color = l.faint, style = MaterialTheme.typography.bodySmall)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(Format.bankText(line.label), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                if (line.change == "economia") sign(line.after) else money(line.after),
+                color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            val before = line.before
+            Text(
+                when {
+                    line.change == "economia" -> "na aba Economia"
+                    before == null -> "linha nova"
+                    else -> "era ${money(before)}"
+                },
+                Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall,
+            )
+            line.diff?.takeIf { it != 0L }?.let { Text(sign(it), color = l.muted, style = MaterialTheme.typography.bodySmall, maxLines = 1) }
         }
     }
 }
@@ -156,7 +164,7 @@ private fun Impact(lines: List<QueueLine>, key: String) {
 }
 
 @Composable
-internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, modifier: Modifier = Modifier, spinning: Boolean = false, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(10.dp)
     val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)
@@ -169,7 +177,10 @@ internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, modif
             disabledContainerColor = l.text.copy(alpha = 0.5f),
             disabledContentColor = l.bg,
         ),
-    ) { Text(text, color = l.bg, style = MaterialTheme.typography.labelLarge) }
+    ) {
+        if (spinning) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(14.dp), color = l.bg, strokeWidth = 2.dp)
+        Text(text, color = l.bg, style = MaterialTheme.typography.labelLarge)
+    }
     else OutlinedButton(
         onClick, modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
@@ -387,31 +398,39 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) {
+private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit, onGone: () -> Unit) {
     val l = LocalLedger.current
     val scope = rememberCoroutineScope()
     var choice by rememberSaveable(item.key) { mutableStateOf(0) }
     var adjusting by rememberSaveable(item.key) { mutableStateOf(false) }
-    var bank by rememberSaveable(item.key) { mutableStateOf(false) }
+    var details by rememberSaveable(item.key) { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    var launching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val option = item.options.getOrNull(choice) ?: item.options.firstOrNull()
     val draft = option?.draft
+    val lines = option?.lines.orEmpty()
     val question = item.options.all { it.draft == null }
     val canWrite = v.writing && launcher != null
     val isCard = draft?.get("type")?.jsonPrimitive?.content == "card"
 
+    // Done: the item folds away (ParaLancar animates it) while Hoje reads again behind it.
     fun run(block: suspend (Launcher) -> Unit) {
         val go = launcher ?: return
         busy = true
         error = null
         scope.launch {
-            runCatching { block(go) }.onFailure { error = reasonOf(it) }
-            busy = false
+            runCatching { block(go) }
+                .onSuccess { onGone() }
+                .onFailure { error = reasonOf(it); busy = false; launching = false }
         }
     }
 
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 6.dp).graphicsLayer { alpha = if (busy) 0.72f else 1f }
+            .semantics { if (busy) stateDescription = "Gravando" },
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.titleSmall)
             Text(shortDate(item.date), color = l.faint, style = MaterialTheme.typography.labelMedium)
@@ -419,46 +438,55 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
         item.note?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
         if (item.options.size > 1 && !question) {
             FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item.options.forEachIndexed { i, o -> Choice(o.label, choice == i) { choice = i } }
+                item.options.forEachIndexed { i, o -> Choice(o.label, choice == i) { if (!busy) choice = i } }
             }
         }
-        option?.lines?.takeIf { it.isNotEmpty() }?.let { Impact(it, "${item.key}|$choice") }
+        if (lines.isNotEmpty()) Impact(lines, "${item.key}|$choice")
         if (adjusting && draft != null && launcher != null && !isCard) {
-            EntryForm(launcher, v.today, { adjusting = false }, onLaunched, draft = draft, key = item.key)
+            EntryForm(launcher, v.today, { adjusting = false }, { id -> onLaunched(id); onGone() }, draft = draft, key = item.key)
         } else if (launcher != null) {
             // Ignorar closes the action row: the way out, quiet, at the far end, with Desfazer.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (question) {
-                    item.options.forEach { o ->
-                        o.answer?.let { use ->
-                            Small(o.label, filled = false, enabled = !busy) {
-                                run { it.account(item.key.removePrefix("conta:"), use) }
+                FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (question) {
+                        item.options.forEach { o ->
+                            o.answer?.let { use ->
+                                Small(o.label, filled = false, enabled = !busy) {
+                                    run { it.account(item.key.removePrefix("conta:"), use) }
+                                }
                             }
                         }
+                    } else {
+                        Small(if (launching) "Lançando…" else "Lançar", filled = true, enabled = canWrite && draft != null && !busy, spinning = launching) {
+                            val d = draft ?: return@Small
+                            launching = true
+                            run { onLaunched(it.launch(d, item.key)) }
+                        }
+                        if (item.adjustable && !isCard)
+                            Small("Ajustar", filled = false, enabled = canWrite && !busy) { adjusting = true }
                     }
-                } else {
-                    Small(if (busy) "Lançando…" else "Lançar", filled = true, enabled = canWrite && draft != null && !busy) {
-                        val d = draft ?: return@Small
-                        run { onLaunched(it.launch(d, item.key)) }
+                }
+                TextAction("Ignorar", {
+                    if (!busy) run {
+                        it.ignore(item.key)
+                        onLaunched("$IGNORED${item.key}")
                     }
-                    if (item.adjustable && !isCard)
-                        Small("Ajustar", filled = false, enabled = canWrite && !busy) { adjusting = true }
-                }
-            }
-            TextAction("Ignorar", {
-                if (!busy) run {
-                    it.ignore(item.key)
-                    onLaunched("$IGNORED${item.key}")
-                }
-            }, l.muted)
+                }, l.muted)
             }
         }
         error?.let { Failed(it) }
-        if (item.bank.isNotEmpty()) Column {
-            TextAction("O banco mostrou", { bank = !bank }, open = bank)
-            Reveal(bank) {
+        // The day's whole cell and what the bank showed: there to check, closed (web Details).
+        val cells = lines.mapNotNull { it.cell }
+        if (cells.isNotEmpty() || item.bank.isNotEmpty()) Column {
+            TextAction("Detalhes", { details = !details }, open = details)
+            Reveal(details) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    cells.forEach { c ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(c.label, Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall)
+                            Text("${money(c.before)} → ${money(c.after)}", color = l.muted, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                     item.bank.forEach { m ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("${shortDate(m.date)} · ${Format.bankText(m.description)}", Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall)
@@ -497,23 +525,70 @@ private fun Saldo(s: SaldoView, v: TodayView, launcher: Launcher?, onLaunched: (
     }
 }
 
+/** When the banks were last read, and Atualizar agora to read them without waiting for the morning. */
+@Composable
+private fun Refresh(syncedAt: String?, launcher: Launcher?) {
+    val l = LocalLedger.current
+    val scope = rememberCoroutineScope()
+    var reading by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            when {
+                reading -> "Lendo os bancos…"
+                failed -> "Algum banco não respondeu. Tente de novo mais tarde."
+                syncedAt != null -> "Bancos lidos ${readAtText(syncedAt)}."
+                else -> "Bancos ainda não lidos."
+            },
+            Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall,
+        )
+        if (launcher != null) TextAction("Atualizar agora", {
+            if (!reading) {
+                reading = true
+                scope.launch {
+                    failed = !runCatching { launcher.refreshBanks() }.getOrDefault(false)
+                    reading = false
+                }
+            }
+        })
+    }
+}
+
 /** Para lançar on Hoje: what the bank showed and the sheet does not have yet, one item a line. */
 @Composable
 fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) {
     val l = LocalLedger.current
     val items = v.queue ?: return
     val saldo = v.saldo
+    // Gone until the next read of Hoje, which leaves out what was done and brings back what was undone.
+    var gone by remember(items) { mutableStateOf(emptySet<String>()) }
+    val left = items.filter { it.key !in gone }
     if (items.isEmpty() && saldo == null) return
     Panel {
         PanelHead("Para lançar") {
-            if (items.isNotEmpty()) Chip(if (items.size == 1) "1 item" else "${items.size} itens", ChipTone.Warn)
+            if (left.isNotEmpty()) Chip(if (left.size == 1) "1 item" else "${left.size} itens", ChipTone.Plain)
         }
-        if (items.isEmpty() && saldo != null) Saldo(saldo, v, launcher, onLaunched)
+        Column {
+            Text("Nada muda na planilha até você tocar em Lançar. Dá para desfazer.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+            Refresh(v.bankSyncedAt, launcher)
+        }
+        if (left.isEmpty() && saldo != null) Saldo(saldo, v, launcher, onLaunched)
         items.forEachIndexed { i, item ->
-            if (i > 0) androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().padding(vertical = 2.dp).heightIn(min = 1.dp, max = 1.dp).background(l.border))
-            androidx.compose.runtime.key(item.key) { QueueRow(item, v, launcher, onLaunched) }
+            androidx.compose.runtime.key(item.key) {
+                // Folds away when done, so the next item slides up into place (web .q-item.leaving).
+                AnimatedVisibility(
+                    item.key !in gone,
+                    enter = EnterTransition.None,
+                    exit = fadeOut(tween(160)) + shrinkVertically(tween(240, 40, Motion.Enter)),
+                ) {
+                    Column {
+                        if (i > 0) androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().padding(vertical = 2.dp).heightIn(min = 1.dp, max = 1.dp).background(l.border))
+                        QueueRow(item, v, launcher, onLaunched) { gone = gone + item.key }
+                    }
+                }
+            }
         }
-        if (!v.writing && items.isNotEmpty())
+        if (!v.writing && left.isNotEmpty())
             Text("Para lançar daqui, ligue Lançar pelo Neko em Ajustes.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
     }
 }
