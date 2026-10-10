@@ -228,7 +228,7 @@ internal fun Failed(text: String) {
 }
 
 /**
- * Valor, como pagou and Lançar. With a draft (Ajustar, or the Saldo's difference) only value, day
+ * Valor, tipo and Lançar. With a draft (Ajustar, or the Saldo's difference) only value, day
  * and name change; by hand the owner also says how it was paid, and the parcels on a card.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -258,6 +258,20 @@ fun EntryForm(
     val iso = isoDate(date, start.take(4))
     // A sentence that left the way of paying open asks the owner to pick one.
     val ok = amount != null && iso != null && name.isNotBlank() && (draft != null || how.isNotEmpty())
+    // What still keeps Lançar off, said beside it; and a day outside this month, said before it goes (as on the site).
+    val missing = when {
+        amount == null -> if (typed.isBlank()) "Falta o valor" else "Escreva o valor como 42,50"
+        name.isBlank() -> "Falta o nome"
+        draft == null && how.isEmpty() -> "Escolha o tipo"
+        iso == null -> "Falta o dia"
+        else -> null
+    }
+    val away = when {
+        missing != null || iso == null -> null
+        iso > today -> "Vai para ${shortDate(iso)}, um dia que ainda não chegou"
+        iso.take(7) != today.take(7) -> "Vai para ${shortDate(iso)}, fora deste mês"
+        else -> null
+    }
 
     fun build(): JsonObject? {
         if (amount == null || iso == null || name.isBlank()) return null
@@ -303,7 +317,7 @@ fun EntryForm(
             modifier = Modifier.fillMaxWidth(),
         )
         if (draft == null) {
-            Text("Como pagou", color = l.muted, style = MaterialTheme.typography.labelLarge)
+            Text("Tipo", color = l.muted, style = MaterialTheme.typography.labelLarge)
             val ways = listOf("diario" to "Pix ou débito", "entrada" to "Entrada", "conta" to "Conta") +
                 cards.map { "card:$it" to it }
             FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -335,6 +349,9 @@ fun EntryForm(
             modifier = Modifier.fillMaxWidth(),
         )
         error?.let { Failed(it) }
+        (missing ?: away)?.let {
+            Text(it, color = l.muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Small(if (busy) "Lançando…" else "Lançar", filled = true, enabled = ok && !busy) {
                 val d = build() ?: return@Small
@@ -378,7 +395,7 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
         scope.launch {
             said = try {
                 val e = fill(frase.trim(), cards)
-                if (e == null) "A Mia não entendeu. Diga o valor e como pagou."
+                if (e == null) "A Mia não entendeu. Diga o valor e o tipo."
                 else {
                     onFill(e)
                     // The keyboard closes, so the filled fields and Lançar show.
@@ -386,7 +403,7 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
                     // The line names what is still missing, so Lançar off is never a puzzle.
                     when {
                         e.amount == null -> "A Mia preencheu. Diga o valor e lance."
-                        e.kind == null -> "A Mia preencheu. Escolha como pagou e lance."
+                        e.kind == null -> "A Mia preencheu. Escolha o tipo e lance."
                         e.description == null -> "A Mia preencheu. Dê um nome e lance."
                         else -> "A Mia preencheu. Confira e lance."
                     }
@@ -465,7 +482,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
             Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.titleSmall)
             Text(shortDate(item.date), color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        item.note?.let { Text(it, dim, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
+        item.note?.takeIf { it.isNotBlank() }?.let { Text(it, dim, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
         if (item.options.size > 1 && !question) {
             FlowRow(Modifier.selectableGroup().then(dim), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.options.forEachIndexed { i, o -> Choice(o.label, choice == i) { if (!busy) choice = i } }

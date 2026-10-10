@@ -179,7 +179,7 @@ const titleOf = (item: QueueItem): string => {
 };
 
 /**
- * Why the item is there, in one plain sentence. No amounts: the lines carry them, and hide them
+ * Why the item is there, in one plain sentence; empty when the line itself says it. No amounts: the lines carry them, and hide them
  * with the rest of the screen when values are hidden.
  */
 const noteOf = (item: QueueItem): string => {
@@ -202,7 +202,8 @@ const noteOf = (item: QueueItem): string => {
     case "entrada":
       return draft?.type === "fix"
         ? "Entrou um valor diferente do previsto."
-        : "Entrou no banco e não está na planilha.";
+        : // The box under it says "Linha nova na planilha" and the line says Entrada: nothing to add.
+          "";
     case "conta":
       return "Paga com outro valor ou em outro dia.";
     case "guardar":
@@ -210,7 +211,8 @@ const noteOf = (item: QueueItem): string => {
     case "resgate":
       return "Você tirou da reserva e a planilha não tem.";
     default:
-      return "Saiu do banco e não está na planilha.";
+      // A purchase the sheet lacks: the box says "Linha nova na planilha", so no sentence repeats it.
+      return "";
   }
 };
 
