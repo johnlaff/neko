@@ -1122,8 +1122,10 @@ fieldset.columns {
   border-radius: 999px;
   background: var(--border-input);
 }
+/* A forecast month: an outline in readable contrast, told apart by shape, not by a pale fill */
 .columns .bar.faint {
-  background: var(--border);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--faint);
 }
 .columns .bar.accent {
   background: var(--accent);
@@ -1359,7 +1361,7 @@ fieldset.panel > legend {
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: var(--border);
+  box-shadow: inset 0 0 0 1.5px var(--faint);
 }
 .delta {
   margin: 0;
