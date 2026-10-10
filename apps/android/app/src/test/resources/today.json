@@ -202,7 +202,7 @@
       ],
       "adjustable": true,
       "origin": "pix feira do bairro",
-      "note": "Saiu dinheiro que a planilha ainda não tem."
+      "note": "Saiu do banco e não está na planilha."
     },
     {
       "key": "mov:m3",
@@ -240,7 +240,7 @@
       ],
       "adjustable": true,
       "origin": "pix recebido ana",
-      "note": "Entrou dinheiro que a planilha ainda não tem."
+      "note": "Entrou no banco e não está na planilha."
     },
     {
       "key": "previsto:fechar:2026-10-04",
@@ -312,7 +312,7 @@
       "bank": [],
       "adjustable": false,
       "origin": null,
-      "note": "Faltam compras do banco nesta fatura. Lançar troca o valor pelo total do banco, sem somar nada duas vezes."
+      "note": "O banco já tem compras que a planilha não tem."
     },
     {
       "key": "conta:outra",
@@ -347,9 +347,10 @@
       ],
       "adjustable": false,
       "origin": null,
-      "note": "Você passou dinheiro entre suas contas. A conta Banco Verde guarda dinheiro ou é do dia a dia? Pergunto só uma vez."
+      "note": "Dinheiro passou entre suas contas. A conta Banco Verde guarda dinheiro ou é do dia a dia?"
     }
   ],
+  "bankSyncedAt": "2026-10-05T09:00:00.000Z",
   "saldo": {
     "date": "2026-10-04",
     "sheet": 1784247,

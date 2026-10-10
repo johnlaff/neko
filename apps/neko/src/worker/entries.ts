@@ -96,7 +96,8 @@ const Preview = z.object({ draft: DraftSchema });
 const Commit = z.object({
   id: z.string().uuid(),
   draft: DraftSchema,
-  fingerprints: z.array(z.string().max(64)).max(60),
+  /** From a preview the owner saw; without it, the write checks each line's value as it goes. */
+  fingerprints: z.array(z.string().max(64)).max(60).optional(),
   key: z.string().max(300).optional(),
 });
 

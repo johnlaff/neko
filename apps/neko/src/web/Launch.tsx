@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { type QueueItemView, type QueueLine, saldoView } from "../shared/queue.ts";
 import type { BankView } from "../shared/types.ts";
 import { ApiError, api } from "./api.ts";
-import { bankText, money, shortDate, toCents } from "./format.ts";
+import { bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
 import { IconChevron } from "./icons.tsx";
 
 /**
@@ -41,18 +41,12 @@ const message = (e: unknown) =>
     ? (e as Error).message.replace(/^./, (c) => c.toUpperCase())
     : "Não gravou. Confira a conexão e tente de novo.";
 
-/** Reads the cells now, then writes: what was read is what the write expects to find. */
+/** One request: the Worker writes only if each changed line still holds what Neko showed. */
 const useLaunch = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ draft, key }: { draft: Draft; key?: string }) => {
-      const { parts } = await api.previewEntry(draft);
-      const result = await api.launch({
-        id: crypto.randomUUID(),
-        draft,
-        fingerprints: parts.map((p) => p.fingerprint),
-        ...(key ? { key } : {}),
-      });
+      const result = await api.launch({ id: crypto.randomUUID(), draft, ...(key ? { key } : {}) });
       if (result.state !== "done")
         throw new Error(result.error ?? "Não gravou. A planilha ficou como estava.");
       return result;
@@ -110,33 +104,28 @@ export const LaunchToast = () => {
 
 const signed = (c: number) => `${c < 0 ? "−" : "+"}${money(Math.abs(c))}`;
 
-/** One change, as the sheet will read: the line, its value now and after, and the day's total. */
+/**
+ * One change, read like a ledger line: where on the left, the new value on the right, and under
+ * them what it was and by how much it moves.
+ */
 const Change = ({ line }: { line: QueueLine }) => (
-  <li>
+  <li className="q-change">
     <span className="q-where">{bankText(line.label)}</span>
-    <span className="q-value">
-      {line.change === "economia" ? (
-        <strong>{signed(line.after)}</strong>
-      ) : line.before === null ? (
-        <>
-          <strong>{money(line.after)}</strong> · linha nova
-        </>
-      ) : (
-        <>
-          {money(line.before)} → <strong>{money(line.after)}</strong>
-          {line.diff !== null && line.diff !== 0 && ` (${signed(line.diff)})`}
-        </>
-      )}
+    <strong className="q-new">
+      {line.change === "economia" ? signed(line.after) : money(line.after)}
+    </strong>
+    <span className="q-was">
+      {line.change === "economia"
+        ? "na aba Economia"
+        : line.before === null
+          ? "linha nova"
+          : `era ${money(line.before)}`}
     </span>
-    {line.cell && (
-      <span className="q-cell">
-        {line.cell.label}: {money(line.cell.before)} → {money(line.cell.after)}
-      </span>
-    )}
+    {line.diff !== null && line.diff !== 0 && <span className="q-diff">{signed(line.diff)}</span>}
   </li>
 );
 
-/** What Lançar writes in the sheet, line by line; past the first three, behind a tap. */
+/** What Lançar writes in the sheet; past the first three, behind a tap. */
 const Impact = ({ lines }: { lines: readonly QueueLine[] }) => {
   const first = lines.slice(0, 3);
   const rest = lines.slice(3);
@@ -162,6 +151,41 @@ const Impact = ({ lines }: { lines: readonly QueueLine[] }) => {
         </details>
       )}
     </div>
+  );
+};
+
+/** The day's whole cell and what the bank showed: there for whoever wants to check, closed. */
+const Details = ({ item, lines }: { item: QueueItemView; lines: readonly QueueLine[] }) => {
+  const cells = lines.flatMap((l) => (l.cell ? [l.cell] : []));
+  if (cells.length === 0 && item.bank.length === 0) return null;
+  return (
+    <details className="formula q-details">
+      <summary>
+        <IconChevron />
+        Detalhes
+      </summary>
+      <ul className="q-bank">
+        {cells.map((c) => (
+          <li key={`${c.label}|${c.before}`}>
+            <span>{c.label}</span>
+            <span>
+              {money(c.before)} → {money(c.after)}
+            </span>
+          </li>
+        ))}
+        {item.bank.map((m) => (
+          <li key={`${m.date}|${m.amount}|${m.description}`}>
+            <span>
+              {shortDate(m.date)} · {bankText(m.description)}
+            </span>
+            <span className={m.amount > 0 ? "pos" : undefined}>
+              {m.amount > 0 ? "+" : "−"}
+              {money(Math.abs(m.amount))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 };
 
@@ -458,8 +482,15 @@ const Row = ({
 }) => {
   const [choice, setChoice] = useState(0);
   const [adjusting, setAdjusting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const launch = useLaunch();
   const queryClient = useQueryClient();
+  // Done: the item folds away before it leaves the list, so the next one slides up into place.
+  const leave = () => {
+    setLeaving(true);
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(() => onGone(item.key), still ? 120 : 280);
+  };
   const answer = useMutation({
     mutationFn: async (a: { ignore: true } | { use: "guardado" | "corrente" }) => {
       if ("ignore" in a) await api.ignore(item.key);
@@ -467,126 +498,116 @@ const Row = ({
       return "ignore" in a;
     },
     onSuccess: (ignored) => {
-      if (ignored) showToast({ entryId: null, text: "Ignorado", ignored: item.key });
-      onGone(item.key);
+      if (ignored)
+        showToast({ entryId: null, text: "Ignorado. Não aparece mais.", ignored: item.key });
+      leave();
       queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
   });
   const option = item.options[choice] ?? item.options[0];
   const draft = option?.draft ?? null;
   const question = item.options.every((o) => o.draft === null);
-  const busy = launch.isPending || answer.isPending;
+  const busy = launch.isPending || answer.isPending || leaving;
   const error = launch.error ?? answer.error;
+  const lines = option?.lines ?? [];
   return (
-    <li className="q-item" data-key={item.key}>
-      <div className="q-head">
-        <span className="name">{bankText(item.title)}</span>
-        <span className="meta">{shortDate(item.date)}</span>
-      </div>
-      <p className="q-note">{item.note}</p>
-      {item.options.length > 1 && !question && (
-        <fieldset className="how" aria-label="O que lançar">
-          {item.options.map((o, i) => (
-            <button
-              key={o.label}
-              type="button"
-              className="chip-button"
-              aria-pressed={choice === i}
-              onClick={() => setChoice(i)}
-            >
-              {o.label}
-            </button>
-          ))}
-        </fieldset>
-      )}
-      {option && option.lines.length > 0 && <Impact lines={option.lines} />}
-      {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
-        <EntryForm
-          draft={draft}
-          today={today}
-          launchKey={item.key}
-          onClose={() => setAdjusting(false)}
-          onDone={() => onGone(item.key)}
-        />
-      ) : (
-        <div className="q-actions">
-          {question ? (
-            item.options.map(
-              (o) =>
-                o.answer && (
-                  <button
-                    key={o.label}
-                    type="button"
-                    className="ghost small"
-                    disabled={busy}
-                    onClick={() => o.answer && answer.mutate({ use: o.answer })}
-                  >
-                    {o.label}
-                  </button>
-                ),
-            )
-          ) : (
-            <>
+    <li
+      className={`q-item${leaving ? " leaving" : ""}${busy ? " busy" : ""}`}
+      data-key={item.key}
+      aria-busy={busy}
+    >
+      <div className="q-body">
+        <div className="q-head">
+          <span className="name">{bankText(item.title)}</span>
+          <span className="meta">{shortDate(item.date)}</span>
+        </div>
+        <p className="q-note">{item.note}</p>
+        {item.options.length > 1 && !question && (
+          <fieldset className="how" aria-label="O que lançar">
+            {item.options.map((o, i) => (
               <button
+                key={o.label}
                 type="button"
-                className="small"
-                disabled={!writing || !draft || busy}
-                onClick={() =>
-                  draft &&
-                  launch.mutate({ draft, key: item.key }, { onSuccess: () => onGone(item.key) })
-                }
+                className="chip-button"
+                aria-pressed={choice === i}
+                disabled={busy}
+                onClick={() => setChoice(i)}
               >
-                {launch.isPending ? "Lançando…" : "Lançar"}
+                {o.label}
               </button>
-              {item.adjustable && draft?.type !== "card" && (
+            ))}
+          </fieldset>
+        )}
+        {lines.length > 0 && <Impact lines={lines} />}
+        {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
+          <EntryForm
+            draft={draft}
+            today={today}
+            launchKey={item.key}
+            onClose={() => setAdjusting(false)}
+            onDone={leave}
+          />
+        ) : (
+          <div className="q-actions">
+            {question ? (
+              item.options.map(
+                (o) =>
+                  o.answer && (
+                    <button
+                      key={o.label}
+                      type="button"
+                      className="ghost small"
+                      disabled={busy}
+                      onClick={() => o.answer && answer.mutate({ use: o.answer })}
+                    >
+                      {o.label}
+                    </button>
+                  ),
+              )
+            ) : (
+              <>
                 <button
                   type="button"
-                  className="ghost small"
-                  disabled={!writing || busy}
-                  title="Ajustar valor, dia ou nome"
-                  onClick={() => setAdjusting(true)}
+                  className="small"
+                  disabled={!writing || !draft || busy}
+                  onClick={() =>
+                    draft && launch.mutate({ draft, key: item.key }, { onSuccess: leave })
+                  }
                 >
-                  Ajustar
+                  {launch.isPending && <span className="q-spinner" aria-hidden="true" />}
+                  {launch.isPending ? "Lançando…" : "Lançar"}
                 </button>
-              )}
-            </>
-          )}
-          {/* Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer */}
-          <button
-            type="button"
-            className="text-link q-ignore"
-            disabled={busy}
-            onClick={() => answer.mutate({ ignore: true })}
-          >
-            Ignorar
-          </button>
-        </div>
-      )}
-      {error && (
-        <p className="setting-error" role="alert">
-          {message(error)}
-        </p>
-      )}
-      {item.bank.length > 0 && (
-        <details className="formula">
-          <summary>
-            <IconChevron />O banco mostrou
-          </summary>
-          <ul className="q-bank">
-            {item.bank.map((m) => (
-              <li key={`${m.date}|${m.amount}|${m.description}`}>
-                <span>
-                  {shortDate(m.date)} · {bankText(m.description)}
-                </span>
-                <span className={m.amount > 0 ? "pos" : undefined}>
-                  {m.amount > 0 ? "+" : "−"}
-                  {money(Math.abs(m.amount))}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
+                {item.adjustable && draft?.type !== "card" && (
+                  <button
+                    type="button"
+                    className="ghost small"
+                    disabled={!writing || busy}
+                    title="Ajustar valor, dia ou nome"
+                    onClick={() => setAdjusting(true)}
+                  >
+                    Ajustar
+                  </button>
+                )}
+              </>
+            )}
+            {/* Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer */}
+            <button
+              type="button"
+              className="text-link q-ignore"
+              disabled={busy}
+              onClick={() => answer.mutate({ ignore: true })}
+            >
+              Ignorar
+            </button>
+          </div>
+        )}
+        {error && (
+          <p className="setting-error" role="alert">
+            {message(error)}
+          </p>
+        )}
+        <Details item={item} lines={lines} />
+      </div>
     </li>
   );
 };
@@ -634,6 +655,36 @@ const Saldo = ({ bank, writing }: { bank: BankView; writing: boolean }) => {
   );
 };
 
+/** When the banks were last read, and Atualizar agora to read them without waiting for the morning. */
+const Refresh = ({ syncedAt }: { syncedAt: string | null }) => {
+  const queryClient = useQueryClient();
+  const refresh = useMutation({
+    mutationFn: api.refreshBanks,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["projection"] }),
+  });
+  return (
+    <p className="q-sync">
+      <span>
+        {refresh.isPending
+          ? "Lendo os bancos…"
+          : refresh.data?.ok === false || refresh.isError
+            ? "Algum banco não respondeu. Tente de novo mais tarde."
+            : syncedAt
+              ? `Bancos lidos ${readAtLabel(syncedAt)}.`
+              : "Bancos ainda não lidos."}
+      </span>
+      <button
+        type="button"
+        className="text-link"
+        disabled={refresh.isPending}
+        onClick={() => refresh.mutate()}
+      >
+        Atualizar agora
+      </button>
+    </p>
+  );
+};
+
 /** Para lançar on Hoje: what the bank showed and the sheet does not have yet, one item a line. */
 export const ParaLancar = ({
   bank,
@@ -660,10 +711,12 @@ export const ParaLancar = ({
       <div className="panel-head">
         <h2 id="h-queue">Para lançar</h2>
         {items.length > 0 && (
-          <span className="chip warn">
-            {items.length === 1 ? "1 item" : `${items.length} itens`}
-          </span>
+          <span className="chip">{items.length === 1 ? "1 item" : `${items.length} itens`}</span>
         )}
+      </div>
+      <div className="q-intro">
+        <p className="q-trust">Nada muda na planilha até você tocar em Lançar. Dá para desfazer.</p>
+        <Refresh syncedAt={bank.syncedAt} />
       </div>
       {items.length === 0 ? (
         <Saldo bank={bank} writing={writing} />

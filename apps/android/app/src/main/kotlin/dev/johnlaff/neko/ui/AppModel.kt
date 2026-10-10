@@ -207,12 +207,14 @@ class AppModel(
             get() = _mia.value?.takeIf { it.ligada && it.pausadaAte == null }?.let { { f, c -> neko.api.miaEntry(f, c) } }
 
         override suspend fun launch(draft: JsonObject, key: String?): String {
-            val fingerprints = neko.api.preview(draft)
-            val r = neko.api.launch(java.util.UUID.randomUUID().toString(), draft, fingerprints, key)
+            val r = neko.api.launch(java.util.UUID.randomUUID().toString(), draft, key)
             if (r.state != "done") throw ApiException(422, "write", r.error ?: "Não gravou. A planilha ficou como estava.")
             readToday(shown = false)
             return r.entryId
         }
+
+        override suspend fun refreshBanks(): Boolean =
+            neko.api.refreshBanks().also { readToday(shown = false) }
 
         override suspend fun undo(id: String): Boolean =
             if (id.startsWith(IGNORED)) {

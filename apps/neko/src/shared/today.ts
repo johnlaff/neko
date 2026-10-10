@@ -76,6 +76,8 @@ export interface TodayView {
   readonly bankMissing: readonly MissingMovement[] | null;
   /** Para lançar; null with no bank linked. */
   readonly queue: readonly QueueItemView[] | null;
+  /** When the banks were last read, beside Atualizar agora; null with no bank linked yet. */
+  readonly bankSyncedAt: string | null;
   /** "Saldo bate" against the bank, shown when the queue is empty. */
   readonly saldo: SaldoView | null;
   /** Off in Ajustes, or no writer key yet: the app shows no launch buttons. */
@@ -117,6 +119,7 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     recap: p.recap ?? null,
     bankMissing: r.bank ? r.bank.missing.map((m) => ({ ...m, line: noteLine(m) })) : null,
     queue: r.bank ? (r.bank.queue ?? []) : null,
+    bankSyncedAt: r.bank?.syncedAt ?? null,
     saldo: saldoView(r.bank?.saldo),
     writing: r.writing ?? false,
     entryCards: r.cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name),
