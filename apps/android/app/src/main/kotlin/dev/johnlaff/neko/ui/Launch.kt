@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -121,25 +122,32 @@ private fun isoDate(typed: String, year: String): String? {
 private fun Change(line: QueueLine) {
     val l = LocalLedger.current
     val sign = { c: Long -> Format.signed(c, if (c < 0) '−' else '+') }
+    val before = line.before
+    val where = Format.bankText(line.label)
+    val value = if (line.change == "economia") sign(line.after) else money(line.after)
+    val was = when {
+        line.change == "economia" -> "na aba Economia"
+        before == null -> "linha nova"
+        else -> "era ${money(before)}"
+    }
+    val diff = line.diff?.takeIf { it != 0L }?.let(sign)
+    // With large text the value goes under the place instead of squeezing it (web @container).
+    if (LocalDensity.current.fontScale >= 1.5f) {
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(where, color = l.text, style = MaterialTheme.typography.bodyMedium)
+            Text(value, color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+            Text(listOfNotNull(was, diff).joinToString(" · "), color = l.muted, style = MaterialTheme.typography.bodySmall)
+        }
+        return
+    }
     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(Format.bankText(line.label), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                if (line.change == "economia") sign(line.after) else money(line.after),
-                color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
-            )
+            Text(where, Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.bodyMedium)
+            Text(value, color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            val before = line.before
-            Text(
-                when {
-                    line.change == "economia" -> "na aba Economia"
-                    before == null -> "linha nova"
-                    else -> "era ${money(before)}"
-                },
-                Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall,
-            )
-            line.diff?.takeIf { it != 0L }?.let { Text(sign(it), color = l.muted, style = MaterialTheme.typography.bodySmall, maxLines = 1) }
+            Text(was, Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall)
+            diff?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodySmall, maxLines = 1) }
         }
     }
 }
@@ -426,22 +434,23 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
         }
     }
 
+    // While writing, the item dims and locks; the button saying "Lançando…" stays readable.
+    val dim = Modifier.graphicsLayer { alpha = if (busy) 0.6f else 1f }
     Column(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp).graphicsLayer { alpha = if (busy) 0.72f else 1f }
-            .semantics { if (busy) stateDescription = "Gravando" },
+        Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { if (busy) stateDescription = "Gravando" },
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().then(dim), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.titleSmall)
             Text(shortDate(item.date), color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        item.note?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
+        item.note?.let { Text(it, dim, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
         if (item.options.size > 1 && !question) {
-            FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(Modifier.selectableGroup().then(dim), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.options.forEachIndexed { i, o -> Choice(o.label, choice == i) { if (!busy) choice = i } }
             }
         }
-        if (lines.isNotEmpty()) Impact(lines, "${item.key}|$choice")
+        if (lines.isNotEmpty()) Box(dim) { Impact(lines, "${item.key}|$choice") }
         if (adjusting && draft != null && launcher != null && !isCard) {
             EntryForm(launcher, v.today, { adjusting = false }, { id -> onLaunched(id); onGone() }, draft = draft, key = item.key)
         } else if (launcher != null) {
@@ -457,7 +466,8 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
                             }
                         }
                     } else {
-                        Small(if (launching) "Lançando…" else "Lançar", filled = true, enabled = canWrite && draft != null && !busy, spinning = launching) {
+                        Small(if (launching) "Lançando…" else "Lançar", filled = true, enabled = canWrite && draft != null && (!busy || launching), spinning = launching) {
+                            if (busy) return@Small
                             val d = draft ?: return@Small
                             launching = true
                             run { onLaunched(it.launch(d, item.key)) }
@@ -477,7 +487,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
         error?.let { Failed(it) }
         // The day's whole cell and what the bank showed: there to check, closed (web Details).
         val cells = lines.mapNotNull { it.cell }
-        if (cells.isNotEmpty() || item.bank.isNotEmpty()) Column {
+        if (cells.isNotEmpty() || item.bank.isNotEmpty()) Column(dim) {
             TextAction("Detalhes", { details = !details }, open = details)
             Reveal(details) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -569,7 +579,7 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
             if (left.isNotEmpty()) Chip(if (left.size == 1) "1 item" else "${left.size} itens", ChipTone.Plain)
         }
         Column {
-            Text("Nada muda na planilha até você tocar em Lançar. Dá para desfazer.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+            Text("Nada muda na planilha até você tocar em Lançar.", color = l.muted, style = MaterialTheme.typography.bodySmall)
             Refresh(v.bankSyncedAt, launcher)
         }
         if (left.isEmpty() && saldo != null) Saldo(saldo, v, launcher, onLaunched)

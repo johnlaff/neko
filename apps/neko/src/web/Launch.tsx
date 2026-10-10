@@ -569,9 +569,11 @@ const Row = ({
                 <button
                   type="button"
                   className="small"
-                  disabled={!writing || !draft || busy}
+                  disabled={!writing || !draft || (busy && !launch.isPending)}
+                  aria-disabled={launch.isPending || undefined}
+                  aria-busy={launch.isPending || undefined}
                   onClick={() =>
-                    draft && launch.mutate({ draft, key: item.key }, { onSuccess: leave })
+                    !busy && draft && launch.mutate({ draft, key: item.key }, { onSuccess: leave })
                   }
                 >
                   {launch.isPending && <span className="q-spinner" aria-hidden="true" />}
@@ -715,7 +717,7 @@ export const ParaLancar = ({
         )}
       </div>
       <div className="q-intro">
-        <p className="q-trust">Nada muda na planilha até você tocar em Lançar. Dá para desfazer.</p>
+        <p className="q-trust">Nada muda na planilha até você tocar em Lançar.</p>
         <Refresh syncedAt={bank.syncedAt} />
       </div>
       {items.length === 0 ? (

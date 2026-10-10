@@ -2722,8 +2722,10 @@ main.mia-page form.mia-form > input {
 .q-item:last-child > .q-body {
   padding-bottom: 0;
 }
-.q-item.busy > .q-body {
-  opacity: 0.72;
+/* While writing, the item dims and locks; the button saying "Lançando…" stays readable */
+.q-item.busy > .q-body > :not(.q-actions),
+.q-item.busy .q-actions > :not([aria-busy="true"]) {
+  opacity: 0.6;
   transition: opacity 120ms ease-out;
 }
 .q-item.leaving {
@@ -2803,6 +2805,7 @@ main.mia-page form.mia-form > input {
 }
 /* What Lançar writes, as the sheet will read it: where, then before → after */
 .q-impact {
+  container-type: inline-size;
   display: grid;
   gap: 6px;
   padding: 10px 12px;
@@ -2832,7 +2835,21 @@ main.mia-page form.mia-form > input {
 }
 .q-where {
   color: var(--text);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+.q-actions > button[aria-busy="true"] {
+  opacity: 1;
+  cursor: progress;
+}
+/* Narrow, or with large text: the value goes under the place instead of squeezing it */
+@container (max-width: 18em) {
+  .q-impact li.q-change {
+    grid-template-columns: 1fr;
+  }
+  .q-new,
+  .q-diff {
+    justify-self: start;
+  }
 }
 .q-new {
   justify-self: end;
