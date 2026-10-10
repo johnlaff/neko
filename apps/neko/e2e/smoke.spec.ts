@@ -157,7 +157,7 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
   page,
 }) => {
   const errors = await open(page, "/");
-  await page.getByRole("link", { name: /Perguntar à Mia/ }).click();
+  await page.getByRole("link", { name: /^Perguntar à Mia .+/ }).click();
   await expect(page).toHaveURL(/\/mia$/);
   // Her screen is the whole page: no tabs, a way back.
   await expect(page.getByRole("navigation", { name: "Telas" })).toHaveCount(0);
@@ -181,14 +181,25 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
   await page.getByRole("button", { name: "Voltar" }).click();
   await expect(page).toHaveURL(/\/$/);
   // Back on Hoje, the keyboard carries on from the row Mia was opened from.
-  await expect(page.getByRole("link", { name: /Perguntar à Mia/ })).toBeFocused();
+  await expect(page.getByRole("link", { name: /^Perguntar à Mia .+/ })).toBeFocused();
   await page.getByRole("link", { name: /Continuar a conversa/ }).click();
   await expect(answer.getByRole("link", { name: "Ver setembro" })).toBeVisible();
   await page.getByRole("button", { name: "Nova conversa" }).click();
   await expect(page.getByRole("button", { name: "Como está minha reserva?" })).toBeVisible();
-  // Esc on an empty question field goes back, as the arrow's hint says.
+  // From another tab, Mia's mark in the head opens her with questions about that screen.
+  await page.getByRole("button", { name: "Voltar" }).click();
+  await page.getByRole("link", { name: "Faturas", exact: true }).click();
+  await expect(page).toHaveURL(/\/faturas$/);
+  await page.getByRole("link", { name: "Perguntar à Mia", exact: true }).click();
+  await expect(page).toHaveURL(/\/mia\?de=faturas$/);
+  await expect(page.getByRole("heading", { name: "Pergunte sobre as faturas" })).toBeVisible();
+  await page.getByRole("button", { name: "Voltar" }).click();
+  await expect(page).toHaveURL(/\/faturas$/);
+  await expect(page.getByRole("link", { name: "Perguntar à Mia", exact: true })).toBeFocused();
+  await page.getByRole("link", { name: "Perguntar à Mia", exact: true }).click();
+
   await page.getByRole("textbox", { name: "Pergunta para a Mia" }).press("Escape");
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/faturas$/);
   expect(errors).toEqual([]);
 });
 

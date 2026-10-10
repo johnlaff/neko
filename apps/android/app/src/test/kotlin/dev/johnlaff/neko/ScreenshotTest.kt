@@ -182,6 +182,25 @@ class ScreenshotTest {
         )
     }
 
+    // Mia's mark in the head of a tab, and her screen opened from it.
+    @Test fun miaTopoDark() = shot("mia-topo-dark", night = true) {
+        androidx.compose.runtime.CompositionLocalProvider(dev.johnlaff.neko.ui.LocalMiaHead provides {}) {
+            FaturasScreen(ScreenState(invoices), {}, {})
+        }
+    }
+
+    @Test fun miaFaturasLight() = shot("mia-faturas-light", night = false) {
+        MiaScreen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true),
+            { error("no network in screenshots") },
+            MiaChat(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+            topic = "faturas",
+        )
+    }
+
     @Test fun miaHojeLight() = shot("mia-hoje-light", night = false, scrollTo = "Perguntar à Mia") {
         HojeScreen(TodayState(view), {}, {}, mia = dev.johnlaff.neko.data.MiaStatus(ligada = true), onMia = {}, miaTalking = true)
     }

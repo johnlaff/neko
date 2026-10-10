@@ -2837,3 +2837,17 @@ form.entry {
   gap: 10px;
   padding: 12px 16px 16px;
 }
+/* Mia in the head of each tab: her mark with the amber eyes, the size of the other head icons. */
+.masthead > a.mia-head {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  color: var(--text);
+  transition: background-color 160ms ease-out;
+}
+.masthead > a.mia-head:hover {
+  background: var(--pill-active);
+}

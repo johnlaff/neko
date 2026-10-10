@@ -176,6 +176,10 @@ fun <T> ScreenFrame(
                             }
                         }
                     }
+                    // Mia beside the title on the tabs she can talk about, as in the site's head.
+                    val topic = when (title) { "Hoje" -> "hoje"; "Faturas" -> "faturas"; "Mês" -> "mes"; else -> null }
+                    val mia = LocalMiaHead.current
+                    if (topic != null && mia != null) MiaHead { mia(topic) }
                     trailing()
                 }
             }
@@ -254,6 +258,9 @@ private fun ErrorPanel(state: ScreenState<*>, onRetry: () -> Unit) {
 
 /** True on a wide window (tablet, unfolded phone, desktop): the dock stands on the left as a rail. */
 val LocalRail = staticCompositionLocalOf { false }
+
+/** Opens Mia on the screen she is asked from ("hoje", "faturas", "mes"); null while she is off. */
+val LocalMiaHead = androidx.compose.runtime.compositionLocalOf<((String) -> Unit)?> { null }
 
 /** Width from which the dock becomes a rail, Material's "expanded" window class. */
 val RAIL_FROM = 840.dp

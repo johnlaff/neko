@@ -6,14 +6,33 @@ import { BrandMark } from "./BrandMark.tsx";
 import { money, monthName, shortDate } from "./format.ts";
 import { IconChevron, IconChevronLeft } from "./icons.tsx";
 
-/** Questions Mia answers well, one tap each (specs/004-mia). */
-export const MIA_SUGGESTIONS = [
-  "Quanto cabe por dia?",
-  "Quanto saiu no mês passado?",
-  "Este mês está melhor que o anterior?",
-  "Quanto gastei com mercado este ano?",
-  "Como está minha reserva?",
-] as const;
+/** The screen Mia was opened from: her first questions are about it. */
+export type MiaTopic = "hoje" | "faturas" | "mes";
+
+/** Questions Mia answers well, one tap each (specs/004-mia), led by the screen she came from. */
+const MIA_TOPICS: Record<MiaTopic, readonly string[]> = {
+  hoje: ["Quanto cabe por dia?", "Como está minha reserva?"],
+  faturas: ["Quanto vem na próxima fatura?", "Qual cartão está mais alto?"],
+  mes: [
+    "Quanto saiu no mês passado?",
+    "Este mês está melhor que o anterior?",
+    "Quanto gastei com mercado este ano?",
+  ],
+};
+
+/** Five questions, those about the screen Mia was opened from first. */
+export const miaStarters = (topic: MiaTopic = "hoje") =>
+  [...MIA_TOPICS[topic], ...Object.values(MIA_TOPICS).flat()]
+    .filter((q, i, all) => all.indexOf(q) === i)
+    .slice(0, 5);
+
+/** The empty screen's title, naming the screen she was opened from. */
+export const miaTitle = (topic: MiaTopic = "hoje") =>
+  topic === "faturas"
+    ? "Pergunte sobre as faturas"
+    : topic === "mes"
+      ? "Pergunte sobre os meses"
+      : "Pergunte sobre a sua planilha";
 
 /** Exchanges sent back with a question; the Worker takes no more. */
 const MAX_HISTORY = 6;
@@ -105,8 +124,10 @@ export const miaSources = (reply: MiaReply) => {
 };
 
 /** After an answer, two questions not asked yet, so the next one is a tap away. */
-export const miaNext = (asked: readonly string[]) =>
-  MIA_SUGGESTIONS.filter((q) => !asked.includes(q)).slice(0, 2);
+export const miaNext = (asked: readonly string[], topic: MiaTopic = "hoje") =>
+  [...miaStarters(topic), ...Object.values(MIA_TOPICS).flat()]
+    .filter((q, i, all) => all.indexOf(q) === i && !asked.includes(q))
+    .slice(0, 2);
 
 /** What the wait line says as it goes on: the answer can take a while, and silence reads as stuck. */
 export const miaWaiting = (seconds: number) =>
@@ -184,25 +205,36 @@ const useSeconds = (since: number | undefined) => {
 
 const useMiaStatus = () => useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
 
-/** Set when Mia's screen closes onto Hoje, so the row she was opened from takes the focus back. */
-let backOnHoje = false;
+/**
+ * Which way into Mia was taken, and from where: when her screen closes back onto that screen, the
+ * same way in takes the focus again, so the keyboard and the screen reader carry on from there.
+ */
+let opener: { selector: string; path: string } | null = null;
+const opened = (selector: string) => () => {
+  opener = { selector, path: window.location.pathname };
+};
+const refocusOpener = () => {
+  const o = opener;
+  opener = null;
+  // The screen it lives on may still be loading: a few frames, then give up quietly.
+  let tries = 20;
+  const look = () => {
+    if (!o || window.location.pathname !== o.path) return;
+    const el = document.querySelector<HTMLElement>(o.selector);
+    if (el) el.focus({ preventScroll: true });
+    else if (--tries > 0) requestAnimationFrame(look);
+  };
+  requestAnimationFrame(look);
+};
 
 /** "Perguntar à Mia" on Hoje: hidden until the key is set, a way into her screen. */
 export const Mia = () => {
   const status = useMiaStatus();
   const { talk } = useChat();
-  const row = useRef<HTMLAnchorElement>(null);
-  const on = Boolean(status.data?.ligada);
-  // Back from Mia, the keyboard and the screen reader carry on from this row, not from the top.
-  useEffect(() => {
-    if (!on || !backOnHoje) return;
-    backOnHoje = false;
-    row.current?.focus({ preventScroll: true });
-  }, [on]);
-  if (!on) return null;
+  if (!status.data?.ligada) return null;
   return (
     // A quiet row, not a third big button: Hoje already has Lançar and Simular.
-    <Link to="/mia" className="alert mia-ask" ref={row}>
+    <Link to="/mia" className="alert mia-ask" onClick={opened(".mia-ask")}>
       <BrandMark width={40} className="mia-mark" />
       <span className="alert-text">
         <strong>Perguntar à Mia</strong>
@@ -211,6 +243,28 @@ export const Mia = () => {
         </span>
       </span>
       <IconChevron />
+    </Link>
+  );
+};
+
+/**
+ * Mia in the head of Hoje, Faturas and Mês, beside "ler de novo": her screen from any tab, her
+ * first questions about the one it was opened from.
+ */
+export const MiaHead = ({ topic }: { topic: MiaTopic }) => {
+  const status = useMiaStatus();
+  if (!status.data?.ligada) return null;
+  return (
+    <Link
+      onClick={opened(".mia-head")}
+      to="/mia"
+      search={topic === "hoje" ? {} : { de: topic }}
+      className="icon mia-head"
+      aria-label="Perguntar à Mia"
+      aria-keyshortcuts="M"
+      title="Perguntar à Mia (M)"
+    >
+      <BrandMark width={24} className="mia-mark" />
     </Link>
   );
 };
@@ -235,7 +289,7 @@ const useKeyboardResizes = () => {
  * Mia's own screen: the whole page for the conversation, the question field pinned at the bottom.
  * No tabs here; the arrow (or Esc, or the phone's back) returns to where she was opened from.
  */
-export const MiaScreen = () => {
+export const MiaScreen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const canGoBack = useCanGoBack();
@@ -250,11 +304,11 @@ export const MiaScreen = () => {
   const seconds = useSeconds(pending?.since);
   useKeyboardResizes();
   // Opening says where the owner landed: the title takes the focus (no keyboard pops up), or the
-  // newest answer does when a conversation is waiting. Closing onto Hoje hands the focus back.
+  // newest answer does when a conversation is waiting. Closing hands the focus back to the way in.
   useEffect(() => {
     if (chat.talk.length === 0) title.current?.focus({ preventScroll: true });
     return () => {
-      backOnHoje = window.location.pathname === "/";
+      refocusOpener();
     };
   }, []);
   // The newest answer is read from its top, under the bar, and takes the focus: a screen reader
@@ -283,8 +337,8 @@ export const MiaScreen = () => {
   const resting = Boolean(s?.pausadaAte) || limited;
   // A question that just failed waits in "Tentar de novo", not again among the chips.
   const asked = [...talk.map((x) => x.pergunta), ...(failed ? [failed] : [])];
-  const starters = MIA_SUGGESTIONS.filter((q) => !asked.includes(q));
-  const next = talk.length === 0 || typed.trim() || pending || resting ? [] : miaNext(asked);
+  const starters = miaStarters(topic).filter((q) => !asked.includes(q));
+  const next = talk.length === 0 || typed.trim() || pending || resting ? [] : miaNext(asked, topic);
 
   return (
     <>
@@ -332,7 +386,7 @@ export const MiaScreen = () => {
             )}
             {talk.length === 0 && !pending && (
               <div className="mia-empty">
-                <h2>Pergunte sobre a sua planilha</h2>
+                <h2>{miaTitle(topic)}</h2>
                 <p className="muted">
                   A Mia responde com os números das telas do Neko, e cada um leva à tela de onde
                   veio.
