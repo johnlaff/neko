@@ -124,7 +124,7 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
               />
               <input
                 aria-label="Código da conexão no Meu Pluggy"
-                placeholder="Código da conexão"
+                placeholder="Código"
                 value={itemId}
                 spellCheck={false}
                 aria-invalid={itemId.trim() !== "" && !UUID.test(itemId.trim())}

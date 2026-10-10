@@ -463,7 +463,7 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
                 )
                 OutlinedTextField(
                     itemId, { itemId = it },
-                    placeholder = { Text("Código da conexão") }, singleLine = true,
+                    placeholder = { Text("Código") }, singleLine = true,
                     isError = itemId.isNotBlank() && !UUID.matches(itemId.trim()),
                     modifier = Modifier.weight(1.4f).semantics { contentDescription = "Código da conexão no Meu Pluggy" },
                 )
