@@ -43,7 +43,8 @@ window.addEventListener("vite:preloadError", (event) => {
 window.addEventListener("error", (event) => reportError(event.error ?? event.message));
 window.addEventListener("unhandledrejection", (event) => {
   // Failed API calls already show in the screen and in the Worker logs.
-  if (!(event.reason instanceof ApiError)) reportError(event.reason);
+  // A rejection another listener already handled (a skipped view transition) is not reported.
+  if (!event.defaultPrevented && !(event.reason instanceof ApiError)) reportError(event.reason);
 });
 
 if (import.meta.env.PROD && "serviceWorker" in navigator)
