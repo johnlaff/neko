@@ -2796,18 +2796,8 @@ main.mia-page form.mia-form > input {
   align-items: center;
   gap: 8px;
 }
-/* "O banco mostrou" and Ignorar share the item's last row */
-.q-foot {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.q-foot > details {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.q-foot > button.q-ignore {
+/* Ignorar closes the action row: quiet, at the far end */
+.q-actions > button.q-ignore {
   margin-left: auto;
   min-height: 44px;
   padding: 0 4px;

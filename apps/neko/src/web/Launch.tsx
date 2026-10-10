@@ -543,6 +543,7 @@ const Row = ({
                   type="button"
                   className="ghost small"
                   disabled={!writing || busy}
+                  title="Ajustar valor, dia ou nome"
                   onClick={() => setAdjusting(true)}
                 >
                   Ajustar
@@ -550,36 +551,7 @@ const Row = ({
               )}
             </>
           )}
-        </div>
-      )}
-      {error && (
-        <p className="setting-error" role="alert">
-          {message(error)}
-        </p>
-      )}
-      <div className="q-foot">
-        {item.bank.length > 0 && (
-          <details className="formula">
-            <summary>
-              <IconChevron />O banco mostrou
-            </summary>
-            <ul className="q-bank">
-              {item.bank.map((m) => (
-                <li key={`${m.date}|${m.amount}|${m.description}`}>
-                  <span>
-                    {shortDate(m.date)} · {bankText(m.description)}
-                  </span>
-                  <span className={m.amount > 0 ? "pos" : undefined}>
-                    {m.amount > 0 ? "+" : "−"}
-                    {money(Math.abs(m.amount))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-        {/* Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer */}
-        {!adjusting && (
+          {/* Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer */}
           <button
             type="button"
             className="text-link q-ignore"
@@ -588,8 +560,33 @@ const Row = ({
           >
             Ignorar
           </button>
-        )}
-      </div>
+        </div>
+      )}
+      {error && (
+        <p className="setting-error" role="alert">
+          {message(error)}
+        </p>
+      )}
+      {item.bank.length > 0 && (
+        <details className="formula">
+          <summary>
+            <IconChevron />O banco mostrou
+          </summary>
+          <ul className="q-bank">
+            {item.bank.map((m) => (
+              <li key={`${m.date}|${m.amount}|${m.description}`}>
+                <span>
+                  {shortDate(m.date)} · {bankText(m.description)}
+                </span>
+                <span className={m.amount > 0 ? "pos" : undefined}>
+                  {m.amount > 0 ? "+" : "−"}
+                  {money(Math.abs(m.amount))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </li>
   );
 };

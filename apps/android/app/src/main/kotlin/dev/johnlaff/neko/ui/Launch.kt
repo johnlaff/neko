@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -427,7 +426,9 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
         if (adjusting && draft != null && launcher != null && !isCard) {
             EntryForm(launcher, v.today, { adjusting = false }, onLaunched, draft = draft, key = item.key)
         } else if (launcher != null) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Ignorar closes the action row: the way out, quiet, at the far end, with Desfazer.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (question) {
                     item.options.forEach { o ->
                         o.answer?.let { use ->
@@ -445,21 +446,17 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
                         Small("Ajustar", filled = false, enabled = canWrite && !busy) { adjusting = true }
                 }
             }
-        }
-        error?.let { Failed(it) }
-        // "O banco mostrou" and Ignorar share the item's last row; Ignorar is the way out, quiet,
-        // at the far end, with Desfazer.
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            if (item.bank.isNotEmpty()) TextAction("O banco mostrou", { bank = !bank }, open = bank)
-            Spacer(Modifier.weight(1f))
-            if (launcher != null && !adjusting) TextAction("Ignorar", {
+            TextAction("Ignorar", {
                 if (!busy) run {
                     it.ignore(item.key)
                     onLaunched("$IGNORED${item.key}")
                 }
             }, l.muted)
+            }
         }
+        error?.let { Failed(it) }
         if (item.bank.isNotEmpty()) Column {
+            TextAction("O banco mostrou", { bank = !bank }, open = bank)
             Reveal(bank) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     item.bank.forEach { m ->
