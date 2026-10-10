@@ -345,6 +345,27 @@ describe("Para lançar: card bills", () => {
     });
   });
 
+  it("pays back the whole bill, and fixes a payback that drifted from a right bill", () => {
+    // The sheet's payback (100,00) lags the bill (150,00): raising both by the change keeps it short.
+    const drift = ledger("2026-10-01", 130, 0, {
+      "2026-12-12": {
+        saida: cell(15000, [item(15000, "Banco Gio")]),
+        entrada: cell(10000, [item(10000, "Banco Gio", null)]),
+      },
+    });
+    const [raised] = queue({ ledger: drift, lines: [line("Banco Gio", 18000, "2026-12")] });
+    expect(raised?.options[1]?.draft).toMatchObject({
+      bills: [{ was: 15000, amount: 18000 }],
+      also: [{ line: { amount: 10000 }, amount: 18000 }],
+    });
+    const [fixed] = queue({ ledger: drift, lines: [line("Banco Gio", 15000, "2026-12")] });
+    expect(fixed?.options).toHaveLength(1);
+    expect(fixed?.options[0]?.draft).toMatchObject({
+      bills: [{ was: 15000, amount: 15000 }],
+      also: [{ line: { amount: 10000 }, amount: 15000 }],
+    });
+  });
+
   it("asks whether the reimbursement of someone else's card follows its bill", () => {
     const [i] = queue({ ledger: days, lines: [line("Banco Gio", 25000, "2026-12")] });
     expect(i?.options.map((o) => o.label)).toEqual(["Só a fatura", "Fatura e reembolso"]);

@@ -30,6 +30,8 @@ data class TodayView(
     val bankMissing: List<MissingMovement>? = null,
     /** Para lançar (shared/queue.ts); null with no bank linked. */
     val queue: List<QueueItem>? = null,
+    /** When the banks were last read, beside Atualizar agora. */
+    val bankSyncedAt: String? = null,
     /** "Saldo bate": yesterday's Saldo against the accounts, shown when the queue is empty. */
     val saldo: SaldoView? = null,
     /** Off in Ajustes, or no writer key yet: no launch buttons. */

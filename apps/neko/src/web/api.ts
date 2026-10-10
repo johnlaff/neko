@@ -140,13 +140,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ frase, cartoes }),
     }),
-  previewEntry: (draft: Draft) =>
-    request<{ parts: { fingerprint: string }[] }>("/entries/preview", {
-      method: "POST",
-      body: JSON.stringify({ draft }),
-    }),
-  launch: (body: { id: string; draft: Draft; fingerprints: string[]; key?: string }) =>
+  /** One request: the Worker reads each cell and writes only if every changed line still holds what Neko saw. */
+  launch: (body: { id: string; draft: Draft; key?: string }) =>
     request<LaunchResult>("/entries", { method: "POST", body: JSON.stringify(body) }),
+  /** Atualizar agora: the banks read now instead of at the next morning sync. */
+  refreshBanks: () => request<{ ok: boolean }>("/banks/refresh", { method: "POST" }),
   undoEntry: (id: string) =>
     request<LaunchResult>(`/entries/${encodeURIComponent(id)}/undo`, { method: "POST" }),
   /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. */

@@ -2700,15 +2700,78 @@ main.mia-page form.mia-form > input {
   padding: 0;
   display: grid;
 }
+/* Each item folds away when done: rows to 0, then gone, so the next one slides up */
 .q-item {
   display: grid;
-  gap: 8px;
-  padding: 12px 0;
+  grid-template-rows: 1fr;
   border-bottom: 1px solid var(--border);
+  transition:
+    grid-template-rows 240ms cubic-bezier(0.2, 0, 0, 1) 40ms,
+    opacity 160ms ease-out;
 }
 .q-item:last-child {
   border-bottom: 0;
+}
+.q-body {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+  padding: 14px 0;
+}
+.q-item:last-child > .q-body {
   padding-bottom: 0;
+}
+/* While writing, the item dims and locks; the button saying "Lançando…" stays readable */
+.q-item.busy > .q-body > :not(.q-actions),
+.q-item.busy .q-actions > :not([aria-busy="true"]) {
+  opacity: 0.6;
+  transition: opacity 120ms ease-out;
+}
+.q-item.leaving {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  border-bottom-color: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-item {
+    transition: opacity 120ms linear;
+  }
+}
+.q-trust,
+.q-sync {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.q-intro {
+  display: grid;
+}
+.q-sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+}
+.q-sync > button.text-link {
+  min-height: 44px;
+  padding: 0;
+}
+.q-spinner {
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  display: inline-block;
+  vertical-align: -2px;
+  animation: spin 800ms linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-spinner {
+    animation-duration: 2s;
+  }
 }
 .q-head {
   display: flex;
@@ -2742,6 +2805,7 @@ main.mia-page form.mia-form > input {
 }
 /* What Lançar writes, as the sheet will read it: where, then before → after */
 .q-impact {
+  container-type: inline-size;
   display: grid;
   gap: 6px;
   padding: 10px 12px;
@@ -2760,28 +2824,47 @@ main.mia-page form.mia-form > input {
   display: grid;
   gap: 8px;
 }
-.q-impact li {
+/* A ledger line: where and the new value on top, what it was and the change under them */
+.q-impact li.q-change {
   display: grid;
-  gap: 1px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 1px;
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
 }
 .q-where {
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-.q-value {
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-.q-value strong {
   color: var(--text);
-  font-weight: 500;
+  overflow-wrap: break-word;
 }
-.q-cell {
+.q-actions > button[aria-busy="true"] {
+  opacity: 1;
+  cursor: progress;
+}
+/* Narrow, or with large text: the value goes under the place instead of squeezing it */
+@container (max-width: 18em) {
+  .q-impact li.q-change {
+    grid-template-columns: 1fr;
+  }
+  .q-impact .q-new,
+  .q-impact .q-diff {
+    justify-self: start;
+  }
+}
+.q-new {
+  justify-self: end;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.q-was,
+.q-diff {
   font-size: 0.8125rem;
   color: var(--muted);
-  overflow-wrap: anywhere;
+}
+.q-diff {
+  justify-self: end;
+  white-space: nowrap;
 }
 .q-impact details.formula > ul {
   margin-top: 8px;

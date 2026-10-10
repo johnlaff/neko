@@ -109,6 +109,12 @@ describe.runIf(available)("writer on the test sheet", { timeout: 300_000 }, () =
   });
 
   it("raises a card's line on its bill", async () => {
+    // A run cancelled between Lançar and Desfazer leaves the raise behind; start from the script's cell.
+    await reset(
+      at("2026-06-10", "saida"),
+      "=SUM(1200+150,5+300)",
+      "CONTAS\nR$ 1.200,00 - Aluguel\nR$ 150,50 - Luz\n\nCARTÕES\nR$ 300,00 - Cartão A",
+    );
     await roundTrip(
       {
         ...at("2026-06-10", "saida"),

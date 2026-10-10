@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
@@ -144,6 +146,16 @@ class ScreenshotTest {
     // The bank's parts sit at the end of each screen: scrolled there, as the owner would.
     @Test fun bancoHojeLight() = shot("banco-hoje-light", night = false, scrollTo = "Para lançar") {
         HojeScreen(TodayState(view), {}, {}, launcher = Fakes.launcher)
+    }
+
+    // Para lançar whole, on a tall screen: Hoje's shot only reaches its title.
+    @Test fun filaLight() {
+        org.robolectric.RuntimeEnvironment.setQualifiers("+h2000dp")
+        shot("fila-light", night = false) {
+            androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
+                dev.johnlaff.neko.ui.ParaLancar(view, Fakes.launcher) {}
+            }
+        }
     }
 
     @Test fun saldoHojeDark() = shot("saldo-hoje-dark", night = true, scrollTo = "Para lançar") {
