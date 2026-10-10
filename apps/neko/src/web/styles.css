@@ -948,6 +948,24 @@ input.switch:checked::after {
   width: 20px;
   height: 20px;
 }
+/* The head's icons say their names where the window has room for them (desktop). */
+.masthead .icon-label {
+  display: none;
+}
+@media (min-width: 52.5rem) {
+  .masthead button.icon:has(.icon-label) {
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 0 10px;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .masthead .icon-label {
+    display: inline;
+  }
+}
 .masthead button.spinning svg {
   animation: spin 900ms linear infinite;
 }

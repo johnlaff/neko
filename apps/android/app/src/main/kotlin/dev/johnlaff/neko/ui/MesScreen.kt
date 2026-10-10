@@ -331,7 +331,7 @@ private fun Outflows(m: MonthItem) {
             )
         }
         (if (all) m.outflows else m.outflows.take(OUTFLOWS_SHOWN)).forEach { OutflowRow(it, top) }
-        if (rest > 0) TextAction(if (all) "Ver menos" else "Ver mais $rest", { all = !all })
+        if (rest > 0) TextAction(if (all) "Ver menos" else "Ver mais $rest", { all = !all }, open = all)
         if (m.fixed.isNotEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 androidx.compose.material3.Icon(painterResource(R.drawable.ic_repeat), contentDescription = null, tint = l.faint, modifier = Modifier.size(14.dp))
@@ -353,8 +353,8 @@ private fun OutflowRow(o: Outflow, top: Long) {
             // The whole line opens the destination's last months, as on the site.
             modifier = Modifier.clickable(onClickLabel = "ver os últimos meses") { open = !open },
             avatar = if (o.kind == "card") monogram(o.label) else o.label.take(1).uppercase(),
-            // What the line is about, when its words say so; otherwise a fixed line repeats and the rest is a bill (as on the site).
-            avatarIcon = if (o.kind == "card") null else if (o.fixed != null) R.drawable.ic_repeat else R.drawable.ic_receipt,
+            // What the line is about, when its words say so; otherwise a card, a fixed line that repeats or a bill (as on the site).
+            avatarIcon = if (o.kind == "card") R.drawable.ic_card else if (o.fixed != null) R.drawable.ic_repeat else R.drawable.ic_receipt,
             avatarVector = if (o.kind == "card") null else categoryIcon(o.label),
             card = o.label.takeIf { o.kind == "card" },
             meta = o.fixed?.installment?.let(::installmentLine),

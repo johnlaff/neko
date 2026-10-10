@@ -116,6 +116,7 @@ const Masthead = () => {
         title={hidden ? "Mostrar valores" : "Esconder valores"}
       >
         {hidden ? <IconEyeOff /> : <IconEye />}
+        <span className="icon-label">Esconder valores</span>
       </button>
       <button
         type="button"
@@ -127,6 +128,7 @@ const Masthead = () => {
         title="Ler a planilha de novo (R)"
       >
         <IconRefresh />
+        <span className="icon-label">Ler a planilha</span>
       </button>
     </header>
   );

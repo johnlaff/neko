@@ -242,10 +242,11 @@ private fun Moves(moves: List<DayMove>) {
                     "diario" -> "D"
                     else -> name.take(1).uppercase()
                 },
-                // Entries and bills show what they are about, as on the site; card and diário keep theirs.
+                // Each line shows what it is, as on the site: an entry, a bill, a card or the diário (Hoje's mark).
                 avatarIcon = when (m.kind) {
                     "income" -> R.drawable.ic_income
-                    "card", "diario" -> null
+                    "card" -> R.drawable.ic_card
+                    "diario" -> R.drawable.tab_hoje
                     else -> R.drawable.ic_receipt
                 },
                 avatarVector = if (m.kind == "card" || m.kind == "diario") null else categoryIcon(m.description),

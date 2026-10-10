@@ -614,7 +614,7 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
                 }
             }
         }
-        if (shown.size < left.size) TextAction("Ver mais ${left.size - shown.size}", { more = true })
+        if (shown.size < left.size) TextAction("Ver mais ${left.size - shown.size}", { more = true }, open = false)
         if (!v.writing && left.isNotEmpty())
             Text("Para lançar daqui, ligue Lançar pelo Neko em Ajustes.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
     }
