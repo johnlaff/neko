@@ -154,6 +154,16 @@ class Api(
 
     suspend fun mia(): MiaStatus = json.decodeFromString(call("/mia"))
 
+    /** Lançar com a Mia: a sentence becomes the fields of Lançar; nothing is written. */
+    suspend fun miaEntry(frase: String, cards: List<String>): MiaEntry? {
+        val body = buildJsonObject {
+            put("frase", frase)
+            put("cartoes", JsonArray(cards.map(::JsonPrimitive)))
+        }.asBody()
+        val reply: MiaEntryReply = json.decodeFromString(call("/mia/lancamento", body, via = patient))
+        return reply.lancamento
+    }
+
     suspend fun askMia(ask: MiaAsk): MiaReply {
         val body = json.encodeToString(MiaAsk.serializer(), ask).toRequestBody(jsonType)
         return json.decodeFromString(call("/mia", body, via = patient))

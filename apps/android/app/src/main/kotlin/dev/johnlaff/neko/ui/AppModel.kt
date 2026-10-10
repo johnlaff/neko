@@ -12,6 +12,7 @@ import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.BankCard
 import dev.johnlaff.neko.data.BankLink
 import dev.johnlaff.neko.data.BanksView
+import dev.johnlaff.neko.data.MiaEntry
 import dev.johnlaff.neko.data.Device
 import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.InstallmentSimulation
@@ -202,6 +203,9 @@ class AppModel(
 
     /** Para lançar and Lançar à mão; each answer reads Hoje again, which drops what was done. */
     val launcher = object : Launcher {
+        override val fill: (suspend (String, List<String>) -> MiaEntry?)?
+            get() = _mia.value?.takeIf { it.ligada && it.pausadaAte == null }?.let { { f, c -> neko.api.miaEntry(f, c) } }
+
         override suspend fun launch(draft: JsonObject, key: String?): String {
             val fingerprints = neko.api.preview(draft)
             val r = neko.api.launch(java.util.UUID.randomUUID().toString(), draft, fingerprints, key)

@@ -1,5 +1,5 @@
-import type { Cents, Draft, EntryKind, LocalDate } from "@neko/engine";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Cents, Draft, EntryKind, LocalDate, MiaEntry } from "@neko/engine";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { type QueueItemView, type QueueLine, saldoView } from "../shared/queue.ts";
 import type { BankView } from "../shared/types.ts";
@@ -161,6 +161,7 @@ export const EntryForm = ({
   const launch = useLaunch();
   const amount = toCents(typed);
   const card = how.startsWith("card:") ? how.slice(5) : null;
+  const parcels = PARCELS.includes(count) ? PARCELS : [...PARCELS, count].sort((a, b) => a - b);
   const ok =
     amount !== null && amount > 0 && name.trim() !== "" && /^\d{4}-\d{2}-\d{2}$/.test(date);
 
@@ -186,6 +187,20 @@ export const EntryForm = ({
           );
       }}
     >
+      {!draft && (
+        <SaySentence
+          cards={cards}
+          onFill={(e) => {
+            if (e.amount !== undefined) setTyped(reais(e.amount));
+            if (e.kind === "cartao" && e.card) {
+              setHow(`card:${e.card}`);
+              setCount(e.installments ?? 1);
+            } else if (e.kind) setHow(e.kind);
+            if (e.date) setDate(e.date);
+            if (e.description) setName(e.description);
+          }}
+        />
+      )}
       <label className="field" htmlFor={`${id}-v`}>
         Valor
       </label>
@@ -222,7 +237,7 @@ export const EntryForm = ({
           </fieldset>
           {card && (
             <fieldset className="parcels" aria-label="Parcelas">
-              {PARCELS.map((n) => (
+              {parcels.map((n) => (
                 <button
                   key={n}
                   type="button"
@@ -266,6 +281,80 @@ export const EntryForm = ({
         </button>
       </div>
     </form>
+  );
+};
+
+/**
+ * Lançar com a Mia (Fase 4): one sentence fills the fields below; the owner checks them and taps
+ * Lançar as always. Shown only while Mia is on and not resting for the month.
+ */
+const SaySentence = ({
+  cards,
+  onFill,
+}: {
+  cards: readonly string[];
+  onFill: (e: MiaEntry) => void;
+}) => {
+  const id = useId();
+  const status = useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
+  const [frase, setFrase] = useState("");
+  const [said, setSaid] = useState<string | null>(null);
+  const fill = useMutation({
+    mutationFn: () => api.miaEntry(frase.trim(), cards),
+    onSuccess: ({ lancamento }) => {
+      if (lancamento) {
+        onFill(lancamento);
+        setSaid("A Mia preencheu. Confira e lance.");
+      } else setSaid("A Mia não entendeu. Diga o valor e como pagou.");
+    },
+    onError: (e) =>
+      setSaid(
+        e instanceof ApiError && e.status === 429
+          ? "A Mia usou o limite do mês e volta logo."
+          : "A Mia não respondeu. Preencha abaixo.",
+      ),
+  });
+  if (!status.data?.ligada || status.data.pausadaAte) return null;
+  const send = () => {
+    if (frase.trim() && !fill.isPending) {
+      setSaid(null);
+      fill.mutate();
+    }
+  };
+  return (
+    <div className="say">
+      <label className="field" htmlFor={`${id}-f`}>
+        Numa frase
+      </label>
+      <span className="say-row">
+        <input
+          id={`${id}-f`}
+          autoComplete="off"
+          maxLength={300}
+          placeholder="Padaria 12,50 no Pix"
+          value={frase}
+          onChange={(e) => setFrase(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter here fills the form; it must not launch it.
+            if (e.key === "Enter") {
+              e.preventDefault();
+              send();
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="ghost small"
+          aria-disabled={!frase.trim() || fill.isPending}
+          onClick={send}
+        >
+          {fill.isPending ? "Preenchendo…" : "Preencher"}
+        </button>
+      </span>
+      <p className="hint" aria-live="polite">
+        {said}
+      </p>
+    </div>
   );
 };
 

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.johnlaff.neko.data.MiaEntry
 import dev.johnlaff.neko.data.QueueItem
 import dev.johnlaff.neko.data.QueueLine
 import dev.johnlaff.neko.data.SaldoView
@@ -67,6 +69,8 @@ interface Launcher {
     /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. Its id, for Desfazer. */
     suspend fun previsto(value: Long): String
     suspend fun keepPrevisto()
+    /** Lançar com a Mia; null while Mia is off or resting for the month. */
+    val fill: (suspend (String, List<String>) -> MiaEntry?)? get() = null
 }
 
 /** How long Desfazer stays after a launch. */
@@ -190,6 +194,16 @@ fun EntryForm(
 
     val colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val fill = launcher.fill
+        if (draft == null && fill != null) SaySentence(cards, fill) { e ->
+            e.amount?.let { typed = fromCents(it) }
+            if (e.kind == "cartao" && e.card != null) {
+                how = "card:${e.card}"
+                count = e.installments ?: 1
+            } else e.kind?.let { how = it }
+            e.date?.let { date = typedDate(it) }
+            e.description?.let { name = it.take(80) }
+        }
         OutlinedTextField(
             value = typed,
             onValueChange = { typed = it },
@@ -211,7 +225,7 @@ fun EntryForm(
             }
             if (how.startsWith("card:")) {
                 FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(1, 2, 3, 6, 10, 12).forEach { n -> Choice(if (n == 1) "À vista" else "$n×", count == n) { count = n } }
+                    (listOf(1, 2, 3, 6, 10, 12) + count).distinct().sorted().forEach { n -> Choice(if (n == 1) "À vista" else "$n×", count == n) { count = n } }
                 }
             }
         }
@@ -251,6 +265,57 @@ fun EntryForm(
                 }
             }
             Small("Cancelar", filled = false, onClick = onClose)
+        }
+    }
+}
+
+/**
+ * Lançar com a Mia (Fase 4), as on the site: one sentence fills the fields below; the owner checks
+ * them and taps Lançar as always.
+ */
+@Composable
+private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>) -> MiaEntry?, onFill: (MiaEntry) -> Unit) {
+    val l = LocalLedger.current
+    val scope = rememberCoroutineScope()
+    var frase by rememberSaveable { mutableStateOf("") }
+    var said by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+
+    fun send() {
+        if (frase.isBlank() || busy) return
+        busy = true
+        said = null
+        scope.launch {
+            said = runCatching { fill(frase.trim(), cards) }.fold(
+                { e ->
+                    if (e != null) {
+                        onFill(e)
+                        "A Mia preencheu. Confira e lance."
+                    } else "A Mia não entendeu. Diga o valor e como pagou."
+                },
+                { if ((it as? dev.johnlaff.neko.data.ApiException)?.status == 429) "A Mia usou o limite do mês e volta logo." else "A Mia não respondeu. Preencha abaixo." },
+            )
+            busy = false
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = frase,
+                onValueChange = { if (it.length <= 300) frase = it },
+                label = { Text("Numa frase") },
+                placeholder = { Text("Padaria 12,50 no Pix", color = l.faint) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                keyboardActions = KeyboardActions(onGo = { send() }),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
+                modifier = Modifier.weight(1f),
+            )
+            Small(if (busy) "Preenchendo…" else "Preencher", filled = false, enabled = frase.isNotBlank() && !busy) { send() }
+        }
+        said?.let {
+            Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         }
     }
 }

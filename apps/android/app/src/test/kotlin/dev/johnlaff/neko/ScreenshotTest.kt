@@ -152,6 +152,11 @@ class ScreenshotTest {
         HojeScreen(TodayState(view.copy(entryCards = listOf("Cartão Azul"))), {}, {}, launcher = Fakes.launcher, launchOpen = true)
     }
 
+    // Lançar com a Mia: the sentence above the fields it fills.
+    @Test fun lancarMiaLight() = shot("lancar-mia-light", night = false) {
+        HojeScreen(TodayState(view.copy(entryCards = listOf("Cartão Azul"))), {}, {}, launcher = Fakes.miaLauncher, launchOpen = true)
+    }
+
     @Test fun miaHojeLight() = shot("mia-hoje-light", night = false, scrollTo = "Perguntar à Mia") {
         HojeScreen(
             TodayState(view), {}, {},

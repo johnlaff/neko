@@ -23,6 +23,8 @@ import type { AppEnv, Env } from "./env.ts";
 import {
   askMia,
   CAP_MICRO_USD,
+  fillEntry,
+  MiaEntryRequest,
   MiaRequest,
   MiaSpendLimit,
   recordUsage,
@@ -403,6 +405,26 @@ app.post("/mia", async (c) => {
   try {
     const deps = { fetch, key, spentMicroUsd: spent, record: recordUsage(c.env.DB, today, now) };
     return c.json(await askMia(deps, projection, today, parsed.data));
+  } catch (e) {
+    if (e instanceof MiaSpendLimit) return paused();
+    throw e;
+  }
+});
+
+/** Lançar com a Mia: a sentence fills the Lançar form; nothing is written here. */
+app.post("/mia/lancamento", async (c) => {
+  const key = c.env.ANTHROPIC_API_KEY;
+  if (!key) throw new HTTPException(404);
+  const parsed = MiaEntryRequest.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw new HTTPException(400);
+  const now = new Date();
+  const today = todayIn(now);
+  const spent = await spentThisMonth(c.env.DB, today);
+  const paused = () => c.json({ pausadaAte: nextMonthStart(today) }, 429);
+  if (spent >= CAP_MICRO_USD) return paused();
+  try {
+    const deps = { fetch, key, spentMicroUsd: spent, record: recordUsage(c.env.DB, today, now) };
+    return c.json({ lancamento: await fillEntry(deps, today, parsed.data) });
   } catch (e) {
     if (e instanceof MiaSpendLimit) return paused();
     throw e;
