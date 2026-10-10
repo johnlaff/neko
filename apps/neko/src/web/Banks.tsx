@@ -27,7 +27,8 @@ const tie = (cards: BankCards, accountId: string, number: string | null, card: s
 
 /**
  * Ajustes › Bancos (specs/003-open-finance): the banks linked in Meu Pluggy, when each was read,
- * and which card of the sheet each bank card is. Hidden until the Pluggy keys are set.
+ * which card of the sheet each bank card is, and whether each account keeps savings. Hidden until
+ * the Pluggy keys are set.
  */
 export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
   const queryClient = useQueryClient();
@@ -35,6 +36,11 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
   const done = () => queryClient.invalidateQueries();
   const items = useMutation({ mutationFn: api.saveBanks, onSuccess: done });
   const cards = useMutation({ mutationFn: api.saveBankCards, onSuccess: done });
+  const uses = useMutation({
+    mutationFn: ({ id, use }: { id: string; use: "guardado" | "corrente" }) =>
+      api.accountUse(id, use),
+    onSuccess: done,
+  });
   const [label, setLabel] = useState("");
   const [itemId, setItemId] = useState("");
   const data = list.data;
@@ -76,6 +82,36 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
                 Desligar
               </button>
             </div>
+            {i.accounts
+              .filter((a) => !a.card)
+              .map((a) => (
+                // The answer to "guarda ou dia a dia", changeable here after Para lançar asked it.
+                <label key={a.id} className="setting nested">
+                  <span className="label">
+                    {a.name}
+                    <span className="sub">
+                      {a.use === "guardado"
+                        ? "O que vai para ela entra na Economia"
+                        : "Conta do banco"}
+                    </span>
+                  </span>
+                  <select
+                    value={a.use ?? ""}
+                    disabled={uses.isPending}
+                    onChange={(e) =>
+                      uses.mutate({ id: a.id, use: e.target.value as "guardado" | "corrente" })
+                    }
+                  >
+                    {a.use === null && (
+                      <option value="" disabled>
+                        Não respondido
+                      </option>
+                    )}
+                    <option value="corrente">Dia a dia</option>
+                    <option value="guardado">Guarda dinheiro</option>
+                  </select>
+                </label>
+              ))}
             {i.accounts
               .filter((a) => a.card)
               .flatMap((a) =>

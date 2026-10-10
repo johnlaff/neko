@@ -38,6 +38,7 @@ const API: Record<string, unknown> = {
             last4: "0001",
             balance: 2_353_747,
             cardNumbers: [],
+            use: "corrente",
           },
           {
             id: "cartao-azul",
@@ -46,6 +47,7 @@ const API: Record<string, unknown> = {
             last4: "4321",
             balance: 1_640_00,
             cardNumbers: ["4321", "8765"],
+            use: null,
           },
         ],
       },
@@ -146,6 +148,7 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bancos" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: /Azul Platinum/ })).toHaveValue("Cartão Azul");
+  await expect(page.getByRole("combobox", { name: /Conta corrente/ })).toHaveValue("corrente");
   expect(errors).toEqual([]);
 });
 

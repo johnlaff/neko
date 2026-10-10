@@ -403,6 +403,7 @@ data class BanksList(
     val view: BanksView? = null,
     val onSaveItems: (List<BankLink>) -> Unit = {},
     val onSaveCards: (List<BankCard>) -> Unit = {},
+    val onAccountUse: (String, String) -> Unit = { _, _ -> },
 )
 
 private const val MAX_BANKS = 5
@@ -431,6 +432,21 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
                     onClick = { list.onSaveItems(linked.filterNot { it.itemId == i.itemId }) },
                     modifier = Modifier.semantics { contentDescription = "Desligar ${i.label}" },
                 ) { Text("Desligar", color = l.muted) }
+            }
+            i.accounts.filterNot { it.card }.forEach { a ->
+                // The answer to "guarda ou dia a dia", changeable here after Para lançar asked it.
+                Setting(
+                    a.name,
+                    if (a.use == "guardado") "O que vai para ela entra na Economia" else "Conta do banco",
+                    modifier = Modifier.padding(start = 12.dp),
+                ) {
+                    Choice(
+                        value = ACCOUNT_USES.entries.find { it.value == a.use }?.key ?: "",
+                        empty = "Não respondido",
+                        options = ACCOUNT_USES.keys.toList(),
+                        description = "Uso da conta ${a.name}",
+                    ) { picked -> ACCOUNT_USES[picked]?.let { list.onAccountUse(a.id, it) } }
+                }
             }
             i.accounts.filter { it.card }.forEach { a ->
                 // One line for the card account, and one per physical card when it has more.
@@ -480,9 +496,16 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
     }
 }
 
+private val ACCOUNT_USES = linkedMapOf("Dia a dia" to "corrente", "Guarda dinheiro" to "guardado")
+
 /** A dropdown like the usual card's picker, with its own empty choice. */
 @Composable
-private fun Picker(value: String, empty: String, options: List<String>, description: String, onPick: (String) -> Unit) {
+private fun Picker(value: String, empty: String, options: List<String>, description: String, onPick: (String) -> Unit) =
+    Choice(value, empty, listOf("") + options, description, onPick)
+
+/** A dropdown of these options; "" shows as [empty]. */
+@Composable
+private fun Choice(value: String, empty: String, options: List<String>, description: String, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     var open by remember { mutableStateOf(false) }
     Box {
@@ -498,7 +521,7 @@ private fun Picker(value: String, empty: String, options: List<String>, descript
             Icon(painterResource(R.drawable.ic_chevron_down), contentDescription = null, tint = l.muted, modifier = Modifier.size(18.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            (listOf("") + options).forEach { name ->
+            options.forEach { name ->
                 DropdownMenuItem(
                     text = { Text(name.ifEmpty { empty }) },
                     onClick = {

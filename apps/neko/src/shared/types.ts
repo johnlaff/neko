@@ -177,6 +177,8 @@ export interface BanksResponse {
       readonly balance: Cents;
       /** Last four digits of each physical card seen on this card account. */
       readonly cardNumbers: readonly string[];
+      /** For an account (not a card): where its money goes, as the owner said; null unanswered. */
+      readonly use: "guardado" | "corrente" | null;
     }[];
   }[];
 }
