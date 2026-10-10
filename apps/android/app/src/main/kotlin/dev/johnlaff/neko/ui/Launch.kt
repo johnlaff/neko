@@ -137,7 +137,7 @@ private fun Change(line: QueueLine) {
     val value = if (line.change == "economia") sign(line.after) else money(line.after)
     val was = when {
         line.change == "economia" -> "na aba Economia"
-        before == null -> "linha nova"
+        before == null -> "Linha nova"
         else -> "era ${money(before)}"
     }
     val diff = line.diff?.takeIf { it != 0L }?.let(sign)

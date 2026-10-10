@@ -18,8 +18,8 @@ export const Devices = () => {
   const done = () => queryClient.invalidateQueries({ queryKey: ["sessions"] });
   const end = useMutation({ mutationFn: api.endSession, onSuccess: done });
   const endOthers = useMutation({ mutationFn: api.endOtherSessions, onSuccess: done });
-  // Parsed at the boundary: anything but a list (an old Worker, a proxy page) shows nothing.
-  if (!Array.isArray(list.data)) return null;
+  // Parsed at the boundary: anything but a list (an old Worker, a proxy page), or none, shows nothing.
+  if (!Array.isArray(list.data) || list.data.length === 0) return null;
   const others = list.data.filter((d) => !d.current).length;
 
   return (

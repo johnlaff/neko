@@ -93,6 +93,15 @@ class StressScreensTest {
         MesScreen(ScreenState(months), Fakes.history) {}
     }
 
+    // A wide window: the rail level with the title and the panels in two columns, as on the site.
+    @Test fun hojeTablet() = compose.shot(path("hoje-tablet"), night = true, Device.Tablet, Tab.Hoje) {
+        HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
+    }
+
+    @Test fun faturasTablet() = compose.shot(path("faturas-tablet"), night = true, Device.Tablet, Tab.Faturas) {
+        FaturasScreen(ScreenState(invoices), {}, {})
+    }
+
     @Test fun mesTablet() = compose.shot(path("mes-tablet"), night = false, Device.Tablet, Tab.Mes) {
         MesScreen(ScreenState(months), Fakes.history) {}
     }

@@ -44,6 +44,7 @@ fun FaturasScreen(state: ScreenState<InvoicesView>, onRefresh: () -> Unit, onAju
         }
         v.usual?.let { u -> item { UsualPanel(u) } }
         if (v.history.isNotEmpty()) item { History(v) }
+        column()
         if (v.buyToday.isNotEmpty()) item { BuyToday(v, onAjustes) }
         if (v.others.isNotEmpty() || v.empty.isNotEmpty()) item { Others(v) }
         v.bank?.let { b -> item { BankBills(b, onAjustes) } }
