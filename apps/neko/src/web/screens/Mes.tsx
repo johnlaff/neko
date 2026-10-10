@@ -38,17 +38,12 @@ const Evolution = () => {
   // money the balance gained this month (that is "Saldo subiu" or "desceu" below).
   const day = shortDate(first.today);
   return (
-    <p className={`delta${delta > 0 ? " pos" : delta < 0 ? " neg" : ""}`}>
-      {delta === 0 ? (
-        `Igual a ${day}`
-      ) : (
-        <>
-          <span aria-hidden="true">{delta > 0 ? "▲" : "▼"}</span> {money(Math.abs(delta))}{" "}
-          <span className="muted">
-            {delta > 0 ? "a mais" : "a menos"} que em {day}
-          </span>
-        </>
-      )}
+    // Neutral, and naming the forecast: it is a change in the projection, not a result, so it
+    // never competes with the colored "Saldo desceu" below.
+    <p className="delta muted">
+      {delta === 0
+        ? `Igual ao previsto em ${day}`
+        : `${money(Math.abs(delta))} ${delta > 0 ? "a mais" : "a menos"} que o previsto em ${day}`}
     </p>
   );
 };
