@@ -236,11 +236,11 @@ const router = createRouter({
   scrollRestoration: true,
 });
 
-// A second tap mid-slide skips the first transition, and the router leaves that rejection
-// unhandled. Nothing went wrong: the new screen shows.
+// A second tap mid-slide skips the first transition (Chrome), and Firefox skips one that starts
+// while the tab is hidden; the router leaves that rejection unhandled. Nothing went wrong: the new
+// screen shows.
 window.addEventListener("unhandledrejection", (e) => {
-  if (e.reason instanceof DOMException && e.reason.message.startsWith("Transition was skipped"))
-    e.preventDefault();
+  if (e.reason instanceof DOMException && /transition/i.test(e.reason.message)) e.preventDefault();
 });
 
 const TAB_ORDER = ["/", "/faturas", "/mes", "/ajustes"];
