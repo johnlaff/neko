@@ -275,6 +275,15 @@ queue.post("/ignore", async (c) => {
   return c.json({ ok: true });
 });
 
+/** Desfazer after Ignorar: the item comes back. Only an ignored key; a launched one undoes by its entry. */
+queue.post("/unignore", async (c) => {
+  const { key } = z.object({ key: z.string().min(1).max(300) }).parse(await c.req.json());
+  await c.env.DB.prepare("DELETE FROM queue_decision WHERE key = ? AND state = 'ignored'")
+    .bind(key)
+    .run();
+  return c.json({ ok: true });
+});
+
 /** The review every 3 months, answered "keep it": the next one comes 3 months from today. */
 queue.post("/previsto/manter", async (c) => {
   const settings = await loadSettings(c.env.DB);

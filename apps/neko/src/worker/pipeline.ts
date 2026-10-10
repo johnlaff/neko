@@ -38,7 +38,7 @@ import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./go
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "46";
+const PIPELINE_VERSION = "48";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just

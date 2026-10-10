@@ -37,7 +37,8 @@ export interface BillCheck {
 
 /** A bill the bank already closed, with its final total. */
 export interface ClosedBill {
-  readonly card: string;
+  /** The sheet's cards on that bank account: one, or the holder's and the additional ones. */
+  readonly cards: readonly string[];
   /** Due month, `YYYY-MM`. */
   readonly billMonth: string;
   readonly total: Cents;
@@ -115,22 +116,37 @@ export const billChecks = (
     g.lines.push(l);
     groups.set(key, g);
   }
-  // A closed bill counts by its total, even when the bank listed only part of it.
+  // A closed bill counts by its total, even when the bank listed only part of it. Shared by a
+  // holder and additional cards, the total says nothing of each one's share: the sheet's split
+  // stands when its sum is the total, the bank's lines when theirs is, and otherwise neither.
   const totals = new Map<string, Cents>();
+  const unsure = new Set<string>();
+  const sum = (ls: readonly BankCardLine[]) => add(ZERO, ...ls.map((l) => l.amount));
   for (const b of closed) {
-    const card = byCard.get(normalizeName(b.card));
-    if (!card) continue;
-    const key = `${normalizeName(card.name)}|${b.billMonth}`;
-    totals.set(key, b.total);
-    if (!groups.has(key)) groups.set(key, { card, month: b.billMonth, lines: [] });
+    const shared = b.cards.flatMap((name) => {
+      const card = byCard.get(normalizeName(name));
+      if (!card) return [];
+      const key = `${normalizeName(card.name)}|${b.billMonth}`;
+      const [y = 0, m = 0] = b.billMonth.split("-").map(Number);
+      const sheet = billOnSheet(ledger, card, cycleForDueMonth(card, y, m).due);
+      if (!groups.has(key)) groups.set(key, { card, month: b.billMonth, lines: [] });
+      return [{ key, sheet, lines: sum(groups.get(key)?.lines ?? []) }];
+    });
+    const [only] = shared;
+    if (shared.length === 1 && only) totals.set(only.key, b.total);
+    else if (add(ZERO, ...shared.map((c) => c.sheet ?? ZERO)) === b.total)
+      for (const c of shared) totals.set(c.key, c.sheet ?? ZERO);
+    else if (add(ZERO, ...shared.map((c) => c.lines)) !== b.total)
+      for (const c of shared) unsure.add(c.key);
   }
   const out: BillCheck[] = [];
   for (const [key, { card, month, lines: ls }] of groups) {
+    if (unsure.has(key)) continue;
     const [y, m] = month.split("-").map(Number);
     if (!y || !m) continue;
     const { due } = cycleForDueMonth(card, y, m);
     if (diffDays(today, due) <= 0) continue;
-    const bank = totals.get(key) ?? add(ZERO, ...ls.map((l) => l.amount));
+    const bank = totals.get(key) ?? sum(ls);
     const parcels = add(ZERO, ...ls.filter((l) => (l.installments ?? 1) > 1).map((l) => l.amount));
     const sheet = billOnSheet(ledger, card, due);
     if (sheet === null) continue;

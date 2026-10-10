@@ -136,6 +136,10 @@ class Api(
         call("/queue/ignore", buildJsonObject { put("key", key) }.asBody())
     }
 
+    suspend fun unignore(key: String) {
+        call("/queue/unignore", buildJsonObject { put("key", key) }.asBody())
+    }
+
     suspend fun accountUse(account: String, use: String) {
         call("/queue/account", buildJsonObject {
             put("account", account)

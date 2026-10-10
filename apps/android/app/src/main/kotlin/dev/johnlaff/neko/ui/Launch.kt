@@ -39,6 +39,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,6 +84,9 @@ interface Launcher {
     val fill: (suspend (String, List<String>) -> MiaEntry?)? get() = null
 }
 
+/** An undo id for Ignorar: Desfazer brings the item back instead of undoing a launch. */
+const val IGNORED = "ignored:"
+
 /** How long Desfazer stays after a launch. */
 private const val UNDO_MS = 10_000L
 
@@ -98,21 +105,53 @@ private fun isoDate(typed: String, year: String): String? {
     }.getOrNull()
 }
 
-/**
- * "Diário de 15/10: R$ 0,00 → R$ 18,90", or "Economia de out: +R$ 500,00"; card parcels in later
- * bills are counted, not listed.
- */
+/** One change, as the sheet will read: the line, its value now and after, and the day's total. */
 @Composable
-private fun Lines(lines: List<QueueLine>) {
+private fun Change(line: QueueLine) {
     val l = LocalLedger.current
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        lines.take(2).forEach {
-            val change = it.before?.let { b -> "${money(b)} → ${money(it.after)}" }
-                ?: "${if (it.after < 0) "−" else "+"}${money(kotlin.math.abs(it.after))}"
-            Text("${it.label}: $change", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        Text(Format.bankText(line.label), color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        val before = line.before
+        Text(
+            buildAnnotatedString {
+                if (line.change == "economia") {
+                    withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) {
+                        append(Format.signed(line.after, if (line.after < 0) '−' else '+'))
+                    }
+                } else if (before == null) {
+                    withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) { append(money(line.after)) }
+                    append(" · linha nova")
+                } else {
+                    append("${money(before)} → ")
+                    withStyle(SpanStyle(color = l.text, fontWeight = FontWeight.Medium)) { append(money(line.after)) }
+                    line.diff?.takeIf { it != 0L }?.let { append(" (${Format.signed(it, if (it < 0) '−' else '+')})") }
+                }
+            },
+            color = l.muted,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        line.cell?.let {
+            Text("${it.label}: ${money(it.before)} → ${money(it.after)}", color = l.faint, style = MaterialTheme.typography.bodySmall)
         }
-        val more = lines.size - 2
-        if (more > 0) Text(if (more == 1) "e mais 1 fatura" else "e mais $more faturas", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/** What Lançar writes in the sheet, line by line; past the first three, behind a tap. */
+@Composable
+private fun Impact(lines: List<QueueLine>, key: String) {
+    val l = LocalLedger.current
+    var all by rememberSaveable(key) { mutableStateOf(false) }
+    Column(
+        Modifier.fillMaxWidth().background(l.text.copy(alpha = 0.08f), RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Na planilha", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        lines.take(3).forEach { Change(it) }
+        val rest = lines.drop(3)
+        if (rest.isNotEmpty()) {
+            TextAction(if (rest.size == 1) "Mais 1 mudança" else "Mais ${rest.size} mudanças", { all = !all }, open = all)
+            Reveal(all) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { rest.forEach { Change(it) } } }
+        }
     }
 }
 
@@ -374,20 +413,22 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(Format.bankText(item.title), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.titleSmall)
             Text(shortDate(item.date), color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
+        item.note?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
         if (item.options.size > 1 && !question) {
             FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.options.forEachIndexed { i, o -> Choice(o.label, choice == i) { choice = i } }
             }
         }
-        option?.lines?.takeIf { it.isNotEmpty() }?.let { Lines(it) }
-        item.note?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
+        option?.lines?.takeIf { it.isNotEmpty() }?.let { Impact(it, "${item.key}|$choice") }
         if (adjusting && draft != null && launcher != null && !isCard) {
             EntryForm(launcher, v.today, { adjusting = false }, onLaunched, draft = draft, key = item.key)
         } else if (launcher != null) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Ignorar closes the action row: the way out, quiet, at the far end, with Desfazer.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (question) {
                     item.options.forEach { o ->
                         o.answer?.let { use ->
@@ -404,7 +445,13 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
                     if (item.adjustable && !isCard)
                         Small("Ajustar", filled = false, enabled = canWrite && !busy) { adjusting = true }
                 }
-                Small("Ignorar", filled = false, enabled = !busy) { run { it.ignore(item.key) } }
+            }
+            TextAction("Ignorar", {
+                if (!busy) run {
+                    it.ignore(item.key)
+                    onLaunched("$IGNORED${item.key}")
+                }
+            }, l.muted)
             }
         }
         error?.let { Failed(it) }

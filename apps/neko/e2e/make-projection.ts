@@ -136,6 +136,21 @@ const movements = [
     amount: cents(150_00),
     description: "PIX RECEBIDO ANA",
   },
+  // Money to a second account of the owner's, which Neko asks about once.
+  {
+    id: "m4",
+    date: localDate("2026-10-02"),
+    amount: cents(-500_00),
+    description: "PIX ENVIADO MESMA TITULARIDADE",
+    account: "conta",
+  },
+  {
+    id: "m5",
+    date: localDate("2026-10-02"),
+    amount: cents(500_00),
+    description: "PIX RECEBIDO MESMA TITULARIDADE",
+    account: "outra",
+  },
 ];
 const lines = [
   bankLine(300_00, "2026-11", "Compras do ciclo"),
@@ -169,10 +184,14 @@ const queue = buildQueue({
   today: TODAY,
   since: addDays(TODAY, -10),
   movements,
-  lines: [],
+  // A purchase of September's end already on November's bill: the bill rises past the sheet's.
+  lines: [...lines, { ...bankLine(2_042_80, "2026-11", "LOJA"), date: localDate("2026-09-30") }],
   closed: [],
   othersCards: ["Cartão Verde"],
-  accounts: [{ id: "conta", label: "Banco Azul", use: "corrente" }],
+  accounts: [
+    { id: "conta", label: "Banco Azul", use: "corrente" },
+    { id: "outra", label: "Banco Verde", use: null },
+  ],
   savedOrigins: new Set(),
   decided: new Set(),
   forecast: dailyForecast,

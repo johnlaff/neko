@@ -73,7 +73,20 @@ data class PrevistoReview(val real: Long, val from: String)
  * which Neko does not read, `before` is null and `after` is the change, signed.
  */
 @Serializable
-data class QueueLine(val label: String, val before: Long? = null, val after: Long)
+data class QueueLine(
+    val label: String,
+    val before: Long? = null,
+    val after: Long,
+    val cell: QueueCell? = null,
+    /** "edit", "new" (a new line) or "economia" (a signed change to the month's Economia). */
+    val change: String = "edit",
+    /** How much an edited line goes up or down; null for new lines and the Economia. */
+    val diff: Long? = null,
+)
+
+/** The whole cell around a changed line, when it holds more than that line. */
+@Serializable
+data class QueueCell(val label: String, val before: Long, val after: Long)
 
 /**
  * One way to launch an item. `draft` goes back to the Worker as is (only value, day and name may
@@ -100,7 +113,7 @@ data class QueueItem(
     val options: List<QueueOption>,
     val bank: List<BankMove> = emptyList(),
     val adjustable: Boolean = false,
-    /** One line on why the item is there, when its title does not say it. */
+    /** Why the item is there, in one plain sentence. */
     val note: String? = null,
 )
 

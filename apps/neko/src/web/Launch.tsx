@@ -15,7 +15,12 @@ import { IconChevron } from "./icons.tsx";
 /** How long Desfazer stays on screen after a launch. */
 const UNDO_MS = 10_000;
 
-type Toast = { readonly entryId: string | null; readonly text: string } | null;
+/** `ignored` brings back an item Ignorar took away; `entryId` undoes a launch. */
+type Toast = {
+  readonly entryId: string | null;
+  readonly text: string;
+  readonly ignored?: string;
+} | null;
 let toast: Toast = null;
 const listeners = new Set<() => void>();
 export const showToast = (t: Toast) => {
@@ -64,11 +69,17 @@ export const LaunchToast = () => {
   const t = useToast();
   const queryClient = useQueryClient();
   const undo = useMutation({
-    mutationFn: (id: string) => api.undoEntry(id),
-    onSuccess: (r) => {
+    mutationFn: async (t: NonNullable<Toast>) => {
+      if (t.ignored) {
+        await api.unignore(t.ignored);
+        return true;
+      }
+      return t.entryId ? (await api.undoEntry(t.entryId)).state === "undone" : false;
+    },
+    onSuccess: (undone) => {
       showToast({
         entryId: null,
-        text: r.state === "undone" ? "Desfeito" : "A planilha mudou depois. Desfaça por lá",
+        text: undone ? "Desfeito" : "A planilha mudou depois. Desfaça por lá",
       });
       queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
@@ -83,12 +94,12 @@ export const LaunchToast = () => {
   return (
     <div className="toast" role="status">
       <span>{t.text}</span>
-      {t.entryId && (
+      {(t.entryId || t.ignored) && (
         <button
           type="button"
           className="ghost small"
           disabled={undo.isPending}
-          onClick={() => t.entryId && undo.mutate(t.entryId)}
+          onClick={() => undo.mutate(t)}
         >
           {undo.isPending ? "Desfazendo…" : "Desfazer"}
         </button>
@@ -97,25 +108,60 @@ export const LaunchToast = () => {
   );
 };
 
-/**
- * "Diário de 15/10: R$ 0,00 → R$ 18,90", or "Economia de out: +R$ 500,00"; card parcels in later
- * bills are counted, not listed.
- */
-const Lines = ({ lines }: { lines: readonly QueueLine[] }) => {
-  const shown = lines.slice(0, 2);
-  const more = lines.length - shown.length;
+const signed = (c: number) => `${c < 0 ? "−" : "+"}${money(Math.abs(c))}`;
+
+/** One change, as the sheet will read: the line, its value now and after, and the day's total. */
+const Change = ({ line }: { line: QueueLine }) => (
+  <li>
+    <span className="q-where">{bankText(line.label)}</span>
+    <span className="q-value">
+      {line.change === "economia" ? (
+        <strong>{signed(line.after)}</strong>
+      ) : line.before === null ? (
+        <>
+          <strong>{money(line.after)}</strong> · linha nova
+        </>
+      ) : (
+        <>
+          {money(line.before)} → <strong>{money(line.after)}</strong>
+          {line.diff !== null && line.diff !== 0 && ` (${signed(line.diff)})`}
+        </>
+      )}
+    </span>
+    {line.cell && (
+      <span className="q-cell">
+        {line.cell.label}: {money(line.cell.before)} → {money(line.cell.after)}
+      </span>
+    )}
+  </li>
+);
+
+/** What Lançar writes in the sheet, line by line; past the first three, behind a tap. */
+const Impact = ({ lines }: { lines: readonly QueueLine[] }) => {
+  const first = lines.slice(0, 3);
+  const rest = lines.slice(3);
   return (
-    <p className="q-lines">
-      {shown.map((l) => (
-        <span key={l.label}>
-          {l.label}:{" "}
-          {l.before === null
-            ? `${l.after < 0 ? "−" : "+"}${money(Math.abs(l.after) as Cents)}`
-            : `${money(l.before)} → ${money(l.after)}`}
-        </span>
-      ))}
-      {more > 0 && <span>e mais {more === 1 ? "1 fatura" : `${more} faturas`}</span>}
-    </p>
+    <div className="q-impact">
+      <p className="q-impact-head">Na planilha</p>
+      <ul>
+        {first.map((l) => (
+          <Change key={`${l.label}|${l.before}|${l.after}`} line={l} />
+        ))}
+      </ul>
+      {rest.length > 0 && (
+        <details className="formula">
+          <summary>
+            <IconChevron />
+            Mais {rest.length === 1 ? "1 mudança" : `${rest.length} mudanças`}
+          </summary>
+          <ul>
+            {rest.map((l) => (
+              <Change key={`${l.label}|${l.before}|${l.after}`} line={l} />
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 };
 
@@ -418,8 +464,10 @@ const Row = ({
     mutationFn: async (a: { ignore: true } | { use: "guardado" | "corrente" }) => {
       if ("ignore" in a) await api.ignore(item.key);
       else await api.accountUse(item.key.replace(/^conta:/, ""), a.use);
+      return "ignore" in a;
     },
-    onSuccess: () => {
+    onSuccess: (ignored) => {
+      if (ignored) showToast({ entryId: null, text: "Ignorado", ignored: item.key });
       onGone(item.key);
       queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
@@ -430,13 +478,14 @@ const Row = ({
   const busy = launch.isPending || answer.isPending;
   const error = launch.error ?? answer.error;
   return (
-    <li className="q-item">
+    <li className="q-item" data-key={item.key}>
       <div className="q-head">
         <span className="name">{bankText(item.title)}</span>
         <span className="meta">{shortDate(item.date)}</span>
       </div>
+      <p className="q-note">{item.note}</p>
       {item.options.length > 1 && !question && (
-        <fieldset className="how" aria-label="O que é">
+        <fieldset className="how" aria-label="O que lançar">
           {item.options.map((o, i) => (
             <button
               key={o.label}
@@ -450,8 +499,7 @@ const Row = ({
           ))}
         </fieldset>
       )}
-      {option && option.lines.length > 0 && <Lines lines={option.lines} />}
-      {item.note && <p className="hint">{item.note}</p>}
+      {option && option.lines.length > 0 && <Impact lines={option.lines} />}
       {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
         <EntryForm
           draft={draft}
@@ -495,6 +543,7 @@ const Row = ({
                   type="button"
                   className="ghost small"
                   disabled={!writing || busy}
+                  title="Ajustar valor, dia ou nome"
                   onClick={() => setAdjusting(true)}
                 >
                   Ajustar
@@ -502,9 +551,10 @@ const Row = ({
               )}
             </>
           )}
+          {/* Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer */}
           <button
             type="button"
-            className="ghost small"
+            className="text-link q-ignore"
             disabled={busy}
             onClick={() => answer.mutate({ ignore: true })}
           >
@@ -625,7 +675,20 @@ export const ParaLancar = ({
               item={i}
               writing={writing}
               today={today}
-              onGone={(k) => setHidden({ of: queue, keys: new Set(gone).add(k) })}
+              onGone={(k) => {
+                // Focus moves to the next item's first answer, so a run of items goes tap by tap.
+                const at = items.findIndex((x) => x.key === k);
+                const next = items[at + 1] ?? items[at - 1];
+                setHidden({ of: queue, keys: new Set(gone).add(k) });
+                if (next)
+                  requestAnimationFrame(() =>
+                    document
+                      .querySelector<HTMLButtonElement>(
+                        `li[data-key="${CSS.escape(next.key)}"] .q-actions button:not(:disabled)`,
+                      )
+                      ?.focus(),
+                  );
+              }}
             />
           ))}
         </ul>
