@@ -261,7 +261,7 @@ export const Mia = () => {
               {ask.isPending
                 ? miaWaiting(seconds)
                 : limited
-                  ? `A Mia descansa até ${s.pausadaAte ? shortDate(s.pausadaAte) : "o mês que vem"}. Os números seguem nas telas.`
+                  ? "A Mia descansa até o mês que vem. Os números seguem nas telas."
                   : failed
                     ? "Não consegui falar com a Mia agora."
                     : ""}

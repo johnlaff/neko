@@ -269,7 +269,7 @@ fun MiaPanel(
     val line = when {
         chat.pending -> miaWaiting(seconds)
         // Reached while asking: said where the wait was, so TalkBack reads it.
-        chat.limited -> "A Mia descansa até ${paused?.let(::shortDate) ?: "o mês que vem"}. Os números seguem nas telas."
+        chat.limited -> "A Mia descansa até o mês que vem. Os números seguem nas telas."
         chat.failed -> "Não consegui falar com a Mia agora."
         else -> null
     }
