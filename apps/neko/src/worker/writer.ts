@@ -27,12 +27,15 @@ import { z } from "zod";
  * one line of an Entrada/Saída/Diário cell exactly as the owner would type it, or a month's cell of
  * the Economia tab when money goes into or out of the reserve. The Sheets API has no
  * compare-and-set and cannot restore a revision, so safety lives here:
- * - the cell is re-read right before writing and must still be the one the preview showed;
- * - the journal row (D1 `entry_op`) is written first, with the cell as it was;
- * - after writing, the cell and the day's Saldo (the Economia tab has none) are read back and must
- *   have changed by exactly the amount, or the cell is put back;
- * - undo restores the stored cell, only if the cell is still as Neko left it.
- * Callers run one write at a time (a single writer), so the Saldo check sees only this change.
+ * - the cells are re-read right before writing and must still be the ones the preview showed;
+ * - the journal rows (D1 `entry_op`) are written first, with the cells as they were;
+ * - every cell of an entry goes in one batchUpdate, which Google applies whole or not at all;
+ * - after writing, the cells and the days' Saldo (the Economia tab has none) are read back and
+ *   must have changed by exactly the amounts, or every cell is put back;
+ * - undo restores the stored cells, only if they are still as Neko left them.
+ * The reads of an entry go out together, so a launch costs three round trips to Google, not three
+ * per cell. Callers run one write at a time (a single writer), so the Saldo check sees only this
+ * change.
  */
 
 /** What the API returns for a cell's `userEnteredValue`; an empty cell has none. */
@@ -58,11 +61,12 @@ export interface SheetsApi {
   ): Promise<void>;
   /** Every day row of a year tab (31 rows from the first day, all 12 month blocks). */
   readDays(tab: string): Promise<{ sheetId: number; rows: ApiCell[][] }>;
-  /** Sets many cells' values and notes in one request: all of them change, or none. */
-  writeCells(sheetId: number, cells: readonly CellWrite[]): Promise<void>;
+  /** Sets many cells' values and notes, on any tabs, in one request: all of them change, or none. */
+  writeCells(cells: readonly CellWrite[]): Promise<void>;
 }
 
 export interface CellWrite {
+  readonly sheetId: number;
   readonly row: number;
   readonly col: number;
   readonly value: EnteredValue;
@@ -70,7 +74,7 @@ export interface CellWrite {
 }
 
 /** One updateCells request: value and note of one cell, nothing else. */
-const updateCells = (sheetId: number, { row, col, value, note }: CellWrite) => ({
+const updateCells = ({ sheetId, row, col, value, note }: CellWrite) => ({
   updateCells: {
     range: {
       sheetId,
@@ -187,7 +191,7 @@ export const googleSheets = (
       // One updateCells request sets value and note together: either both change or neither.
       await call(`${base}:batchUpdate`, {
         method: "POST",
-        body: JSON.stringify({ requests: [updateCells(sheetId, { row, col, value, note })] }),
+        body: JSON.stringify({ requests: [updateCells({ sheetId, row, col, value, note })] }),
       });
     },
     async readDays(tab) {
@@ -204,11 +208,11 @@ export const googleSheets = (
         rows: (sheet?.data?.[0]?.rowData ?? []).map((r) => (r.values ?? []) as ApiCell[]),
       };
     },
-    async writeCells(sheetId, cells) {
+    async writeCells(cells) {
       // A batchUpdate is all or nothing: one bad request and no cell changes.
       await call(`${base}:batchUpdate`, {
         method: "POST",
-        body: JSON.stringify({ requests: cells.map((c) => updateCells(sheetId, c)) }),
+        body: JSON.stringify({ requests: cells.map(updateCells) }),
       });
     },
   };
@@ -319,6 +323,19 @@ const readSite = async (api: SheetsApi, p: Where): Promise<Site> => {
   return { tab, row, col, address, sheetId, cells, cell: cells[SHEET_MAP.offsets[p.column]] };
 };
 
+/** Every placement's cell, read at once; one cell twice in an entry is refused. */
+const readSites = async (api: SheetsApi, placements: readonly Where[]): Promise<Site[]> => {
+  const sites = await Promise.all(placements.map((p) => readSite(api, p)));
+  const seen = new Set<string>();
+  for (const [i, site] of sites.entries()) {
+    const p = placements[i] as Where;
+    if (seen.has(site.address))
+      throw new WriteError(`${where(p.column, p.target, p.date)} aparece duas vezes no lançamento`);
+    seen.add(site.address);
+  }
+  return sites;
+};
+
 const plan = (site: Site, p: Placement) => {
   const result =
     p.target === "economia"
@@ -333,13 +350,10 @@ export const previewEntry = async (
   api: SheetsApi,
   placements: readonly Placement[],
 ): Promise<PartPreview[]> => {
-  const seen = new Set<string>();
+  const sites = await readSites(api, placements);
   const out: PartPreview[] = [];
-  for (const p of placements) {
-    const site = await readSite(api, p);
-    if (seen.has(site.address))
-      throw new WriteError(`${placeOf(p)} aparece duas vezes no lançamento`);
-    seen.add(site.address);
+  for (const [i, p] of placements.entries()) {
+    const site = sites[i] as Site;
     const edit = plan(site, p);
     out.push({
       address: site.address,
@@ -411,20 +425,6 @@ const opsOf = async (db: D1Database, entryId: string) =>
       .all<OpRow>()
   ).results;
 
-const setState = (
-  db: D1Database,
-  op: Pick<OpRow, "entry_id" | "part">,
-  state: OpRow["state"],
-  at: string,
-  error: string | null = null,
-) =>
-  db
-    .prepare(
-      "UPDATE entry_op SET state = ?, error = ?, updated_at = ? WHERE entry_id = ? AND part = ?",
-    )
-    .bind(state, error, at, op.entry_id, op.part)
-    .run();
-
 const result = async (db: D1Database, entryId: string): Promise<CommitResult> => {
   const ops = await opsOf(db, entryId);
   const state = ops.some((o) => o.state === "failed")
@@ -446,12 +446,53 @@ const result = async (db: D1Database, entryId: string): Promise<CommitResult> =>
   };
 };
 
+const setAll = (
+  db: D1Database,
+  entryId: string,
+  state: OpRow["state"],
+  at: string,
+  error: string | null = null,
+) =>
+  db
+    .prepare("UPDATE entry_op SET state = ?, error = ?, updated_at = ? WHERE entry_id = ?")
+    .bind(state, error, at, entryId)
+    .run();
+
+const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 /**
- * Writes an entry, part by part. `entryId` is the idempotency key: sending the same entry again
- * returns what was written the first time. `fingerprints` are the ones `previewEntry` returned;
- * if any cell changed since the preview, nothing more is written. Without them (Para lançar, one
- * tap), each changed line must still hold the value the queue saw, or the write stops. If a part fails, the parts
- * already written are undone, so an entry lands whole or not at all.
+ * How much each changed day's Saldo must move. Saldo carries from day to day and from one year
+ * tab to the next, so a day moves by every line changed on it or before it.
+ */
+const saldoCheck = (
+  placements: readonly Placement[],
+  edits: readonly { before: Cents; after: Cents }[],
+  before: readonly Site[],
+  after: readonly Site[],
+): string | null => {
+  for (const [i, p] of placements.entries()) {
+    const was = before[i]?.cells;
+    const now = after[i]?.cells;
+    if (!was || !now) continue;
+    const moved = placements.reduce((sum, q, j) => {
+      const e = edits[j];
+      return q.target === "economia" || q.date > p.date || !e
+        ? sum
+        : sum + signed(q.column, e.after - e.before);
+    }, 0);
+    if (saldoOf(now) - saldoOf(was) !== moved)
+      return `o Saldo de ${ddmm(p.date)} não bateu depois de gravar`;
+  }
+  return null;
+};
+
+/**
+ * Writes an entry: every cell in one request, journaled first, then read back. `entryId` is the
+ * idempotency key: sending the same entry again returns what was written the first time, and
+ * finishes a launch whose connection dropped midway. `fingerprints` are the ones `previewEntry`
+ * returned; if any cell changed since the preview, nothing is written. Without them (Para lançar,
+ * one tap), each changed line must still hold the value the queue saw. If the cells do not read
+ * back as planned, all of them go back, so an entry lands whole or not at all.
  */
 export const commitEntry = async (
   db: D1Database,
@@ -464,146 +505,198 @@ export const commitEntry = async (
   if (fingerprints && fingerprints.length !== placements.length)
     throw new WriteError("a prévia não corresponde ao lançamento");
   const existing = await opsOf(db, entryId);
-  // Sent again: a finished entry (written, failed or undone) is reported, not written twice.
-  if (
-    existing.some((o) => o.state === "failed" || o.state === "undone") ||
-    (existing.length === placements.length && existing.every((o) => o.state === "done"))
-  )
-    return result(db, entryId);
+  if (existing.length > 0) {
+    // Sent again: a finished entry (written, failed or undone) is reported, not written twice.
+    if (existing.some((o) => o.state !== "writing" && o.state !== "done"))
+      return result(db, entryId);
+    if (existing.length === placements.length && existing.every((o) => o.state === "done"))
+      return result(db, entryId);
+    // A previous attempt stopped between the journal and the check: see where the cells are.
+    const cells = await Promise.all(existing.map((o) => readSite(api, whereOf(o))));
+    if (
+      existing.length === placements.length &&
+      existing.every((o, i) => isAfter(cells[i]?.cell, o))
+    ) {
+      await setAll(db, entryId, "done", now());
+      return result(db, entryId);
+    }
+    if (!existing.every((o, i) => isBefore(cells[i]?.cell, o))) {
+      let error = "a planilha mudou no meio da gravação";
+      await restoreAll(api, existing, false).catch((e) => {
+        error = `${error}; ${messageOf(e)}`;
+      });
+      await setAll(db, entryId, "failed", now(), error);
+      return result(db, entryId);
+    }
+    await db.prepare("DELETE FROM entry_op WHERE entry_id = ?").bind(entryId).run();
+  }
 
-  for (const [part, p] of placements.entries()) {
-    const old = existing.find((o) => o.part === part);
-    if (old?.state === "done") continue;
-    const site = await readSite(api, p);
-    const { cell } = site;
-
-    if (old?.state === "writing") {
-      // A previous attempt stopped between the journal and the check: see where the cell is.
-      if (isAfter(cell, old)) {
-        await setState(db, old, "done", now());
-        continue;
-      }
-      if (!isBefore(cell, old)) {
-        await setState(db, old, "failed", now(), "a planilha mudou no meio da gravação");
-        await rollBack(db, api, entryId, part, now);
-        return result(db, entryId);
-      }
-      await db
-        .prepare("DELETE FROM entry_op WHERE entry_id = ? AND part = ?")
-        .bind(entryId, part)
-        .run();
-    } else if (fingerprints && (await fingerprint(cell)) !== fingerprints[part]) {
-      await rollBack(db, api, entryId, part, now);
+  const sites = await readSites(api, placements);
+  if (fingerprints) {
+    const prints = await Promise.all(sites.map((s) => fingerprint(s.cell)));
+    const moved = prints.findIndex((f, i) => f !== fingerprints[i]);
+    const p = placements[moved];
+    if (p)
       throw new WriteError(
         `${placeOf(p)} mudou na planilha agora há pouco; confira e lance de novo`,
       );
-    }
+  }
+  const edits = placements.map((p, i) => plan(sites[i] as Site, p));
 
-    const edit = plan(site, p);
-    const saldoBefore = site.cells ? saldoOf(site.cells) : 0;
-    const t = now();
-    await db
-      .prepare(
-        `INSERT INTO entry_op (entry_id, part, created_at, updated_at, state, tab, cell, date,
-          column_name, section, target, amount, description, before_value, before_note,
-          after_formula, after_note, before_total, after_total)
-         VALUES (?, ?, ?, ?, 'writing', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(
-        entryId,
-        part,
-        t,
-        t,
-        site.tab,
-        a1(site.row, site.col),
-        p.date,
-        p.column,
-        p.section,
-        p.target,
-        p.amount,
-        p.description,
-        JSON.stringify(enteredOf(cell)),
-        cell?.note ?? "",
-        edit.formula,
-        edit.note,
-        edit.before,
-        edit.after,
-      )
-      .run();
+  const t = now();
+  await db.batch(
+    placements.map((p, part) => {
+      const site = sites[part] as Site;
+      const edit = edits[part] as (typeof edits)[number];
+      return db
+        .prepare(
+          `INSERT INTO entry_op (entry_id, part, created_at, updated_at, state, tab, cell, date,
+            column_name, section, target, amount, description, before_value, before_note,
+            after_formula, after_note, before_total, after_total)
+           VALUES (?, ?, ?, ?, 'writing', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          entryId,
+          part,
+          t,
+          t,
+          site.tab,
+          a1(site.row, site.col),
+          p.date,
+          p.column,
+          p.section,
+          p.target,
+          p.amount,
+          p.description,
+          JSON.stringify(enteredOf(site.cell)),
+          site.cell?.note ?? "",
+          edit.formula,
+          edit.note,
+          edit.before,
+          edit.after,
+        );
+    }),
+  );
 
-    let error: string | null = null;
+  let writeError: string | null = null;
+  try {
+    await api.writeCells(
+      sites.map((site, i) => {
+        const edit = edits[i] as (typeof edits)[number];
+        return {
+          sheetId: site.sheetId,
+          row: site.row,
+          col: site.col,
+          value: edit.formula === "" ? {} : { formulaValue: edit.formula },
+          note: edit.note,
+        };
+      }),
+    );
+  } catch (e) {
+    writeError = messageOf(e);
+    // Before the new protection script runs, the whole Economia tab is closed to Neko.
+    if (sites.some((s) => s.tab === ECONOMIA_TAB) && /respondeu 403|protegida/.test(writeError))
+      writeError = "a aba Economia está protegida para o Neko; rode de novo o script de proteção";
+  }
+
+  // Read back even when Google answered with an error: the answer may be lost after the write.
+  const ops = await opsOf(db, entryId);
+  const back = await readSites(api, placements);
+  let error: string | null = null;
+  const off = placements.findIndex((p, i) => {
+    const edit = edits[i] as (typeof edits)[number];
+    return !isAfter(back[i]?.cell, {
+      target: p.target,
+      after_total: edit.after,
+      after_note: edit.note,
+    });
+  });
+  const offPlace = placements[off];
+  if (offPlace) error = writeError ?? `${placeOf(offPlace)} não ficou como devia`;
+  else {
     try {
-      const value = edit.formula === "" ? {} : { formulaValue: edit.formula };
-      await api.writeCell(site.sheetId, site.row, site.col, value, edit.note);
-      const back = await readSite(api, p);
-      if (!isAfter(back.cell, { target: p.target, after_total: edit.after, after_note: edit.note }))
-        error = `${placeOf(p)} não ficou como devia`;
-      else if (
-        back.cells &&
-        saldoOf(back.cells) - saldoBefore !== signed(p.column, edit.after - edit.before)
-      )
-        error = `o Saldo de ${ddmm(p.date)} não bateu depois de gravar`;
+      error = saldoCheck(placements, edits, sites, back);
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
-      // Before the new protection script runs, the whole Economia tab is closed to Neko.
-      if (site.tab === ECONOMIA_TAB && /respondeu 403|protegida/.test(error))
-        error = "a aba Economia está protegida para o Neko; rode de novo o script de proteção";
+      error = messageOf(e);
     }
-    if (error === null) {
-      await setState(db, { entry_id: entryId, part }, "done", now());
-      continue;
-    }
-    // Put the cell back to what it was, whatever this write turned it into.
-    const op = (await opsOf(db, entryId)).find((o) => o.part === part);
-    if (op)
-      await restore(api, op, true).catch((e) => {
-        error = `${error}; e não consegui desfazer: ${e instanceof Error ? e.message : e}`;
-      });
-    await setState(db, { entry_id: entryId, part }, "failed", now(), error);
-    await rollBack(db, api, entryId, part, now);
+  }
+  if (error === null) {
+    await setAll(db, entryId, "done", now());
     return result(db, entryId);
   }
+  if (!ops.every((o, i) => isBefore(back[i]?.cell, o))) {
+    // Put every cell back to what it was, whatever this write turned it into.
+    const failed = error;
+    await restoreAll(api, ops, true).catch((e) => {
+      error = `${failed}; e não consegui desfazer: ${messageOf(e)}`;
+    });
+  }
+  await setAll(db, entryId, "failed", now(), error);
   return result(db, entryId);
 };
 
 /**
- * Writes the stored cell back, only if the cell is still exactly as Neko left it. `justWritten`
- * is for the moment right after a write that did not read back as planned: the cell then holds
- * whatever that write became, and goes back to what it was.
+ * Entries a crashed request left halfway (the old part-by-part writer could stop between parts
+ * when the phone's connection dropped). Run under the write lock, so nothing else is writing:
+ * each goes back to how the sheet was, so no entry stays half launched, and Para lançar shows
+ * it again. Only the ones older than `olderThan`, so a retry of the same launch still finishes it.
  */
-const restore = async (api: SheetsApi, op: OpRow, justWritten = false) => {
-  const { sheetId, row, col, cell } = await readSite(api, whereOf(op));
-  if (isBefore(cell, op)) return;
-  if (!justWritten && !isAfter(cell, op))
-    throw new WriteError(`${placeOfOp(op)} mudou depois do lançamento; desfaça na planilha`);
-  await api.writeCell(
-    sheetId,
-    row,
-    col,
-    JSON.parse(op.before_value) as EnteredValue,
-    op.before_note,
-  );
-  const back = await readSite(api, whereOf(op));
-  if (!isBefore(back.cell, op)) throw new WriteError(`${placeOfOp(op)} não voltou ao que era`);
-};
-
-/** Undoes the parts already written before `upTo`, newest first. */
-const rollBack = async (
+export const healOrphans = async (
   db: D1Database,
   api: SheetsApi,
-  entryId: string,
-  upTo: number,
-  now: () => string,
-) => {
-  const done = (await opsOf(db, entryId)).filter((o) => o.part < upTo && o.state === "done");
-  for (const op of done.reverse()) {
-    try {
-      await restore(api, op);
-      await setState(db, op, "undone", now());
-    } catch (e) {
-      await setState(db, op, "failed", now(), e instanceof Error ? e.message : String(e));
-    }
+  olderThan: string,
+  now: () => string = () => new Date().toISOString(),
+): Promise<void> => {
+  const { results } = await db
+    .prepare(
+      "SELECT DISTINCT entry_id FROM entry_op WHERE state = 'writing' AND updated_at < ? LIMIT 5",
+    )
+    .bind(olderThan)
+    .all<{ entry_id: string }>();
+  for (const { entry_id } of results) {
+    const ops = (await opsOf(db, entry_id)).filter(
+      (o) => o.state === "writing" || o.state === "done",
+    );
+    let error = "a conexão caiu no meio da gravação; o Neko desfez o que tinha gravado";
+    await restoreAll(api, ops, false).catch((e) => {
+      error = `a conexão caiu no meio da gravação; ${messageOf(e)}`;
+    });
+    await db
+      .prepare(
+        "UPDATE entry_op SET state = 'failed', error = ?, updated_at = ? WHERE entry_id = ? AND state IN ('writing', 'done')",
+      )
+      .bind(error, now(), entry_id)
+      .run();
   }
+};
+
+/**
+ * Writes the stored cells back in one request, only where a cell is still exactly as Neko left
+ * it; a cell already back as it was is left alone. `justWritten` is for the moment right after a
+ * write that did not read back as planned: the cells then hold whatever that write became, and
+ * go back to what they were.
+ */
+const restoreAll = async (api: SheetsApi, ops: readonly OpRow[], justWritten: boolean) => {
+  const sites = await Promise.all(ops.map((op) => readSite(api, whereOf(op))));
+  const todo = ops
+    .map((op, i) => ({ op, site: sites[i] as Site }))
+    .filter(({ op, site }) => !isBefore(site.cell, op));
+  const moved = justWritten ? undefined : todo.find(({ op, site }) => !isAfter(site.cell, op));
+  if (moved)
+    throw new WriteError(`${placeOfOp(moved.op)} mudou depois do lançamento; desfaça na planilha`);
+  if (todo.length === 0) return;
+  await api.writeCells(
+    todo.map(({ op, site }) => ({
+      sheetId: site.sheetId,
+      row: site.row,
+      col: site.col,
+      value: JSON.parse(op.before_value) as EnteredValue,
+      note: op.before_note,
+    })),
+  );
+  const back = await Promise.all(todo.map(({ op }) => readSite(api, whereOf(op))));
+  const stuck = todo.find(({ op }, i) => !isBefore(back[i]?.cell, op));
+  if (stuck) throw new WriteError(`${placeOfOp(stuck.op)} não voltou ao que era`);
 };
 
 /**
@@ -616,18 +709,19 @@ export const undoEntry = async (
   entryId: string,
   now: () => string = () => new Date().toISOString(),
 ): Promise<CommitResult> => {
-  const ops = (await opsOf(db, entryId)).filter((o) => o.state === "done");
+  const all = await opsOf(db, entryId);
+  const ops = all.filter((o) => o.state === "done");
+  // Sent again after the connection dropped: the first Desfazer is reported, not an error.
+  if (ops.length === 0 && all.some((o) => o.state === "undone")) return result(db, entryId);
   if (ops.length === 0) throw new WriteError("não há lançamento gravado para desfazer");
   if (ops.every(isForecastOp)) return undoForecast(db, api, entryId, ops, now);
-  for (const op of ops) {
-    const { cell } = await readSite(api, whereOf(op));
-    if (!isAfter(cell, op))
-      throw new WriteError(`${placeOfOp(op)} mudou depois do lançamento; desfaça na planilha`);
-  }
-  for (const op of ops.reverse()) {
-    await restore(api, op);
-    await setState(db, op, "undone", now());
-  }
+  await restoreAll(api, ops, false);
+  await db
+    .prepare(
+      "UPDATE entry_op SET state = 'undone', updated_at = ? WHERE entry_id = ? AND state = 'done'",
+    )
+    .bind(now(), entryId)
+    .run();
   return result(db, entryId);
 };
 
@@ -713,8 +807,8 @@ const restoreTab = async (
 ) => {
   const at = ops.map((op) => ({ op, ...cellIndex(op.cell) }));
   await api.writeCells(
-    sheetId,
     at.map(({ op, row, col }) => ({
+      sheetId,
       row,
       col,
       value: JSON.parse(op.before_value) as EnteredValue,
@@ -801,8 +895,8 @@ export const writeForecast = async (
     let error: string | null;
     try {
       await api.writeCells(
-        sheetId,
         changes.map((c) => ({
+          sheetId,
           row: c.row,
           col: c.col,
           value: c.formula === "" ? {} : { formulaValue: c.formula },

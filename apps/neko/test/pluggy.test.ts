@@ -1,5 +1,5 @@
 import { localDate } from "@neko/engine";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/worker/env.ts";
 import worker from "../src/worker/index.ts";
 import {
@@ -180,6 +180,16 @@ describe("bank sync", () => {
     ]);
   });
 
+  it("keeps the rows when the bank answers with no movements at all, a likely hiccup", async () => {
+    const db = await withItem();
+    await syncItem(db as never, fakeApi({ txns: [txn("t1"), txn("t2")] }).api, ITEM, TODAY);
+    await syncItem(db as never, fakeApi({ txns: [] }).api, ITEM, TODAY);
+    expect(db.sqlite.prepare("SELECT id FROM bank_txn ORDER BY id").all()).toEqual([
+      { id: "t1" },
+      { id: "t2" },
+    ]);
+  });
+
   it("keeps a purchase abroad in reais, as the bill charges it, not in its own currency", async () => {
     const db = await withItem();
     await syncItem(
@@ -259,6 +269,37 @@ describe("bank routes", () => {
     expect((await hook(db)).status).toBe(403);
     expect((await hook(db, "wrong!")).status).toBe(403);
     expect((await hook(db, "s3cret")).status).toBe(200);
+  });
+
+  it("reads the bank once per refresh: on item/updated, not on each transactions event", async () => {
+    const db = await withItem();
+    const started: Promise<unknown>[] = [];
+    const spy = { ...ctx, waitUntil: (p: Promise<unknown>) => started.push(p) };
+    const configured = { ...env(db), PLUGGY_CLIENT_ID: "id", PLUGGY_CLIENT_SECRET: "s" } as Env;
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 500 }));
+    const send = (event: string) =>
+      worker.fetch(
+        new Request("https://neko.test/api/pluggy/webhook", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-neko-hook": "s3cret" },
+          body: JSON.stringify({ event, itemId: ITEM }),
+        }) as never,
+        configured,
+        spy as unknown as ExecutionContext,
+      );
+    const pluggyCalls = async () => {
+      await Promise.all(started);
+      return fetchSpy.mock.calls.filter((c) => String(c[0]).startsWith("https://api.pluggy.ai"))
+        .length;
+    };
+    await send("transactions/created");
+    await send("transactions/updated");
+    expect(await pluggyCalls()).toBe(0);
+    await send("item/updated");
+    expect(await pluggyCalls()).toBeGreaterThan(0);
+    fetchSpy.mockRestore();
   });
 
   it("lists and changes the linked banks only with a session", async () => {
