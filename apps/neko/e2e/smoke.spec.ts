@@ -158,10 +158,22 @@ test("Mia answers with the engine's values, each one a link to its screen", asyn
   await page.getByRole("button", { name: "Perguntar à Mia" }).click();
   await page.getByRole("button", { name: "Quanto saiu no mês passado?" }).click();
   const answer = page.getByRole("region", { name: "Conversa com a Mia" });
-  await expect(answer.getByRole("link", { name: /5\.123,40/ })).toHaveAttribute("href", "/mes");
+  await expect(answer.getByRole("link", { name: /5\.123,40/ })).toHaveAttribute(
+    "href",
+    "/mes?m=2026-09",
+  );
   // A difference shows its size; "caíram" already says which way.
   await expect(answer.getByRole("link", { name: /200,00/ })).not.toContainText("−");
+  // The month the numbers came from is a way out, and the next questions are a tap away.
+  await expect(answer.getByRole("link", { name: "Ver setembro" })).toHaveAttribute(
+    "href",
+    "/mes?m=2026-09",
+  );
+  await expect(answer.getByRole("button", { name: "Quanto cabe por dia?" })).toBeVisible();
+  await expect(answer.getByRole("button", { name: "Quanto saiu no mês passado?" })).toHaveCount(0);
   await answer.screenshot({ path: "test-results/mia.png" });
+  await answer.getByRole("button", { name: "Nova conversa" }).click();
+  await expect(answer.getByRole("button", { name: "Como está minha reserva?" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
