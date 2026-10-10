@@ -21,7 +21,7 @@ import {
   IconSettings,
   IconToday,
 } from "./icons.tsx";
-import { MiaScreen } from "./Mia.tsx";
+import { MiaHead, MiaScreen, type MiaTopic } from "./Mia.tsx";
 import { toggleValues, useValuesHidden } from "./privacy.ts";
 import { syncPush } from "./Reminders.tsx";
 import { reportError } from "./report.ts";
@@ -46,6 +46,9 @@ const prefetchScreens = () => {
 // Signing in happens once per device, so its WebAuthn code loads only when the login shows.
 const Login = lazy(() => import("./Login.tsx").then((m) => ({ default: m.Login })));
 
+/** The tabs Mia can be asked about from the head, and what she is asked about there. */
+const MIA_TOPIC: Record<string, MiaTopic> = { "/": "hoje", "/faturas": "faturas", "/mes": "mes" };
+
 const TITLES: Record<string, string> = {
   "/": "Hoje",
   "/faturas": "Faturas",
@@ -55,7 +58,7 @@ const TITLES: Record<string, string> = {
 
 /**
  * Keyboard shortcuts: a key presses whatever on screen declares it in aria-keyshortcuts (1 to 4
- * the tabs, R read again, L Lançar, arrows the month, Esc out of Mia), so the hint and the action never drift.
+ * the tabs, R read again, L Lançar, arrows the month, M Mia, Esc out of her), so the hint and the action never drift.
  * Never while typing in a field or with a dialog open.
  */
 const isTyping = (t: EventTarget | null) =>
@@ -103,6 +106,7 @@ const Masthead = () => {
           </p>
         )}
       </div>
+      {MIA_TOPIC[path] && <MiaHead topic={MIA_TOPIC[path]} />}
       <button
         type="button"
         className="icon"
@@ -177,6 +181,14 @@ const Shell = () => {
 };
 
 const rootRoute = createRootRoute({ component: Shell });
+const miaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/mia",
+  // ?de=faturas opens her with questions about the screen she was asked from.
+  validateSearch: (s: Record<string, unknown>): { de?: "faturas" | "mes" } =>
+    s.de === "faturas" || s.de === "mes" ? { de: s.de } : {},
+  component: () => <MiaScreen topic={miaRoute.useSearch().de} />,
+});
 const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/", component: Hoje }),
   createRoute({
@@ -194,14 +206,10 @@ const routeTree = rootRoute.addChildren([
   }),
   createRoute({
     getParentRoute: () => rootRoute,
-    path: "/mia",
-    component: MiaScreen,
-  }),
-  createRoute({
-    getParentRoute: () => rootRoute,
     path: "/ajustes",
     component: lazyRouteComponent(screens.ajustes, "Ajustes"),
   }),
+  miaRoute,
 ]);
 // A screen that breaks says so in the app's words and offers a way out, not a stack trace.
 function ScreenError({ error, reset }: { error: unknown; reset: () => void }) {

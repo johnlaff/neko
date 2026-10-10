@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.CompositionLocalProvider
 import dev.johnlaff.neko.ui.LocalRail
+import dev.johnlaff.neko.ui.LocalMia
+import dev.johnlaff.neko.ui.MiaEntry
 import dev.johnlaff.neko.ui.RAIL_FROM
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -90,6 +92,28 @@ class MainActivity : ComponentActivity() {
                 var miaOpen by rememberSaveable { mutableStateOf(false) }
                 // A tab reached from one of Mia's answers: back returns to her, as the site's history does.
                 var fromMia by rememberSaveable { mutableStateOf(false) }
+                // The tab Mia was opened from, so her first questions are about it.
+                var miaTopic by rememberSaveable { mutableStateOf("hoje") }
+                // The tab under her, where closing her lands.
+                var miaTab by rememberSaveable { mutableStateOf(Tab.Hoje) }
+                // Which way in was used ("head" or "row"), so closing her hands it the focus back.
+                var miaBy by rememberSaveable { mutableStateOf("row") }
+                val miaEntry = remember {
+                    MiaEntry(
+                        onOpen = { topic, by ->
+                            miaTopic = topic
+                            miaBy = by
+                            miaTab = tab
+                            fromMia = false
+                            miaOpen = true
+                        },
+                        talking = { model.miaChat.talk.isNotEmpty() },
+                    )
+                }
+                val closeMia = {
+                    miaOpen = false
+                    miaEntry.returning = miaBy
+                }
                 // Switching shows the last reading at once; only one older than a minute is read
                 // again, silently (refresh, a pull or "Tentar de novo" read now and say so).
                 val go = { t: Tab ->
@@ -117,13 +141,17 @@ class MainActivity : ComponentActivity() {
                     if (session == Session.SignedIn) model.show(tab)
                 }
                 // Back from another place returns to Hoje before leaving the app.
-                BackHandler(enabled = session == Session.SignedIn && tab != Tab.Hoje) {
-                    go(Tab.Hoje)
-                    if (fromMia) miaOpen = true
-                    fromMia = false
+                BackHandler(enabled = session == Session.SignedIn && (tab != Tab.Hoje || fromMia)) {
+                    if (fromMia) {
+                        go(miaTab)
+                        miaOpen = true
+                        fromMia = false
+                    } else {
+                        go(Tab.Hoje)
+                    }
                 }
                 // Registered last, so on Mia's screen back closes her first.
-                BackHandler(enabled = session == Session.SignedIn && miaOpen) { miaOpen = false }
+                BackHandler(enabled = session == Session.SignedIn && miaOpen) { closeMia() }
                 BoxWithConstraints(Modifier.fillMaxSize().background(LocalLedger.current.bg)) {
                     val rail = maxWidth >= RAIL_FROM
                     when (session) {
@@ -152,7 +180,7 @@ class MainActivity : ComponentActivity() {
                             val leaveMia = { open: () -> Unit ->
                                 miaOpen = false
                                 open()
-                                fromMia = tab != Tab.Hoje
+                                fromMia = true
                             }
                             // Mia's screen slides in from past the tabs and back out, as on the site.
                             AnimatedContent(
@@ -163,11 +191,13 @@ class MainActivity : ComponentActivity() {
                             if (inMia) {
                                 MiaScreen(
                                     mia, model::askMia, model.miaChat, model.viewModelScope,
-                                    onBack = { miaOpen = false },
+                                    onBack = closeMia,
                                     onScreen = { tela -> leaveMia { toScreen(tela) } },
                                     onMonth = { key -> leaveMia { toMonth(key) } },
+                                    topic = miaTopic,
                                 )
-                            } else Box(Modifier.fillMaxSize()) {
+                            } else CompositionLocalProvider(LocalMia provides miaEntry.takeIf { mia?.ligada == true }) {
+                            Box(Modifier.fillMaxSize()) {
                             AnimatedContent(tab, transitionSpec = { tabChange(initialState, targetState, shift) }, label = "tab") { t ->
                                 saved.SaveableStateProvider(t.name) {
                                 when (t) {
@@ -177,10 +207,7 @@ class MainActivity : ComponentActivity() {
                                             today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
                                             simulateAsk = simulateAsk,
                                             mia = mia,
-                                            onMia = {
-                                                fromMia = false
-                                                miaOpen = true
-                                            },
+                                            onMia = { miaEntry.open("hoje", "row") },
                                             miaTalking = model.miaChat.talk.isNotEmpty(),
                                             review = model::review,
                                             launcher = model.launcher,
@@ -216,6 +243,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             Dock(tab, { t -> fromMia = false; go(t) }, Modifier.align(if (rail) Alignment.CenterStart else Alignment.BottomCenter))
+                            }
                             }
                             }
                         }
