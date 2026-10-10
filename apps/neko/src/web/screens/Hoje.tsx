@@ -88,7 +88,7 @@ const insightView = (i: Insight) => {
         tone: "ask",
         to: "/ajustes",
         title: `Qual dia fecha o ${i.card}?`,
-        detail: `Fecha ≈ ${shortDate(i.closing)}. Confirme em Ajustes`,
+        detail: `Estimado: fecha perto de ${shortDate(i.closing)}. Confirme em Ajustes`,
       } as const;
     default:
       // A copy cached by an older version can carry a kind this one no longer knows.
@@ -471,7 +471,8 @@ export const Hoje = () => (
                       <span className="caption">{over ? "Passou do plano" : "Hoje cabem"}</span>
                       <BigMoney
                         cents={over ? cs.overBy : cs.perDay}
-                        tone={over ? "neg" : undefined}
+                        // Ink, as in the app: the line under it carries the colour when it matters.
+                        tone={over ? "neg" : "plain"}
                       />
                       <span className="caption">
                         {over

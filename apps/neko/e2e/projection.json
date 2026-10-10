@@ -11521,7 +11521,7 @@
         "bank": [],
         "adjustable": false,
         "origin": null,
-        "note": "Nada gasto nesse dia: o previsto sai."
+        "note": "Você não gastou nada nesse dia: o Diário dele fica zerado."
       },
       {
         "key": "card:cartao azul:2026-11-12=292270",
@@ -11597,6 +11597,13 @@
         "adjustable": false,
         "origin": null,
         "note": "Dinheiro passou entre suas contas. A conta Banco Verde guarda dinheiro ou é do dia a dia?"
+      }
+    ],
+    "ignored": [
+      {
+        "key": "ignorado-exemplo",
+        "date": "2026-10-02",
+        "title": "Pix Lanchonete da Esquina"
       }
     ],
     "saldo": {

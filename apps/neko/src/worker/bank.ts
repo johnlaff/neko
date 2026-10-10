@@ -65,6 +65,8 @@ export interface BankRows {
   readonly itemRows?: readonly BankItemRow[];
   /** Para lançar keys already launched or ignored. */
   readonly decided?: readonly string[];
+  /** The ignored ones among them, so Para lançar can bring one back. */
+  readonly ignored?: readonly string[];
   readonly accounts: readonly BankAccountRow[];
   readonly txns: readonly BankTxnRow[];
   readonly bills: readonly BankBillRow[];
@@ -175,7 +177,8 @@ export const bankView = (
     label: labels.get(a.item_id ?? "")?.label ?? "Banco",
     use: settings.accountUse[a.id] ?? null,
   }));
-  const queue = buildQueue({
+  const ignored = new Set(rows.ignored ?? []);
+  const built = buildQueue({
     ledger,
     cards,
     today,
@@ -186,13 +189,22 @@ export const bankView = (
     othersCards: settings.othersCards,
     accounts,
     savedOrigins: new Set(settings.savedOrigins),
-    decided: new Set(rows.decided ?? []),
+    // Ignored items are built too, then set aside below, so they can be brought back.
+    decided: new Set((rows.decided ?? []).filter((k) => !ignored.has(k))),
     forecast: settings.previstoSince !== null ? cents(settings.dailyForecast ?? 0) : null,
   });
+  const queue = built.filter((i) => !ignored.has(i.key));
   const synced = (a: BankAccountRow) => labels.get(a.item_id ?? "")?.synced_at ?? null;
   return {
     syncedAt: rows.syncedAt,
     queue: queueView(queue, ledger, cards),
+    ignored: built
+      .filter((i) => ignored.has(i.key))
+      .map((i) => ({
+        key: i.key,
+        date: i.date,
+        title: queueView([i], ledger, cards)[0]?.title ?? "",
+      })),
     saldo: saldoCheck(
       ledger,
       today,
@@ -223,7 +235,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
-    const [itemRows, accounts, txns, bills, decided] = await Promise.all([
+    const [itemRows, accounts, txns, bills, decisions] = await Promise.all([
       db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
       db.prepare("SELECT id, type, item_id, balance FROM bank_account").all<BankAccountRow>(),
       db
@@ -238,7 +250,8 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       items: items.n,
       syncedAt: items.at,
       itemRows: itemRows.results,
-      decided,
+      decided: decisions.map((d) => d.key),
+      ignored: decisions.filter((d) => d.state === "ignored").map((d) => d.key),
       accounts: accounts.results,
       txns: txns.results,
       bills: bills.results,
@@ -250,11 +263,13 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
 };
 
 /** Para lançar keys launched or ignored; none before migration 0009 is applied. */
-const loadDecided = async (db: D1Database): Promise<string[]> => {
+const loadDecided = async (db: D1Database): Promise<{ key: string; state: string }[]> => {
   try {
     return (
-      await db.prepare("SELECT key FROM queue_decision ORDER BY key").all<{ key: string }>()
-    ).results.map((r) => r.key);
+      await db
+        .prepare("SELECT key, state FROM queue_decision ORDER BY key")
+        .all<{ key: string; state: string }>()
+    ).results;
   } catch (error) {
     console.error("queue decisions unreadable", error);
     return [];
