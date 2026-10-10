@@ -503,6 +503,21 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
                     modifier = Modifier.weight(1.4f).semantics { contentDescription = "Código da conexão no Meu Pluggy" },
                 )
             }
+            // One line saying why Ligar waits, as the Lançar form and the site do.
+            val why = when {
+                itemId.isNotBlank() && !UUID.matches(itemId.trim()) ->
+                    "Esse código não parece o da conexão. Copie do Meu Pluggy, na lista das suas conexões."
+                UUID.matches(itemId.trim()) && label.isBlank() -> "Falta o nome do banco"
+                else -> null
+            }
+            why?.let {
+                Text(
+                    it,
+                    color = l.muted,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
             TextButton(
                 enabled = valid,
                 onClick = {

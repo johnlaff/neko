@@ -2493,6 +2493,13 @@ a.icon.mia-head {
 .banks .setting.nested .label {
   font-weight: 400;
 }
+form.setting.bank-add > p.hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+form.setting.bank-add > p.hint:empty {
+  display: none;
+}
 form.setting.bank-add > label {
   flex: 1 1 8rem;
   display: grid;

@@ -49,6 +49,13 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
 
   const linked = data.items.map((i) => ({ itemId: i.itemId, label: i.label }));
   const valid = label.trim() !== "" && UUID.test(itemId.trim());
+  // One line saying why Ligar waits, as the Lançar form does.
+  const codeBad = itemId.trim() !== "" && !UUID.test(itemId.trim());
+  const why = codeBad
+    ? "Esse código não parece o da conexão. Copie do Meu Pluggy, na lista das suas conexões."
+    : UUID.test(itemId.trim()) && label.trim() === ""
+      ? "Falta o nome do banco"
+      : null;
   const pick = (accountId: string, number: string | null, card: string) =>
     cards.mutate(tie(data.cards, accountId, number, card));
   const options = (empty: string) => (
@@ -197,13 +204,17 @@ export const Banks = ({ sheetCards }: { sheetCards: readonly string[] }) => {
                   aria-label="Código da conexão no Meu Pluggy"
                   value={itemId}
                   spellCheck={false}
-                  aria-invalid={itemId.trim() !== "" && !UUID.test(itemId.trim())}
+                  aria-invalid={codeBad}
+                  aria-describedby="bank-add-why"
                   onChange={(e) => setItemId(e.target.value)}
                 />
               </label>
               <button type="submit" className="ghost small" disabled={!valid || items.isPending}>
                 Ligar
               </button>
+              <p className="hint" id="bank-add-why" aria-live="polite">
+                {why}
+              </p>
             </form>
           </li>
         )}
