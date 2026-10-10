@@ -11453,7 +11453,7 @@
         ],
         "adjustable": true,
         "origin": "pix feira do bairro",
-        "note": "Saiu do banco e não está na planilha."
+        "note": ""
       },
       {
         "key": "mov:m3",
@@ -11491,7 +11491,7 @@
         ],
         "adjustable": true,
         "origin": "pix recebido ana",
-        "note": "Entrou no banco e não está na planilha."
+        "note": ""
       },
       {
         "key": "previsto:fechar:2026-10-04",

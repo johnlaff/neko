@@ -3097,3 +3097,7 @@ form.entry {
 .meta-line {
   display: block;
 }
+/* The form's line on what is missing takes no room while nothing is. */
+form.entry > p.hint:empty {
+  margin: 0;
+}

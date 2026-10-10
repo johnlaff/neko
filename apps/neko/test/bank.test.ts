@@ -194,7 +194,7 @@ describe("Para lançar from the bank rows", () => {
         ],
       ],
     ]);
-    expect(view?.queue?.[0]?.note).toBe("Entrou no banco e não está na planilha.");
+    expect(view?.queue?.[0]?.note).toBe("");
     expect(view?.queue?.[1]?.bank).toEqual([
       { date: "2026-10-05", amount: -1990, description: "PADARIA" },
     ]);
