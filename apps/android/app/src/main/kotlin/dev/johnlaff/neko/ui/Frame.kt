@@ -450,6 +450,8 @@ fun ListRow(
     accent: Boolean = false,
     chips: @Composable () -> Unit = {},
     below: @Composable () -> Unit = {},
+    /** A line that opens: a chevron after the value, turning as it opens (as on the site). */
+    open: Boolean? = null,
 ) {
     val l = LocalLedger.current
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
@@ -480,6 +482,10 @@ fun ListRow(
                 Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(12.dp))
                 Text(value, color = valueColor, textAlign = TextAlign.End)
+                if (open != null) {
+                    Spacer(Modifier.width(4.dp))
+                    Disclosure(open, l.faint, Modifier.padding(top = 5.dp))
+                }
             }
             // Chips get their own line: beside the name they squeezed it out on narrow phones,
             // and they wrap instead of clipping when two don't fit.
@@ -634,17 +640,21 @@ fun TextAction(
     ) {
         Text(text, color = color, style = MaterialTheme.typography.labelLarge)
         // A disclosure points down when closed and turns up as it opens, as on the site.
-        if (open != null) {
-            val turn by animateFloatAsState(if (open) 180f else 0f, tween(180, easing = Motion.Settle), label = "chevron")
-            Canvas(Modifier.size(12.dp).graphicsLayer { rotationZ = turn }) {
-                val w = size.width
-                val path = Path().apply {
-                    moveTo(w * 0.2f, w * 0.38f)
-                    lineTo(w * 0.5f, w * 0.66f)
-                    lineTo(w * 0.8f, w * 0.38f)
-                }
-                drawPath(path, color, style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
+        if (open != null) Disclosure(open, color)
+    }
+}
+
+/** A disclosure's chevron: points down when closed and turns up as it opens, as on the site. */
+@Composable
+fun Disclosure(open: Boolean, color: Color, modifier: Modifier = Modifier) {
+    val turn by animateFloatAsState(if (open) 180f else 0f, tween(180, easing = Motion.Settle), label = "chevron")
+    Canvas(modifier.size(12.dp).graphicsLayer { rotationZ = turn }) {
+        val w = size.width
+        val path = Path().apply {
+            moveTo(w * 0.2f, w * 0.38f)
+            lineTo(w * 0.5f, w * 0.66f)
+            lineTo(w * 0.8f, w * 0.38f)
         }
+        drawPath(path, color, style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }

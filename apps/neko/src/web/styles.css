@@ -1347,6 +1347,11 @@ fieldset.panel > legend {
   grid-template-columns: minmax(0, 1fr);
   gap: 4px;
 }
+.columns-key {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--faint);
+}
 .delta {
   margin: 0;
   font-size: 0.9375rem;
@@ -1715,6 +1720,14 @@ button.chip-button[aria-pressed="true"] {
   /* Capped by the screen, so with very large text the name keeps room to show */
   min-width: min(11ch, 30vw);
   text-align: right;
+}
+.outflows > li > .value > .opens > svg {
+  rotate: 90deg;
+  color: var(--faint);
+  transition: rotate 180ms ease-out;
+}
+.outflows > li.open > .value > .opens > svg {
+  rotate: -90deg;
 }
 .outflows > li > .value > small {
   font-size: 0.75rem;
@@ -2251,10 +2264,10 @@ button.setting.quiet {
   border-radius: 0;
   border-top: 1px solid var(--border);
   background: transparent;
-  color: var(--text);
+  color: var(--accent);
   font-weight: 500;
 }
-/* An action reads as one, in ink; only once done does it go quiet */
+/* An action reads as one, in the links' green; only once done does it go quiet */
 button.setting.quiet:hover {
   background: transparent;
   opacity: 0.8;
@@ -2479,6 +2492,13 @@ a.icon.mia-head {
 }
 .banks .setting.nested .label {
   font-weight: 400;
+}
+form.setting.bank-add > p.hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+form.setting.bank-add > p.hint:empty {
+  display: none;
 }
 form.setting.bank-add > label {
   flex: 1 1 8rem;

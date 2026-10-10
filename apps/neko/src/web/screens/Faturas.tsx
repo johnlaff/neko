@@ -102,7 +102,7 @@ export const Faturas = () => {
                     <h2 className="with-mark">
                       {/* The bank's mark only: two letters next to the name would just repeat it. */}
                       {institutionOf(usual.card.name) && <CardAvatar name={usual.card.name} />}
-                      {usual.card.name}
+                      {usual.card.name} · {shortMonth(usual.cycle.due)}
                     </h2>
                     <span className={`chip ${usual.closesInDays <= 3 ? "warn" : "ok"}`}>
                       {/* An estimated day says so in words: a lone ≈ needed Ajustes to explain it. */}
