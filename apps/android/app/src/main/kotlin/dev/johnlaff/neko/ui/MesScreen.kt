@@ -72,7 +72,7 @@ fun MesScreen(
             onOpened()
         }
     }
-    ScreenFrame("Mês", state, { it.readAt }, onRefresh) { v ->
+    ScreenFrame("Mês", state, { it.readAt }, onRefresh, miaTopic = "mes") { v ->
         val idx = v.months.indexOfFirst { it.key == (picked ?: v.current) }.takeIf { it >= 0 }
             ?: v.months.indexOfFirst { it.key == v.current }.coerceAtLeast(0)
         val m = v.months.getOrNull(idx)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MiaReply } from "../src/web/api.ts";
-import { MIA_SUGGESTIONS, miaNext, miaSources, miaWaiting } from "../src/web/Mia.tsx";
+import { miaNext, miaSources, miaStarters, miaWaiting } from "../src/web/Mia.tsx";
 
 const reply = (valores: MiaReply["valores"]): MiaReply =>
   ({ texto: "", valores, modelo: "claude-haiku-5-5" }) as MiaReply;
@@ -33,9 +33,24 @@ describe("Mia panel", () => {
     ]);
   });
 
+  it("starts with five questions, those about the screen she was opened from first", () => {
+    const faturas = miaStarters("faturas");
+    expect(faturas.slice(0, 2)).toEqual([
+      "Quanto vem nas próximas faturas?",
+      "Qual fatura está mais alta?",
+    ]);
+    expect(faturas).toHaveLength(5);
+    expect(new Set(faturas).size).toBe(5);
+    expect(miaStarters()[0]).toBe("Quanto cabe por dia?");
+  });
+
   it("suggests two questions not asked yet", () => {
-    expect(miaNext([MIA_SUGGESTIONS[0]])).toEqual([MIA_SUGGESTIONS[1], MIA_SUGGESTIONS[2]]);
-    expect(miaNext([...MIA_SUGGESTIONS])).toEqual([]);
+    expect(miaNext(["Quanto cabe por dia?"])).toEqual([
+      "Como está minha reserva?",
+      "Quanto vem nas próximas faturas?",
+    ]);
+    const all = [...miaStarters("hoje"), ...miaStarters("faturas"), ...miaStarters("mes")];
+    expect(miaNext(all)).toEqual([]);
   });
 
   it("says more as the wait goes on", () => {

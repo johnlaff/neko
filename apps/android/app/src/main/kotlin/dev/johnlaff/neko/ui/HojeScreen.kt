@@ -101,7 +101,7 @@ fun HojeScreen(
     var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
     LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
-    ScreenFrame("Hoje", state, { it.readAt }, onRefresh) { v ->
+    ScreenFrame("Hoje", state, { it.readAt }, onRefresh, miaTopic = "hoje") { v ->
         item { Hero(v) }
         val cs = v.canSpend.takeIf { simulate != null }
         // Writing on, Lançar opens the form here; off, it opens today's row in the sheet.

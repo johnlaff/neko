@@ -97,14 +97,26 @@ import kotlinx.coroutines.launch
 /** Sends a question to the Worker; throws when it cannot answer. */
 typealias AskMia = suspend (MiaAsk) -> MiaReply
 
-/** Questions Mia answers well, one tap each (the site's MIA_SUGGESTIONS). */
-val MIA_SUGGESTIONS = listOf(
-    "Quanto cabe por dia?",
-    "Quanto saiu no mês passado?",
-    "Este mês está melhor que o anterior?",
-    "Quanto gastei com mercado este ano?",
-    "Como está minha reserva?",
+/** Questions Mia answers well, one tap each, led by the screen she came from (the site's MIA_TOPICS). */
+private val MIA_TOPICS = mapOf(
+    "hoje" to listOf("Quanto cabe por dia?", "Como está minha reserva?"),
+    "faturas" to listOf("Quanto vem nas próximas faturas?", "Qual fatura está mais alta?"),
+    "mes" to listOf("Quanto saiu no mês passado?", "Este mês está melhor que o anterior?", "Quanto gastei com mercado este ano?"),
 )
+
+/** Five questions, those about the screen Mia was opened from ("hoje", "faturas", "mes") first. */
+fun miaStarters(topic: String = "hoje"): List<String> =
+    (MIA_TOPICS[topic].orEmpty() + MIA_TOPICS.values.flatten()).distinct().take(5)
+
+/** What she is asked about, from the screen she was opened from: her title and her mark's name. */
+private fun miaSubject(topic: String): String = when (topic) {
+    "faturas" -> "sobre as faturas"
+    "mes" -> "sobre o mês"
+    else -> "sobre a sua planilha"
+}
+
+/** The empty screen's title, naming the screen she was opened from. */
+fun miaTitle(topic: String = "hoje"): String = "Pergunte ${miaSubject(topic)}"
 
 /** Exchanges sent back with a question; the Worker takes no more. */
 private const val MAX_HISTORY = 6
@@ -155,7 +167,8 @@ fun miaSources(reply: MiaReply): List<MiaSource> {
 }
 
 /** After an answer, two questions not asked yet, so the next one is a tap away. */
-fun miaNext(asked: List<String>): List<String> = MIA_SUGGESTIONS.filterNot { it in asked }.take(2)
+fun miaNext(asked: List<String>, topic: String = "hoje"): List<String> =
+    (miaStarters(topic) + MIA_TOPICS.values.flatten()).distinct().filterNot { it in asked }.take(2)
 
 /** What the wait line says as it goes on: the answer can take a while, and silence reads as stuck. */
 fun miaWaiting(seconds: Int): String = when {
@@ -174,6 +187,7 @@ fun MiaButton(continuing: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         Modifier.fillMaxWidth()
+            .focusRequester(rememberMiaReturn("row"))
             .background(l.surface, shape)
             .border(1.dp, l.border, shape)
             .clip(shape)
@@ -198,6 +212,23 @@ fun MiaButton(continuing: Boolean, onClick: () -> Unit) {
             tint = l.faint,
             modifier = Modifier.size(16.dp),
         )
+    }
+}
+
+/**
+ * Mia in the head of Hoje, Faturas and Mês (the site's MiaHead): her screen from any tab, her first
+ * questions about the one it was opened from.
+ */
+@Composable
+fun MiaHead(topic: String) {
+    val entry = LocalMia.current ?: return
+    // With a conversation open she continues it, as Hoje's row says; otherwise she starts on this screen.
+    val label = if (entry.talking()) "Continuar a conversa com a Mia" else "Perguntar à Mia ${miaSubject(topic)}"
+    IconButton(
+        onClick = { entry.open(topic, "head") },
+        modifier = Modifier.focusRequester(rememberMiaReturn("head")).semantics { contentDescription = label },
+    ) {
+        MiaMark(28.dp)
     }
 }
 
@@ -239,6 +270,8 @@ fun MiaScreen(
     onBack: () -> Unit,
     onScreen: (String) -> Unit,
     onMonth: (String?) -> Unit = { onScreen("mes") },
+    /** The screen she was opened from: her first questions are about it. */
+    topic: String = "hoje",
 ) {
     val l = LocalLedger.current
     val focus = LocalFocusManager.current
@@ -302,7 +335,7 @@ fun MiaScreen(
     }
     // A question that just failed waits in "Tentar de novo", not again among the chips.
     val asked = talk.map { it.pergunta } + listOfNotNull(chat.failed)
-    val next = if (talk.isEmpty() || resting || chat.typed.isNotBlank() || chat.pending != null) emptyList() else miaNext(asked)
+    val next = if (talk.isEmpty() || resting || chat.typed.isNotBlank() || chat.pending != null) emptyList() else miaNext(asked, topic)
 
     Column(
         Modifier.fillMaxSize().background(l.bg).safeDrawingPadding().semantics { paneTitle = "Mia" },
@@ -343,7 +376,7 @@ fun MiaScreen(
                     Text("A Mia descansa até ${shortDate(paused)}. Os números seguem nas telas.", color = l.muted)
                 }
                 if (on && talk.isEmpty() && chat.pending == null) item(key = "empty") {
-                    MiaEmpty(if (resting) emptyList() else MIA_SUGGESTIONS.filterNot { it in asked }) { send(it) }
+                    MiaEmpty(miaTitle(topic), if (resting) emptyList() else miaStarters(topic).filterNot { it in asked }) { send(it) }
                 }
                 // A question on its way and its answer share one key, so TalkBack reads the answer
                 // where it lands.
@@ -424,10 +457,10 @@ fun MiaScreen(
 
 /** Before the first question: what she does, and the questions she answers well, one per line. */
 @Composable
-private fun MiaEmpty(starters: List<String>, onAsk: (String) -> Unit) {
+private fun MiaEmpty(title: String, starters: List<String>, onAsk: (String) -> Unit) {
     val l = LocalLedger.current
     Column(Modifier.padding(top = 56.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Pergunte sobre a sua planilha", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+        Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
         Text(
             "A Mia responde com os números das telas do Neko, e cada um leva à tela de onde veio.",
             color = l.muted,

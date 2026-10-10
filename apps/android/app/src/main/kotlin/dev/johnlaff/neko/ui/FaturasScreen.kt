@@ -31,7 +31,7 @@ import dev.johnlaff.neko.ui.Format.shortDate
 /** The site's Faturas (web/screens/Faturas.tsx): the usual bill, its history, where to buy today. */
 @Composable
 fun FaturasScreen(state: ScreenState<InvoicesView>, onRefresh: () -> Unit, onAjustes: () -> Unit) {
-    ScreenFrame("Faturas", state, { it.readAt }, onRefresh) { v ->
+    ScreenFrame("Faturas", state, { it.readAt }, onRefresh, miaTopic = "faturas") { v ->
         if (!v.hasCards) {
             item {
                 Panel {

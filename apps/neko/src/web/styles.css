@@ -509,7 +509,8 @@ button:hover {
   background: color-mix(in oklch, var(--text) 86%, var(--bg));
 }
 .button:active,
-button:active {
+button:active,
+a.icon:active {
   scale: 0.98;
 }
 button:disabled,
@@ -530,15 +531,27 @@ button.ghost:hover,
 .button.ghost:hover {
   background: var(--pill-active);
 }
-button.icon {
+button.icon,
+a.icon {
   width: 44px;
   min-height: 44px;
   padding: 0;
   background: transparent;
   color: var(--text);
 }
-button.icon:hover {
+button.icon:hover,
+a.icon:hover {
   background: var(--pill-active);
+}
+/* A link that looks like the icon buttons around it (Mia's mark in the head). */
+a.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition:
+    background-color 160ms ease-out,
+    scale 120ms ease-out;
 }
 .wide {
   width: 100%;
