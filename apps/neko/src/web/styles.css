@@ -2396,7 +2396,6 @@ form.setting.bank-add > input {
 }
 .mia-bar > button.mia-restart {
   min-height: 44px;
-  white-space: nowrap;
   font-size: 0.875rem;
 }
 .mia-body {
