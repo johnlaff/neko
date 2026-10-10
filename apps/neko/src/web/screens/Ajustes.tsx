@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PrevistoView } from "../../shared/types.ts";
 import { api, type KeptSetting, type UserSettings } from "../api.ts";
 import { Banks } from "../Banks.tsx";
+import { Board } from "../Board.tsx";
 import { Devices } from "../Devices.tsx";
 import { money, toCents } from "../format.ts";
 import { resetHints } from "../Hint.tsx";
@@ -302,38 +303,58 @@ export const Ajustes = () => {
 
   return (
     <>
-      <Form
-        initial={settings.data}
-        cards={projection.data.cardsKnown}
-        previsto={projection.data.previsto?.on ? projection.data.previsto.value : null}
+      <Board
+        panels={{
+          form: (
+            <Form
+              initial={settings.data}
+              cards={projection.data.cardsKnown}
+              previsto={projection.data.previsto?.on ? projection.data.previsto.value : null}
+            />
+          ),
+          writing: <Writing settings={settings.data} previsto={projection.data.previsto} />,
+          banks: <Banks sheetCards={projection.data.cardsKnown.map((c) => c.name)} />,
+          device: (
+            <section className="group" aria-labelledby="g-device">
+              <h2 id="g-device">Neste aparelho</h2>
+              <div className="panel list">
+                <Reminders />
+              </div>
+            </section>
+          ),
+          devices: <Devices />,
+          learn: <HowItWorks reviewed={settings.data} />,
+          session: (
+            <section className="group" aria-label="Sessão">
+              <div className="panel list">
+                <a className="setting link" href="/privacidade" target="_blank" rel="noreferrer">
+                  Política de privacidade
+                  <IconChevron />
+                </a>
+                <button
+                  type="button"
+                  className="setting danger"
+                  onClick={() =>
+                    api.logout().then(() => queryClient.invalidateQueries({ queryKey: ["me"] }))
+                  }
+                >
+                  Sair deste aparelho
+                </button>
+              </div>
+            </section>
+          ),
+        }}
+        // Wide screens: the plan and the sheet, then the banks and this device, then how it works.
+        two={[
+          ["form", "writing", "device", "devices"],
+          ["banks", "learn", "session"],
+        ]}
+        three={[
+          ["form", "writing"],
+          ["banks", "device", "devices"],
+          ["learn", "session"],
+        ]}
       />
-      <Writing settings={settings.data} previsto={projection.data.previsto} />
-      <Banks sheetCards={projection.data.cardsKnown.map((c) => c.name)} />
-      <section className="group" aria-labelledby="g-device">
-        <h2 id="g-device">Neste aparelho</h2>
-        <div className="panel list">
-          <Reminders />
-        </div>
-      </section>
-      <Devices />
-      <HowItWorks reviewed={settings.data} />
-      <section className="group" aria-label="Sessão">
-        <div className="panel list">
-          <a className="setting link" href="/privacidade" target="_blank" rel="noreferrer">
-            Política de privacidade
-            <IconChevron />
-          </a>
-          <button
-            type="button"
-            className="setting danger"
-            onClick={() =>
-              api.logout().then(() => queryClient.invalidateQueries({ queryKey: ["me"] }))
-            }
-          >
-            Sair deste aparelho
-          </button>
-        </div>
-      </section>
       <LaunchToast />
     </>
   );
