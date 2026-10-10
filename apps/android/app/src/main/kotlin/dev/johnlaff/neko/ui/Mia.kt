@@ -10,14 +10,26 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
+import dev.johnlaff.neko.R
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -38,7 +50,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +70,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -118,7 +128,7 @@ data class MiaSource(val tela: String, val mes: String?, val label: String)
 
 /**
  * The screens an answer's numbers came from, as plain ways out: "Ver setembro", "Ver faturas".
- * Hoje is left out, since Mia lives there. Two at most, so the answer stays the main thing.
+ * Hoje is left out, the screen she is opened from. Two at most, so the answer stays the main thing.
  */
 fun miaSources(reply: MiaReply): List<MiaSource> {
     val values = reply.valores.values
@@ -156,20 +166,19 @@ fun miaWaiting(seconds: Int): String = when {
 
 /**
  * The site's "Perguntar à Mia" (web/Mia.tsx): a quiet row under Lançar and Simular, not a third
- * big button. The chevron turns when the conversation is open.
+ * big button, leading to Mia's own screen. It says so when a conversation is waiting there.
  */
 @Composable
-fun MiaButton(open: Boolean, onClick: () -> Unit) {
+fun MiaButton(continuing: Boolean, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(12.dp)
-    val turn by androidx.compose.animation.core.animateFloatAsState(if (open) 90f else 0f, label = "chevron")
     Row(
         Modifier.fillMaxWidth()
             .background(l.surface, shape)
             .border(1.dp, l.border, shape)
             .clip(shape)
-            .clickable(onClickLabel = if (open) "Fechar a conversa" else "Abrir a conversa", onClick = onClick)
-            .semantics(mergeDescendants = true) { stateDescription = if (open) "Aberto" else "Fechado" }
+            .clickable(onClickLabel = "Abrir a Mia", role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) {}
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -177,69 +186,86 @@ fun MiaButton(open: Boolean, onClick: () -> Unit) {
         MiaMark(40.dp)
         Column(Modifier.weight(1f)) {
             Text("Perguntar à Mia", style = MaterialTheme.typography.titleMedium)
-            Text("Respostas com os números da sua planilha", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                if (continuing) "Continuar a conversa" else "Respostas com os números da sua planilha",
+                color = l.muted,
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
         androidx.compose.material3.Icon(
             androidx.compose.ui.res.painterResource(dev.johnlaff.neko.R.drawable.ic_chevron_right),
             null,
             tint = l.faint,
-            modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = turn },
+            modifier = Modifier.size(16.dp),
         )
     }
 }
 
 /**
- * The conversation, kept by Hoje rather than by the panel: closing the panel or scrolling it out of
- * the list keeps what was said and lets an answer on its way arrive, as on the site.
+ * The conversation, kept by the app rather than by Mia's screen: leaving her to check a month and
+ * coming back finds it where it was, an answer still on its way included, as on the site.
  */
 class MiaChat(start: List<MiaExchange> = emptyList()) {
     var talk by mutableStateOf(start)
     var typed by mutableStateOf("")
-    var pending by mutableStateOf(false)
+    /** The question waiting for its answer. */
+    var pending by mutableStateOf<String?>(null)
     /** When the question on its way was sent, so the wait line counts from there. */
     var sentAt by mutableStateOf(0L)
-    /** Set when Mia could not answer; the month's limit is `limited` instead. */
-    var failed by mutableStateOf(false)
-    var lastAsked by mutableStateOf<String?>(null)
-    /** The month's limit was reached: she rests until Hoje opens again, whatever is cleared. */
+    /** The question that just failed, waiting in "Tentar de novo"; the month's limit is `limited`. */
+    var failed by mutableStateOf<String?>(null)
+    /** The month's limit was reached: she rests until the app opens again, whatever is cleared. */
     var limited by mutableStateOf(false)
     /** Whether the question field has the focus, so an answer only closes the keyboard it opened. */
     var typing by mutableStateOf(false)
+
+    fun clear() {
+        talk = emptyList()
+        failed = null
+    }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Mia's own screen (the site's /mia): the whole window for the conversation, no dock, the question
+ * field pinned above the keyboard. Back returns to Hoje; the conversation stays in `chat`.
+ */
 @Composable
-fun MiaPanel(
-    status: MiaStatus,
+fun MiaScreen(
+    /** Null while it is still being read: the bar shows, nothing else yet. */
+    status: MiaStatus?,
     ask: AskMia,
+    chat: MiaChat,
+    scope: CoroutineScope,
+    onBack: () -> Unit,
     onScreen: (String) -> Unit,
-    chat: MiaChat = remember { MiaChat() },
-    scope: CoroutineScope = rememberCoroutineScope(),
     onMonth: (String?) -> Unit = { onScreen("mes") },
 ) {
     val l = LocalLedger.current
     val focus = LocalFocusManager.current
     val input = remember { FocusRequester() }
+    val list = rememberLazyListState()
     var seconds by remember { mutableStateOf(0) }
-    // Gone from the list, the field no longer holds the focus an answer might close.
+    // Gone from the window, the field no longer holds the focus an answer might close.
     DisposableEffect(Unit) { onDispose { chat.typing = false } }
     LaunchedEffect(chat.pending) {
-        while (chat.pending) {
+        while (chat.pending != null) {
             seconds = ((System.currentTimeMillis() - chat.sentAt) / 1000).toInt()
             delay(1000)
         }
         seconds = 0
     }
-    val paused = status.pausadaAte
+    val paused = status?.pausadaAte
+    val on = status?.ligada == true
     val resting = paused != null || chat.limited
+    val lead = if (on && paused != null && !chat.limited) 1 else 0
     val open = { tela: String, mes: String? -> if (tela == "mes") onMonth(mes) else onScreen(tela) }
     val send = { q: String ->
         val pergunta = q.trim()
-        if (pergunta.isNotEmpty() && !chat.pending) {
-            chat.pending = true
+        if (pergunta.isNotEmpty() && chat.pending == null) {
+            chat.pending = pergunta
             chat.sentAt = System.currentTimeMillis()
-            chat.failed = false
-            chat.lastAsked = pergunta
+            chat.failed = null
+            chat.typed = ""
             val recent = chat.talk.takeLast(MAX_HISTORY)
             scope.launch {
                 try {
@@ -251,132 +277,197 @@ fun MiaPanel(
                         ),
                     )
                     chat.talk = chat.talk + MiaExchange(pergunta, reply)
-                    chat.typed = ""
                     // The keyboard closes, so the answer shows; never a field the owner moved to.
                     if (chat.typing) focus.clearFocus()
                 } catch (c: CancellationException) {
                     throw c
                 } catch (e: Throwable) {
-                    if (e is ApiException && e.status == 429) chat.limited = true else chat.failed = true
+                    if (e is ApiException && e.status == 429) chat.limited = true else chat.failed = pergunta
                 } finally {
-                    chat.pending = false
+                    chat.pending = null
                 }
             }
         }
     }
     val talk = chat.talk
-    val newest = talk.lastOrNull()
+    // The newest answer is read from its top; a question just sent shows with the wait under it.
+    LaunchedEffect(talk.size) { if (talk.isNotEmpty()) list.animateScrollToItem(lead + talk.size - 1) }
+    LaunchedEffect(chat.pending) { if (chat.pending != null) list.animateScrollToItem(lead + talk.size + 1) }
     val line = when {
-        chat.pending -> miaWaiting(seconds)
+        chat.pending != null -> miaWaiting(seconds)
         // Reached while asking: said where the wait was, so TalkBack reads it.
         chat.limited -> "A Mia descansa até o mês que vem. Os números seguem nas telas."
-        chat.failed -> "Não consegui falar com a Mia agora."
+        chat.failed != null -> "Não consegui falar com a Mia agora."
         else -> null
     }
     // A question that just failed waits in "Tentar de novo", not again among the chips.
-    val asked = talk.map { it.pergunta } + listOfNotNull(chat.lastAsked.takeIf { chat.failed })
-    val chips = when {
-        resting || chat.typed.isNotBlank() || chat.pending -> emptyList()
-        talk.isEmpty() -> MIA_SUGGESTIONS.filterNot { it in asked }
-        else -> miaNext(asked)
-    }
+    val asked = talk.map { it.pergunta } + listOfNotNull(chat.failed)
+    val next = if (talk.isEmpty() || resting || chat.typed.isNotBlank() || chat.pending != null) emptyList() else miaNext(asked)
 
-    Panel(Modifier.semantics { contentDescription = "Conversa com a Mia" }) {
-        // Paused on opening: said first.
-        if (paused != null && !chat.limited) {
-            Text("A Mia descansa até ${shortDate(paused)}. Os números seguem nas telas.", color = l.muted)
-        }
-        talk.dropLast(1).forEach { x ->
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(x.pergunta, color = l.muted, style = MaterialTheme.typography.bodyMedium)
-                MiaText(x.reply, open)
-            }
-        }
-        // The newest answer and the wait line always sit in the same places, so TalkBack reads what
-        // changes in them. They share one slot with no gap of their own while empty.
-        val gap = 12.dp
-        if (newest != null || line != null || chips.isNotEmpty() || !resting) Column {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (newest != null) Text(newest.pergunta, color = l.muted, style = MaterialTheme.typography.bodyMedium)
-                Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-                    if (newest != null) MiaText(newest.reply, open)
-                }
-                // Only the newest answer offers its screens, so older ones stay plain text.
-                val sources: List<MiaSource> = if (newest != null) miaSources(newest.reply) else emptyList()
-                if (sources.isNotEmpty()) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        sources.forEach { src -> TextAction(src.label, { open(src.tela, src.mes) }, color = l.accent) }
-                    }
-                }
-            }
+    Column(
+        Modifier.fillMaxSize().background(l.bg).safeDrawingPadding().semantics { paneTitle = "Mia" },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().weight(1f)) {
             Row(
-                Modifier.padding(top = if (line != null && newest != null) gap else 0.dp),
+                Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (chat.pending) WaitDots()
-                Box(Modifier.weight(1f, fill = false).semantics { liveRegion = LiveRegionMode.Polite }) {
-                    if (line != null) Text(line, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                IconButton(onClick = onBack) {
+                    Icon(painterResource(R.drawable.ic_chevron_left), "Voltar", tint = l.text)
                 }
-                val retry = chat.lastAsked
-                if (chat.failed && retry != null) TextAction("Tentar de novo", { send(retry) }, color = l.accent)
+                MiaMark(28.dp)
+                Text("Mia", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f).semantics { heading() })
+                // Stays put while an answer is on its way, so the bar does not jump; usable again after.
+                if (talk.isNotEmpty()) {
+                    TextAction("Nova conversa", enabled = chat.pending == null, color = if (chat.pending == null) l.accent else l.faint, onClick = {
+                        chat.clear()
+                        // The action goes away with the conversation; the focus lands where the next one starts.
+                        if (on && !resting) runCatching { input.requestFocus() }
+                    })
+                }
             }
-            val above = newest != null || line != null
-            if (chips.isNotEmpty()) {
-                // One row that slides sideways: wrapped, the five questions stacked one per line on a phone.
-                Row(
-                    Modifier
-                        .padding(top = if (above) gap else 0.dp)
-                        // The last chip fades out at the edge, a hint that the row goes on.
-                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                        .drawWithContent {
-                            drawContent()
-                            drawRect(Brush.horizontalGradient(0.88f to Color.Black, 1f to Color.Transparent), blendMode = BlendMode.DstIn)
+            HorizontalDivider(color = l.border)
+            LazyColumn(
+                Modifier.weight(1f).fillMaxWidth(),
+                state = list,
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                if (status != null && !on) item(key = "off") {
+                    Text("A Mia não está ligada neste Neko.", color = l.muted)
+                }
+                // Paused on opening: said first.
+                if (on && lead == 1 && paused != null) item(key = "lead") {
+                    Text("A Mia descansa até ${shortDate(paused)}. Os números seguem nas telas.", color = l.muted)
+                }
+                if (on && talk.isEmpty() && chat.pending == null) item(key = "empty") {
+                    MiaEmpty(if (resting) emptyList() else MIA_SUGGESTIONS.filterNot { it in asked }) { send(it) }
+                }
+                // A question on its way and its answer share one key, so TalkBack reads the answer
+                // where it lands.
+                itemsIndexed(talk, key = { i, _ -> "x$i" }) { i, x ->
+                    val newest = i == talk.lastIndex && chat.pending == null
+                    MiaTurnItem(x.pergunta, x.reply, if (newest) miaSources(x.reply) else emptyList(), open, live = i == talk.lastIndex)
+                }
+                chat.pending?.let { q -> item(key = "x${talk.size}") { MiaTurnItem(q, null, emptyList(), open, live = true) } }
+                item(key = "wait") {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (chat.pending != null) WaitDots()
+                        Box(Modifier.weight(1f, fill = false).semantics { liveRegion = LiveRegionMode.Polite }) {
+                            if (line != null) Text(line, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                         }
-                        // A new row starts at its first question, not where the last one was slid to.
-                        .horizontalScroll(key(talk.size) { rememberScrollState() }),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    chips.forEach { q -> Suggestion(q, enabled = !chat.pending) { send(q) } }
+                        val retry = chat.failed
+                        if (retry != null && chat.pending == null && !chat.limited) {
+                            TextAction("Tentar de novo", { send(retry) }, color = l.accent)
+                        }
+                    }
                 }
             }
-            if (!resting) {
-                Row(
-                    Modifier.padding(top = if (above || chips.isNotEmpty()) gap else 0.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            if (on && !resting) {
+                HorizontalDivider(color = l.border)
+                Column(
+                    Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    OutlinedTextField(
-                        value = chat.typed,
-                        onValueChange = { chat.typed = it.take(500) },
-                        singleLine = true,
-                        placeholder = { Text(if (talk.isEmpty()) "Pergunte algo" else "Outra pergunta?", color = l.faint) },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = { send(chat.typed) }),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
-                        modifier = Modifier
-                            .weight(1f)
-                            .focusRequester(input)
-                            .onFocusChanged { chat.typing = it.isFocused }
-                            .semantics { contentDescription = "Pergunta para a Mia" },
-                    )
-                    Button(
-                        onClick = { send(chat.typed) },
-                        enabled = chat.typed.isNotBlank() && !chat.pending,
-                        colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
-                        shape = RoundedCornerShape(10.dp),
-                    ) { Text("Enviar", style = MaterialTheme.typography.labelLarge) }
+                    // While typing, the keyboard takes the room: the suggested questions step aside.
+                    if (next.isNotEmpty() && !chat.typing) {
+                        Row(
+                            Modifier
+                                // The last chip fades out at the edge, a hint that the row goes on.
+                                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                                .drawWithContent {
+                                    drawContent()
+                                    drawRect(Brush.horizontalGradient(0.88f to Color.Black, 1f to Color.Transparent), blendMode = BlendMode.DstIn)
+                                }
+                                // A new row starts at its first question, not where the last one was slid to.
+                                .horizontalScroll(key(talk.size) { rememberScrollState() }),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            next.forEach { q -> Suggestion(q) { send(q) } }
+                        }
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = chat.typed,
+                            onValueChange = { chat.typed = it.take(500) },
+                            singleLine = true,
+                            placeholder = { Text(if (talk.isEmpty()) "Pergunte algo" else "Outra pergunta?", color = l.faint) },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { send(chat.typed) }),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(input)
+                                .onFocusChanged { chat.typing = it.isFocused }
+                                .semantics { contentDescription = "Pergunta para a Mia" },
+                        )
+                        Button(
+                            onClick = { send(chat.typed) },
+                            enabled = chat.typed.isNotBlank() && chat.pending == null,
+                            colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
+                            shape = RoundedCornerShape(10.dp),
+                        ) { Text("Enviar", style = MaterialTheme.typography.labelLarge) }
+                    }
                 }
             }
         }
-        if (talk.isNotEmpty() && !chat.pending) {
-            TextAction("Nova conversa", {
-                chat.talk = emptyList()
-                chat.failed = false
-                chat.lastAsked = null
-                // The action goes away with the conversation; the focus lands where the next one starts.
-                if (!resting) runCatching { input.requestFocus() }
-            })
+    }
+}
+
+/** Before the first question: what she does, and the questions she answers well, one per line. */
+@Composable
+private fun MiaEmpty(starters: List<String>, onAsk: (String) -> Unit) {
+    val l = LocalLedger.current
+    Column(Modifier.padding(top = 56.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Pergunte sobre a sua planilha", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+        Text(
+            "A Mia responde com os números das telas do Neko, e cada um leva à tela de onde veio.",
+            color = l.muted,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+        starters.forEach { q -> Suggestion(q, wrap = true) { onAsk(q) } }
+    }
+}
+
+/** One question, as a quiet bubble to the right, and Mia's answer under it in plain text. */
+@Composable
+private fun MiaTurnItem(
+    pergunta: String,
+    reply: MiaReply?,
+    sources: List<MiaSource>,
+    open: (String, String?) -> Unit,
+    /** Only the newest turn is read aloud as it lands; older ones scrolled back into view are not. */
+    live: Boolean,
+) {
+    val l = LocalLedger.current
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            pergunta,
+            color = l.text,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier
+                .align(Alignment.End)
+                .fillMaxWidth(0.85f)
+                .wrapContentWidth(Alignment.End)
+                .background(l.surface2, RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp))
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+        )
+        Box(if (live) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier) {
+            if (reply != null) MiaText(reply, open)
+        }
+        // Only the newest answer offers its screens, so older ones stay plain text.
+        if (sources.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                sources.forEach { src -> TextAction(src.label, { open(src.tela, src.mes) }, color = l.accent) }
+            }
         }
     }
 }
@@ -418,20 +509,20 @@ fun MiaText(reply: MiaReply, onOpen: (String, String?) -> Unit) {
 }
 
 @Composable
-private fun Suggestion(text: String, enabled: Boolean, onClick: () -> Unit) {
+private fun Suggestion(text: String, wrap: Boolean = false, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(50)
     Text(
         text,
         color = l.text,
         style = MaterialTheme.typography.labelLarge,
-        maxLines = 1,
-        softWrap = false,
+        maxLines = if (wrap) Int.MAX_VALUE else 1,
+        softWrap = wrap,
         modifier = Modifier
             .minimumInteractiveComponentSize()
             .background(l.surface2, shape)
             .border(1.dp, l.border, shape)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     )
 }

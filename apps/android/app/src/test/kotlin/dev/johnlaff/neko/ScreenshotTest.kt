@@ -22,6 +22,8 @@ import dev.johnlaff.neko.ui.LockSwitch
 import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
 import dev.johnlaff.neko.ui.MesScreen
+import dev.johnlaff.neko.ui.MiaChat
+import dev.johnlaff.neko.ui.MiaScreen
 import dev.johnlaff.neko.ui.SaveState
 import dev.johnlaff.neko.ui.Simulator
 import dev.johnlaff.neko.ui.ScreenState
@@ -157,23 +159,31 @@ class ScreenshotTest {
         HojeScreen(TodayState(view.copy(entryCards = listOf("Cartão Azul"))), {}, {}, launcher = Fakes.miaLauncher, launchOpen = true)
     }
 
-    @Test fun miaHojeLight() = shot("mia-hoje-light", night = false, scrollTo = "Perguntar à Mia") {
-        HojeScreen(
-            TodayState(view), {}, {},
-            mia = dev.johnlaff.neko.data.MiaStatus(ligada = true),
-            askMia = { error("no network in screenshots") },
-            miaOpen = true,
-            miaTalk = listOf(Fakes.miaExchange),
+    // Mia's own screen: a conversation, and the first look with the questions she answers well.
+    @Test fun miaConversaLight() = shot("mia-conversa-light", night = false) {
+        MiaScreen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true),
+            { error("no network in screenshots") },
+            MiaChat(listOf(Fakes.miaExchange)),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
         )
     }
 
-    @Test fun miaVaziaDark() = shot("mia-vazia-dark", night = true, scrollTo = "Perguntar à Mia") {
-        HojeScreen(
-            TodayState(view), {}, {},
-            mia = dev.johnlaff.neko.data.MiaStatus(ligada = true),
-            askMia = { error("no network in screenshots") },
-            miaOpen = true,
+    @Test fun miaVaziaDark() = shot("mia-vazia-dark", night = true) {
+        MiaScreen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true),
+            { error("no network in screenshots") },
+            MiaChat(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
         )
+    }
+
+    @Test fun miaHojeLight() = shot("mia-hoje-light", night = false, scrollTo = "Perguntar à Mia") {
+        HojeScreen(TodayState(view), {}, {}, mia = dev.johnlaff.neko.data.MiaStatus(ligada = true), onMia = {}, miaTalking = true)
     }
 
     @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Faturas no banco") {
