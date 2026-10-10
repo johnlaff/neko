@@ -194,6 +194,8 @@ const noteOf = (item: QueueItem): string => {
         ? "O dia passou: o previsto sai e fica só o que você gastou."
         : "Os dias passaram: o previsto sai e fica só o que você gastou.";
     case "cartao":
+      if (draft?.type === "card" && draft.bills.every((b) => b.amount === b.was))
+        return "A fatura está certa, mas o reembolso não bate com ela. Lançar iguala o reembolso à fatura.";
       return draft?.type === "card" && draft.bills.some((b) => b.amount < b.was)
         ? "A fatura fechou com outro valor no banco."
         : "Faltam compras do banco nesta fatura. Lançar troca o valor pelo total do banco, sem somar nada duas vezes.";
