@@ -64,6 +64,8 @@ data class BankAccount(
     val last4: String? = null,
     val balance: Long = 0,
     val cardNumbers: List<String> = emptyList(),
+    /** For an account (not a card): "guardado" or "corrente", as the owner said; null unanswered. */
+    val use: String? = null,
 )
 
 @Serializable

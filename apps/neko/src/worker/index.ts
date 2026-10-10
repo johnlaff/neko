@@ -313,6 +313,7 @@ app.get("/banks", async (c) => {
                 .filter((n) => n.length === 4),
             ),
           ].sort(),
+          use: a.type === "CREDIT" ? null : (settings.accountUse[a.id] ?? null),
         })),
     })),
   };

@@ -234,7 +234,7 @@ class MainActivity : ComponentActivity() {
                                             remindersSwitch(),
                                             DevicesList(devices, model::endSession, model::endOtherSessions),
                                             lockSwitch(),
-                                            BanksList(banks, model::saveBanks, model::saveBankCards),
+                                            BanksList(banks, model::saveBanks, model::saveBankCards, model::saveAccountUse),
                                             model::restoreReviewed,
                                             launcher = model.launcher,
                                         )

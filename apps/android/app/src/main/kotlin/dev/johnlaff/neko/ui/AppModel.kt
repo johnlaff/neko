@@ -197,6 +197,13 @@ class AppModel(
         _banks.value = neko.api.banks()
     }
 
+    /** Ajustes › Bancos: whether an account keeps savings; Para lançar changes with it. */
+    fun saveAccountUse(account: String, use: String) = side {
+        neko.api.accountUse(account, use)
+        _banks.value = neko.api.banks()
+        readToday(shown = false, after = true)
+    }
+
     fun endOtherSessions() = side {
         neko.api.endOtherSessions()
         _devices.value = neko.api.sessions()

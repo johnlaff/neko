@@ -51,7 +51,7 @@ object Fakes {
                     "Banco Azul",
                     syncedAt = "2026-10-05T09:00:00.000Z",
                     accounts = listOf(
-                        BankAccount("conta", "Conta corrente", last4 = "0001", balance = 2_353_747),
+                        BankAccount("conta", "Conta corrente", last4 = "0001", balance = 2_353_747, use = "corrente"),
                         BankAccount("cartao-azul", "Azul Platinum", card = true, last4 = "4321", balance = 1_640_00, cardNumbers = listOf("4321", "8765")),
                     ),
                 ),
