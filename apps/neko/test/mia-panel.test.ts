@@ -22,6 +22,15 @@ describe("Mia panel", () => {
       v2: { tipo: "diferenca", rotulo: "b", tela: "mes", cents: -2 },
     } as MiaReply["valores"]);
     expect(miaSources(diff).map((s) => s.label)).toEqual(["Ver setembro"]);
+    // Two Septembers say which year each one is.
+    const years = reply({
+      v1: { tipo: "total", rotulo: "a", tela: "mes", mes: "2026-09", cents: 1 },
+      v2: { tipo: "total", rotulo: "b", tela: "mes", mes: "2025-09", cents: 2 },
+    } as MiaReply["valores"]);
+    expect(miaSources(years).map((s) => s.label)).toEqual([
+      "Ver setembro de 2026",
+      "Ver setembro de 2025",
+    ]);
   });
 
   it("suggests two questions not asked yet", () => {

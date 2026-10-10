@@ -2439,7 +2439,7 @@ a.mia-value {
   }
 }
 /* The new answer takes the focus to be read, not to be acted on. */
-.mia-talk > li:focus:not(:focus-visible) {
+.mia-talk > li:focus {
   outline: none;
 }
 /* Where the numbers came from, as quiet ways out under the answer. */
@@ -2462,6 +2462,10 @@ a.mia-source {
 a.mia-source > svg {
   width: 14px;
   height: 14px;
+}
+.mia-wait > button.mia-retry {
+  min-height: 44px;
+  font-size: 0.875rem;
 }
 .panel.mia > button.mia-restart {
   justify-self: start;
