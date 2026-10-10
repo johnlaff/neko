@@ -236,6 +236,13 @@ const router = createRouter({
   scrollRestoration: true,
 });
 
+// A second tap mid-slide skips the first transition, and the router leaves that rejection
+// unhandled. Nothing went wrong: the new screen shows.
+window.addEventListener("unhandledrejection", (e) => {
+  if (e.reason instanceof DOMException && e.reason.message.startsWith("Transition was skipped"))
+    e.preventDefault();
+});
+
 const TAB_ORDER = ["/", "/faturas", "/mes", "/ajustes"];
 router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
   // Mia's screen sits past the tabs: opening it goes forward, leaving it goes back.
