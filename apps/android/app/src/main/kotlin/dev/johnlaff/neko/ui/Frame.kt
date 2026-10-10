@@ -562,7 +562,7 @@ fun Columns(
                     val grow = arrival(360, delay = n * 15)
                     val color = when {
                         c.picked -> l.text
-                        c.faint -> l.border
+                        c.faint -> l.faint
                         else -> l.borderInput
                     }
                     Canvas(
@@ -575,11 +575,15 @@ fun Columns(
                         // A thin pill centred in its slot, as the site's `.columns .bar` (10px, round).
                         val w = 10.dp.toPx().coerceAtMost(size.width)
                         val bar = h.coerceAtLeast(2.dp.toPx())
+                        // A forecast month is an outline, told apart by shape, not by a pale fill (as on the site).
+                        val line = 1.5.dp.toPx()
+                        val inset = if (c.faint && !c.picked) line / 2 else 0f
                         drawRoundRect(
                             color,
-                            topLeft = Offset((size.width - w) / 2, if (c.value >= 0) zero - bar else zero),
-                            size = androidx.compose.ui.geometry.Size(w, bar),
+                            topLeft = Offset((size.width - w) / 2 + inset, (if (c.value >= 0) zero - bar else zero) + inset),
+                            size = androidx.compose.ui.geometry.Size(w - inset * 2, (bar - inset * 2).coerceAtLeast(0f)),
                             cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2, w / 2),
+                            style = if (inset > 0f) Stroke(width = line) else androidx.compose.ui.graphics.drawscope.Fill,
                         )
                     }
                 }
