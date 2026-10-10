@@ -184,14 +184,25 @@ const useSeconds = (since: number | undefined) => {
 
 const useMiaStatus = () => useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
 
+/** Set when Mia's screen closes onto Hoje, so the row she was opened from takes the focus back. */
+let backOnHoje = false;
+
 /** "Perguntar à Mia" on Hoje: hidden until the key is set, a way into her screen. */
 export const Mia = () => {
   const status = useMiaStatus();
   const { talk } = useChat();
-  if (!status.data?.ligada) return null;
+  const row = useRef<HTMLAnchorElement>(null);
+  const on = Boolean(status.data?.ligada);
+  // Back from Mia, the keyboard and the screen reader carry on from this row, not from the top.
+  useEffect(() => {
+    if (!on || !backOnHoje) return;
+    backOnHoje = false;
+    row.current?.focus({ preventScroll: true });
+  }, [on]);
+  if (!on) return null;
   return (
     // A quiet row, not a third big button: Hoje already has Lançar and Simular.
-    <Link to="/mia" className="alert mia-ask">
+    <Link to="/mia" className="alert mia-ask" ref={row}>
       <BrandMark width={40} className="mia-mark" />
       <span className="alert-text">
         <strong>Perguntar à Mia</strong>
@@ -235,8 +246,17 @@ export const MiaScreen = () => {
   const last = useRef<HTMLLIElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
   const seconds = useSeconds(pending?.since);
   useKeyboardResizes();
+  // Opening says where the owner landed: the title takes the focus (no keyboard pops up), or the
+  // newest answer does when a conversation is waiting. Closing onto Hoje hands the focus back.
+  useEffect(() => {
+    if (chat.talk.length === 0) title.current?.focus({ preventScroll: true });
+    return () => {
+      backOnHoje = window.location.pathname === "/";
+    };
+  }, []);
   // The newest answer is read from its top, under the bar, and takes the focus: a screen reader
   // reads it and a phone keyboard closes. Only while the owner is still here: an answer that
   // comes late never pulls them away from a field they moved on to.
@@ -279,14 +299,16 @@ export const MiaScreen = () => {
         >
           <IconChevronLeft />
         </button>
-        <h1>
+        <h1 ref={title} tabIndex={-1}>
           <BrandMark width={28} className="mia-mark" />
           Mia
         </h1>
-        {talk.length > 0 && !pending && (
+        {talk.length > 0 && (
+          // Stays put while an answer is on its way, so the bar does not jump; usable again after.
           <button
             type="button"
             className="text-link mia-restart"
+            disabled={Boolean(pending)}
             onClick={() => {
               setChat({ talk: [], failed: null });
               // The button goes away with the conversation; the focus lands where the next one starts.
@@ -408,6 +430,13 @@ export const MiaScreen = () => {
               enterKeyHint="send"
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
+              // Esc clears what was typed, and on an empty field goes back, as the arrow says.
+              onKeyDown={(e) => {
+                if (e.key !== "Escape") return;
+                e.preventDefault();
+                if (typed) setTyped("");
+                else back();
+              }}
             />
             <button type="submit" disabled={!typed.trim() || Boolean(pending)}>
               Enviar

@@ -231,7 +231,8 @@ class MiaChat(start: List<MiaExchange> = emptyList()) {
  */
 @Composable
 fun MiaScreen(
-    status: MiaStatus,
+    /** Null while it is still being read: the bar shows, nothing else yet. */
+    status: MiaStatus?,
     ask: AskMia,
     chat: MiaChat,
     scope: CoroutineScope,
@@ -253,9 +254,10 @@ fun MiaScreen(
         }
         seconds = 0
     }
-    val paused = status.pausadaAte
+    val paused = status?.pausadaAte
+    val on = status?.ligada == true
     val resting = paused != null || chat.limited
-    val lead = if (paused != null && !chat.limited) 1 else 0
+    val lead = if (on && paused != null && !chat.limited) 1 else 0
     val open = { tela: String, mes: String? -> if (tela == "mes") onMonth(mes) else onScreen(tela) }
     val send = { q: String ->
         val pergunta = q.trim()
@@ -317,12 +319,13 @@ fun MiaScreen(
                 }
                 MiaMark(28.dp)
                 Text("Mia", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f).semantics { heading() })
-                if (talk.isNotEmpty() && chat.pending == null) {
-                    TextAction("Nova conversa", {
+                // Stays put while an answer is on its way, so the bar does not jump; usable again after.
+                if (talk.isNotEmpty()) {
+                    TextAction("Nova conversa", enabled = chat.pending == null, color = if (chat.pending == null) l.accent else l.faint, onClick = {
                         chat.clear()
                         // The action goes away with the conversation; the focus lands where the next one starts.
-                        if (!resting) runCatching { input.requestFocus() }
-                    }, color = l.accent)
+                        if (on && !resting) runCatching { input.requestFocus() }
+                    })
                 }
             }
             HorizontalDivider(color = l.border)
@@ -332,20 +335,23 @@ fun MiaScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
+                if (status != null && !on) item(key = "off") {
+                    Text("A Mia não está ligada neste Neko.", color = l.muted)
+                }
                 // Paused on opening: said first.
-                if (lead == 1 && paused != null) item(key = "lead") {
+                if (on && lead == 1 && paused != null) item(key = "lead") {
                     Text("A Mia descansa até ${shortDate(paused)}. Os números seguem nas telas.", color = l.muted)
                 }
-                if (talk.isEmpty() && chat.pending == null) item(key = "empty") {
+                if (on && talk.isEmpty() && chat.pending == null) item(key = "empty") {
                     MiaEmpty(if (resting) emptyList() else MIA_SUGGESTIONS.filterNot { it in asked }) { send(it) }
                 }
                 // A question on its way and its answer share one key, so TalkBack reads the answer
                 // where it lands.
                 itemsIndexed(talk, key = { i, _ -> "x$i" }) { i, x ->
                     val newest = i == talk.lastIndex && chat.pending == null
-                    MiaTurnItem(x.pergunta, x.reply, if (newest) miaSources(x.reply) else emptyList(), open)
+                    MiaTurnItem(x.pergunta, x.reply, if (newest) miaSources(x.reply) else emptyList(), open, live = i == talk.lastIndex)
                 }
-                chat.pending?.let { q -> item(key = "x${talk.size}") { MiaTurnItem(q, null, emptyList(), open) } }
+                chat.pending?.let { q -> item(key = "x${talk.size}") { MiaTurnItem(q, null, emptyList(), open, live = true) } }
                 item(key = "wait") {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -362,13 +368,14 @@ fun MiaScreen(
                     }
                 }
             }
-            if (!resting) {
+            if (on && !resting) {
                 HorizontalDivider(color = l.border)
                 Column(
                     Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    if (next.isNotEmpty()) {
+                    // While typing, the keyboard takes the room: the suggested questions step aside.
+                    if (next.isNotEmpty() && !chat.typing) {
                         Row(
                             Modifier
                                 // The last chip fades out at the edge, a hint that the row goes on.
@@ -432,7 +439,14 @@ private fun MiaEmpty(starters: List<String>, onAsk: (String) -> Unit) {
 
 /** One question, as a quiet bubble to the right, and Mia's answer under it in plain text. */
 @Composable
-private fun MiaTurnItem(pergunta: String, reply: MiaReply?, sources: List<MiaSource>, open: (String, String?) -> Unit) {
+private fun MiaTurnItem(
+    pergunta: String,
+    reply: MiaReply?,
+    sources: List<MiaSource>,
+    open: (String, String?) -> Unit,
+    /** Only the newest turn is read aloud as it lands; older ones scrolled back into view are not. */
+    live: Boolean,
+) {
     val l = LocalLedger.current
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
@@ -446,7 +460,7 @@ private fun MiaTurnItem(pergunta: String, reply: MiaReply?, sources: List<MiaSou
                 .background(l.surface2, RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp))
                 .padding(horizontal = 14.dp, vertical = 8.dp),
         )
-        Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+        Box(if (live) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier) {
             if (reply != null) MiaText(reply, open)
         }
         // Only the newest answer offers its screens, so older ones stay plain text.

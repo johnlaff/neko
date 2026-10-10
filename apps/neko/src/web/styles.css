@@ -2411,6 +2411,16 @@ form.setting.bank-add > input {
 p.mia-lead {
   margin: 0;
 }
+/* While typing, the keyboard takes the room: the suggested questions step aside. */
+.mia-composer:has(input:focus) > .mia-suggest {
+  display: none;
+}
+.mia-bar > h1:focus {
+  outline: none;
+}
+.mia-bar > button.mia-restart:disabled {
+  opacity: 0.45;
+}
 main.mia-page p.mia-q {
   justify-self: end;
   max-width: 85%;
@@ -2517,7 +2527,7 @@ a.mia-value {
 main.mia-page .mia-talk > li {
   display: grid;
   gap: 10px;
-  scroll-margin-top: calc(env(safe-area-inset-top) + 76px);
+  scroll-margin-top: calc(env(safe-area-inset-top) + 5rem);
 }
 /* Where the numbers came from, as quiet ways out under the answer. */
 p.mia-sources {

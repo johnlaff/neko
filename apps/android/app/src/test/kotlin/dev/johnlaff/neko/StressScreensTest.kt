@@ -101,6 +101,18 @@ class StressScreensTest {
         AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices)
     }
 
+    // A small phone with large text: the bar and the field must leave room for the answer.
+    @Test fun miaSmall() = compose.shot(path("mia"), night = false, Device.SmallLargeText) {
+        dev.johnlaff.neko.ui.MiaScreen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true),
+            { error("no network in screenshots") },
+            dev.johnlaff.neko.ui.MiaChat(listOf(Fakes.miaExchange)),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
     @Test fun miaHugeText() = compose.shot(path("mia-200"), night = true, Device.HugeText) {
         dev.johnlaff.neko.ui.MiaScreen(
             dev.johnlaff.neko.data.MiaStatus(ligada = true),

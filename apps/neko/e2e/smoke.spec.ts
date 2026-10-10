@@ -180,10 +180,15 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
   // Leaving and coming back finds the conversation where it was.
   await page.getByRole("button", { name: "Voltar" }).click();
   await expect(page).toHaveURL(/\/$/);
+  // Back on Hoje, the keyboard carries on from the row Mia was opened from.
+  await expect(page.getByRole("link", { name: /Perguntar à Mia/ })).toBeFocused();
   await page.getByRole("link", { name: /Continuar a conversa/ }).click();
   await expect(answer.getByRole("link", { name: "Ver setembro" })).toBeVisible();
   await page.getByRole("button", { name: "Nova conversa" }).click();
   await expect(page.getByRole("button", { name: "Como está minha reserva?" })).toBeVisible();
+  // Esc on an empty question field goes back, as the arrow's hint says.
+  await page.getByRole("textbox", { name: "Pergunta para a Mia" }).press("Escape");
+  await expect(page).toHaveURL(/\/$/);
   expect(errors).toEqual([]);
 });
 

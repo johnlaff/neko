@@ -88,6 +88,8 @@ class MainActivity : ComponentActivity() {
                 var tab by rememberSaveable { mutableStateOf(Tab.Hoje) }
                 // Mia's own screen, over the tabs and without the dock, as the site's /mia.
                 var miaOpen by rememberSaveable { mutableStateOf(false) }
+                // A tab reached from one of Mia's answers: back returns to her, as the site's history does.
+                var fromMia by rememberSaveable { mutableStateOf(false) }
                 // Switching shows the last reading at once; only one older than a minute is read
                 // again, silently (refresh, a pull or "Tentar de novo" read now and say so).
                 val go = { t: Tab ->
@@ -98,6 +100,7 @@ class MainActivity : ComponentActivity() {
                     val r = request ?: return@LaunchedEffect
                     if (session != Session.SignedIn) return@LaunchedEffect
                     miaOpen = false
+                    fromMia = false
                     go(r.tab)
                     if (r.simulate) simulateAsk++
                     request = null
@@ -114,7 +117,11 @@ class MainActivity : ComponentActivity() {
                     if (session == Session.SignedIn) model.show(tab)
                 }
                 // Back from another place returns to Hoje before leaving the app.
-                BackHandler(enabled = session == Session.SignedIn && tab != Tab.Hoje) { go(Tab.Hoje) }
+                BackHandler(enabled = session == Session.SignedIn && tab != Tab.Hoje) {
+                    go(Tab.Hoje)
+                    if (fromMia) miaOpen = true
+                    fromMia = false
+                }
                 // Registered last, so on Mia's screen back closes her first.
                 BackHandler(enabled = session == Session.SignedIn && miaOpen) { miaOpen = false }
                 BoxWithConstraints(Modifier.fillMaxSize().background(LocalLedger.current.bg)) {
@@ -141,16 +148,26 @@ class MainActivity : ComponentActivity() {
                                 monthAsk = MonthAsk(key)
                                 go(Tab.Mes)
                             }
-                            val miaNow = mia
-                            if (miaOpen && miaNow != null && miaNow.ligada) {
-                                // A value's screen opens in place of hers; back from it returns to Hoje.
+                            // A value's screen opens in place of hers; back from it returns to her.
+                            val leaveMia = { open: () -> Unit ->
+                                miaOpen = false
+                                open()
+                                fromMia = tab != Tab.Hoje
+                            }
+                            // Mia's screen slides in from past the tabs and back out, as on the site.
+                            AnimatedContent(
+                                miaOpen,
+                                transitionSpec = { tabChange(if (initialState) Tab.Ajustes else Tab.Hoje, if (targetState) Tab.Ajustes else Tab.Hoje, shift) },
+                                label = "mia",
+                            ) { inMia ->
+                            if (inMia) {
                                 MiaScreen(
-                                    miaNow, model::askMia, model.miaChat, model.viewModelScope,
+                                    mia, model::askMia, model.miaChat, model.viewModelScope,
                                     onBack = { miaOpen = false },
-                                    onScreen = { miaOpen = false; toScreen(it) },
-                                    onMonth = { miaOpen = false; toMonth(it) },
+                                    onScreen = { tela -> leaveMia { toScreen(tela) } },
+                                    onMonth = { key -> leaveMia { toMonth(key) } },
                                 )
-                            } else {
+                            } else Box(Modifier.fillMaxSize()) {
                             AnimatedContent(tab, transitionSpec = { tabChange(initialState, targetState, shift) }, label = "tab") { t ->
                                 saved.SaveableStateProvider(t.name) {
                                 when (t) {
@@ -160,7 +177,10 @@ class MainActivity : ComponentActivity() {
                                             today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
                                             simulateAsk = simulateAsk,
                                             mia = mia,
-                                            onMia = { miaOpen = true },
+                                            onMia = {
+                                                fromMia = false
+                                                miaOpen = true
+                                            },
                                             miaTalking = model.miaChat.talk.isNotEmpty(),
                                             review = model::review,
                                             launcher = model.launcher,
@@ -195,7 +215,8 @@ class MainActivity : ComponentActivity() {
                                 }
                                 }
                             }
-                            Dock(tab, go, Modifier.align(if (rail) Alignment.CenterStart else Alignment.BottomCenter))
+                            Dock(tab, { t -> fromMia = false; go(t) }, Modifier.align(if (rail) Alignment.CenterStart else Alignment.BottomCenter))
+                            }
                             }
                         }
                     }

@@ -224,6 +224,8 @@ const router = createRouter({
   defaultErrorComponent: ScreenError,
   // Tabs slide toward where they sit in the dock; browsers without View Transitions just swap.
   defaultViewTransition: true,
+  // Back from Mia (or any screen) finds Hoje where it was left.
+  scrollRestoration: true,
 });
 
 const TAB_ORDER = ["/", "/faturas", "/mes", "/ajustes"];
