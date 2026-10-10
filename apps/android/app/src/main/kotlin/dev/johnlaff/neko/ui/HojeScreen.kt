@@ -123,6 +123,12 @@ fun HojeScreen(
         }
         if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
         if (mia?.ligada == true && onMia != null) item { MiaButton(miaTalking, onMia) }
+        // What asks for a tap comes right after Lançar, as on the site: the sheet's health (one line
+        // when all is well), then what the bank found. What to know follows.
+        item { Conference(v, review) }
+        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado. Não aparece mais." else "Lançado na planilha"; undo = it } }
+        // A wide window's second column, as on the site: what to know.
+        column()
         v.habit?.let { h -> item { Streak(h) } }
         if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
@@ -130,13 +136,8 @@ fun HojeScreen(
         val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
         if (insights.isNotEmpty()) item { Insights(insights, onAjustes, { onScreen("faturas") }, onMonth) }
         v.saving?.let { s -> item { SaveCard(s, v.today) } }
-        // A wide window's second column, as on the site: what to know, then what the bank found.
-        column()
         v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
-        // The sheet's health is one line when all is well: above the bank's list, in view (as on the site).
-        item { Conference(v, review) }
-        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado. Não aparece mais." else "Lançado na planilha"; undo = it } }
     }
     UndoBar(
         undo, launcher, { undo = null },

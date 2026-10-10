@@ -118,6 +118,9 @@ for (const [path, heading] of [
 test("the bank shows only where it and the sheet differ", async ({ page }) => {
   const errors = await open(page, "/");
   const queue = page.getByRole("region", { name: "Para lançar" });
+  // The first three, then the rest behind "Ver mais".
+  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(3);
+  await queue.getByRole("button", { name: "Ver mais 2" }).click();
   await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(4);
   // Each item says why it is there and what Lançar writes, line by line, with the day's total.
   await expect(queue).toContainText("Saiu do banco e não está na planilha.");
@@ -345,8 +348,10 @@ test("on a desktop the tabs stand on the left and the panels in three columns", 
   const tabs = await page.getByRole("navigation", { name: "Telas" }).boundingBox();
   const dial = await page.getByRole("heading", { name: "Diário de outubro" }).boundingBox();
   const queue = await page.getByRole("region", { name: "Para lançar" }).boundingBox();
+  const next = await page.getByRole("heading", { name: "Próximos 7 dias" }).boundingBox();
   expect(tabs && dial && tabs.x + tabs.width < dial.x).toBe(true);
-  // Para lançar has a column of its own, beside the dial instead of under it.
-  expect(dial && queue && queue.x > dial.x + 1000 && queue.y < dial.y + 300).toBe(true);
+  // Para lançar stands in the column beside the dial, near the top; what to know goes to the third.
+  expect(dial && queue && queue.x > dial.x + 300 && queue.y < dial.y + 300).toBe(true);
+  expect(queue && next && next.x > queue.x + 300).toBe(true);
   expect(errors).toEqual([]);
 });

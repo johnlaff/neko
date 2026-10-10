@@ -320,6 +320,31 @@ details.formula summary {
   align-items: center;
   gap: 6px;
 }
+/* Para lançar's "Ver mais": the rest of the list, worded and drawn like the summaries above */
+button.q-more {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--faint);
+  font-size: 0.8125rem;
+  font-weight: inherit;
+  min-height: 44px;
+  margin-bottom: -10px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+}
+button.q-more:hover {
+  background: none;
+  color: var(--muted);
+}
+button.q-more svg {
+  order: 1;
+  width: 16px;
+  height: 16px;
+  rotate: 90deg;
+}
 details.formula summary::-webkit-details-marker {
   display: none;
 }

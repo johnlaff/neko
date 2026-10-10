@@ -574,6 +574,9 @@ private fun Refresh(syncedAt: String?, launcher: Launcher?) {
     }
 }
 
+/** Items Para lançar shows before "Ver mais", as on the site. */
+private const val QUEUE_SHOWN = 3
+
 /** Para lançar on Hoje: what the bank showed and the sheet does not have yet, one item a line. */
 @Composable
 fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) {
@@ -584,6 +587,9 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
     var gone by remember(items) { mutableStateOf(emptySet<String>()) }
     val left = items.filter { it.key !in gone }
     if (items.isEmpty() && saldo == null) return
+    // The first few, so Hoje stays short; the chip counts them all and "Ver mais" opens the rest.
+    var more by remember { mutableStateOf(false) }
+    val shown = if (more) left.map { it.key }.toSet() else left.take(QUEUE_SHOWN).map { it.key }.toSet()
     Panel {
         PanelHead("Para lançar") {
             if (left.isNotEmpty()) Chip(if (left.size == 1) "1 item" else "${left.size} itens", ChipTone.Plain)
@@ -597,7 +603,7 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
             androidx.compose.runtime.key(item.key) {
                 // Folds away when done, so the next item slides up into place (web .q-item.leaving).
                 AnimatedVisibility(
-                    item.key !in gone,
+                    item.key in shown,
                     enter = EnterTransition.None,
                     exit = fadeOut(tween(160)) + shrinkVertically(tween(240, 40, Motion.Enter)),
                 ) {
@@ -608,6 +614,7 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
                 }
             }
         }
+        if (shown.size < left.size) TextAction("Ver mais ${left.size - shown.size}", { more = true })
         if (!v.writing && left.isNotEmpty())
             Text("Para lançar daqui, ligue Lançar pelo Neko em Ajustes.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
     }

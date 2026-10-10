@@ -143,12 +143,12 @@ class ScreenshotTest {
         HojeScreen(TodayState(view), {}, {})
     }
 
-    // The bank's parts sit at the end of each screen: scrolled there, as the owner would.
+    // The bank's parts, scrolled to as the owner would.
     @Test fun bancoHojeLight() = shot("banco-hoje-light", night = false, scrollTo = "Para lançar") {
         HojeScreen(TodayState(view), {}, {}, launcher = Fakes.launcher)
     }
 
-    // Para lançar whole, on a tall screen: Hoje's shot only reaches its title.
+    // Para lançar on a tall screen: its first three items and "Ver mais".
     @Test fun filaLight() {
         org.robolectric.RuntimeEnvironment.setQualifiers("+h2000dp")
         shot("fila-light", night = false) {
