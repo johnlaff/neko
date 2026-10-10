@@ -152,12 +152,7 @@ const Shell = () => {
     );
   return (
     <>
-      <main className="page">
-        <Masthead />
-        <Fragment key={hidden ? "hidden" : "shown"}>
-          <Outlet />
-        </Fragment>
-      </main>
+      {/* The tabs come first, as they read on a wide screen: the rail before the page. */}
       <nav className="dock" aria-label="Telas">
         <Link to="/" activeOptions={{ exact: true }} aria-keyshortcuts="1" title="Hoje (1)">
           <IconToday />
@@ -176,6 +171,12 @@ const Shell = () => {
           Ajustes
         </Link>
       </nav>
+      <main className="page">
+        <Masthead />
+        <Fragment key={hidden ? "hidden" : "shown"}>
+          <Outlet />
+        </Fragment>
+      </main>
     </>
   );
 };

@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { api } from "../api.ts";
+import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
 import { CategoryIcon } from "../CategoryIcon.tsx";
@@ -175,7 +176,6 @@ const Outflows = ({
   fixed,
   fixedTotal,
   before,
-  half,
   trend,
 }: {
   items: readonly Outflow[];
@@ -183,7 +183,6 @@ const Outflows = ({
   fixed: readonly Fixed[];
   fixedTotal: number;
   before: string;
-  half: boolean;
   trend: (label: string) => readonly TrendPoint[];
 }) => {
   const top = items[0]?.amount ?? 0;
@@ -191,7 +190,7 @@ const Outflows = ({
   const rest = items.slice(OUTFLOWS_SHOWN);
   const compared = items.some((o) => o.change != null && o.change !== 0);
   return (
-    <section className={`panel${half ? " half" : ""}`}>
+    <section className="panel">
       <div className="panel-head">
         <h2>Para onde foi</h2>
         <span className="meta">
@@ -232,16 +231,8 @@ const Outflows = ({
  * The method's emergency reserve: cost of living times 6 to 12 months, against what the sheet
  * shows as kept, plus the year's Economia (the sheet's tab of the same name).
  */
-const ReservePanel = ({
-  r,
-  year,
-  half,
-}: {
-  r: Reserve;
-  year: YearTotals | undefined;
-  half: boolean;
-}) => (
-  <section className={`panel reserve${half ? " half" : ""}`}>
+const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined }) => (
+  <section className="panel reserve">
     <div className="panel-head">
       <h2>{RESERVE.title}</h2>
       <span className="meta">
@@ -318,15 +309,6 @@ export const Mes = () => {
         const saved = m.saved ?? 0;
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         const wins = past ? monthWins(p.months, m.year, m.month) : [];
-        // Panels below the hero pair up side by side on wide screens; with an odd count the last
-        // one spans the row, so no panel leaves a hole next to it. The termômetro is always half.
-        const panels = [
-          (m.days ?? []).length > 0 && "thermo",
-          outflows.length > 0 && "outflows",
-          p.reserve && "reserve",
-        ].filter((x): x is string => typeof x === "string");
-        const last = panels.length % 2 === 1 && panels.length > 1 ? panels.at(-1) : undefined;
-        const halves = new Set(panels.filter((x) => x !== last));
         return (
           <>
             <div className="month-nav">
@@ -355,138 +337,146 @@ export const Mes = () => {
               </button>
             </div>
 
-            <section
-              className="panel hero"
-              onTouchStart={(e) => {
-                const t = e.touches[0];
-                touch.current = t ? { x: t.clientX, y: t.clientY } : null;
+            <Board
+              panels={{
+                hero: (
+                  <section
+                    className="panel hero"
+                    onTouchStart={(e) => {
+                      const t = e.touches[0];
+                      touch.current = t ? { x: t.clientX, y: t.clientY } : null;
+                    }}
+                    onTouchEnd={(e) => {
+                      const start = touch.current;
+                      const t = e.changedTouches[0];
+                      touch.current = null;
+                      if (!start || !t) return;
+                      const dx = t.clientX - start.x;
+                      if (Math.abs(dx) < 56 || Math.abs(dx) < 2 * Math.abs(t.clientY - start.y))
+                        return;
+                      const to = keys[dx < 0 ? idx + 1 : idx - 1];
+                      if (to) setPicked(to);
+                    }}
+                  >
+                    <div className="panel-head">
+                      <h2>{endLabel}</h2>
+                    </div>
+                    <div className="figure-stack">
+                      <BigMoney cents={m.endSheet} tone={m.endSheet < 0 ? "neg" : "plain"} />
+                      {idx === nowIdx && <Evolution />}
+                    </div>
+                    <Columns
+                      label={`Saldo no fim de cada mês de ${m.year}`}
+                      selected={key(m.year, m.month)}
+                      onSelect={setPicked}
+                      items={year.map((x) => {
+                        const k = key(x.year, x.month);
+                        return {
+                          key: k,
+                          label: capitalize(monthName(x.month).charAt(0)),
+                          value: x.endSheet,
+                          description: `${capitalize(monthName(x.month))}: ${money(x.endSheet)}`,
+                          tone:
+                            k === key(m.year, m.month) ? "ink" : k > nowKey ? "faint" : undefined,
+                        };
+                      })}
+                    />
+                    {result !== null && (
+                      <p className="figure-line performance">
+                        <span className="muted">{result < 0 ? "Falta" : "Sobra"} no mês</span>
+                        <strong className={result > 0 ? "pos" : result < 0 ? "neg" : undefined}>
+                          {money(Math.abs(result))}
+                        </strong>
+                      </p>
+                    )}
+                    {saved > 0 && (
+                      <p className="figure-line">
+                        <span className="muted">
+                          Guardado
+                          {m.savedShare !== null && ` · ${m.savedShare}% das entradas`}
+                        </span>
+                        <strong>{money(saved)}</strong>
+                      </p>
+                    )}
+                    <Wins wins={wins} year={m.year} month={m.month} className="month-wins" />
+                    <details className="formula">
+                      <summary>
+                        <IconChevron />
+                        Ver extrato
+                      </summary>
+                      <dl className="ledger">
+                        <dt>Começou com</dt>
+                        <dd>{money(m.startBalance)}</dd>
+                        <dt>Entradas</dt>
+                        <dd className="pos">{signed(m.entrada, "+")}</dd>
+                        <dt>Saídas</dt>
+                        <dd>{signed(m.saida, "−")}</dd>
+                        {/* Zero when the diário goes on the card: it is in the bills, under Saídas. */}
+                        {m.diario !== 0 && (
+                          <>
+                            <dt>Diário</dt>
+                            <dd>{signed(m.diario, "−")}</dd>
+                          </>
+                        )}
+                        <dt className="total">{endLabel}</dt>
+                        <dd className={`total${m.endSheet < 0 ? " neg" : ""}`}>
+                          {money(m.endSheet)}
+                        </dd>
+                      </dl>
+                      {result !== null && (
+                        <p>
+                          {result < 0 ? "Falta" : "Sobra"} é quanto o saldo{" "}
+                          {result < 0 ? "desceu" : "subiu"} no mês. Dinheiro guardado também sai da
+                          conta, então um mês em que você economizou pode aparecer com falta.
+                        </p>
+                      )}
+                      {saved > 0 && (
+                        <>
+                          <dl className="ledger">
+                            <dt className="total">Custo de vida</dt>
+                            <dd className="total">{money(m.livingCost)}</dd>
+                          </dl>
+                          <p>
+                            Custo de vida é o que saiu sem contar o que foi guardado. A reserva de
+                            emergência do método cobre de 6 a 12 meses desse custo. Para guardar, o
+                            método sugere de 20% a 30% das entradas.
+                          </p>
+                        </>
+                      )}
+                    </details>
+                  </section>
+                ),
+                thermo: (m.days ?? []).length > 0 && (
+                  <Thermo
+                    key={key(m.year, m.month)}
+                    days={m.days}
+                    year={m.year}
+                    month={m.month}
+                    today={p.today}
+                    saving={p.saving}
+                  />
+                ),
+                outflows: outflows.length > 0 && (
+                  <Outflows
+                    items={outflows}
+                    fixed={fixed}
+                    fixedTotal={m.fixedTotal ?? 0}
+                    before={monthName(m.month === 1 ? 12 : m.month - 1)}
+                    trend={(label) => outflowTrend(p.months, m.year, m.month, label)}
+                  />
+                ),
+                // Missing on projections cached before it existed.
+                reserve: p.reserve && (
+                  <ReservePanel r={p.reserve} year={p.years?.find((y) => y.year === m.year)} />
+                ),
               }}
-              onTouchEnd={(e) => {
-                const start = touch.current;
-                const t = e.changedTouches[0];
-                touch.current = null;
-                if (!start || !t) return;
-                const dx = t.clientX - start.x;
-                if (Math.abs(dx) < 56 || Math.abs(dx) < 2 * Math.abs(t.clientY - start.y)) return;
-                const to = keys[dx < 0 ? idx + 1 : idx - 1];
-                if (to) setPicked(to);
-              }}
-            >
-              <div className="panel-head">
-                <h2>{endLabel}</h2>
-              </div>
-              <div className="figure-stack">
-                <BigMoney cents={m.endSheet} tone={m.endSheet < 0 ? "neg" : "plain"} />
-                {idx === nowIdx && <Evolution />}
-              </div>
-              <Columns
-                label={`Saldo no fim de cada mês de ${m.year}`}
-                selected={key(m.year, m.month)}
-                onSelect={setPicked}
-                items={year.map((x) => {
-                  const k = key(x.year, x.month);
-                  return {
-                    key: k,
-                    label: capitalize(monthName(x.month).charAt(0)),
-                    value: x.endSheet,
-                    description: `${capitalize(monthName(x.month))}: ${money(x.endSheet)}`,
-                    tone: k === key(m.year, m.month) ? "ink" : k > nowKey ? "faint" : undefined,
-                  };
-                })}
-              />
-              {result !== null && (
-                <p className="figure-line performance">
-                  <span className="muted">{result < 0 ? "Falta" : "Sobra"} no mês</span>
-                  <strong className={result > 0 ? "pos" : result < 0 ? "neg" : undefined}>
-                    {money(Math.abs(result))}
-                  </strong>
-                </p>
-              )}
-              {saved > 0 && (
-                <p className="figure-line">
-                  <span className="muted">
-                    Guardado
-                    {m.savedShare !== null && ` · ${m.savedShare}% das entradas`}
-                  </span>
-                  <strong>{money(saved)}</strong>
-                </p>
-              )}
-              <Wins wins={wins} year={m.year} month={m.month} className="month-wins" />
-              <details className="formula">
-                <summary>
-                  <IconChevron />
-                  Ver extrato
-                </summary>
-                <dl className="ledger">
-                  <dt>Começou com</dt>
-                  <dd>{money(m.startBalance)}</dd>
-                  <dt>Entradas</dt>
-                  <dd className="pos">{signed(m.entrada, "+")}</dd>
-                  <dt>Saídas</dt>
-                  <dd>{signed(m.saida, "−")}</dd>
-                  {/* Zero when the diário goes on the card: it is in the bills, under Saídas. */}
-                  {m.diario !== 0 && (
-                    <>
-                      <dt>Diário</dt>
-                      <dd>{signed(m.diario, "−")}</dd>
-                    </>
-                  )}
-                  <dt className="total">{endLabel}</dt>
-                  <dd className={`total${m.endSheet < 0 ? " neg" : ""}`}>{money(m.endSheet)}</dd>
-                </dl>
-                {result !== null && (
-                  <p>
-                    {result < 0 ? "Falta" : "Sobra"} é quanto o saldo{" "}
-                    {result < 0 ? "desceu" : "subiu"} no mês. Dinheiro guardado também sai da conta,
-                    então um mês em que você economizou pode aparecer com falta.
-                  </p>
-                )}
-                {saved > 0 && (
-                  <>
-                    <dl className="ledger">
-                      <dt className="total">Custo de vida</dt>
-                      <dd className="total">{money(m.livingCost)}</dd>
-                    </dl>
-                    <p>
-                      Custo de vida é o que saiu sem contar o que foi guardado. A reserva de
-                      emergência do método cobre de 6 a 12 meses desse custo. Para guardar, o método
-                      sugere de 20% a 30% das entradas.
-                    </p>
-                  </>
-                )}
-              </details>
-            </section>
-
-            {(m.days ?? []).length > 0 && (
-              <Thermo
-                key={key(m.year, m.month)}
-                days={m.days}
-                year={m.year}
-                month={m.month}
-                today={p.today}
-                saving={p.saving}
-              />
-            )}
-
-            {outflows.length > 0 && (
-              <Outflows
-                items={outflows}
-                fixed={fixed}
-                fixedTotal={m.fixedTotal ?? 0}
-                half={halves.has("outflows")}
-                before={monthName(m.month === 1 ? 12 : m.month - 1)}
-                trend={(label) => outflowTrend(p.months, m.year, m.month, label)}
-              />
-            )}
-
-            {/* Missing on projections cached before it existed. */}
-            {p.reserve && (
-              <ReservePanel
-                r={p.reserve}
-                year={p.years?.find((y) => y.year === m.year)}
-                half={halves.has("reserve")}
-              />
-            )}
+              // Wide screens: each column takes the next panels in the phone's order.
+              two={[
+                ["hero", "thermo"],
+                ["outflows", "reserve"],
+              ]}
+              three={[["hero"], ["thermo"], ["outflows", "reserve"]]}
+            />
           </>
         );
       }}

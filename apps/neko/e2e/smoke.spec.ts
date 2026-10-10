@@ -336,3 +336,17 @@ test("with nothing left to launch, Para lançar compares the Saldo with the bank
   await queue.screenshot({ path: "test-results/saldo.png" });
   expect(errors).toEqual([]);
 });
+
+test("on a desktop the tabs stand on the left and the panels in three columns", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const errors = await open(page, "/");
+  const tabs = await page.getByRole("navigation", { name: "Telas" }).boundingBox();
+  const dial = await page.getByRole("heading", { name: "Diário de outubro" }).boundingBox();
+  const queue = await page.getByRole("region", { name: "Para lançar" }).boundingBox();
+  expect(tabs && dial && tabs.x + tabs.width < dial.x).toBe(true);
+  // Para lançar has a column of its own, beside the dial instead of under it.
+  expect(dial && queue && queue.x > dial.x + 1000 && queue.y < dial.y + 300).toBe(true);
+  expect(errors).toEqual([]);
+});

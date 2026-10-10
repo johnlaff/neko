@@ -574,6 +574,13 @@ a.icon {
 .month-nav button.icon {
   border-radius: 8px;
 }
+/* On a wide page the arrows stay next to the month's name, not at the far edges */
+@media (min-width: 48rem) {
+  .month-nav {
+    width: min(100%, 26rem);
+    justify-self: center;
+  }
+}
 
 .form {
   display: grid;
@@ -1150,44 +1157,93 @@ fieldset.columns {
   align-content: start;
 }
 
-/* Wide screens: the dock becomes a pill bar at the top, panels pair up */
+/* A screen's panels (Board.tsx): one after the other on a phone */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.cell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.cell:empty {
+  display: none;
+}
+
+/* Wide screens: the panels stand in columns (Board.tsx), two from 48rem and three from 90rem,
+   and the page grows with them up to where a line still reads in one glance. */
 @media (min-width: 48rem) {
+  :root {
+    --content: 72rem;
+    --side: 32px;
+  }
   .page {
-    max-width: 60rem;
-    padding: 96px 32px 64px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: calc(var(--content) + 2 * var(--side));
+    padding: 20px var(--side) calc(env(safe-area-inset-bottom) + 112px);
     gap: 20px;
-    align-items: start;
   }
-  .page > * {
-    grid-column: 1 / -1;
+  .board {
+    grid-template-columns: repeat(var(--two), minmax(0, 1fr));
+    grid-auto-rows: 4px;
+    grid-auto-flow: row dense;
+    gap: 0 20px;
   }
-  .page > .half {
-    grid-column: auto;
+  .cell {
+    grid-column: var(--col2);
+    grid-row-end: span var(--rows, 1);
+    align-self: start;
   }
   .stack {
     gap: 20px;
   }
-  .dock {
-    top: 20px;
-    bottom: auto;
-    width: auto;
-    grid-template-columns: repeat(4, auto);
-  }
-  .dock a {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 40px;
-    padding: 0 16px;
-    font-size: 0.875rem;
-  }
-  .dock svg {
-    width: 18px;
-    height: 18px;
-  }
   .big-money .int {
     font-size: 4rem;
+  }
+}
+@media (min-width: 90rem) {
+  :root {
+    --content: 96rem;
+  }
+  .board {
+    grid-template-columns: repeat(var(--three), minmax(0, 1fr));
+  }
+  .cell {
+    grid-column: var(--col3);
+  }
+}
+
+/* From Material's "expanded" width (840px, the Android app's too) the dock stands on the left as
+   a rail, top to bottom, and the page takes the room beside it. */
+@media (min-width: 52.5rem) {
+  :root {
+    --rail: 100px;
+  }
+  .page {
+    max-width: calc(var(--content) + var(--rail) + 2 * var(--side));
+    padding-left: calc(var(--rail) + var(--side));
+    padding-bottom: 64px;
+  }
+  .dock {
+    /* Beside the content, level with the screen's title, wherever the page sits */
+    left: max(
+      calc(env(safe-area-inset-left) + 16px),
+      calc((100% - var(--content) - var(--rail) - 2 * var(--side)) / 2 + 16px)
+    );
+    top: 20px;
+    bottom: auto;
+    translate: none;
+    width: calc(var(--rail) - 28px);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dock a {
+    min-height: 60px;
+    align-content: center;
+    gap: 3px;
+  }
+  .toast {
+    left: calc(50% + var(--rail) / 2);
+    bottom: 24px;
   }
 }
 fieldset.panel {
@@ -1386,31 +1442,11 @@ button.text-link {
   align-items: start;
 }
 
-/* Desktop: the masthead keeps its row; on Hoje the dial takes the left half and what to do now
-   sits beside it, so the gauge never floats in an empty full-width card. The dial card takes the
-   row's height and centres the dial, so a taller column beside it leaves no hole. */
+/* Desktop: the masthead keeps its row over the columns. */
 @media (min-width: 48rem) {
-  .hero.today.half {
-    align-self: stretch;
-    grid-template-rows: auto 1fr;
-  }
-  .hero.today.half > .dial {
-    align-self: center;
-  }
-  .page {
-    padding-top: 20px;
-  }
   .masthead {
     min-height: 50px;
     margin: 0 0 12px;
-  }
-}
-@media (min-width: 48rem) {
-  .form,
-  .form ~ .group {
-    width: 100%;
-    max-width: 40rem;
-    justify-self: center;
   }
 }
 
