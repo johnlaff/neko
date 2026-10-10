@@ -85,7 +85,7 @@ fun MesScreen(
             }
             return@ScreenFrame
         }
-        item {
+        full {
             MonthNav(
                 m,
                 prev = v.months.getOrNull(idx - 1)?.let { p -> { picked = p.key } },
@@ -94,6 +94,7 @@ fun MesScreen(
         }
         item { Hero(m, v.months.filter { it.year == m.year }, history.takeIf { m.key == v.current }) { picked = it } }
         if (m.days.isNotEmpty()) item { Thermo(m, v.today, v.saving) }
+        column()
         if (m.outflows.isNotEmpty()) item { Outflows(m) }
         v.reserve?.let { r -> item { ReservePanel(r, v.years.firstOrNull { it.year == m.year }) } }
     }

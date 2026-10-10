@@ -213,12 +213,13 @@ fun AjustesScreen(
                 view.previsto?.let { p -> Previsto(p, f.writing, launcher) { id, text -> undo = id to text } }
             }
         }
+        column()
         banks.view?.takeIf { it.configured || it.items.isNotEmpty() }?.let { b ->
             item {
                 Column {
                 Group("Bancos") { Banks(b, f.cards.map { it.name }, banks) }
                 Text(
-                    "O Neko só lê o banco e nunca muda a planilha. O Item ID está no Dashboard da Pluggy, em Connected Items.",
+                    "O Neko só lê o banco e nunca muda a planilha. O código da conexão fica no painel da Pluggy, em Connected Items.",
                     color = LocalLedger.current.faint,
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
@@ -462,9 +463,9 @@ private fun Banks(b: BanksView, sheetCards: List<String>, list: BanksList) {
                 )
                 OutlinedTextField(
                     itemId, { itemId = it },
-                    placeholder = { Text("Item ID") }, singleLine = true,
+                    placeholder = { Text("Código da conexão") }, singleLine = true,
                     isError = itemId.isNotBlank() && !UUID.matches(itemId.trim()),
-                    modifier = Modifier.weight(1.4f).semantics { contentDescription = "Item ID do Meu Pluggy" },
+                    modifier = Modifier.weight(1.4f).semantics { contentDescription = "Código da conexão no Meu Pluggy" },
                 )
             }
             TextButton(

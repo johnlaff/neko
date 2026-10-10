@@ -113,6 +113,7 @@ const Masthead = () => {
         onClick={toggleValues}
         aria-pressed={hidden}
         aria-label="Esconder valores"
+        title={hidden ? "Mostrar valores" : "Esconder valores"}
       >
         {hidden ? <IconEyeOff /> : <IconEye />}
       </button>
