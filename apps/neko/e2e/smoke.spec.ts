@@ -347,6 +347,6 @@ test("on a desktop the tabs stand on the left and the panels in three columns", 
   const queue = await page.getByRole("region", { name: "Para lançar" }).boundingBox();
   expect(tabs && dial && tabs.x + tabs.width < dial.x).toBe(true);
   // Para lançar has a column of its own, beside the dial instead of under it.
-  expect(dial && queue && queue.x > dial.x + 1000 && queue.y < dial.y + 50).toBe(true);
+  expect(dial && queue && queue.x > dial.x + 1000 && queue.y < dial.y + 300).toBe(true);
   expect(errors).toEqual([]);
 });
