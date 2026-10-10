@@ -47,7 +47,11 @@ const useLaunch = () => {
         api.launch({ id, draft, ...(key ? { key } : {}) }),
       );
       if (result.state !== "done")
-        throw new Error(result.error ?? "Não gravou. A planilha ficou como estava.");
+        throw new ApiError(
+          422,
+          "write",
+          result.error ?? "Não gravou. A planilha ficou como estava.",
+        );
       return result;
     },
     onSuccess: (r) => {

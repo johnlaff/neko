@@ -130,7 +130,13 @@ const Form = ({
         role="status"
         className={`chip save-status ${save.isError ? "bad" : save.isPending ? "" : "ok"}`}
       >
-        {save.isIdle ? "" : save.isError ? "Não salvou" : save.isPending ? "Salvando…" : "Salvo"}
+        {save.isIdle
+          ? ""
+          : save.isError
+            ? "Não salvou. Tente de novo"
+            : save.isPending
+              ? "Salvando…"
+              : "Salvo"}
       </span>
 
       <section className="group" aria-labelledby="g-forecast">

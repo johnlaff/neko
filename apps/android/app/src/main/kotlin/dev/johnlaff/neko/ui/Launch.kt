@@ -109,8 +109,8 @@ private val SPOKEN = setOf("busy", "write", "writing-off", "sheet-structure")
 internal fun reasonOf(e: Throwable): String = when {
     e is ApiException && e.code in SPOKEN && !e.message.isNullOrBlank() ->
         e.message!!.replaceFirstChar { it.uppercase() }
-    e is ApiException -> "O Neko não conseguiu agora. Tente de novo daqui a pouco."
-    else -> "A conexão caiu antes da resposta. Toque de novo: nada é gravado duas vezes."
+    e is ApiException -> "Algo falhou no Neko. Tente de novo daqui a pouco."
+    else -> "A conexão caiu. Tente de novo: nada é gravado duas vezes."
 }
 
 /** `2026-10-03` ↔ `03/10/2026`, the way a date is typed here. */

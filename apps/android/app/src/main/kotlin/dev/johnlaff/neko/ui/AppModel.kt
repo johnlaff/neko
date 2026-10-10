@@ -216,7 +216,8 @@ class AppModel(
             try {
                 block(id).also { unanswered.remove(what) }
             } catch (e: ApiException) {
-                unanswered.remove(what)
+                // A refusal is final; after a 5xx the write may have landed, so the retry keeps the id.
+                if (e.status < 500) unanswered.remove(what)
                 throw e
             }
         }.await()

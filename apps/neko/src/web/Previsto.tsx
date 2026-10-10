@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import type { PrevistoView } from "../shared/types.ts";
-import { api, once, reasonOf } from "./api.ts";
+import { ApiError, api, once, reasonOf } from "./api.ts";
 import { money, shortDate, toCents } from "./format.ts";
 import { IconChevron } from "./icons.tsx";
 import { showToast } from "./Launch.tsx";
@@ -22,7 +22,7 @@ const useSetPrevisto = (onDone: () => void) => {
     mutationFn: async (value: number) => {
       const r = await once(`previsto:${value}`, (id) => api.previsto(id, value));
       if (r.state !== "done")
-        throw new Error(r.error ?? "Não gravou. A planilha ficou como estava.");
+        throw new ApiError(422, "write", r.error ?? "Não gravou. A planilha ficou como estava.");
       return { ...r, value };
     },
     onSuccess: (r) => {

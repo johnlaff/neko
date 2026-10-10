@@ -96,8 +96,8 @@ const SPOKEN = new Set(["busy", "write", "writing-off", "sheet-structure"]);
 export const reasonOf = (e: unknown): string => {
   if (e instanceof ApiError && SPOKEN.has(e.code) && e.message)
     return e.message.replace(/^./, (c) => c.toUpperCase());
-  if (e instanceof ApiError) return "O Neko não conseguiu agora. Tente de novo daqui a pouco.";
-  return "A conexão caiu antes da resposta. Toque de novo: nada é gravado duas vezes.";
+  if (e instanceof ApiError) return "Algo falhou no Neko. Tente de novo daqui a pouco.";
+  return "A conexão caiu. Tente de novo: nada é gravado duas vezes.";
 };
 
 /** Ids of writes whose answer never came: the same write again sends the same id, which writes once. */
@@ -111,7 +111,8 @@ export const once = async <T>(what: string, run: (id: string) => Promise<T>): Pr
     unanswered.delete(what);
     return result;
   } catch (e) {
-    if (e instanceof ApiError) unanswered.delete(what);
+    // A refusal is final; after a 5xx the write may have landed, so the retry keeps the id.
+    if (e instanceof ApiError && e.status < 500) unanswered.delete(what);
     throw e;
   }
 };

@@ -198,7 +198,7 @@ fun AjustesScreen(
                     SaveState.Idle -> Unit
                     SaveState.Saving -> Chip("Salvando…", ChipTone.Plain)
                     SaveState.Saved -> Chip("Salvo", ChipTone.Ok)
-                    SaveState.Failed -> Chip("Não salvou", ChipTone.Bad)
+                    SaveState.Failed -> Chip("Não salvou. Tente de novo", ChipTone.Bad)
                 }
             }
         },
