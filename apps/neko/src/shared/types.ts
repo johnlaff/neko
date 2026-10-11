@@ -77,11 +77,20 @@ export interface IgnoredItem {
   readonly title: string;
 }
 
+export interface CardLimit {
+  /** The sheet's card name. */
+  readonly card: string;
+  readonly limit: Cents;
+  readonly available: Cents;
+}
+
 export interface BankView {
   /** Last time any linked bank was read; null before the first read. */
   readonly syncedAt: string | null;
   /** Future bills of the cards tied to a sheet name, with the parcels already owed. */
   readonly checks: readonly BillCheck[];
+  /** Each linked card's limit and what is free of it; absent from a Worker that predates it. */
+  readonly limits?: readonly CardLimit[];
   /** Account movements with no line in the sheet, oldest first. */
   readonly missing: readonly BankMovement[];
   /** Para lançar: what the bank showed and the sheet does not have yet. */

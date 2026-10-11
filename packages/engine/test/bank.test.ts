@@ -43,9 +43,32 @@ describe("bills: what the bank already knows against what the sheet expects", ()
       ],
       today,
     );
-    expect(checks).toEqual([
+    expect(checks).toMatchObject([
       { card: "Visa", due: "2026-11-10", bank: 17050, parcels: 12000, sheet: 30000, gap: -12950 },
       { card: "Visa", due: "2026-12-10", bank: 12000, parcels: 12000, sheet: 0, gap: 12000 },
+    ]);
+    // An open bill below the sheet is only still growing.
+    expect(checks[0]?.disagrees).toBe(false);
+  });
+
+  it("keeps each bill's lines, purchases first, and flags only a real disagreement", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [
+        line(12000, "2026-11", { installment: 2, installments: 5, date: localDate("2026-10-04") }),
+        line(5050, "2026-11", { description: "MERCADO", date: localDate("2026-10-08") }),
+        line(1000, "2026-11", { description: "PADARIA", date: localDate("2026-10-12") }),
+        line(31000, "2026-12"),
+      ],
+      today,
+      [{ cards: ["Visa"], billMonth: "2026-11", total: cents(18050) }],
+    );
+    expect(checks[0]?.lines.map((l) => l.description)).toEqual(["PADARIA", "MERCADO", "LOJA"]);
+    // Closed below the sheet, and open above it: both mean the sheet should change.
+    expect(checks.map((c) => [c.due, c.closed, c.disagrees])).toEqual([
+      ["2026-11-10", true, true],
+      ["2026-12-10", false, true],
     ]);
   });
 

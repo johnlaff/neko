@@ -33,7 +33,18 @@ export interface BillCheck {
   readonly sheet: Cents;
   /** bank − sheet: positive means the sheet expects less than is already committed. */
   readonly gap: Cents;
+  /** The bank closed this bill: its amount is final. */
+  readonly closed: boolean;
+  /**
+   * The sheet should change: the bank already has more than it, or a closed bill differs. An open
+   * bill below the sheet is only still growing.
+   */
+  readonly disagrees: boolean;
+  /** What the bank has on it, purchases first (newest first), then the parcels. */
+  readonly lines: readonly BankCardLine[];
 }
+
+const isParcel = (l: BankCardLine) => (l.installments ?? 1) > 1;
 
 /** A bill the bank already closed, with its final total. */
 export interface ClosedBill {
@@ -155,10 +166,25 @@ export const billChecks = (
     const { due } = cycleForDueMonth(card, y, m);
     if (diffDays(today, due) <= 0) continue;
     const bank = totals.get(key) ?? sum(ls);
-    const parcels = add(ZERO, ...ls.filter((l) => (l.installments ?? 1) > 1).map((l) => l.amount));
+    const parcels = add(ZERO, ...ls.filter(isParcel).map((l) => l.amount));
     const sheet = billOnSheet(ledger, card, due);
     if (sheet === null) continue;
-    out.push({ card: card.name, due, bank, parcels, sheet, gap: sub(bank, sheet) });
+    const gap = sub(bank, sheet);
+    const closed = totals.has(key);
+    out.push({
+      card: card.name,
+      due,
+      bank,
+      parcels,
+      sheet,
+      gap,
+      closed,
+      disagrees: gap > 0 || (closed && gap !== 0),
+      lines: ls.toSorted(
+        (a, b) =>
+          Number(isParcel(a)) - Number(isParcel(b)) || (b.date ?? "").localeCompare(a.date ?? ""),
+      ),
+    });
   }
   return out.sort((a, b) => a.due.localeCompare(b.due) || a.card.localeCompare(b.card));
 };

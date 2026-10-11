@@ -11246,6 +11246,316 @@
         "reimbursed": false
       }
     ],
+    "invoices": [
+      {
+        "month": "2026-04",
+        "total": 358904,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-03-05",
+              "closing": "2026-04-05",
+              "due": "2026-04-12"
+            },
+            "amount": 307021,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-03-05",
+              "closing": "2026-04-05",
+              "due": "2026-04-12"
+            },
+            "amount": 51883,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      },
+      {
+        "month": "2026-05",
+        "total": 323748,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-04-05",
+              "closing": "2026-05-05",
+              "due": "2026-05-12"
+            },
+            "amount": 265412,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-04-05",
+              "closing": "2026-05-05",
+              "due": "2026-05-12"
+            },
+            "amount": 58336,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      },
+      {
+        "month": "2026-06",
+        "total": 406524,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-05-05",
+              "closing": "2026-06-05",
+              "due": "2026-06-12"
+            },
+            "amount": 341194,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-05-05",
+              "closing": "2026-06-05",
+              "due": "2026-06-12"
+            },
+            "amount": 65330,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      },
+      {
+        "month": "2026-07",
+        "total": 353783,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-06-05",
+              "closing": "2026-07-05",
+              "due": "2026-07-12"
+            },
+            "amount": 296051,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-06-05",
+              "closing": "2026-07-05",
+              "due": "2026-07-12"
+            },
+            "amount": 57732,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      },
+      {
+        "month": "2026-08",
+        "total": 310092,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-07-05",
+              "closing": "2026-08-05",
+              "due": "2026-08-12"
+            },
+            "amount": 260071,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-07-05",
+              "closing": "2026-08-05",
+              "due": "2026-08-12"
+            },
+            "amount": 50021,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      },
+      {
+        "month": "2026-09",
+        "total": 430725,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-08-05",
+              "closing": "2026-09-05",
+              "due": "2026-09-12"
+            },
+            "amount": 361629,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-08-05",
+              "closing": "2026-09-05",
+              "due": "2026-09-12"
+            },
+            "amount": 69096,
+            "state": "due",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      },
+      {
+        "month": "2026-10",
+        "total": 412801,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-09-05",
+              "closing": "2026-10-05",
+              "due": "2026-10-12"
+            },
+            "amount": 360031,
+            "state": "open",
+            "closesInDays": 1,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-09-05",
+              "closing": "2026-10-05",
+              "due": "2026-10-12"
+            },
+            "amount": 52770,
+            "state": "open",
+            "closesInDays": 1,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      },
+      {
+        "month": "2026-11",
+        "total": 320026,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-10-05",
+              "closing": "2026-11-05",
+              "due": "2026-11-12"
+            },
+            "amount": 283807,
+            "state": "future",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-10-05",
+              "closing": "2026-11-05",
+              "due": "2026-11-12"
+            },
+            "amount": 36219,
+            "state": "future",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      },
+      {
+        "month": "2026-12",
+        "total": 433170,
+        "cards": [
+          {
+            "card": "Cartão Azul",
+            "cycle": {
+              "start": "2026-11-05",
+              "closing": "2026-12-05",
+              "due": "2026-12-12"
+            },
+            "amount": 370432,
+            "state": "future",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": false
+          },
+          {
+            "card": "Cartão Verde",
+            "cycle": {
+              "start": "2026-11-05",
+              "closing": "2026-12-05",
+              "due": "2026-12-12"
+            },
+            "amount": 62738,
+            "state": "future",
+            "closesInDays": 0,
+            "closingEstimated": true,
+            "reimbursed": false,
+            "others": true
+          }
+        ]
+      }
+    ],
+    "invoiceMonth": "2026-10",
+    "invoicesAverage": 363963,
     "history": [
       {
         "due": "2026-04-12",
@@ -11620,7 +11930,38 @@
         "bank": 87990,
         "parcels": 57990,
         "sheet": 283807,
-        "gap": -195817
+        "gap": -195817,
+        "closed": false,
+        "disagrees": false,
+        "lines": [
+          {
+            "card": "Cartão Azul",
+            "amount": 30000,
+            "billMonth": "2026-11",
+            "description": "Compras do ciclo",
+            "installment": null,
+            "installments": null,
+            "date": "2026-10-02"
+          },
+          {
+            "card": "Cartão Azul",
+            "amount": 45000,
+            "billMonth": "2026-11",
+            "description": "LOJA DE MÓVEIS PARC 03/06",
+            "installment": 3,
+            "installments": 6,
+            "date": "2026-10-02"
+          },
+          {
+            "card": "Cartão Azul",
+            "amount": 12990,
+            "billMonth": "2026-11",
+            "description": "FONE PARC 01/03",
+            "installment": 1,
+            "installments": 3,
+            "date": "2026-10-02"
+          }
+        ]
       },
       {
         "card": "Cartão Azul",
@@ -11628,7 +11969,29 @@
         "bank": 57990,
         "parcels": 57990,
         "sheet": 370432,
-        "gap": -312442
+        "gap": -312442,
+        "closed": false,
+        "disagrees": false,
+        "lines": [
+          {
+            "card": "Cartão Azul",
+            "amount": 45000,
+            "billMonth": "2026-12",
+            "description": "LOJA DE MÓVEIS PARC 03/06",
+            "installment": 4,
+            "installments": 6,
+            "date": "2026-10-02"
+          },
+          {
+            "card": "Cartão Azul",
+            "amount": 12990,
+            "billMonth": "2026-12",
+            "description": "FONE PARC 01/03",
+            "installment": 2,
+            "installments": 3,
+            "date": "2026-10-02"
+          }
+        ]
       }
     ],
     "missing": [

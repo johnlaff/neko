@@ -11,30 +11,78 @@ data class InvoicesView(
     val today: String,
     val readAt: String = "",
     val hasCards: Boolean = false,
-    val usual: UsualBill? = null,
-    val history: List<BillBar> = emptyList(),
-    val historyAverage: Long? = null,
-    val openVsAverage: Long? = null,
+    /** Oldest first, each with the cards due in it. */
+    val months: List<InvoiceMonth> = emptyList(),
+    /** The month to open on: the next bill still to pay. */
+    val current: String? = null,
+    /** Mean of the non-empty months before today's: the chart's dashed line. */
+    val average: Long? = null,
     val buyToday: List<BuyGroup> = emptyList(),
-    val others: List<OtherBill> = emptyList(),
-    val empty: List<String> = emptyList(),
-    /** Future bills as the bank already has them; null with no bank linked. */
-    val bank: BankBills? = null,
+    /** Last bank read; null with no bank linked. */
+    val bank: BankRead? = null,
 )
 
 @Serializable
-data class BankBills(val syncedAt: String? = null, val bills: List<BillCheck> = emptyList())
+data class BankRead(val syncedAt: String? = null)
 
-/** One future bill (engine bank.ts): the bank's sum, its parcels, the sheet's line, bank − sheet. */
+/** Every card due in one month (shared/screens.ts InvoiceMonthView). */
 @Serializable
-data class BillCheck(
+data class InvoiceMonth(
+    val key: String,
+    val total: Long,
+    val past: Boolean = false,
+    val future: Boolean = false,
+    val cards: List<InvoiceRow> = emptyList(),
+    /** The month against the bank; null when the bank has none of its bills. */
+    val bank: MonthBank? = null,
+)
+
+@Serializable
+data class MonthBank(val disagree: Int = 0, val parcels: Long = 0, val fresh: Long = 0)
+
+/** One card's bill in a month: the sheet's amount, where it stands, what the bank has on it. */
+@Serializable
+data class InvoiceRow(
     val card: String,
     val due: String,
-    val bank: Long,
-    val parcels: Long = 0,
-    val sheet: Long,
-    val gap: Long,
+    val closing: String,
+    val amount: Long,
+    /** "due", "closed", "open" or "future". */
+    val state: String,
+    val closesInDays: Int = 0,
+    val closingEstimated: Boolean = false,
+    val others: Boolean = false,
+    val reimbursed: Boolean = false,
+    val bank: RowBank? = null,
+    val limit: CardLimit? = null,
+    val history: List<MonthAmount> = emptyList(),
 )
+
+@Serializable
+data class RowBank(
+    val amount: Long,
+    val parcels: Long = 0,
+    val gap: Long = 0,
+    val closed: Boolean = false,
+    val disagrees: Boolean = false,
+    val onlyParcels: Boolean = false,
+    val lines: List<BankLine> = emptyList(),
+)
+
+@Serializable
+data class BankLine(
+    val description: String,
+    val amount: Long,
+    val date: String? = null,
+    val installment: Int? = null,
+    val installments: Int? = null,
+)
+
+@Serializable
+data class CardLimit(val limit: Long, val available: Long)
+
+@Serializable
+data class MonthAmount(val month: String, val amount: Long)
 
 /** GET /api/banks (shared/types.ts BanksResponse): Ajustes › Bancos. */
 @Serializable
@@ -72,34 +120,12 @@ data class BankAccount(
 data class BankLink(val itemId: String, val label: String)
 
 @Serializable
-data class UsualBill(
-    val card: String,
-    val onSheet: Long,
-    val closing: String,
-    val due: String,
-    val closingEstimated: Boolean = false,
-    val closesInDays: Int,
-)
-
-@Serializable
-data class BillBar(val due: String, val amount: Long, val open: Boolean = false)
-
-@Serializable
 data class BuyGroup(
     val cards: List<String>,
     val payInDays: Int,
     val due: String,
     val bestDate: String,
     val estimated: Boolean = false,
-)
-
-@Serializable
-data class OtherBill(
-    val card: String,
-    val onSheet: Long,
-    val due: String,
-    val others: Boolean = false,
-    val reimbursed: Boolean = false,
 )
 
 @Serializable

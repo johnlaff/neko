@@ -5,6 +5,7 @@ import {
   type CardConfig,
   type Cycle,
   cycleContaining,
+  cycleForDueMonth,
   isCardItem,
   normalizeName,
 } from "./cards.ts";
@@ -166,6 +167,32 @@ export interface BillLine {
   readonly reimbursed: boolean;
 }
 
+/** Where a bill stands today, from its card's dates. */
+export type BillState = "due" | "closed" | "open" | "future";
+
+/** One card's bill in a month, as the sheet holds it. */
+export interface InvoiceCard {
+  readonly card: string;
+  readonly cycle: Cycle;
+  readonly amount: Cents;
+  /** `due`: its due day passed. `closed`: closed, not due yet. `open`: takes purchases today. */
+  readonly state: BillState;
+  /** Days left until it closes, today and the closing day included; 0 unless open. */
+  readonly closesInDays: number;
+  readonly closingEstimated: boolean;
+  readonly reimbursed: boolean;
+  readonly others: boolean;
+}
+
+/** Every card due in one month: what leaves the account for cards that month. */
+export interface InvoiceMonth {
+  /** Due month, `YYYY-MM`. */
+  readonly month: string;
+  readonly total: Cents;
+  /** Cards with a line that month, by due day. */
+  readonly cards: readonly InvoiceCard[];
+}
+
 export interface Projection {
   readonly today: LocalDate;
   readonly balanceToday: Cents | null;
@@ -184,6 +211,12 @@ export interface Projection {
   readonly bills: readonly BillLine[];
   /** Up to 6 bills of the usual card before the open one, oldest first. */
   readonly history: readonly PastBill[];
+  /** Card bills by due month, from 6 months before today's up to the last one with a bill. */
+  readonly invoices: readonly InvoiceMonth[];
+  /** The month of the next bill still to pay (the last month when all are paid); null without bills. */
+  readonly invoiceMonth: string | null;
+  /** Mean of the non-empty months in `invoices` before today's; null when there is none. */
+  readonly invoicesAverage: Cents | null;
   /** Mean of the non-empty bills in `history`; null when there is none. */
   readonly historyAverage: Cents | null;
   /** Open bill of the usual card, as on the sheet, minus historyAverage; null without history. */
@@ -204,6 +237,8 @@ export interface Projection {
 const SERIES_DAYS = 60;
 const UPCOMING_DAYS = 7;
 const HISTORY_BILLS = 6;
+const INVOICE_MONTHS_BACK = 6;
+const INVOICE_MONTHS_AHEAD = 12;
 
 const averageOf = (xs: Cents[]): Cents | null =>
   xs.length === 0 ? null : cents(Math.round(add(...xs) / xs.length));
@@ -321,6 +356,70 @@ const cellMoves = (
       amount: rest,
     });
   return moves;
+};
+
+export const billState = (cycle: Cycle, today: LocalDate): BillState =>
+  cycle.due < today
+    ? "due"
+    : cycle.closing < today
+      ? "closed"
+      : cycle.start < today
+        ? "open"
+        : "future";
+
+/**
+ * The sheet's card lines by due month. A month the sheet has no row for is left out, and so are
+ * empty months after the last one with a bill: they say nothing yet.
+ */
+const invoiceMonths = (
+  ledger: Ledger,
+  cards: readonly CardConfig[],
+  today: LocalDate,
+  others: ReadonlySet<string>,
+  reimbursed: ReadonlySet<NoteItem>,
+): InvoiceMonth[] => {
+  const byDate = new Map(ledger.map((r) => [r.date, r]));
+  const { year, month } = parts(today);
+  const out: InvoiceMonth[] = [];
+  for (let k = -INVOICE_MONTHS_BACK; k <= INVOICE_MONTHS_AHEAD; k++) {
+    const i = year * 12 + (month - 1) + k;
+    const [y, m] = [Math.floor(i / 12), (i % 12) + 1];
+    const lines: InvoiceCard[] = [];
+    let known = false;
+    for (const card of cards) {
+      const cycle = cycleForDueMonth(card, y, m);
+      const amount = billOnSheet(ledger, card, cycle.due);
+      if (amount === null) continue;
+      known = true;
+      if (amount === 0) continue;
+      const key = normalizeName(card.name);
+      const state = billState(cycle, today);
+      lines.push({
+        card: card.name,
+        cycle,
+        amount,
+        state,
+        closesInDays: state === "open" ? diffDays(today, cycle.closing) + 1 : 0,
+        closingEstimated: card.closingEstimated,
+        reimbursed:
+          byDate
+            .get(cycle.due)
+            ?.saida.items.some(
+              (it) => reimbursed.has(it) && normalizeName(it.description) === key,
+            ) ?? false,
+        others: others.has(key),
+      });
+    }
+    if (!known) continue;
+    lines.sort((a, b) => a.cycle.due.localeCompare(b.cycle.due) || a.card.localeCompare(b.card));
+    out.push({
+      month: `${y}-${String(m).padStart(2, "0")}`,
+      total: add(ZERO, ...lines.map((l) => l.amount)),
+      cards: lines,
+    });
+  }
+  while (out.length > 0 && out.at(-1)?.total === 0 && (out.at(-1)?.month ?? "") > today) out.pop();
+  return out;
 };
 
 export const project = (ledger: Ledger, today: LocalDate, settings: Settings): Projection => {
@@ -570,6 +669,13 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     }
   }
 
+  const invoices = invoiceMonths(ledger, settings.cards, today, others, reimbursed);
+  const nowMonth = today.slice(0, 7);
+  const invoiceMonth =
+    invoices.find((m) => m.cards.some((c) => c.state !== "due"))?.month ??
+    invoices.at(-1)?.month ??
+    null;
+
   const historyAverage = averageOf(history.filter((h) => h.amount !== 0).map((h) => h.amount));
 
   const unplanned = firstUnplannedMonth(months, today);
@@ -592,6 +698,11 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     months,
     upcoming,
     bills,
+    invoices,
+    invoiceMonth,
+    invoicesAverage: averageOf(
+      invoices.filter((m) => m.month < nowMonth && m.total !== 0).map((m) => m.total),
+    ),
     history,
     historyAverage,
     openVsAverage:
