@@ -36,8 +36,9 @@ export interface BillCheck {
   /** The bank closed this bill: its amount is final. */
   readonly closed: boolean;
   /**
-   * The sheet should change: the bank already has more than it, or a closed bill differs. An open
-   * bill below the sheet is only still growing.
+   * The sheet should change: a closed bill differs, or an open one already has `OPEN_BILL_MIN`
+   * more than it. An open bill below the sheet is only still growing, and a few cents above it is
+   * the bank rounding a parcel its own way.
    */
   readonly disagrees: boolean;
   /** What the bank has on it, purchases first (newest first), then the parcels. */
@@ -118,6 +119,12 @@ const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
  * against the sheet's line on the due day. A bill already due is history and stays out, and so
  * does one past the sheet's last tab.
  */
+/**
+ * Before a bill closes, the bank may not list every parcel yet and rounds each one its own way:
+ * only a rise of at least this much is worth a change. Once closed, the bill follows the bank.
+ */
+export const OPEN_BILL_MIN = 100;
+
 export const billChecks = (
   ledger: Ledger,
   cards: readonly CardConfig[],
@@ -140,12 +147,14 @@ export const billChecks = (
   // stands when its sum is the total, the bank's lines when theirs is, and otherwise neither.
   const totals = new Map<string, Cents>();
   const unsure = new Set<string>();
+  const closedKeys = new Set<string>();
   const sum = (ls: readonly BankCardLine[]) => add(ZERO, ...ls.map((l) => l.amount));
   for (const b of closed) {
     const shared = b.cards.flatMap((name) => {
       const card = byCard.get(normalizeName(name));
       if (!card) return [];
       const key = `${normalizeName(card.name)}|${b.billMonth}`;
+      closedKeys.add(key);
       const [y = 0, m = 0] = b.billMonth.split("-").map(Number);
       const sheet = billOnSheet(ledger, card, cycleForDueMonth(card, y, m).due);
       if (!groups.has(key)) groups.set(key, { card, month: b.billMonth, lines: [] });
@@ -170,7 +179,7 @@ export const billChecks = (
     const sheet = billOnSheet(ledger, card, due);
     if (sheet === null) continue;
     const gap = sub(bank, sheet);
-    const closed = totals.has(key);
+    const closed = closedKeys.has(key);
     out.push({
       card: card.name,
       due,
@@ -179,7 +188,7 @@ export const billChecks = (
       sheet,
       gap,
       closed,
-      disagrees: gap > 0 || (closed && gap !== 0),
+      disagrees: closed ? gap !== 0 : gap >= OPEN_BILL_MIN,
       lines: ls.toSorted(
         (a, b) =>
           Number(isParcel(a)) - Number(isParcel(b)) || (b.date ?? "").localeCompare(a.date ?? ""),

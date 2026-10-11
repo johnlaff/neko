@@ -72,6 +72,19 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     ]);
   });
 
+  it("takes a few cents over the sheet on an open bill for the bank's rounding, not a change", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [line(30011, "2026-11"), line(30100, "2026-12")],
+      today,
+    );
+    expect(checks.map((c) => [c.due, c.gap, c.disagrees])).toEqual([
+      ["2026-11-10", 11, false],
+      ["2026-12-10", 30100, true],
+    ]);
+  });
+
   it("carries the parcels still to come onto the next bills, once per purchase", () => {
     const checks = billChecks(
       days,

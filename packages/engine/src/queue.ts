@@ -136,11 +136,6 @@ export interface QueueInput {
 
 /** How close a planned line's value must be for a movement to stand for it: a quarter. */
 const NEAR_SHARE = 0.25;
-/**
- * Before a bill closes, the bank may not list every parcel yet and rounds each one its own way:
- * only a rise of at least this much is worth a change. Once closed, the bill follows the bank.
- */
-const OPEN_BILL_MIN = 100;
 
 /** A name fit for a note line: one line, no leading "R$", not too long. */
 const lineName = (description: string): string => {
@@ -461,9 +456,6 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   }
 
   // Card bills: the line follows the bank's total, up always, down once the bill closed.
-  const closed = new Set(
-    input.closed.flatMap((b) => b.cards.map((c) => `${normalizeName(c)}|${b.billMonth}`)),
-  );
   const others = new Set(input.othersCards.map(normalizeName));
   // Someone else's card is paid back by an Entrada of the same name on the due day: one line.
   const payback = (card: string, due: LocalDate) => {
@@ -475,8 +467,8 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   };
   const byCard = new Map<string, { due: LocalDate; was: Cents; amount: Cents }[]>();
   for (const c of billChecks(ledger, input.cards, input.lines, today, input.closed)) {
-    const isClosed = closed.has(`${normalizeName(c.card)}|${c.due.slice(0, 7)}`);
-    const moves = c.gap !== 0 && (isClosed || c.gap >= OPEN_BILL_MIN);
+    // The same rule that marks the bill on Faturas, so every warning there has its item here.
+    const moves = c.disagrees;
     const amount = moves ? c.bank : c.sheet;
     // A payback that differs from its bill is worth fixing even when the bill itself is right.
     const back = payback(c.card, c.due);

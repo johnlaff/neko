@@ -133,6 +133,11 @@ const Detail = ({
           </>
         )}
       </dl>
+      {c.bank?.disagrees && (
+        <Link className="text-link" to="/" hash="h-queue">
+          Corrigir em Para lançar
+        </Link>
+      )}
       {!alone && c.history.filter((h) => h.amount !== 0).length > 1 && (
         <section className="trend">
           <h3 className="label">Faturas do {c.card}</h3>
@@ -259,11 +264,17 @@ export const Faturas = () => {
                       (m.bank.disagree === 0 ? (
                         <span className="pos">✓ Banco não ultrapassa a planilha</span>
                       ) : (
-                        <span className="warn">
-                          {m.bank.disagree === 1
-                            ? "1 cartão não confere com o banco"
-                            : `${m.bank.disagree} cartões não conferem com o banco`}
-                        </span>
+                        <>
+                          <span className="warn">
+                            {m.bank.disagree === 1
+                              ? "1 cartão não confere com o banco"
+                              : `${m.bank.disagree} cartões não conferem com o banco`}
+                          </span>
+                          {/* Para lançar has the change for each one: nothing is written without a tap. */}
+                          <Link className="text-link" to="/" hash="h-queue">
+                            Corrigir em Para lançar
+                          </Link>
+                        </>
                       ))}
                   </div>
                   <Columns
