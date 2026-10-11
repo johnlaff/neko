@@ -4,117 +4,6 @@
   "hasCards": true,
   "months": [
     {
-      "key": "2026-04",
-      "total": 358904,
-      "past": true,
-      "future": false,
-      "cards": [
-        {
-          "card": "Cartão Azul",
-          "due": "2026-04-12",
-          "closing": "2026-04-05",
-          "amount": 307021,
-          "state": "due",
-          "closesInDays": 0,
-          "closingEstimated": true,
-          "others": false,
-          "reimbursed": false,
-          "bank": null,
-          "limit": null,
-          "history": [
-            {
-              "month": "2026-04",
-              "amount": 307021
-            },
-            {
-              "month": "2026-05",
-              "amount": 265412
-            },
-            {
-              "month": "2026-06",
-              "amount": 341194
-            },
-            {
-              "month": "2026-07",
-              "amount": 296051
-            },
-            {
-              "month": "2026-08",
-              "amount": 260071
-            },
-            {
-              "month": "2026-09",
-              "amount": 361629
-            },
-            {
-              "month": "2026-10",
-              "amount": 360031
-            },
-            {
-              "month": "2026-11",
-              "amount": 283807
-            },
-            {
-              "month": "2026-12",
-              "amount": 370432
-            }
-          ]
-        },
-        {
-          "card": "Cartão Verde",
-          "due": "2026-04-12",
-          "closing": "2026-04-05",
-          "amount": 51883,
-          "state": "due",
-          "closesInDays": 0,
-          "closingEstimated": true,
-          "others": true,
-          "reimbursed": false,
-          "bank": null,
-          "limit": null,
-          "history": [
-            {
-              "month": "2026-04",
-              "amount": 51883
-            },
-            {
-              "month": "2026-05",
-              "amount": 58336
-            },
-            {
-              "month": "2026-06",
-              "amount": 65330
-            },
-            {
-              "month": "2026-07",
-              "amount": 57732
-            },
-            {
-              "month": "2026-08",
-              "amount": 50021
-            },
-            {
-              "month": "2026-09",
-              "amount": 69096
-            },
-            {
-              "month": "2026-10",
-              "amount": 52770
-            },
-            {
-              "month": "2026-11",
-              "amount": 36219
-            },
-            {
-              "month": "2026-12",
-              "amount": 62738
-            }
-          ]
-        }
-      ],
-      "bank": null
-    },
-    {
       "key": "2026-05",
       "total": 323748,
       "past": true,
@@ -133,10 +22,6 @@
           "bank": null,
           "limit": null,
           "history": [
-            {
-              "month": "2026-04",
-              "amount": 307021
-            },
             {
               "month": "2026-05",
               "amount": 265412
@@ -184,10 +69,6 @@
           "bank": null,
           "limit": null,
           "history": [
-            {
-              "month": "2026-04",
-              "amount": 51883
-            },
             {
               "month": "2026-05",
               "amount": 58336
@@ -245,10 +126,6 @@
           "limit": null,
           "history": [
             {
-              "month": "2026-04",
-              "amount": 307021
-            },
-            {
               "month": "2026-05",
               "amount": 265412
             },
@@ -295,10 +172,6 @@
           "bank": null,
           "limit": null,
           "history": [
-            {
-              "month": "2026-04",
-              "amount": 51883
-            },
             {
               "month": "2026-05",
               "amount": 58336
@@ -356,10 +229,6 @@
           "limit": null,
           "history": [
             {
-              "month": "2026-04",
-              "amount": 307021
-            },
-            {
               "month": "2026-05",
               "amount": 265412
             },
@@ -406,10 +275,6 @@
           "bank": null,
           "limit": null,
           "history": [
-            {
-              "month": "2026-04",
-              "amount": 51883
-            },
             {
               "month": "2026-05",
               "amount": 58336
@@ -467,10 +332,6 @@
           "limit": null,
           "history": [
             {
-              "month": "2026-04",
-              "amount": 307021
-            },
-            {
               "month": "2026-05",
               "amount": 265412
             },
@@ -517,10 +378,6 @@
           "bank": null,
           "limit": null,
           "history": [
-            {
-              "month": "2026-04",
-              "amount": 51883
-            },
             {
               "month": "2026-05",
               "amount": 58336
@@ -578,10 +435,6 @@
           "limit": null,
           "history": [
             {
-              "month": "2026-04",
-              "amount": 307021
-            },
-            {
               "month": "2026-05",
               "amount": 265412
             },
@@ -628,10 +481,6 @@
           "bank": null,
           "limit": null,
           "history": [
-            {
-              "month": "2026-04",
-              "amount": 51883
-            },
             {
               "month": "2026-05",
               "amount": 58336
@@ -689,10 +538,6 @@
           "limit": null,
           "history": [
             {
-              "month": "2026-04",
-              "amount": 307021
-            },
-            {
               "month": "2026-05",
               "amount": 265412
             },
@@ -739,10 +584,6 @@
           "bank": null,
           "limit": null,
           "history": [
-            {
-              "month": "2026-04",
-              "amount": 51883
-            },
             {
               "month": "2026-05",
               "amount": 58336
@@ -830,10 +671,6 @@
           "limit": null,
           "history": [
             {
-              "month": "2026-04",
-              "amount": 307021
-            },
-            {
               "month": "2026-05",
               "amount": 265412
             },
@@ -880,10 +717,6 @@
           "bank": null,
           "limit": null,
           "history": [
-            {
-              "month": "2026-04",
-              "amount": 51883
-            },
             {
               "month": "2026-05",
               "amount": 58336
@@ -968,10 +801,6 @@
           "limit": null,
           "history": [
             {
-              "month": "2026-04",
-              "amount": 307021
-            },
-            {
               "month": "2026-05",
               "amount": 265412
             },
@@ -1019,10 +848,6 @@
           "limit": null,
           "history": [
             {
-              "month": "2026-04",
-              "amount": 51883
-            },
-            {
               "month": "2026-05",
               "amount": 58336
             },
@@ -1065,7 +890,7 @@
     }
   ],
   "current": "2026-10",
-  "average": 363963,
+  "average": 364974,
   "buyToday": [],
   "bank": {
     "syncedAt": "2026-10-05T09:00:00.000Z"

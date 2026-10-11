@@ -237,8 +237,9 @@ export interface Projection {
 const SERIES_DAYS = 60;
 const UPCOMING_DAYS = 7;
 const HISTORY_BILLS = 6;
-const INVOICE_MONTHS_BACK = 6;
-const INVOICE_MONTHS_AHEAD = 12;
+// Nine columns at most: on a phone each month's label still fits on one line.
+const INVOICE_MONTHS_BACK = 5;
+const INVOICE_MONTHS_AHEAD = 3;
 
 const averageOf = (xs: Cents[]): Cents | null =>
   xs.length === 0 ? null : cents(Math.round(add(...xs) / xs.length));

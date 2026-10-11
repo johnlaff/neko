@@ -11248,40 +11248,6 @@
     ],
     "invoices": [
       {
-        "month": "2026-04",
-        "total": 358904,
-        "cards": [
-          {
-            "card": "Cartão Azul",
-            "cycle": {
-              "start": "2026-03-05",
-              "closing": "2026-04-05",
-              "due": "2026-04-12"
-            },
-            "amount": 307021,
-            "state": "due",
-            "closesInDays": 0,
-            "closingEstimated": true,
-            "reimbursed": false,
-            "others": false
-          },
-          {
-            "card": "Cartão Verde",
-            "cycle": {
-              "start": "2026-03-05",
-              "closing": "2026-04-05",
-              "due": "2026-04-12"
-            },
-            "amount": 51883,
-            "state": "due",
-            "closesInDays": 0,
-            "closingEstimated": true,
-            "reimbursed": false,
-            "others": true
-          }
-        ]
-      },
-      {
         "month": "2026-05",
         "total": 323748,
         "cards": [
@@ -11555,7 +11521,7 @@
       }
     ],
     "invoiceMonth": "2026-10",
-    "invoicesAverage": 363963,
+    "invoicesAverage": 364974,
     "history": [
       {
         "due": "2026-04-12",

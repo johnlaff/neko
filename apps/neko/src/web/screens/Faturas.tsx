@@ -68,8 +68,12 @@ const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineVi
   if (lines.length === 0) return null;
   const shown = all ? lines : lines.slice(0, LINES_SHOWN);
   return (
-    <section className="bank-lines">
-      <h3 className="label">{title}</h3>
+    // Closed by default: a bill can bring dozens of lines, the details above come first.
+    <details className="formula bank-lines">
+      <summary>
+        {title} ({lines.length})
+        <IconChevron />
+      </summary>
       <ul>
         {shown.map((l, i) => (
           // The bank sends the same text twice for two equal purchases: the index tells them apart.
@@ -88,7 +92,7 @@ const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineVi
           Ver mais {lines.length - shown.length}
         </button>
       )}
-    </section>
+    </details>
   );
 };
 
@@ -98,15 +102,12 @@ const Detail = ({
   month,
   today,
   alone,
-  bankShown,
 }: {
   c: InvoiceRow;
   month: string;
   today: string;
   /** The month's only card: its history is the top chart already. */
   alone: boolean;
-  /** The only card the bank has this month: the bar over the list says its amount. */
-  bankShown: boolean;
 }) => {
   const isParcel = (l: BankLineView) => (l.installments ?? 1) > 1;
   return (
@@ -117,7 +118,7 @@ const Detail = ({
           {shortDate(c.closing)}
           {c.closingEstimated && " (estimado)"}
         </dd>
-        {c.bank && !bankShown && (
+        {c.bank && (
           <>
             <dt>{c.bank.closed ? "No banco, fechada" : "No banco até agora"}</dt>
             <dd className={c.bank.disagrees ? "warn" : undefined}>{money(c.bank.amount)}</dd>
@@ -132,12 +133,6 @@ const Detail = ({
           </>
         )}
       </dl>
-      {c.bank && (
-        <>
-          <BankLines title="Compras novas" lines={c.bank.lines.filter((l) => !isParcel(l))} />
-          <BankLines title="Parcelas" lines={c.bank.lines.filter(isParcel)} />
-        </>
-      )}
       {!alone && c.history.filter((h) => h.amount !== 0).length > 1 && (
         <section className="trend">
           <h3 className="label">Faturas do {c.card}</h3>
@@ -154,6 +149,15 @@ const Detail = ({
           />
         </section>
       )}
+      {c.bank && (
+        <>
+          <BankLines
+            title="Compras novas no banco"
+            lines={c.bank.lines.filter((l) => !isParcel(l))}
+          />
+          <BankLines title="Parcelas no banco" lines={c.bank.lines.filter(isParcel)} />
+        </>
+      )}
     </div>
   );
 };
@@ -163,13 +167,11 @@ const InvoiceLine = ({
   month,
   today,
   alone,
-  bankShown,
 }: {
   c: InvoiceRow;
   month: string;
   today: string;
   alone: boolean;
-  bankShown: boolean;
 }) => {
   const [open, setOpen] = useState(false);
   const gap = c.bank?.gap ?? 0;
@@ -200,7 +202,7 @@ const InvoiceLine = ({
         </span>
       </span>
       <span className="meta">{stateLine(c, today)}</span>
-      {open && <Detail c={c} month={month} today={today} alone={alone} bankShown={bankShown} />}
+      {open && <Detail c={c} month={month} today={today} alone={alone} />}
     </li>
   );
 };
@@ -235,11 +237,6 @@ export const Faturas = () => {
           v.months.find((x) => x.key === (picked ?? v.current)) ?? (v.months.at(-1) as never);
         const [best, ...rest] = v.buyToday;
         const ahead = v.months.some((x) => x.future);
-        // The bank against the sheet, over the cards the bank has this month.
-        const banked = m.cards.filter((c) => c.bank);
-        const inBank = m.bank ? m.bank.parcels + Math.max(0, m.bank.fresh) : 0;
-        const onSheet = banked.reduce((s, c) => s + c.amount, 0);
-        const whole = Math.max(1, inBank, onSheet);
         return (
           <Board
             panels={{
@@ -260,7 +257,7 @@ export const Faturas = () => {
                     <BigMoney cents={m.total} tone="plain" />
                     {m.bank &&
                       (m.bank.disagree === 0 ? (
-                        <span className="pos">✓ Nada no banco passa da planilha</span>
+                        <span className="pos">✓ Banco não ultrapassa a planilha</span>
                       ) : (
                         <span className="warn">
                           {m.bank.disagree === 1
@@ -306,47 +303,6 @@ export const Faturas = () => {
                     <h2>Cartões</h2>
                     <span className="meta">Vencem em {monthOf(m.key)}</span>
                   </div>
-                  {m.bank && inBank > 0 && (
-                    <div className="split">
-                      <p className="figure-line small">
-                        <span className="muted">
-                          {banked.length < m.cards.length
-                            ? `No banco, ${banked.map((c) => c.card).join(", ")}`
-                            : `No banco em ${monthOf(m.key)}`}
-                        </span>
-                        <span>
-                          <strong>{money(inBank)}</strong>
-                          <span className="muted"> de {money(onSheet)}</span>
-                        </span>
-                      </p>
-                      <span className="split-bar" aria-hidden="true">
-                        <i
-                          className="old"
-                          style={{ width: `${(m.bank.parcels / whole) * 100}%` }}
-                        />
-                        <i
-                          className="fresh"
-                          style={{ width: `${(Math.max(0, m.bank.fresh) / whole) * 100}%` }}
-                        />
-                      </span>
-                      <p className="columns-key">
-                        <span>
-                          <span className="swatch old" aria-hidden="true" />
-                          Parcelas {money(m.bank.parcels)}
-                        </span>
-                        <span>
-                          <span className="swatch fresh" aria-hidden="true" />
-                          Compras novas {money(Math.max(0, m.bank.fresh))}
-                        </span>
-                        {onSheet > inBank && (
-                          <span>
-                            <span className="swatch" aria-hidden="true" />
-                            Ainda não no banco {money(onSheet - inBank)}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )}
                   {m.cards.length === 0 ? (
                     <p className="hint">Nenhuma fatura neste mês.</p>
                   ) : (
@@ -358,7 +314,6 @@ export const Faturas = () => {
                           month={m.key}
                           today={v.today}
                           alone={m.cards.length === 1}
-                          bankShown={banked.length === 1}
                         />
                       ))}
                     </ul>

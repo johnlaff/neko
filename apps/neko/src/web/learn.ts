@@ -5,7 +5,7 @@
 export const HINTS = {
   hoje: "O arco é a fatura aberta perto do plano do ciclo.",
   hojeMes: "O arco é o gasto do mês perto do Diário previsto.",
-  faturas: "Compra no cartão entra na planilha uma vez só: na fatura, no dia em que ela vence.",
+  faturas: "Compra no cartão entra na planilha só uma vez: na fatura, no vencimento.",
   mes: "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista.",
 } as const;
 
