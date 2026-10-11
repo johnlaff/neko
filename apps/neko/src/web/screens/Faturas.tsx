@@ -28,6 +28,11 @@ const dueText = (due: string, today: string) => {
 
 /** Where the bill stands, in one line: the row's only words besides its name. */
 const stateLine = (c: InvoiceRow, today: string) => {
+  const who = c.others ? "De outra pessoa · " : c.reimbursed ? "Reembolsada · " : "";
+  return who + billState(c, today);
+};
+
+const billState = (c: InvoiceRow, today: string) => {
   if (c.state === "due") return `Venceu ${shortDate(c.due)}`;
   const due = dueText(c.due, today);
   if (c.state === "closed" || c.bank?.closed) return `Fechada · ${due}`;
@@ -89,12 +94,15 @@ const Detail = ({
   month,
   today,
   alone,
+  bankShown,
 }: {
   c: InvoiceRow;
   month: string;
   today: string;
   /** The month's only card: its history is the top chart already. */
   alone: boolean;
+  /** The only card the bank has this month: the bar over the list says its amount. */
+  bankShown: boolean;
 }) => {
   const isParcel = (l: BankLineView) => (l.installments ?? 1) > 1;
   return (
@@ -105,7 +113,7 @@ const Detail = ({
           {shortDate(c.closing)}
           {c.closingEstimated && " (estimado)"}
         </dd>
-        {c.bank && (
+        {c.bank && !bankShown && (
           <>
             <dt>{c.bank.closed ? "No banco, fechada" : "No banco até agora"}</dt>
             <dd className={c.bank.disagrees ? "warn" : undefined}>{money(c.bank.amount)}</dd>
@@ -151,11 +159,13 @@ const InvoiceLine = ({
   month,
   today,
   alone,
+  bankShown,
 }: {
   c: InvoiceRow;
   month: string;
   today: string;
   alone: boolean;
+  bankShown: boolean;
 }) => {
   const [open, setOpen] = useState(false);
   const gap = c.bank?.gap ?? 0;
@@ -171,8 +181,6 @@ const InvoiceLine = ({
       <CardAvatar name={c.card} />
       <span className="name">
         {c.card}
-        {c.others && <span className="chip plain">De outra pessoa</span>}
-        {c.reimbursed && <span className="chip plain">Reembolsada</span>}
         {/* The bank only shows up when the sheet should change. */}
         {c.bank?.disagrees && (
           <span className="chip warn">
@@ -188,7 +196,7 @@ const InvoiceLine = ({
         </span>
       </span>
       <span className="meta">{stateLine(c, today)}</span>
-      {open && <Detail c={c} month={month} today={today} alone={alone} />}
+      {open && <Detail c={c} month={month} today={today} alone={alone} bankShown={bankShown} />}
     </li>
   );
 };
@@ -223,6 +231,11 @@ export const Faturas = () => {
           v.months.find((x) => x.key === (picked ?? v.current)) ?? (v.months.at(-1) as never);
         const [best, ...rest] = v.buyToday;
         const ahead = v.months.some((x) => x.future);
+        // The bank against the sheet, over the cards the bank has this month.
+        const banked = m.cards.filter((c) => c.bank);
+        const inBank = m.bank ? m.bank.parcels + Math.max(0, m.bank.fresh) : 0;
+        const onSheet = banked.reduce((s, c) => s + c.amount, 0);
+        const whole = Math.max(1, inBank, onSheet);
         return (
           <Board
             panels={{
@@ -235,6 +248,22 @@ export const Faturas = () => {
                         Banco lido {shortDate(v.bank.syncedAt.slice(0, 10))}
                       </span>
                     )}
+                  </div>
+                  <div className="figure-stack">
+                    <span className="muted">
+                      {m.past ? "Saiu da conta" : "Sai da conta"} em {monthOf(m.key)}
+                    </span>
+                    <BigMoney cents={m.total} tone="plain" />
+                    {m.bank &&
+                      (m.bank.disagree === 0 ? (
+                        <span className="pos">✓ Nada no banco passa da planilha</span>
+                      ) : (
+                        <span className="warn">
+                          {m.bank.disagree === 1
+                            ? "1 cartão não confere com o banco"
+                            : `${m.bank.disagree} cartões não conferem com o banco`}
+                        </span>
+                      ))}
                   </div>
                   <Columns
                     label="Faturas de todos os cartões, por mês de vencimento"
@@ -263,22 +292,7 @@ export const Faturas = () => {
                       </span>
                     )}
                   </p>
-                  <div className="figure-stack">
-                    <span className="muted">
-                      {m.past ? "Saiu da conta" : "Sai da conta"} em {monthOf(m.key)}
-                    </span>
-                    <BigMoney cents={m.total} tone="plain" />
-                    {m.bank &&
-                      (m.bank.disagree === 0 ? (
-                        <span className="pos">✓ Banco confere com a planilha</span>
-                      ) : (
-                        <span className="warn">
-                          {m.bank.disagree === 1
-                            ? "1 cartão não confere com o banco"
-                            : `${m.bank.disagree} cartões não conferem com o banco`}
-                        </span>
-                      ))}
-                  </div>
+
                   <Hint id="faturas">{HINTS.faturas}</Hint>
                 </section>
               ),
@@ -288,18 +302,23 @@ export const Faturas = () => {
                     <h2>Cartões</h2>
                     <span className="meta">Vencem em {monthOf(m.key)}</span>
                   </div>
-                  {m.bank && m.bank.parcels > 0 && (
+                  {m.bank && inBank > 0 && (
                     <div className="split">
                       <p className="figure-line small">
-                        <span className="muted">No banco em {monthOf(m.key)}, até agora</span>
-                        <strong>{money(m.bank.parcels + m.bank.fresh)}</strong>
+                        <span className="muted">No banco em {monthOf(m.key)}</span>
+                        <span>
+                          <strong>{money(inBank)}</strong>
+                          <span className="muted"> de {money(onSheet)}</span>
+                        </span>
                       </p>
                       <span className="split-bar" aria-hidden="true">
                         <i
                           className="old"
-                          style={{
-                            width: `${(m.bank.parcels / Math.max(1, m.bank.parcels + m.bank.fresh)) * 100}%`,
-                          }}
+                          style={{ width: `${(m.bank.parcels / whole) * 100}%` }}
+                        />
+                        <i
+                          className="fresh"
+                          style={{ width: `${(Math.max(0, m.bank.fresh) / whole) * 100}%` }}
                         />
                       </span>
                       <p className="columns-key">
@@ -311,6 +330,12 @@ export const Faturas = () => {
                           <span className="swatch fresh" aria-hidden="true" />
                           Compras novas {money(Math.max(0, m.bank.fresh))}
                         </span>
+                        {onSheet > inBank && (
+                          <span>
+                            <span className="swatch" aria-hidden="true" />
+                            Ainda não no banco {money(onSheet - inBank)}
+                          </span>
+                        )}
                       </p>
                     </div>
                   )}
@@ -325,6 +350,7 @@ export const Faturas = () => {
                           month={m.key}
                           today={v.today}
                           alone={m.cards.length === 1}
+                          bankShown={banked.length === 1}
                         />
                       ))}
                     </ul>

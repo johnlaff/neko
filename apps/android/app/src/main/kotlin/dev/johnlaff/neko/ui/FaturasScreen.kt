@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.BankLine
 import dev.johnlaff.neko.data.BuyGroup
@@ -78,7 +80,10 @@ private fun dueText(due: String, today: String) =
     }
 
 /** Where the bill stands, in one line: the row's only words besides its name. */
-private fun stateLine(c: InvoiceRow, today: String): String {
+private fun stateLine(c: InvoiceRow, today: String): String =
+    (if (c.others) "De outra pessoa · " else if (c.reimbursed) "Reembolsada · " else "") + billState(c, today)
+
+private fun billState(c: InvoiceRow, today: String): String {
     if (c.state == "due") return "Venceu ${shortDate(c.due)}"
     val due = dueText(c.due, today)
     if (c.state == "closed" || c.bank?.closed == true) return "Fechada · $due"
@@ -106,6 +111,17 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onPick: (String) -> Un
         PanelHead("Por mês") {
             v.bank?.syncedAt?.let { Text("Banco lido ${shortDate(it.take(10))}", color = l.faint, style = MaterialTheme.typography.labelMedium) }
         }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("${if (m.past) "Saiu da conta" else "Sai da conta"} em ${monthOf(m.key)}", color = l.muted)
+            BigMoney(m.total)
+            m.bank?.let { b ->
+                if (b.disagree == 0) Text("✓ Nada no banco passa da planilha", color = l.pos)
+                else Text(
+                    if (b.disagree == 1) "1 cartão não confere com o banco" else "${b.disagree} cartões não conferem com o banco",
+                    color = l.warn,
+                )
+            }
+        }
         Columns(
             items = v.months.map { x ->
                 Bar(
@@ -126,17 +142,6 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onPick: (String) -> Un
                 Box(Modifier.size(10.dp).border(1.5.dp, l.faint, CircleShape))
             }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${if (m.past) "Saiu da conta" else "Sai da conta"} em ${monthOf(m.key)}", color = l.muted)
-            BigMoney(m.total)
-            m.bank?.let { b ->
-                if (b.disagree == 0) Text("✓ Banco confere com a planilha", color = l.pos)
-                else Text(
-                    if (b.disagree == 1) "1 cartão não confere com o banco" else "${b.disagree} cartões não conferem com o banco",
-                    color = l.warn,
-                )
-            }
-        }
         Hint("faturas", Learn.FATURAS)
     }
 }
@@ -149,25 +154,36 @@ private fun CardsPanel(m: InvoiceMonth, today: String) {
         PanelHead("Cartões") {
             Text("Vencem em ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        m.bank?.takeIf { it.parcels > 0 }?.let { b ->
-            LedgerLine("No banco em ${monthOf(m.key)}, até agora", money(b.parcels + b.fresh))
-            val whole = (b.parcels + b.fresh).coerceAtLeast(1L)
-            // Display only: the month's parcels against what is new, from the API's sums.
-            Box(Modifier.fillMaxWidth().height(6.dp).background(l.text, RoundedCornerShape(50))) {
-                Box(Modifier.fillMaxWidth(b.parcels.toFloat() / whole).height(6.dp).background(l.borderInput, RoundedCornerShape(50)))
+        // The bank against the sheet, over the cards the bank has this month.
+        val banked = m.cards.filter { it.bank != null }
+        m.bank?.let { b ->
+            val fresh = b.fresh.coerceAtLeast(0L)
+            val inBank = b.parcels + fresh
+            if (inBank <= 0L) return@let
+            val onSheet = banked.sumOf { it.amount }
+            val whole = maxOf(1L, inBank, onSheet).toFloat()
+            LedgerLine("No banco em ${monthOf(m.key)}", "${money(inBank)} de ${money(onSheet)}")
+            // Display only: the API's sums against the sheet's, as on the site.
+            Row(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50)).border(1.5.dp, l.faint, RoundedCornerShape(50))) {
+                if (b.parcels > 0) Box(Modifier.weight(b.parcels / whole).height(6.dp).background(l.borderInput))
+                if (fresh > 0) Box(Modifier.weight(fresh / whole).height(6.dp).background(l.text))
+                if (whole > inBank) Spacer(Modifier.weight((whole - inBank) / whole))
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Key("Parcelas ${money(b.parcels)}") { Box(Modifier.size(10.dp).background(l.borderInput, CircleShape)) }
-                Key("Compras novas ${money(b.fresh.coerceAtLeast(0L))}") { Box(Modifier.size(10.dp).background(l.text, CircleShape)) }
+                Key("Compras novas ${money(fresh)}") { Box(Modifier.size(10.dp).background(l.text, CircleShape)) }
+                if (onSheet > inBank) Key("Ainda não no banco ${money(onSheet - inBank)}") {
+                    Box(Modifier.size(10.dp).border(1.5.dp, l.faint, CircleShape))
+                }
             }
         }
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
-        m.cards.forEach { InvoiceLine(it, m.key, today, alone = m.cards.size == 1) }
+        m.cards.forEach { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, bankShown = banked.size == 1) }
     }
 }
 
 @Composable
-private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean) {
+private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean, bankShown: Boolean) {
     var open by rememberSaveable(month, c.card) { mutableStateOf(false) }
     Column {
         ListRow(
@@ -179,8 +195,6 @@ private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Bool
             card = c.card,
             meta = stateLine(c, today),
             chips = {
-                if (c.others) Chip("De outra pessoa", ChipTone.Plain)
-                if (c.reimbursed) Chip("Reembolsada", ChipTone.Plain)
                 // The bank only shows up when the sheet should change.
                 c.bank?.takeIf { it.disagrees }?.let { b ->
                     Chip("Banco ${if (b.gap > 0) "+" else "−"}${money(kotlin.math.abs(b.gap))}", ChipTone.Warn)
@@ -188,7 +202,7 @@ private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Bool
             },
             open = open,
         )
-        Reveal(open) { Detail(c, month, today, alone) }
+        Reveal(open) { Detail(c, month, today, alone, bankShown) }
     }
 }
 
@@ -231,12 +245,13 @@ private fun BankLines(title: String, lines: List<BankLine>) {
 
 /** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
 @Composable
-private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean) {
+private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, bankShown: Boolean) {
     val l = LocalLedger.current
     Column(Modifier.padding(start = 48.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             LedgerLine("Fecha", shortDate(c.closing) + if (c.closingEstimated) " (estimado)" else "")
-            c.bank?.let { b ->
+            // The only card the bank has this month: the bar over the list says its amount.
+            c.bank?.takeIf { !bankShown }?.let { b ->
                 LedgerLine(if (b.closed) "No banco, fechada" else "No banco até agora", money(b.amount), color = if (b.disagrees) l.warn else l.text)
             }
             c.limit?.let { x -> LedgerLine("Limite livre", "${money(x.available)} de ${money(x.limit)}") }
