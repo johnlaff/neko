@@ -115,22 +115,24 @@ const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
 };
 
 /**
- * Each bill still to come, per card the sheet knows: the bank's sum, with the parcels still owed,
- * against the sheet's line on the due day. A bill already due is history and stays out, and so
- * does one past the sheet's last tab.
- */
-/**
  * Before a bill closes, the bank may not list every parcel yet and rounds each one its own way:
  * only a rise of at least this much is worth a change. Once closed, the bill follows the bank.
  */
 export const OPEN_BILL_MIN = 100;
 
+/**
+ * Each bill still to come, per card the sheet knows: the bank's sum, with the parcels still owed,
+ * against the sheet's line on the due day. A bill already due is history and stays out, unless
+ * `since` asks for the ones due from that day on (to show what the bank had on them; they never
+ * disagree). One past the sheet's last tab stays out too.
+ */
 export const billChecks = (
   ledger: Ledger,
   cards: readonly CardConfig[],
   lines: readonly BankCardLine[],
   today: LocalDate,
   closed: readonly ClosedBill[] = [],
+  since?: LocalDate,
 ): BillCheck[] => {
   const byCard = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const groups = new Map<string, { card: CardConfig; month: string; lines: BankCardLine[] }>();
@@ -173,7 +175,8 @@ export const billChecks = (
     const [y, m] = month.split("-").map(Number);
     if (!y || !m) continue;
     const { due } = cycleForDueMonth(card, y, m);
-    if (diffDays(today, due) <= 0) continue;
+    const past = diffDays(today, due) <= 0;
+    if (past && (since === undefined || due < since)) continue;
     const bank = totals.get(key) ?? sum(ls);
     const parcels = add(ZERO, ...ls.filter(isParcel).map((l) => l.amount));
     const sheet = billOnSheet(ledger, card, due);
@@ -188,7 +191,7 @@ export const billChecks = (
       sheet,
       gap,
       closed,
-      disagrees: closed ? gap !== 0 : gap >= OPEN_BILL_MIN,
+      disagrees: !past && (closed ? gap !== 0 : gap >= OPEN_BILL_MIN),
       lines: ls.toSorted(
         (a, b) =>
           Number(isParcel(a)) - Number(isParcel(b)) || (b.date ?? "").localeCompare(a.date ?? ""),

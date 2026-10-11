@@ -217,6 +217,19 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     expect(checks.map((c) => c.due)).toEqual(["2026-12-10"]);
   });
 
+  it("keeps a bill already due when asked, with its lines, never as a disagreement", () => {
+    const checks = billChecks(
+      days,
+      [visa],
+      [line(1000, "2026-10", { description: "PADARIA" })],
+      today,
+      [],
+      localDate("2026-06-01"),
+    );
+    expect(checks).toMatchObject([{ due: "2026-10-10", bank: 1000, disagrees: false }]);
+    expect(checks[0]?.lines.map((l) => l.description)).toEqual(["PADARIA"]);
+  });
+
   it("leaves out bills already due and cards the sheet does not know", () => {
     const checks = billChecks(
       days,

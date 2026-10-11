@@ -254,7 +254,7 @@ private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, 
             c.bank?.let { b ->
                 LedgerLine(if (b.closed) "No banco, fechada" else "No banco até agora", money(b.amount), color = if (b.disagrees) l.warn else l.text)
             }
-            c.limit?.let { x -> LedgerLine("Limite livre", "${money(x.available)} de ${money(x.limit)}") }
+            c.limit?.let { x -> LedgerLine("Limite livre", money(x.available)) }
         }
         if (c.bank?.disagrees == true) TextAction("Corrigir em Para lançar", onHoje, color = l.accent)
         if (!alone && c.history.count { it.amount != 0L } > 1) {

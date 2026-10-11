@@ -127,9 +127,7 @@ const Detail = ({
         {c.limit && (
           <>
             <dt>Limite livre</dt>
-            <dd>
-              {money(c.limit.available)} <span className="muted">de {money(c.limit.limit)}</span>
-            </dd>
+            <dd>{money(c.limit.available)}</dd>
           </>
         )}
       </dl>
