@@ -29,6 +29,9 @@ export interface BankAccountRow {
   readonly type: string;
   readonly item_id?: string;
   readonly balance?: number;
+  /** A card account's limit and what is still free of it, in cents; null when the bank says none. */
+  readonly credit_limit?: number | null;
+  readonly available_limit?: number | null;
 }
 
 export interface BankItemRow {
@@ -217,6 +220,18 @@ export const bankView = (
         })),
     ),
     checks: billChecks(ledger, cards, lines, today, closed),
+    // A holder and an additional card share one account, and so one limit.
+    limits: rows.accounts.flatMap((a) =>
+      a.type === "CREDIT" && a.credit_limit != null && a.available_limit != null
+        ? [
+            ...new Set(settings.bankCards.filter((m) => m.accountId === a.id).map((m) => m.card)),
+          ].map((card) => ({
+            card,
+            limit: cents(a.credit_limit ?? 0),
+            available: cents(a.available_limit ?? 0),
+          }))
+        : [],
+    ),
     // The last MISSING_DAYS only, so an old gap does not stay on Hoje forever; the account id
     // stays on the server.
     missing: unmatchedMovements(ledger, movements, today)
@@ -237,7 +252,11 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
     if (!items || items.n === 0) return null;
     const [itemRows, accounts, txns, bills, decisions] = await Promise.all([
       db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
-      db.prepare("SELECT id, type, item_id, balance FROM bank_account").all<BankAccountRow>(),
+      db
+        .prepare(
+          "SELECT id, type, item_id, balance, credit_limit, available_limit FROM bank_account",
+        )
+        .all<BankAccountRow>(),
       db
         .prepare(
           "SELECT COALESCE(provider_id, id) AS id, status, account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",

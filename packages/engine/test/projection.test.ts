@@ -298,3 +298,71 @@ describe("upcoming by day", () => {
     ]);
   });
 });
+
+describe("bills by month, all cards", () => {
+  // Visa closes on the 3rd and is due on the 10th; Verde closes on the 25th, due on the 2nd.
+  const verdeLate: CardConfig = {
+    name: "Verde",
+    closingDay: 25,
+    dueDay: 2,
+    closingEstimated: true,
+  };
+  const today = localDate("2026-10-20");
+  const l = ledger("2026-03-01", 300, 10_000_00, {
+    "2026-03-10": { saida: cell(100_00, [item(100_00, "Visa")]) },
+    "2026-04-10": { saida: cell(200_00, [item(200_00, "Visa")]) },
+    "2026-09-10": { saida: cell(700_00, [item(700_00, "Visa")]) },
+    "2026-10-02": { saida: cell(50_00, [item(50_00, "Verde")]) },
+    "2026-10-10": { saida: cell(800_00, [item(800_00, "Visa")]) },
+    "2026-11-02": { saida: cell(60_00, [item(60_00, "Verde")]) },
+    "2026-11-10": { saida: cell(450_00, [item(450_00, "Visa")]) },
+    "2026-12-10": { saida: cell(90_00, [item(90_00, "Visa")]) },
+  });
+  const p = project(l, today, settings({ cards: [visa, verdeLate] }));
+
+  it("adds up every card due in each month, six months back up to the last one with a bill", () => {
+    expect(p.invoices.map((m) => [m.month, m.total])).toEqual([
+      ["2026-04", 200_00],
+      ["2026-05", 0],
+      ["2026-06", 0],
+      ["2026-07", 0],
+      ["2026-08", 0],
+      ["2026-09", 700_00],
+      ["2026-10", 850_00],
+      ["2026-11", 510_00],
+      ["2026-12", 90_00],
+    ]);
+  });
+
+  it("says where each bill stands today, from the card's dates", () => {
+    const oct = p.invoices.find((m) => m.month === "2026-10");
+    expect(oct?.cards.map((c) => [c.card, c.state])).toEqual([
+      ["Verde", "due"],
+      ["Visa", "due"],
+    ]);
+    const nov = p.invoices.find((m) => m.month === "2026-11");
+    // Verde closes on Oct 25 and Visa's cycle runs to Nov 3: both still take purchases.
+    expect(nov?.cards).toMatchObject([
+      { card: "Verde", state: "open", closesInDays: 6, closingEstimated: true, amount: 60_00 },
+      { card: "Visa", state: "open", closesInDays: 15, amount: 450_00 },
+    ]);
+    const dec = p.invoices.find((m) => m.month === "2026-12");
+    expect(dec?.cards.map((c) => [c.card, c.state])).toEqual([["Visa", "future"]]);
+  });
+
+  it("opens on the month of the next bill to pay and averages the months before today's", () => {
+    expect(p.invoiceMonth).toBe("2026-11");
+    // April and September; the empty months are left out.
+    expect(p.invoicesAverage).toBe(450_00);
+  });
+
+  it("marks a bill that closed and is not due yet", () => {
+    const q = project(l, localDate("2026-11-05"), settings({ cards: [visa, verdeLate] }));
+    const nov = q.invoices.find((m) => m.month === "2026-11");
+    expect(nov?.cards.map((c) => [c.card, c.state])).toEqual([
+      ["Verde", "due"],
+      ["Visa", "closed"],
+    ]);
+    expect(q.invoiceMonth).toBe("2026-11");
+  });
+});

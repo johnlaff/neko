@@ -144,7 +144,7 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await expect(page.getByRole("status").filter({ hasText: "Ignorado" })).toBeVisible();
   await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(2);
   await page.getByRole("link", { name: "Faturas", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Faturas no banco" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Por mês" })).toBeVisible();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bancos" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: /Azul Platinum/ })).toHaveValue("Cartão Azul");

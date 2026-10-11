@@ -24,10 +24,15 @@ class ScreensContractTest {
 
     @Test fun invoices() {
         val v = json.decodeFromString<InvoicesView>(text("invoices.json"))
-        assertEquals("Cartão Azul", v.usual?.card)
-        assertTrue(v.history.last().open)
-        assertEquals(listOf("Cartão Verde"), v.others.map { it.card })
-        assertTrue(v.others.single().others)
+        val now = v.months.single { it.key == v.current }
+        assertEquals(listOf("Cartão Azul", "Cartão Verde"), now.cards.map { it.card })
+        assertEquals(now.cards.sumOf { it.amount }, now.total)
+        assertTrue(now.cards.single { it.card == "Cartão Verde" }.others)
+        assertTrue(v.months.first().past)
+        // The bank's side rides on each card it knows, lines and all.
+        val checked = v.months.flatMap { it.cards }.mapNotNull { it.bank }
+        assertTrue(checked.isNotEmpty())
+        assertTrue(checked.any { it.lines.isNotEmpty() })
     }
 
     @Test fun months() {

@@ -82,7 +82,7 @@ class ScreenshotTest {
     private fun banked(file: String) =
         File("src/test/resources/$file").readText().replace("Cartão Azul", "Nubank").replace("Cartão Verde", "Itaú")
 
-    @Test fun logosFaturasLight() = shot("logos-faturas-light", night = false, scrollTo = "Outros cartões") {
+    @Test fun logosFaturasLight() = shot("logos-faturas-light", night = false, scrollTo = "Outubro") {
         FaturasScreen(ScreenState(json.decodeFromString(InvoicesView.serializer(), banked("invoices.json"))), {}, {})
     }
 
@@ -213,8 +213,8 @@ class ScreenshotTest {
         )
     }
 
-    @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Faturas no banco") {
-        FaturasScreen(ScreenState(invoices), {}, {})
+    @Test fun bancoFaturasDark() = shot("banco-faturas-dark", night = true, scrollTo = "Novembro") {
+        FaturasScreen(ScreenState(invoices.copy(current = "2026-11")), {}, {})
     }
 
     @Test fun bancoAjustesLight() = shot("banco-ajustes-light", night = false, scrollTo = "Bancos") {
