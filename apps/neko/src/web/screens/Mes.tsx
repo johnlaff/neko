@@ -379,7 +379,13 @@ export const Mes = () => {
                           value: x.endSheet,
                           description: `${capitalize(monthName(x.month))}: ${money(x.endSheet)}${k > nowKey ? ", previsão da planilha" : ""}`,
                           tone:
-                            k === key(m.year, m.month) ? "ink" : k > nowKey ? "faint" : undefined,
+                            k === key(m.year, m.month)
+                              ? k > nowKey
+                                ? "outline"
+                                : "ink"
+                              : k > nowKey
+                                ? "faint"
+                                : undefined,
                         };
                       })}
                     />
