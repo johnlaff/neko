@@ -202,6 +202,7 @@ private fun BankLines(title: String, lines: List<BankLine>) {
     var all by remember(lines) { mutableStateOf(false) }
     // Closed by default: a bill can bring dozens of lines, the details above come first.
     var open by rememberSaveable(title) { mutableStateOf(false) }
+    Column {
     TextAction("$title (${lines.size})", { open = !open }, open = open)
     Reveal(open) { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         (if (all) lines else lines.take(LINES_SHOWN)).forEach { x ->
@@ -217,6 +218,7 @@ private fun BankLines(title: String, lines: List<BankLine>) {
         }
         if (!all && lines.size > LINES_SHOWN) TextAction("Ver mais ${lines.size - LINES_SHOWN}", { all = true })
     } }
+    }
 }
 
 /** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
