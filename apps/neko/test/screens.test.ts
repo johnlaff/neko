@@ -40,22 +40,33 @@ const card = (
 };
 
 describe("invoices view", () => {
-  it("shows the usual bill with its history, the open one last", () => {
+  it("lists each month with every card due in it, opening on the next bill to pay", () => {
     const v = invoicesView(fixture);
-    expect(v.usual).toMatchObject({ card: "Cartão Azul", onSheet: 3_600_31 });
-    expect(v.history).toHaveLength(7);
-    expect(v.history.at(-1)).toEqual({ due: v.usual?.due, amount: 3_600_31, open: true });
-    expect(v.history.slice(0, -1).every((b) => !b.open)).toBe(true);
-    expect(v.openVsAverage).toBe(fixture.projection.openVsAverage);
+    expect(v.current).toBe(fixture.projection.invoiceMonth);
+    const now = v.months.find((m) => m.key === v.current);
+    expect(now?.cards.map((c) => c.card)).toEqual(expect.arrayContaining(["Cartão Azul"]));
+    expect(now?.total).toBe(now?.cards.reduce((t, c) => t + c.amount, 0));
+    expect(v.months.at(0)?.past).toBe(true);
+    expect(v.average).toBe(fixture.projection.invoicesAverage);
   });
 
-  it("lists other people's and other cards apart from the usual one", () => {
+  it("puts the bank's side on each card and only flags a real disagreement", () => {
     const v = invoicesView(fixture);
-    expect(v.others).toEqual([
-      expect.objectContaining({ card: "Cartão Verde", others: true, onSheet: 527_70 }),
-    ]);
-    // With a single card of your own there is nothing to pick from.
-    expect(v.buyToday).toEqual([]);
+    const checked = v.months.flatMap((m) => m.cards).filter((c) => c.bank !== null);
+    expect(checked.length).toBeGreaterThan(0);
+    for (const c of checked) expect(c.bank?.disagrees).toBe((c.bank?.gap ?? 0) > 0);
+    const m = v.months.find((x) => x.bank !== null);
+    expect(m?.bank?.disagree).toBe(m?.cards.filter((c) => c.bank?.disagrees).length);
+  });
+
+  it("gives each card its own history across the months shown", () => {
+    const v = invoicesView(fixture);
+    const azul = v.months.flatMap((m) => m.cards).find((c) => c.card === "Cartão Azul");
+    expect(azul?.history.map((h) => h.month)).toEqual(v.months.map((m) => m.key));
+  });
+
+  it("leaves the buying choice out with a single card of your own", () => {
+    expect(invoicesView(fixture).buyToday).toEqual([]);
   });
 
   it("groups your cards that charge on the same dates, longest wait first", () => {
@@ -84,12 +95,11 @@ describe("invoices view", () => {
         estimated: false,
       },
     ]);
-    expect(v.empty).toEqual(["Vazio"]);
   });
 
   it("says when the sheet has no card", () => {
     const v = invoicesView(withCards([]));
-    expect(v).toMatchObject({ hasCards: false, usual: null, history: [], buyToday: [] });
+    expect(v).toMatchObject({ hasCards: false, buyToday: [] });
   });
 });
 
