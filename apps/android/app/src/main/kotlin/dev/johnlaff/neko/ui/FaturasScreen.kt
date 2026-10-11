@@ -67,7 +67,7 @@ fun FaturasScreen(
         }
         item { MonthsPanel(v, month, onHoje) { picked = it } }
         column()
-        item { CardsPanel(month, v.today, onHoje) }
+        item { CardsPanel(month, v.today) }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
     }
 }
@@ -122,11 +122,11 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onHoje: () -> Unit, on
                 if (b.disagree == 0) Text("✓ Banco não ultrapassa a planilha", color = l.pos)
                 else {
                     Text(
-                        if (b.disagree == 1) "1 cartão não confere com o banco" else "${b.disagree} cartões não conferem com o banco",
+                        if (b.disagree == 1) "${m.cards.firstOrNull { it.bank?.disagrees == true }?.card ?: "1 cartão"} não confere com o banco" else "${b.disagree} cartões não conferem com o banco",
                         color = l.warn,
                     )
                     // Para lançar has the change for each one: nothing is written without a tap.
-                    TextAction("Corrigir em Para lançar", onHoje, color = l.accent)
+                    TextAction("Corrigir em Para lançar ›", onHoje, color = l.accent)
                 }
             }
         }
@@ -156,19 +156,19 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onHoje: () -> Unit, on
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CardsPanel(m: InvoiceMonth, today: String, onHoje: () -> Unit) {
+private fun CardsPanel(m: InvoiceMonth, today: String) {
     val l = LocalLedger.current
     Panel {
         PanelHead("Cartões") {
             Text("Vencem em ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
-        m.cards.forEach { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, onHoje = onHoje) }
+        m.cards.forEach { InvoiceLine(it, m.key, today, alone = m.cards.size == 1) }
     }
 }
 
 @Composable
-private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean, onHoje: () -> Unit) {
+private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean) {
     var open by rememberSaveable(month, c.card) { mutableStateOf(false) }
     Column {
         ListRow(
@@ -187,7 +187,7 @@ private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Bool
             },
             open = open,
         )
-        Reveal(open) { Detail(c, month, today, alone, onHoje) }
+        Reveal(open) { Detail(c, month, today, alone) }
     }
 }
 
@@ -242,7 +242,7 @@ private fun BankLines(title: String, lines: List<BankLine>) {
 
 /** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
 @Composable
-private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, onHoje: () -> Unit) {
+private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean) {
     val l = LocalLedger.current
     Column(Modifier.padding(start = 48.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // The bill's facts on their own tinted block, set apart from the bank's lines below.
@@ -256,7 +256,6 @@ private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, 
             }
             c.limit?.let { x -> LedgerLine("Limite livre", money(x.available)) }
         }
-        if (c.bank?.disagrees == true) TextAction("Corrigir em Para lançar", onHoje, color = l.accent)
         if (!alone && c.history.count { it.amount != 0L } > 1) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Faturas do ${c.card}", color = l.faint, style = MaterialTheme.typography.labelMedium)

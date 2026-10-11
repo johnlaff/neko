@@ -3281,7 +3281,6 @@ details.bank-lines summary {
   margin-top: 12px;
 }
 /* Faturas' "Corrigir em Para lançar": a full tap target that sits close to the warning it fixes. */
-.figure-stack > .text-link,
-.invoice-detail > .text-link {
+.figure-stack > .text-link {
   margin: -10px 0;
 }
