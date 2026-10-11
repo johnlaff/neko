@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -112,7 +113,7 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onPick: (String) -> Un
             Text("${if (m.past) "Saiu da conta" else "Sai da conta"} em ${monthOf(m.key)}", color = l.muted)
             BigMoney(m.total)
             m.bank?.let { b ->
-                if (b.disagree == 0) Text("✓ Nada no banco passa da planilha", color = l.pos)
+                if (b.disagree == 0) Text("✓ Banco não ultrapassa a planilha", color = l.pos)
                 else Text(
                     if (b.disagree == 1) "1 cartão não confere com o banco" else "${b.disagree} cartões não conferem com o banco",
                     color = l.warn,
@@ -203,7 +204,15 @@ private fun BankLines(title: String, lines: List<BankLine>) {
     // Closed by default: a bill can bring dozens of lines, the details above come first.
     var open by rememberSaveable(title) { mutableStateOf(false) }
     Column {
-    TextAction("$title (${lines.size})", { open = !open }, open = open)
+    // A full-width row with its chevron at the edge, like the card rows above it.
+    Row(
+        Modifier.fillMaxWidth().clickable { open = !open }.heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text("$title (${lines.size})", color = l.muted, style = MaterialTheme.typography.labelLarge)
+        Disclosure(open, l.muted)
+    }
     Reveal(open) { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         (if (all) lines else lines.take(LINES_SHOWN)).forEach { x ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -257,7 +257,7 @@ export const Faturas = () => {
                     <BigMoney cents={m.total} tone="plain" />
                     {m.bank &&
                       (m.bank.disagree === 0 ? (
-                        <span className="pos">✓ Nada no banco passa da planilha</span>
+                        <span className="pos">✓ Banco não ultrapassa a planilha</span>
                       ) : (
                         <span className="warn">
                           {m.bank.disagree === 1
