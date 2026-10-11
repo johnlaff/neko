@@ -577,7 +577,7 @@ fun Columns(
                         val bar = h.coerceAtLeast(2.dp.toPx())
                         // A forecast month is an outline, told apart by shape, not by a pale fill (as on the site).
                         // Picked, it stays an outline, only darker and thicker: still just what the sheet has.
-                        val line = (if (c.picked) 2 else 1.5f).dp.toPx()
+                        val line = (if (c.picked) 2.dp else 1.5.dp).toPx()
                         val inset = if (c.faint) line / 2 else 0f
                         drawRoundRect(
                             color,
