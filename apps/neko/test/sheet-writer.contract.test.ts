@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { cents, fromReais, localDate, type Placement, withEconomia } from "@neko/engine";
-import { SHEET_MAP } from "@neko/sheet-reader";
+import { planCellEdit, SHEET_MAP } from "@neko/sheet-reader";
 import { beforeEach, describe, expect, it } from "vitest";
 import { accessToken, WRITE_SCOPES } from "../src/worker/google.ts";
 import {
@@ -130,6 +130,22 @@ describe.runIf(available)("writer on the test sheet", { timeout: 300_000 }, () =
   });
 
   it("fills an empty bill (R$ 0,00) of a card", async () => {
+    // A run that failed between Lançar and Desfazer leaves its R$ 19,90 behind, and the next run
+    // would add to it: bring Cartão B back to R$ 0,00 first, with the writer's own rules.
+    const p = at("2026-07-15", "saida");
+    const { cell } = await read(p);
+    const left = (cell.note ?? "").match(/R\$ ([\d.,]+) - Cartão B/)?.[1];
+    if (left && left !== "0,00") {
+      const back = planCellEdit(cell, {
+        section: "cartoes",
+        description: "Cartão B",
+        target: "card",
+        was: fromReais(Number(left.replace(/\./g, "").replace(",", "."))),
+        amount: cents(0),
+      });
+      if (!back.ok) throw new Error(back.reason);
+      await reset(p, back.formula === "" ? null : back.formula, back.note);
+    }
     await roundTrip(
       {
         ...at("2026-07-15", "saida"),
