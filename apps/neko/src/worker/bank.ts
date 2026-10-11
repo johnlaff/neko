@@ -219,7 +219,8 @@ export const bankView = (
           readOn: synced(a) ? todayIn(new Date(synced(a) as string)) : null,
         })),
     ),
-    checks: billChecks(ledger, cards, lines, today, closed),
+    // Faturas shows five months back: their bills keep what the bank had on them.
+    checks: billChecks(ledger, cards, lines, today, closed, addDays(today, -160)),
     // A holder and an additional card share one account, and so one limit.
     limits: rows.accounts.flatMap((a) =>
       a.type === "CREDIT" && a.credit_limit != null && a.available_limit != null

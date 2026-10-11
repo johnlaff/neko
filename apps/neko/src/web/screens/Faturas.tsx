@@ -127,9 +127,7 @@ const Detail = ({
         {c.limit && (
           <>
             <dt>Limite livre</dt>
-            <dd>
-              {money(c.limit.available)} <span className="muted">de {money(c.limit.limit)}</span>
-            </dd>
+            <dd>{money(c.limit.available)}</dd>
           </>
         )}
       </dl>
@@ -259,11 +257,17 @@ export const Faturas = () => {
                       (m.bank.disagree === 0 ? (
                         <span className="pos">✓ Banco não ultrapassa a planilha</span>
                       ) : (
-                        <span className="warn">
-                          {m.bank.disagree === 1
-                            ? "1 cartão não confere com o banco"
-                            : `${m.bank.disagree} cartões não conferem com o banco`}
-                        </span>
+                        <>
+                          <span className="warn">
+                            {m.bank.disagree === 1
+                              ? `${m.cards.find((x) => x.bank?.disagrees)?.card ?? "1 cartão"} não confere com o banco`
+                              : `${m.bank.disagree} cartões não conferem com o banco`}
+                          </span>
+                          {/* Para lançar has the change for each one: nothing is written without a tap. */}
+                          <Link className="text-link" to="/" hash="h-queue">
+                            Corrigir em Para lançar ›
+                          </Link>
+                        </>
                       ))}
                   </div>
                   <Columns
