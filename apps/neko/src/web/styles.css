@@ -3280,3 +3280,7 @@ details.bank-lines summary {
 .more-buy > .rows {
   margin-top: 12px;
 }
+/* Faturas' "Corrigir em Para lançar": a full tap target that sits close to the warning it fixes. */
+.figure-stack > .text-link {
+  margin: -10px 0;
+}
