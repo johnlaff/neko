@@ -268,6 +268,18 @@ export interface Matching {
 }
 
 /**
+ * Who a Pix or TED went to or came from, as the bank writes it after "Pix enviado" or "Pix
+ * recebido"; null for anything else, or for a name too short to tell people apart.
+ */
+const party = (description: string): string | null => {
+  const m = normalizeName(description).match(
+    /^(?:pix|ted|transferencia)\s+(?:enviad[oa]|recebid[oa])\s+(?:-\s*(?:des|rem)\s+)?([a-z ]+)/,
+  );
+  const words = m?.[1]?.trim().split(/\s+/) ?? [];
+  return words.length >= 2 ? words.join(" ") : null;
+};
+
+/**
  * The bank's account movements against the sheet. A movement matches a sheet line of the same
  * amount, same direction, within MATCH_DAYS; each sheet line answers for one movement only, the
  * closest in date first; what is left may still be two lines of one sheet day added up. Money
@@ -305,6 +317,29 @@ export const matchMovements = (
     moved.add(m);
     moved.add(other);
     transfers.push({ out: other, in: m });
+  }
+  // A Pix to oneself in two parts and one back for the sum (or the other way round): the same
+  // person on all three sides, within TRANSFER_DAYS, adding up to nothing.
+  for (const m of movements) {
+    const who = party(m.description);
+    if (moved.has(m) || who === null) continue;
+    const near = movements.filter(
+      (o) =>
+        o !== m &&
+        !moved.has(o) &&
+        Math.sign(o.amount) === -Math.sign(m.amount) &&
+        Math.abs(diffDays(o.date, m.date)) <= TRANSFER_DAYS &&
+        party(o.description) === who,
+    );
+    const pair = near.flatMap((a, i) =>
+      near
+        .slice(i + 1)
+        .filter((b) => a.amount + b.amount === -m.amount)
+        .map((b) => [a, b] as const),
+    )[0];
+    if (!pair) continue;
+    moved.add(m);
+    for (const o of pair) moved.add(o);
   }
   const open = movements.filter(
     (m) =>
