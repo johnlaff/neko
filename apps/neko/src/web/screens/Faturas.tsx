@@ -23,7 +23,11 @@ const dayIndex = (iso: string) => Date.parse(`${iso}T12:00:00Z`) / 86_400_000;
 /** `vence hoje`, `vence amanhã`, `vence 12 nov`. */
 const dueText = (due: string, today: string) => {
   const d = Math.round(dayIndex(due) - dayIndex(today));
-  return d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence ${shortDate(due)}`;
+  // Non-breaking: a wrap falls at the "·", never inside the date.
+  return (d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence ${shortDate(due)}`).replaceAll(
+    " ",
+    "\u00a0",
+  );
 };
 
 /** Where the bill stands, in one line: the row's only words besides its name. */
@@ -305,7 +309,11 @@ export const Faturas = () => {
                   {m.bank && inBank > 0 && (
                     <div className="split">
                       <p className="figure-line small">
-                        <span className="muted">No banco em {monthOf(m.key)}</span>
+                        <span className="muted">
+                          {banked.length < m.cards.length
+                            ? `No banco, ${banked.map((c) => c.card).join(", ")}`
+                            : `No banco em ${monthOf(m.key)}`}
+                        </span>
                         <span>
                           <strong>{money(inBank)}</strong>
                           <span className="muted"> de {money(onSheet)}</span>

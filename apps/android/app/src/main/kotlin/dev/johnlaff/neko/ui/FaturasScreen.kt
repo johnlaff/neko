@@ -77,7 +77,7 @@ private fun dueText(due: String, today: String) =
         0L -> "vence hoje"
         1L -> "vence amanhã"
         else -> "vence ${shortDate(due)}"
-    }
+    }.replace(' ', '\u00a0') // a wrap falls at the "·", never inside the date
 
 /** Where the bill stands, in one line: the row's only words besides its name. */
 private fun stateLine(c: InvoiceRow, today: String): String =
@@ -162,7 +162,10 @@ private fun CardsPanel(m: InvoiceMonth, today: String) {
             if (inBank <= 0L) return@let
             val onSheet = banked.sumOf { it.amount }
             val whole = maxOf(1L, inBank, onSheet).toFloat()
-            LedgerLine("No banco em ${monthOf(m.key)}", "${money(inBank)} de ${money(onSheet)}")
+            LedgerLine(
+                if (banked.size < m.cards.size) "No banco, ${banked.joinToString(", ") { it.card }}" else "No banco em ${monthOf(m.key)}",
+                "${money(inBank)} de ${money(onSheet)}",
+            )
             // Display only: the API's sums against the sheet's, as on the site.
             Row(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50)).border(1.5.dp, l.faint, RoundedCornerShape(50))) {
                 if (b.parcels > 0) Box(Modifier.weight(b.parcels / whole).height(6.dp).background(l.borderInput))

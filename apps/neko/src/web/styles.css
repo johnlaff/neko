@@ -3247,6 +3247,9 @@ form.entry > p.hint:empty {
 .figure-line.small strong {
   font-size: 1rem;
 }
+.split > .figure-line {
+  row-gap: 2px;
+}
 .split-bar {
   display: flex;
   height: 6px;
