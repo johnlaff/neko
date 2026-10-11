@@ -1108,6 +1108,11 @@ fieldset.columns {
 .columns button.col:hover {
   background: transparent;
 }
+/* A month with nothing to open looks like the rest, it just does not answer a tap. */
+.columns button.col:disabled {
+  opacity: 1;
+  cursor: default;
+}
 .columns .plot {
   position: relative;
   display: block;
@@ -1126,6 +1131,11 @@ fieldset.columns {
 .columns .bar.faint {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--faint);
+}
+/* A picked forecast month: ink, and still an outline, since it is only what the sheet has */
+.columns .bar.outline {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--text);
 }
 .columns .bar.accent {
   background: var(--accent);
@@ -1147,7 +1157,7 @@ fieldset.columns {
   color: var(--text);
   font-weight: 600;
 }
-.columns button.col:hover .tick-label {
+.columns button.col:not(:disabled):hover .tick-label {
   color: var(--text);
 }
 .columns .guide {
