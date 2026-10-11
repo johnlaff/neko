@@ -5,7 +5,6 @@ import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.BuyGroup
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
-import dev.johnlaff.neko.data.OtherBill
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.ui.AjustesScreen
 import dev.johnlaff.neko.ui.RemindersSwitch
@@ -41,14 +40,19 @@ class StressScreensTest {
 
     private val invoices = readJson(res("invoices.json"), InvoicesView.serializer()).let { v ->
         v.copy(
-            usual = v.usual?.copy(card = "Bradesco Visa Infinite Prime"),
+            // Long names and every chip on the month that opens.
+            months = v.months.map { m ->
+                if (m.key != v.current) m
+                else m.copy(
+                    cards = m.cards.map { it.copy(card = it.card.replace("Cartão Azul", "Bradesco Visa Infinite Prime")) } +
+                        m.cards.first().copy(card = "Bradesco Elo Nanquim da Gio", amount = 79_33, others = true, reimbursed = true),
+                )
+            },
             buyToday = listOf(
                 BuyGroup(listOf("Bradesco Visa Infinite", "Inter Black", "Mercado Pago"), 36, "2026-11-12", "2026-11-06", true),
                 BuyGroup(listOf("Amazon", "Itau Personnalité"), 34, "2026-11-10", "2026-11-04", true),
                 BuyGroup(listOf("Nubank Ultravioleta"), 19, "2026-10-26", "2026-10-20", false),
             ),
-            others = v.others + OtherBill("Bradesco Elo Nanquim da Gio", 79_33, "2026-11-12", others = true, reimbursed = true),
-            empty = listOf("Itau", "Mercado Pago", "BB", "Bradesco", "Inter", "Nubank"),
         )
     }
 

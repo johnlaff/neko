@@ -1,84 +1,198 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { institutionOf } from "../../shared/institutions.ts";
-import type { BankView } from "../../shared/types.ts";
+import {
+  type BankLineView,
+  type BuyGroup,
+  type InvoiceRow,
+  invoicesView,
+} from "../../shared/screens.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
-import { capitalize, closesIn, days, money, monthName, shortDate } from "../format.ts";
+import { bankText, capitalize, closesIn, days, money, monthName, shortDate } from "../format.ts";
 import { Hint } from "../Hint.tsx";
+import { IconChevron } from "../icons.tsx";
 import { CARDS_COME_FROM, HINTS } from "../learn.ts";
 import { WithProjection } from "../useProjection.tsx";
 
-const shortMonth = (iso: string) => capitalize(monthName(Number(iso.slice(5, 7))).slice(0, 3));
+const monthOf = (key: string) => monthName(Number(key.slice(5, 7)));
+const shortMonth = (key: string) => capitalize(monthOf(key).slice(0, 3));
+const dayIndex = (iso: string) => Date.parse(`${iso}T12:00:00Z`) / 86_400_000;
+
+/** `vence hoje`, `vence amanhã`, `vence 12 nov`. */
+const dueText = (due: string, today: string) => {
+  const d = Math.round(dayIndex(due) - dayIndex(today));
+  return d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence ${shortDate(due)}`;
+};
+
+/** Where the bill stands, in one line: the row's only words besides its name. */
+const stateLine = (c: InvoiceRow, today: string) => {
+  if (c.state === "due") return `Venceu ${shortDate(c.due)}`;
+  const due = dueText(c.due, today);
+  if (c.state === "closed" || c.bank?.closed) return `Fechada · ${due}`;
+  if (c.state === "future") return capitalize(due);
+  const open = c.bank?.onlyParcels
+    ? "Só parcelas por enquanto"
+    : `${closesIn(c.closesInDays)}${c.closingEstimated ? " (estimado)" : ""}`;
+  return `${open} · ${due}`;
+};
+
+/** `3/10 · Faltam 7`, the way a bill writes a parcel. */
+const parcelText = (l: BankLineView) =>
+  l.installment !== null && l.installments !== null
+    ? `${l.installment}/${l.installments}${l.installments > l.installment ? ` · Faltam ${l.installments - l.installment}` : " · Última"}`
+    : null;
+
+/** The bank writes the parcel into the text too ("LOJA PARC 03/06"); the line already says it. */
+const lineName = (l: BankLineView) =>
+  bankText(
+    l.installment === null
+      ? l.description
+      : l.description.replace(/\s*(parc(ela)?\.?\s*)?\d{1,2}\s*\/\s*\d{1,2}\s*$/i, ""),
+  );
+
+const LINES_SHOWN = 8;
+
+const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineView[] }) => {
+  const [all, setAll] = useState(false);
+  if (lines.length === 0) return null;
+  const shown = all ? lines : lines.slice(0, LINES_SHOWN);
+  return (
+    <section className="bank-lines">
+      <h3 className="label">{title}</h3>
+      <ul>
+        {shown.map((l, i) => (
+          // The bank sends the same text twice for two equal purchases: the index tells them apart.
+          // biome-ignore lint/suspicious/noArrayIndexKey: lines have no id of their own here.
+          <li key={`${l.description}-${l.date}-${i}`}>
+            <span className="text">
+              {lineName(l)}
+              <small>{parcelText(l) ?? (l.date ? shortDate(l.date) : "")}</small>
+            </span>
+            <span className="amount">{money(l.amount)}</span>
+          </li>
+        ))}
+      </ul>
+      {lines.length > shown.length && (
+        <button type="button" className="ghost small" onClick={() => setAll(true)}>
+          Ver mais {lines.length - shown.length}
+        </button>
+      )}
+    </section>
+  );
+};
+
+/** Everything about one card's bill, opened from its row. */
+const Detail = ({ c, month, today }: { c: InvoiceRow; month: string; today: string }) => {
+  const isParcel = (l: BankLineView) => (l.installments ?? 1) > 1;
+  return (
+    <div className="invoice-detail">
+      <dl className="ledger">
+        <dt>Fecha</dt>
+        <dd>
+          {shortDate(c.closing)}
+          {c.closingEstimated && " (estimado)"}
+        </dd>
+        <dt>Vence</dt>
+        <dd>{shortDate(c.due)}</dd>
+        {c.bank && (
+          <>
+            <dt>{c.bank.closed ? "No banco, fechada" : "No banco até agora"}</dt>
+            <dd className={c.bank.disagrees ? "warn" : undefined}>{money(c.bank.amount)}</dd>
+          </>
+        )}
+        {c.limit && (
+          <>
+            <dt>Limite livre</dt>
+            <dd>
+              {money(c.limit.available)} <span className="muted">de {money(c.limit.limit)}</span>
+            </dd>
+          </>
+        )}
+      </dl>
+      {c.bank && (
+        <>
+          <BankLines title="Compras novas" lines={c.bank.lines.filter((l) => !isParcel(l))} />
+          <BankLines title="Parcelas" lines={c.bank.lines.filter(isParcel)} />
+        </>
+      )}
+      {c.history.filter((h) => h.amount !== 0).length > 1 && (
+        <section className="trend">
+          <h3 className="label">Faturas do {c.card}</h3>
+          <Columns
+            label={`Faturas do ${c.card} por mês`}
+            selected={month}
+            items={c.history.map((h) => ({
+              key: h.month,
+              label: shortMonth(h.month),
+              value: h.amount,
+              description: `${capitalize(monthOf(h.month))}: ${money(h.amount)}`,
+              tone: h.month === month ? "ink" : h.month > today.slice(0, 7) ? "faint" : undefined,
+            }))}
+          />
+        </section>
+      )}
+    </div>
+  );
+};
+
+const InvoiceLine = ({ c, month, today }: { c: InvoiceRow; month: string; today: string }) => {
+  const [open, setOpen] = useState(false);
+  const gap = c.bank?.gap ?? 0;
+  return (
+    <li className={`bill invoice${open ? " open" : ""}`}>
+      <button
+        type="button"
+        className="row-toggle"
+        aria-expanded={open}
+        aria-label={`${c.card}: ${open ? "fechar" : "ver"} detalhes`}
+        onClick={() => setOpen(!open)}
+      />
+      <CardAvatar name={c.card} />
+      <span className="name">
+        {c.card}
+        {c.others && <span className="chip plain">De outra pessoa</span>}
+        {c.reimbursed && <span className="chip plain">Reembolsada</span>}
+        {/* The bank only shows up when the sheet should change. */}
+        {c.bank?.disagrees && (
+          <span className="chip warn">
+            Banco {gap > 0 ? "+" : "−"}
+            {money(Math.abs(gap))}
+          </span>
+        )}
+      </span>
+      <span className="value">
+        <span className="opens">
+          {money(c.amount)}
+          <IconChevron />
+        </span>
+      </span>
+      <span className="meta">{stateLine(c, today)}</span>
+      {open && <Detail c={c} month={month} today={today} />}
+    </li>
+  );
+};
+
+const BuyLine = ({ g, best }: { g: BuyGroup; best: boolean }) => (
+  <li className={`bill${best ? " best" : ""}`}>
+    <CardAvatar name={g.cards[0] ?? ""} />
+    <span className="name">{g.cards.join(", ")}</span>
+    <span className="value">Paga em {days(g.payInDays)}</span>
+    <span className="meta">
+      Vence {shortDate(g.due)} · Melhor dia {g.estimated ? "≈ " : ""}
+      {shortDate(g.bestDate)}
+    </span>
+  </li>
+);
 
 export const Faturas = () => {
   const [picked, setPicked] = useState<string | null>(null);
   return (
     <WithProjection>
-      {({ projection: p, bank }) => {
-        const usual = p.cards.find((c) => c.usual);
-        const others = p.cards.filter((c) => !c.usual && c.onSheet !== 0);
-        const empty = p.cards.filter((c) => c.onSheet === 0 && !c.usual);
-        // Your own cards, the one that takes longest to charge a purchase made today first.
-        // Only cards in use: open bill, the usual one, or a bill in the last months.
-        const mine = p.cards
-          .filter(
-            (c) =>
-              !c.others &&
-              (c.usual || c.onSheet !== 0 || p.bills.some((b) => b.card === c.card.name)),
-          )
-          .toSorted((a, b) => b.payInDays - a.payInDays);
-        // Cards with the same dates read as one line: "Amazon, Itau · 36 dias".
-        const buyGroups: {
-          key: string;
-          cards: typeof mine;
-          payInDays: number;
-          due: string;
-          best: string | number;
-          estimated: boolean;
-        }[] = [];
-        for (const c of mine) {
-          const best = c.bestDate ? shortDate(c.bestDate) : c.bestDay;
-          const k = `${c.cycle.due}|${best}`;
-          const g = buyGroups.find((x) => x.key === k);
-          if (g) {
-            g.cards = [...g.cards, c];
-            g.estimated ||= c.card.closingEstimated;
-          } else
-            buyGroups.push({
-              key: k,
-              cards: [c],
-              payInDays: c.payInDays,
-              due: c.cycle.due,
-              best,
-              estimated: c.card.closingEstimated,
-            });
-        }
-        const outros = (others.length > 0 || empty.length > 0) && (
-          <section className="panel">
-            <h2>Outros cartões</h2>
-            <ul className="rows lead">
-              {others.map((c) => (
-                <li key={c.card.name} className="bill">
-                  <CardAvatar name={c.card.name} />
-                  <span className="name">
-                    {c.card.name}
-                    {c.others && <span className="chip plain">De outra pessoa</span>}
-                    {c.reimbursed && <span className="chip plain">Reembolsada</span>}
-                  </span>
-                  <span className="value">{money(c.onSheet)}</span>
-                  <span className="meta">Vence {shortDate(c.cycle.due)}</span>
-                </li>
-              ))}
-            </ul>
-            {empty.length > 0 && (
-              <p className="hint">Sem compras: {empty.map((c) => c.card.name).join(", ")}.</p>
-            )}
-          </section>
-        );
-        if (p.cards.length === 0)
+      {(r) => {
+        const v = invoicesView(r);
+        if (!v.hasCards || v.months.length === 0)
           return (
             <section className="page-head empty-cards">
               <BrandMark width={64} className="quiet-mark" />
@@ -86,177 +200,151 @@ export const Faturas = () => {
               <p className="muted">{CARDS_COME_FROM}</p>
             </section>
           );
-        const bars = usual
-          ? [
-              ...p.history.map((h) => ({ key: h.due, amount: h.amount, open: false })),
-              { key: usual.cycle.due, amount: usual.onSheet, open: true },
-            ]
-          : [];
-        const shown = bars.find((b) => b.key === picked) ?? bars.at(-1);
+        const m =
+          v.months.find((x) => x.key === (picked ?? v.current)) ?? (v.months.at(-1) as never);
+        const [best, ...rest] = v.buyToday;
+        const ahead = v.months.some((x) => x.future);
         return (
           <Board
             panels={{
-              hero: usual && (
-                <section className="panel hero">
-                  <div className="panel-head">
-                    <h2 className="with-mark">
-                      {/* The bank's mark only: two letters next to the name would just repeat it. */}
-                      {institutionOf(usual.card.name) && <CardAvatar name={usual.card.name} />}
-                      {usual.card.name} · {shortMonth(usual.cycle.due)}
-                    </h2>
-                    <span className={`chip ${usual.closesInDays <= 3 ? "warn" : "ok"}`}>
-                      {/* An estimated day says so in words: a lone ≈ needed Ajustes to explain it. */}
-                      {closesIn(usual.closesInDays)}
-                      {usual.card.closingEstimated && " · estimado"}
-                    </span>
-                  </div>
-                  <BigMoney cents={usual.onSheet} tone="plain" />
-                  <ol className="timeline" aria-label="Datas da fatura">
-                    <li className="step now">
-                      <span className="label">Fecha</span>
-                      <span className="date">{shortDate(usual.cycle.closing)}</span>
-                      {usual.card.closingEstimated && <span className="sub">Estimado</span>}
-                    </li>
-                    <li className="step">
-                      <span className="label">Vence</span>
-                      <span className="date">{shortDate(usual.cycle.due)}</span>
-                      <span className="sub">Sai da conta</span>
-                    </li>
-                  </ol>
-                  <Hint id="faturas">{HINTS.faturas}</Hint>
-                </section>
-              ),
-              history: usual && p.history.length > 0 && shown && (
+              months: (
                 <section className="panel">
                   <div className="panel-head">
-                    <h2>Histórico</h2>
-                    {p.openVsAverage !== null && (
-                      <span className={`chip ${p.openVsAverage <= 0 ? "ok" : "warn"}`}>
-                        {money(Math.abs(p.openVsAverage))}{" "}
-                        {p.openVsAverage <= 0 ? "abaixo" : "acima"} da média
+                    <h2>Por mês</h2>
+                    {v.bank?.syncedAt && (
+                      <span className="meta">
+                        Banco lido {shortDate(v.bank.syncedAt.slice(0, 10))}
                       </span>
                     )}
                   </div>
-                  {/* The open bill is already the hero's number: until a bar is picked, the line
-                    shows the average the bars are read against. */}
-                  {picked === null && p.historyAverage !== null ? (
-                    <p className="figure-line">
-                      <span className="muted">
-                        <i className="key dashed" />
-                        Média
-                      </span>
-                      <strong>{money(p.historyAverage)}</strong>
-                    </p>
-                  ) : (
-                    <p className="figure-line">
-                      <span className="muted">
-                        {shortMonth(shown.key)}
-                        {shown.open ? ", aberta" : ""}
-                      </span>
-                      <strong>{money(shown.amount)}</strong>
-                    </p>
-                  )}
                   <Columns
-                    label={`Faturas do ${usual.card.name}`}
-                    selected={shown.key}
+                    label="Faturas de todos os cartões, por mês de vencimento"
+                    selected={m.key}
                     onSelect={setPicked}
-                    guide={p.historyAverage}
-                    items={bars.map((b) => ({
-                      key: b.key,
-                      label: shortMonth(b.key),
-                      value: b.amount,
-                      description: `${shortMonth(b.key)}${b.open ? ", fatura aberta" : ""}: ${money(b.amount)}`,
-                      tone: b.key === shown.key ? "ink" : undefined,
+                    guide={v.average}
+                    items={v.months.map((x) => ({
+                      key: x.key,
+                      label: shortMonth(x.key),
+                      value: x.total,
+                      description: `${capitalize(monthOf(x.key))}: ${money(x.total)}${x.future ? ", já na planilha" : ""}`,
+                      tone: x.key === m.key ? "ink" : x.future ? "faint" : undefined,
                     }))}
                   />
+                  <p className="columns-key">
+                    {v.average !== null && (
+                      <span>
+                        <i className="key dashed" />
+                        Média {money(v.average)}
+                      </span>
+                    )}
+                    {ahead && (
+                      <span>
+                        <span className="swatch" aria-hidden="true" />À frente, o que já está na
+                        planilha
+                      </span>
+                    )}
+                  </p>
+                  <div className="figure-stack">
+                    <span className="muted">
+                      {m.past ? "Saiu da conta" : "Sai da conta"} em {monthOf(m.key)}
+                    </span>
+                    <BigMoney cents={m.total} tone="plain" />
+                    {m.bank &&
+                      (m.bank.disagree === 0 ? (
+                        <span className="pos">✓ Banco confere com a planilha</span>
+                      ) : (
+                        <span className="warn">
+                          {m.bank.disagree === 1
+                            ? "1 cartão não confere com o banco"
+                            : `${m.bank.disagree} cartões não conferem com o banco`}
+                        </span>
+                      ))}
+                  </div>
+                  <Hint id="faturas">{HINTS.faturas}</Hint>
                 </section>
               ),
-              buy: mine.length > 1 && (
+              cards: (
+                <section className="panel">
+                  <div className="panel-head">
+                    <h2>{capitalize(monthOf(m.key))}</h2>
+                    <span className="meta">
+                      {m.cards.length === 1 ? "1 cartão" : `${m.cards.length} cartões`}
+                    </span>
+                  </div>
+                  {m.cards.length === 0 ? (
+                    <p className="hint">Nenhuma fatura neste mês.</p>
+                  ) : (
+                    <ul className="rows lead invoices">
+                      {m.cards.map((c) => (
+                        <InvoiceLine
+                          key={`${m.key}-${c.card}`}
+                          c={c}
+                          month={m.key}
+                          today={v.today}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                  {m.bank && m.bank.parcels > 0 && (
+                    <div className="split">
+                      <span className="split-bar" aria-hidden="true">
+                        <i
+                          className="old"
+                          style={{
+                            width: `${(m.bank.parcels / Math.max(1, m.bank.parcels + m.bank.fresh)) * 100}%`,
+                          }}
+                        />
+                      </span>
+                      <p className="columns-key">
+                        <span>
+                          <span className="swatch old" aria-hidden="true" />
+                          Parcelas {money(m.bank.parcels)}
+                        </span>
+                        <span>
+                          <span className="swatch fresh" aria-hidden="true" />
+                          Compras novas {money(Math.max(0, m.bank.fresh))}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </section>
+              ),
+              buy: best && (
                 <section className="panel">
                   <div className="panel-head">
                     <h2>Comprar hoje</h2>
                     <span className="meta">Mais prazo primeiro</span>
                   </div>
                   <ul className="rows lead">
-                    {buyGroups.map((g, i) => (
-                      // The first group waits longest; every card in it is as good as the others.
-                      <li key={g.key} className={`bill${i === 0 ? " best" : ""}`}>
-                        <CardAvatar name={g.cards[0]?.card.name ?? ""} />
-                        <span className="name">{g.cards.map((c) => c.card.name).join(", ")}</span>
-                        <span className="value">{days(g.payInDays)}</span>
-                        <span className="meta">
-                          Paga em {shortDate(g.due)} · Melhor dia {g.estimated ? "≈ " : ""}
-                          {g.best}
-                        </span>
-                      </li>
-                    ))}
+                    <BuyLine g={best} best />
                   </ul>
-                  {mine.some((c) => c.card.closingEstimated) && (
+                  {rest.length > 0 && (
+                    <details className="formula more-buy">
+                      <summary>
+                        Ver todos
+                        <IconChevron />
+                      </summary>
+                      <ul className="rows lead">
+                        {rest.map((g) => (
+                          <BuyLine key={`${g.due}-${g.cards.join()}`} g={g} best={false} />
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                  {v.buyToday.some((g) => g.estimated) && (
                     <Link className="text-link" to="/ajustes">
                       Dias com ≈ são estimados. Corrigir em Ajustes
                     </Link>
                   )}
                 </section>
               ),
-              outros,
-              bank: bank && <BankBills bank={bank} />,
             }}
-            // Wide screens: each column takes the next panels in the phone's order, the open bill
-            // first and what the bank already has last.
-            two={[
-              ["hero", "history"],
-              ["buy", "outros", "bank"],
-            ]}
-            three={[["hero"], ["history", "buy"], ["outros", "bank"]]}
+            // Wide screens: the months beside the month's cards, then where to buy.
+            two={[["months"], ["cards", "buy"]]}
+            three={[["months"], ["cards"], ["buy"]]}
           />
         );
       }}
     </WithProjection>
   );
 };
-
-/**
- * The next bills as the bank already has them: purchases so far plus the parcels still owed,
- * next to what the sheet expects. Only a bill already above the sheet gets color.
- */
-const BankBills = ({ bank }: { bank: BankView }) => (
-  <section className="panel">
-    <div className="panel-head">
-      <h2>Faturas no banco</h2>
-      {bank.syncedAt && <span className="meta">Lido {shortDate(bank.syncedAt.slice(0, 10))}</span>}
-    </div>
-    {bank.checks.length === 0 ? (
-      <p className="hint">
-        Nenhuma fatura futura dos cartões ligados.{" "}
-        <Link className="text-link" to="/ajustes">
-          Ligar cartões em Ajustes
-        </Link>
-      </p>
-    ) : (
-      <ul className="rows lead">
-        {bank.checks.map((c) => (
-          <li key={`${c.card}-${c.due}`} className="bill">
-            <CardAvatar name={c.card} />
-            <span className="name">
-              {c.card} · {shortMonth(c.due)}
-              {c.gap > 0 && <span className="chip warn">{money(c.gap)} acima da planilha</span>}
-            </span>
-            <span className="value">{money(c.bank)}</span>
-            <span className="meta">
-              {/* The bank's amount is the row value, still growing until the bill closes; the
-                  sheet's is named here. */}
-              Até agora no banco. Na planilha: {money(c.sheet)}
-              {c.parcels > 0 && (
-                <span className="meta-line">
-                  {c.parcels === c.bank
-                    ? "Por enquanto, o banco só mostra as parcelas"
-                    : `${money(c.parcels)} da fatura do banco são parcelas`}
-                </span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-    )}
-  </section>
-);

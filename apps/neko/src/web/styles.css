@@ -3142,3 +3142,137 @@ form.entry {
 form.entry > p.hint:empty {
   margin: 0;
 }
+
+/* Faturas: each card's bill opens its details; the whole line is one button under the content, as
+   on Mês. */
+.invoices > li > .avatar {
+  grid-area: 1 / 1 / 3 / 2;
+}
+.invoices > li > .name {
+  grid-area: 1 / 2;
+}
+.invoices > li > .value {
+  grid-area: 1 / 3;
+  text-align: right;
+}
+.invoices > li > .meta {
+  grid-area: 2 / 2 / 3 / -1;
+}
+.invoices > li > :not(.row-toggle, .invoice-detail) {
+  pointer-events: none;
+}
+.invoices > li > button.row-toggle {
+  grid-area: 1 / 1 / 3 / -1;
+  align-self: stretch;
+  min-height: 0;
+  margin: -6px -8px;
+  padding: 0;
+  border-radius: 12px;
+  background: transparent;
+}
+.invoices > li > button.row-toggle:hover,
+.invoices > li.open > button.row-toggle {
+  background: color-mix(in oklch, var(--surface-2) 50%, transparent);
+}
+.invoices > li > button.row-toggle:active {
+  scale: 1;
+}
+.invoices > li > .value > .opens {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.invoices > li > .value > .opens > svg {
+  width: 16px;
+  height: 16px;
+  rotate: 90deg;
+  color: var(--faint);
+  transition: rotate 180ms ease-out;
+}
+.invoices > li.open > .value > .opens > svg {
+  rotate: -90deg;
+}
+.invoice-detail {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 16px;
+  padding-top: 8px;
+}
+.invoice-detail .ledger dd.warn {
+  color: var(--warn);
+}
+.invoice-detail h3.label {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--faint);
+}
+.bank-lines ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bank-lines li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  font-size: 0.875rem;
+}
+.bank-lines .text {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.bank-lines .text > small {
+  font-size: 0.75rem;
+  color: var(--faint);
+}
+.bank-lines button {
+  margin-top: 6px;
+}
+/* The month's bank amount: parcels of earlier purchases against what is new */
+.split {
+  display: grid;
+  gap: 8px;
+}
+.split-bar {
+  display: flex;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--text);
+}
+.split-bar > .old {
+  background: var(--border-input);
+}
+.columns-key {
+  flex-wrap: wrap;
+  column-gap: 16px;
+}
+.columns-key > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.columns-key .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px var(--faint);
+}
+.columns-key .swatch.old {
+  box-shadow: none;
+  background: var(--border-input);
+}
+.columns-key .swatch.fresh {
+  box-shadow: none;
+  background: var(--text);
+}
+.columns-key .key.dashed {
+  margin-right: 0;
+}
+.more-buy > .rows {
+  margin-top: 12px;
+}
