@@ -608,6 +608,9 @@ fun Columns(
                     color = if (c.picked) l.text else l.faint,
                     style = MaterialTheme.typography.labelMedium,
                     textAlign = TextAlign.Center,
+                    // One line always: a label split in two reads as two words.
+                    maxLines = 1,
+                    softWrap = false,
                     // The label belongs to its column: tapping it picks the same month.
                     modifier = Modifier.weight(1f).clearAndSetSemantics {}.clickable { pick.value(n) },
                 )

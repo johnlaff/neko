@@ -320,9 +320,8 @@ describe("bills by month, all cards", () => {
   });
   const p = project(l, today, settings({ cards: [visa, verdeLate] }));
 
-  it("adds up every card due in each month, six months back up to the last one with a bill", () => {
+  it("adds up every card due in each month, five months back up to the last one with a bill", () => {
     expect(p.invoices.map((m) => [m.month, m.total])).toEqual([
-      ["2026-04", 200_00],
       ["2026-05", 0],
       ["2026-06", 0],
       ["2026-07", 0],
@@ -352,8 +351,8 @@ describe("bills by month, all cards", () => {
 
   it("opens on the month of the next bill to pay and averages the months before today's", () => {
     expect(p.invoiceMonth).toBe("2026-11");
-    // April and September; the empty months are left out.
-    expect(p.invoicesAverage).toBe(450_00);
+    // September only: April is out of the window and the empty months are left out.
+    expect(p.invoicesAverage).toBe(700_00);
   });
 
   it("marks a bill that closed and is not due yet", () => {

@@ -163,7 +163,7 @@ private fun CardsPanel(m: InvoiceMonth, today: String) {
             val onSheet = banked.sumOf { it.amount }
             val whole = maxOf(1L, inBank, onSheet).toFloat()
             LedgerLine(
-                if (banked.size < m.cards.size) "No banco, ${banked.joinToString(", ") { it.card }}" else "No banco em ${monthOf(m.key)}",
+                if (banked.size < m.cards.size) "No banco, ${banked.size} de ${m.cards.size} cartões" else "No banco em ${monthOf(m.key)}",
                 "${money(inBank)} de ${money(onSheet)}",
             )
             // Display only: the API's sums against the sheet's, as on the site.

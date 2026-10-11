@@ -311,7 +311,7 @@ export const Faturas = () => {
                       <p className="figure-line small">
                         <span className="muted">
                           {banked.length < m.cards.length
-                            ? `No banco, ${banked.map((c) => c.card).join(", ")}`
+                            ? `No banco, ${banked.length} de ${m.cards.length} cartões`
                             : `No banco em ${monthOf(m.key)}`}
                         </span>
                         <span>
