@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -67,7 +68,7 @@ fun FaturasScreen(
         }
         item { MonthsPanel(v, month, onHoje) { picked = it } }
         column()
-        item { CardsPanel(month, v.today) }
+        item { CardsPanel(month, v.today) { picked = it } }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
     }
 }
@@ -156,20 +157,21 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onHoje: () -> Unit, on
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CardsPanel(m: InvoiceMonth, today: String) {
+private fun CardsPanel(m: InvoiceMonth, today: String, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     Panel {
         PanelHead("Cartões") {
             Text("Vencem em ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
-        m.cards.forEach { InvoiceLine(it, m.key, today, alone = m.cards.size == 1) }
+        // By card only: it stays open while its chart picks another month.
+        m.cards.forEach { key(it.card) { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, onPick) } }
     }
 }
 
 @Composable
-private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean) {
-    var open by rememberSaveable(month, c.card) { mutableStateOf(false) }
+private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean, onPick: (String) -> Unit) {
+    var open by rememberSaveable(c.card) { mutableStateOf(false) }
     Column {
         ListRow(
             name = c.card,
@@ -187,7 +189,7 @@ private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Bool
             },
             open = open,
         )
-        Reveal(open) { Detail(c, month, today, alone) }
+        Reveal(open) { Detail(c, month, today, alone, onPick) }
     }
 }
 
@@ -242,7 +244,7 @@ private fun BankLines(title: String, lines: List<BankLine>) {
 
 /** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
 @Composable
-private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean) {
+private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     Column(Modifier.padding(start = 48.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // The bill's facts on their own tinted block, set apart from the bank's lines below.
@@ -270,7 +272,8 @@ private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean) 
                             faint = h.month > today.take(7),
                         )
                     },
-                    onSelect = {},
+                    // A month without this card's bill would close it: those bars stay put.
+                    onSelect = { k -> if (c.history.any { it.month == k && it.amount != 0L }) onPick(k) },
                     height = 64.dp,
                 )
             }
