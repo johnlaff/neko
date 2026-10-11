@@ -1,6 +1,5 @@
 package dev.johnlaff.neko.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,13 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +22,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.BankLine
 import dev.johnlaff.neko.data.BuyGroup
@@ -154,39 +149,13 @@ private fun CardsPanel(m: InvoiceMonth, today: String) {
         PanelHead("Cartões") {
             Text("Vencem em ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        // The bank against the sheet, over the cards the bank has this month.
-        val banked = m.cards.filter { it.bank != null }
-        m.bank?.let { b ->
-            val fresh = b.fresh.coerceAtLeast(0L)
-            val inBank = b.parcels + fresh
-            if (inBank <= 0L) return@let
-            val onSheet = banked.sumOf { it.amount }
-            val whole = maxOf(1L, inBank, onSheet).toFloat()
-            LedgerLine(
-                if (banked.size < m.cards.size) "No banco, ${banked.size} de ${m.cards.size} cartões" else "No banco em ${monthOf(m.key)}",
-                "${money(inBank)} de ${money(onSheet)}",
-            )
-            // Display only: the API's sums against the sheet's, as on the site.
-            Row(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50)).border(1.5.dp, l.faint, RoundedCornerShape(50))) {
-                if (b.parcels > 0) Box(Modifier.weight(b.parcels / whole).height(6.dp).background(l.borderInput))
-                if (fresh > 0) Box(Modifier.weight(fresh / whole).height(6.dp).background(l.text))
-                if (whole > inBank) Spacer(Modifier.weight((whole - inBank) / whole))
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Key("Parcelas ${money(b.parcels)}") { Box(Modifier.size(10.dp).background(l.borderInput, CircleShape)) }
-                Key("Compras novas ${money(fresh)}") { Box(Modifier.size(10.dp).background(l.text, CircleShape)) }
-                if (onSheet > inBank) Key("Ainda não no banco ${money(onSheet - inBank)}") {
-                    Box(Modifier.size(10.dp).border(1.5.dp, l.faint, CircleShape))
-                }
-            }
-        }
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
-        m.cards.forEach { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, bankShown = banked.size == 1) }
+        m.cards.forEach { InvoiceLine(it, m.key, today, alone = m.cards.size == 1) }
     }
 }
 
 @Composable
-private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean, bankShown: Boolean) {
+private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean) {
     var open by rememberSaveable(month, c.card) { mutableStateOf(false) }
     Column {
         ListRow(
@@ -205,7 +174,7 @@ private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Bool
             },
             open = open,
         )
-        Reveal(open) { Detail(c, month, today, alone, bankShown) }
+        Reveal(open) { Detail(c, month, today, alone) }
     }
 }
 
@@ -248,13 +217,12 @@ private fun BankLines(title: String, lines: List<BankLine>) {
 
 /** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
 @Composable
-private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, bankShown: Boolean) {
+private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean) {
     val l = LocalLedger.current
     Column(Modifier.padding(start = 48.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             LedgerLine("Fecha", shortDate(c.closing) + if (c.closingEstimated) " (estimado)" else "")
-            // The only card the bank has this month: the bar over the list says its amount.
-            c.bank?.takeIf { !bankShown }?.let { b ->
+            c.bank?.let { b ->
                 LedgerLine(if (b.closed) "No banco, fechada" else "No banco até agora", money(b.amount), color = if (b.disagrees) l.warn else l.text)
             }
             c.limit?.let { x -> LedgerLine("Limite livre", "${money(x.available)} de ${money(x.limit)}") }
