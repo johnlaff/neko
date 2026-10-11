@@ -102,12 +102,15 @@ const Detail = ({
   month,
   today,
   alone,
+  onPick,
 }: {
   c: InvoiceRow;
   month: string;
   today: string;
   /** The month's only card: its history is the top chart already. */
   alone: boolean;
+  /** Opens another month of the screen, with this card still open. */
+  onPick: (month: string) => void;
 }) => {
   const isParcel = (l: BankLineView) => (l.installments ?? 1) > 1;
   return (
@@ -137,12 +140,15 @@ const Detail = ({
           <Columns
             label={`Faturas do ${c.card} por mês`}
             selected={month}
+            onSelect={onPick}
             items={c.history.map((h) => ({
               key: h.month,
               label: shortMonth(h.month),
               value: h.amount,
               description: `${capitalize(monthOf(h.month))}: ${money(h.amount)}`,
               tone: h.month === month ? "ink" : h.month > today.slice(0, 7) ? "faint" : undefined,
+              // A month without this card's bill would close it: that bar opens nothing.
+              disabled: h.amount === 0,
             }))}
           />
         </section>
@@ -165,11 +171,13 @@ const InvoiceLine = ({
   month,
   today,
   alone,
+  onPick,
 }: {
   c: InvoiceRow;
   month: string;
   today: string;
   alone: boolean;
+  onPick: (month: string) => void;
 }) => {
   const [open, setOpen] = useState(false);
   const gap = c.bank?.gap ?? 0;
@@ -200,7 +208,7 @@ const InvoiceLine = ({
         </span>
       </span>
       <span className="meta">{stateLine(c, today)}</span>
-      {open && <Detail c={c} month={month} today={today} alone={alone} />}
+      {open && <Detail c={c} month={month} today={today} alone={alone} onPick={onPick} />}
     </li>
   );
 };
@@ -313,11 +321,13 @@ export const Faturas = () => {
                     <ul className="rows lead invoices">
                       {m.cards.map((c) => (
                         <InvoiceLine
-                          key={`${m.key}-${c.card}`}
+                          // By card only: it stays open while its chart picks another month.
+                          key={c.card}
                           c={c}
                           month={m.key}
                           today={v.today}
                           alone={m.cards.length === 1}
+                          onPick={setPicked}
                         />
                       ))}
                     </ul>
