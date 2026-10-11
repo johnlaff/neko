@@ -3207,8 +3207,16 @@ form.entry > p.hint:empty {
 .invoice-detail .ledger > :nth-last-child(-n + 2) {
   border-bottom: 0;
 }
+/* A tap target, so not as faint as the captions around it. */
+details.bank-lines summary {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
 .bank-lines > ul {
   margin-top: 8px;
+}
+.invoice-detail > .trend {
+  padding-top: 0;
 }
 .invoice-detail .ledger dt,
 .invoice-detail .ledger dd {
@@ -3257,9 +3265,10 @@ form.entry > p.hint:empty {
   align-items: center;
   gap: 6px;
 }
+/* The same outlined pill as a month ahead in the chart. */
 .columns-key .swatch {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 14px;
   border-radius: 999px;
   box-shadow: inset 0 0 0 1.5px var(--faint);
 }

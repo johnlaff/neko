@@ -136,7 +136,7 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onPick: (String) -> Un
         FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             v.average?.let { a -> Key("Média ${money(a)}") { Text("- - -", color = l.muted, style = MaterialTheme.typography.labelMedium) } }
             if (v.months.any { it.future }) Key("Meses à frente: só o que já está na planilha") {
-                Box(Modifier.size(10.dp).border(1.5.dp, l.faint, CircleShape))
+                Box(Modifier.size(width = 8.dp, height = 14.dp).border(1.5.dp, l.faint, CircleShape))
             }
         }
         Hint("faturas", Learn.FATURAS)
@@ -202,7 +202,7 @@ private fun BankLines(title: String, lines: List<BankLine>) {
     var all by remember(lines) { mutableStateOf(false) }
     // Closed by default: a bill can bring dozens of lines, the details above come first.
     var open by rememberSaveable(title) { mutableStateOf(false) }
-    TextAction("$title (${lines.size})", { open = !open }, color = l.faint, open = open)
+    TextAction("$title (${lines.size})", { open = !open }, open = open)
     Reveal(open) { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         (if (all) lines else lines.take(LINES_SHOWN)).forEach { x ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
