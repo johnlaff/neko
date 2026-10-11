@@ -282,6 +282,27 @@ describe("Para lançar: the owner's own accounts", () => {
     expect(items[0]).toMatchObject({ key: "conta:novo", kind: "conta-propria" });
     expect(items[0]?.options.map((o) => o.answer)).toEqual(["guardado", "corrente"]);
   });
+
+  it("two Pix sent to oneself and one back for the sum are a move, not an Entrada and a Diário", () => {
+    // The bank showed both bills paid, plus the owner moving the same money out in two Pix and
+    // back in one: the bills are already in the sheet and the three Pix add up to nothing.
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-10": {
+        saida: cell(174040, [item(135050, "Aluguel"), item(38990, "Faculdade")]),
+      },
+    });
+    const items = queue({
+      ledger: days,
+      movements: [
+        mov("2026-10-10", -135050, "Pagamento de conta IMOBILIARIA EXEMPLO LTDA", { id: "a" }),
+        mov("2026-10-10", -135050, "Pix enviado Maria Exemplo Silva", { id: "b" }),
+        mov("2026-10-10", -38990, "Pagamento com Pix FACULDADE EXEMPLO", { id: "c" }),
+        mov("2026-10-10", -38990, "Pix enviado Maria Exemplo Silva", { id: "d" }),
+        mov("2026-10-10", 174040, "Pix recebido MARIA EXEMPLO SILVA", { id: "e" }),
+      ],
+    });
+    expect(items).toEqual([]);
+  });
 });
 
 describe("Para lançar: card bills", () => {

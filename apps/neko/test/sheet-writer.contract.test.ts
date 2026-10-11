@@ -70,6 +70,8 @@ describe.runIf(available)("writer on the test sheet", { timeout: 300_000 }, () =
   };
 
   it("adds a Diário expense to a day with nothing spent, and undoes it", async () => {
+    // A run stopped between Lançar and Desfazer leaves its Padaria behind: start from an empty day.
+    await reset(at("2026-03-20", "diario"), null, "");
     await roundTrip(
       {
         ...at("2026-03-20", "diario"),
