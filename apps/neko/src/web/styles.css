@@ -3170,8 +3170,7 @@ form.entry > p.hint:empty {
   border-radius: 12px;
   background: transparent;
 }
-.invoices > li > button.row-toggle:hover,
-.invoices > li.open > button.row-toggle {
+.invoices > li > button.row-toggle:hover {
   background: color-mix(in oklch, var(--surface-2) 50%, transparent);
 }
 .invoices > li > button.row-toggle:active {
@@ -3197,6 +3196,13 @@ form.entry > p.hint:empty {
   display: grid;
   gap: 16px;
   padding-top: 8px;
+}
+.invoice-detail .ledger {
+  font-size: 0.875rem;
+}
+.invoice-detail .ledger dt,
+.invoice-detail .ledger dd {
+  padding: 8px 0;
 }
 .invoice-detail .ledger dd.warn {
   color: var(--warn);
@@ -3236,6 +3242,10 @@ form.entry > p.hint:empty {
 .split {
   display: grid;
   gap: 8px;
+  padding-bottom: 4px;
+}
+.figure-line.small strong {
+  font-size: 1rem;
 }
 .split-bar {
   display: flex;

@@ -122,7 +122,7 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onPick: (String) -> Un
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             v.average?.let { a -> Key("Média ${money(a)}") { Text("- - -", color = l.muted, style = MaterialTheme.typography.labelMedium) } }
-            if (v.months.any { it.future }) Key("À frente, o que já está na planilha") {
+            if (v.months.any { it.future }) Key("Meses à frente: só o que já está na planilha") {
                 Box(Modifier.size(10.dp).border(1.5.dp, l.faint, CircleShape))
             }
         }
@@ -146,12 +146,11 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onPick: (String) -> Un
 private fun CardsPanel(m: InvoiceMonth, today: String) {
     val l = LocalLedger.current
     Panel {
-        PanelHead(capitalize(monthOf(m.key))) {
-            Text(if (m.cards.size == 1) "1 cartão" else "${m.cards.size} cartões", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        PanelHead("Cartões") {
+            Text("Vencem em ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
-        m.cards.forEach { InvoiceLine(it, m.key, today) }
         m.bank?.takeIf { it.parcels > 0 }?.let { b ->
+            LedgerLine("No banco em ${monthOf(m.key)}, até agora", money(b.parcels + b.fresh))
             val whole = (b.parcels + b.fresh).coerceAtLeast(1L)
             // Display only: the month's parcels against what is new, from the API's sums.
             Box(Modifier.fillMaxWidth().height(6.dp).background(l.text, RoundedCornerShape(50))) {
@@ -162,11 +161,13 @@ private fun CardsPanel(m: InvoiceMonth, today: String) {
                 Key("Compras novas ${money(b.fresh.coerceAtLeast(0L))}") { Box(Modifier.size(10.dp).background(l.text, CircleShape)) }
             }
         }
+        if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
+        m.cards.forEach { InvoiceLine(it, m.key, today, alone = m.cards.size == 1) }
     }
 }
 
 @Composable
-private fun InvoiceLine(c: InvoiceRow, month: String, today: String) {
+private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean) {
     var open by rememberSaveable(month, c.card) { mutableStateOf(false) }
     Column {
         ListRow(
@@ -187,7 +188,7 @@ private fun InvoiceLine(c: InvoiceRow, month: String, today: String) {
             },
             open = open,
         )
-        Reveal(open) { Detail(c, month, today) }
+        Reveal(open) { Detail(c, month, today, alone) }
     }
 }
 
@@ -228,14 +229,13 @@ private fun BankLines(title: String, lines: List<BankLine>) {
     }
 }
 
-/** Everything about one card's bill, opened from its row. */
+/** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
 @Composable
-private fun Detail(c: InvoiceRow, month: String, today: String) {
+private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean) {
     val l = LocalLedger.current
     Column(Modifier.padding(start = 48.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             LedgerLine("Fecha", shortDate(c.closing) + if (c.closingEstimated) " (estimado)" else "")
-            LedgerLine("Vence", shortDate(c.due))
             c.bank?.let { b ->
                 LedgerLine(if (b.closed) "No banco, fechada" else "No banco até agora", money(b.amount), color = if (b.disagrees) l.warn else l.text)
             }
@@ -245,7 +245,7 @@ private fun Detail(c: InvoiceRow, month: String, today: String) {
             BankLines("Compras novas", b.lines.filter { (it.installments ?: 1) <= 1 })
             BankLines("Parcelas", b.lines.filter { (it.installments ?: 1) > 1 })
         }
-        if (c.history.count { it.amount != 0L } > 1) {
+        if (!alone && c.history.count { it.amount != 0L } > 1) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Faturas do ${c.card}", color = l.faint, style = MaterialTheme.typography.labelMedium)
                 Columns(

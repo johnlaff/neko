@@ -84,7 +84,18 @@ const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineVi
 };
 
 /** Everything about one card's bill, opened from its row. */
-const Detail = ({ c, month, today }: { c: InvoiceRow; month: string; today: string }) => {
+const Detail = ({
+  c,
+  month,
+  today,
+  alone,
+}: {
+  c: InvoiceRow;
+  month: string;
+  today: string;
+  /** The month's only card: its history is the top chart already. */
+  alone: boolean;
+}) => {
   const isParcel = (l: BankLineView) => (l.installments ?? 1) > 1;
   return (
     <div className="invoice-detail">
@@ -94,8 +105,6 @@ const Detail = ({ c, month, today }: { c: InvoiceRow; month: string; today: stri
           {shortDate(c.closing)}
           {c.closingEstimated && " (estimado)"}
         </dd>
-        <dt>Vence</dt>
-        <dd>{shortDate(c.due)}</dd>
         {c.bank && (
           <>
             <dt>{c.bank.closed ? "No banco, fechada" : "No banco até agora"}</dt>
@@ -117,7 +126,7 @@ const Detail = ({ c, month, today }: { c: InvoiceRow; month: string; today: stri
           <BankLines title="Parcelas" lines={c.bank.lines.filter(isParcel)} />
         </>
       )}
-      {c.history.filter((h) => h.amount !== 0).length > 1 && (
+      {!alone && c.history.filter((h) => h.amount !== 0).length > 1 && (
         <section className="trend">
           <h3 className="label">Faturas do {c.card}</h3>
           <Columns
@@ -137,7 +146,17 @@ const Detail = ({ c, month, today }: { c: InvoiceRow; month: string; today: stri
   );
 };
 
-const InvoiceLine = ({ c, month, today }: { c: InvoiceRow; month: string; today: string }) => {
+const InvoiceLine = ({
+  c,
+  month,
+  today,
+  alone,
+}: {
+  c: InvoiceRow;
+  month: string;
+  today: string;
+  alone: boolean;
+}) => {
   const [open, setOpen] = useState(false);
   const gap = c.bank?.gap ?? 0;
   return (
@@ -169,7 +188,7 @@ const InvoiceLine = ({ c, month, today }: { c: InvoiceRow; month: string; today:
         </span>
       </span>
       <span className="meta">{stateLine(c, today)}</span>
-      {open && <Detail c={c} month={month} today={today} />}
+      {open && <Detail c={c} month={month} today={today} alone={alone} />}
     </li>
   );
 };
@@ -239,8 +258,8 @@ export const Faturas = () => {
                     )}
                     {ahead && (
                       <span>
-                        <span className="swatch" aria-hidden="true" />À frente, o que já está na
-                        planilha
+                        <span className="swatch" aria-hidden="true" />
+                        Meses à frente: só o que já está na planilha
                       </span>
                     )}
                   </p>
@@ -266,27 +285,15 @@ export const Faturas = () => {
               cards: (
                 <section className="panel">
                   <div className="panel-head">
-                    <h2>{capitalize(monthOf(m.key))}</h2>
-                    <span className="meta">
-                      {m.cards.length === 1 ? "1 cartão" : `${m.cards.length} cartões`}
-                    </span>
+                    <h2>Cartões</h2>
+                    <span className="meta">Vencem em {monthOf(m.key)}</span>
                   </div>
-                  {m.cards.length === 0 ? (
-                    <p className="hint">Nenhuma fatura neste mês.</p>
-                  ) : (
-                    <ul className="rows lead invoices">
-                      {m.cards.map((c) => (
-                        <InvoiceLine
-                          key={`${m.key}-${c.card}`}
-                          c={c}
-                          month={m.key}
-                          today={v.today}
-                        />
-                      ))}
-                    </ul>
-                  )}
                   {m.bank && m.bank.parcels > 0 && (
                     <div className="split">
+                      <p className="figure-line small">
+                        <span className="muted">No banco em {monthOf(m.key)}, até agora</span>
+                        <strong>{money(m.bank.parcels + m.bank.fresh)}</strong>
+                      </p>
                       <span className="split-bar" aria-hidden="true">
                         <i
                           className="old"
@@ -306,6 +313,21 @@ export const Faturas = () => {
                         </span>
                       </p>
                     </div>
+                  )}
+                  {m.cards.length === 0 ? (
+                    <p className="hint">Nenhuma fatura neste mês.</p>
+                  ) : (
+                    <ul className="rows lead invoices">
+                      {m.cards.map((c) => (
+                        <InvoiceLine
+                          key={`${m.key}-${c.card}`}
+                          c={c}
+                          month={m.key}
+                          today={v.today}
+                          alone={m.cards.length === 1}
+                        />
+                      ))}
+                    </ul>
                   )}
                 </section>
               ),
