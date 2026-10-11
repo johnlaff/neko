@@ -104,6 +104,8 @@ export interface Column {
   /** Read by screen readers and shown when the column is picked. */
   description: string;
   tone?: "accent" | "ink" | "faint" | undefined;
+  /** Nothing to open for this one: it stays a plain bar among buttons. */
+  disabled?: boolean;
 }
 
 /**
@@ -160,6 +162,7 @@ export const Columns = ({
             type="button"
             className="col"
             aria-pressed={i.key === selected}
+            disabled={i.disabled}
             aria-label={i.description}
             onClick={() => onSelect(i.key)}
           >

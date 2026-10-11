@@ -145,6 +145,11 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(2);
   await page.getByRole("link", { name: "Faturas", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Por mês" })).toBeVisible();
+  // A bar of the card's own chart opens that month, with the card still open.
+  await page.getByRole("button", { name: /Cartão Azul: ver/ }).click();
+  await page.locator(".invoice-detail").getByRole("button", { name: /^Dezembro:/ }).click();
+  await expect(page.getByText("Vencem em dezembro")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Cartão Azul: fechar/ })).toBeVisible();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bancos" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: /Azul Platinum/ })).toHaveValue("Cartão Azul");

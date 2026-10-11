@@ -1108,6 +1108,11 @@ fieldset.columns {
 .columns button.col:hover {
   background: transparent;
 }
+/* A month with nothing to open looks like the rest, it just does not answer a tap. */
+.columns button.col:disabled {
+  opacity: 1;
+  cursor: default;
+}
 .columns .plot {
   position: relative;
   display: block;
@@ -1147,7 +1152,7 @@ fieldset.columns {
   color: var(--text);
   font-weight: 600;
 }
-.columns button.col:hover .tick-label {
+.columns button.col:not(:disabled):hover .tick-label {
   color: var(--text);
 }
 .columns .guide {
