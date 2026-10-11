@@ -103,7 +103,8 @@ export interface Column {
   value: number;
   /** Read by screen readers and shown when the column is picked. */
   description: string;
-  tone?: "accent" | "ink" | "faint" | undefined;
+  /** `outline` is a picked forecast month: ink, but still an outline. */
+  tone?: "accent" | "ink" | "faint" | "outline" | undefined;
   /** Nothing to open for this one: it stays a plain bar among buttons. */
   disabled?: boolean;
 }

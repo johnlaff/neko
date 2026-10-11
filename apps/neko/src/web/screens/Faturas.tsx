@@ -146,7 +146,14 @@ const Detail = ({
               label: shortMonth(h.month),
               value: h.amount,
               description: `${capitalize(monthOf(h.month))}: ${money(h.amount)}`,
-              tone: h.month === month ? "ink" : h.month > today.slice(0, 7) ? "faint" : undefined,
+              tone:
+                h.month > today.slice(0, 7)
+                  ? h.month === month
+                    ? "outline"
+                    : "faint"
+                  : h.month === month
+                    ? "ink"
+                    : undefined,
               // A month without this card's bill would close it: that bar opens nothing.
               disabled: h.amount === 0,
             }))}
@@ -288,7 +295,14 @@ export const Faturas = () => {
                       label: shortMonth(x.key),
                       value: x.total,
                       description: `${capitalize(monthOf(x.key))}: ${money(x.total)}${x.future ? ", já na planilha" : ""}`,
-                      tone: x.key === m.key ? "ink" : x.future ? "faint" : undefined,
+                      tone:
+                        x.key === m.key
+                          ? x.future
+                            ? "outline"
+                            : "ink"
+                          : x.future
+                            ? "faint"
+                            : undefined,
                     }))}
                   />
                   <p className="columns-key">
