@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -198,8 +200,10 @@ private fun BankLines(title: String, lines: List<BankLine>) {
     if (lines.isEmpty()) return
     val l = LocalLedger.current
     var all by remember(lines) { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(title, color = l.faint, style = MaterialTheme.typography.labelMedium)
+    // Closed by default: a bill can bring dozens of lines, the details above come first.
+    var open by rememberSaveable(title) { mutableStateOf(false) }
+    TextAction("$title (${lines.size})", { open = !open }, color = l.faint, open = open)
+    Reveal(open) { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         (if (all) lines else lines.take(LINES_SHOWN)).forEach { x ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f)) {
@@ -212,7 +216,7 @@ private fun BankLines(title: String, lines: List<BankLine>) {
             }
         }
         if (!all && lines.size > LINES_SHOWN) TextAction("Ver mais ${lines.size - LINES_SHOWN}", { all = true })
-    }
+    } }
 }
 
 /** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
@@ -220,16 +224,16 @@ private fun BankLines(title: String, lines: List<BankLine>) {
 private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean) {
     val l = LocalLedger.current
     Column(Modifier.padding(start = 48.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // The bill's facts on their own tinted block, set apart from the bank's lines below.
+        Column(
+            Modifier.fillMaxWidth().background(l.surface2, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             LedgerLine("Fecha", shortDate(c.closing) + if (c.closingEstimated) " (estimado)" else "")
             c.bank?.let { b ->
                 LedgerLine(if (b.closed) "No banco, fechada" else "No banco até agora", money(b.amount), color = if (b.disagrees) l.warn else l.text)
             }
             c.limit?.let { x -> LedgerLine("Limite livre", "${money(x.available)} de ${money(x.limit)}") }
-        }
-        c.bank?.let { b ->
-            BankLines("Compras novas", b.lines.filter { (it.installments ?: 1) <= 1 })
-            BankLines("Parcelas", b.lines.filter { (it.installments ?: 1) > 1 })
         }
         if (!alone && c.history.count { it.amount != 0L } > 1) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -249,6 +253,10 @@ private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean) 
                     height = 64.dp,
                 )
             }
+        }
+        c.bank?.let { b ->
+            BankLines("Compras novas no banco", b.lines.filter { (it.installments ?: 1) <= 1 })
+            BankLines("Parcelas no banco", b.lines.filter { (it.installments ?: 1) > 1 })
         }
     }
 }

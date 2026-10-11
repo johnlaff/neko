@@ -68,8 +68,12 @@ const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineVi
   if (lines.length === 0) return null;
   const shown = all ? lines : lines.slice(0, LINES_SHOWN);
   return (
-    <section className="bank-lines">
-      <h3 className="label">{title}</h3>
+    // Closed by default: a bill can bring dozens of lines, the details above come first.
+    <details className="formula bank-lines">
+      <summary>
+        {title} ({lines.length})
+        <IconChevron />
+      </summary>
       <ul>
         {shown.map((l, i) => (
           // The bank sends the same text twice for two equal purchases: the index tells them apart.
@@ -88,7 +92,7 @@ const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineVi
           Ver mais {lines.length - shown.length}
         </button>
       )}
-    </section>
+    </details>
   );
 };
 
@@ -129,12 +133,6 @@ const Detail = ({
           </>
         )}
       </dl>
-      {c.bank && (
-        <>
-          <BankLines title="Compras novas" lines={c.bank.lines.filter((l) => !isParcel(l))} />
-          <BankLines title="Parcelas" lines={c.bank.lines.filter(isParcel)} />
-        </>
-      )}
       {!alone && c.history.filter((h) => h.amount !== 0).length > 1 && (
         <section className="trend">
           <h3 className="label">Faturas do {c.card}</h3>
@@ -150,6 +148,15 @@ const Detail = ({
             }))}
           />
         </section>
+      )}
+      {c.bank && (
+        <>
+          <BankLines
+            title="Compras novas no banco"
+            lines={c.bank.lines.filter((l) => !isParcel(l))}
+          />
+          <BankLines title="Parcelas no banco" lines={c.bank.lines.filter(isParcel)} />
+        </>
       )}
     </div>
   );

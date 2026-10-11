@@ -3197,8 +3197,18 @@ form.entry > p.hint:empty {
   gap: 16px;
   padding-top: 8px;
 }
+/* The bill's facts on their own tinted block, set apart from the bank's lines below. */
 .invoice-detail .ledger {
   font-size: 0.875rem;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.invoice-detail .ledger > :nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+.bank-lines > ul {
+  margin-top: 8px;
 }
 .invoice-detail .ledger dt,
 .invoice-detail .ledger dd {
