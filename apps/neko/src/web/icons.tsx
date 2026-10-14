@@ -46,6 +46,11 @@ export const IconChevron = () => (
     <path d="m9 6 6 6-6 6" />
   </Svg>
 );
+export const IconCheck = () => (
+  <Svg>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </Svg>
+);
 export const IconChevronLeft = () => (
   <Svg>
     <path d="m15 6-6 6 6 6" />

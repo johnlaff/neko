@@ -148,13 +148,20 @@ class ScreenshotTest {
         HojeScreen(TodayState(view), {}, {}, launcher = Fakes.launcher)
     }
 
-    // Para lançar on a tall screen: its first three items and "Ver mais".
+    // Para lançar: one item at a time, the count and the bar over it, the edges of the rest under it.
     @Test fun filaLight() {
         org.robolectric.RuntimeEnvironment.setQualifiers("+h2000dp")
         shot("fila-light", night = false) {
             androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
                 dev.johnlaff.neko.ui.ParaLancar(view, Fakes.launcher) {}
             }
+        }
+    }
+
+    // Someone else's card: the bill and her payback together, or only the bill.
+    @Test fun filaEscolhaDark() = shot("fila-escolha-dark", night = true) {
+        androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
+            dev.johnlaff.neko.ui.ParaLancar(view.copy(queue = view.queue.orEmpty().filter { it.options.size > 1 }), Fakes.launcher) {}
         }
     }
 

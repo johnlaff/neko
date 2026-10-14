@@ -76,7 +76,8 @@ for (let i = 0, d = START; i < DAYS; i++, d = addDays(d, 1)) {
     saida.push(item(between(300_00, 700_00), "Cartão Verde", "cartoes"));
   }
   if (day === 20) saida.push(item(800_00, "Poupança", "reserva"));
-  if (day === 12) entrada.push(item(between(300_00, 700_00), "Reembolso Cartão Verde", null));
+  // Her payback, named after her card as the sheet does.
+  if (day === 12) entrada.push(item(between(300_00, 700_00), "Cartão Verde", null));
   // Months after today hold what is already known, bills and fixed costs, and the Diário
   // previsto from yesterday on: yesterday's is still there to close.
   const past = d <= TODAY;
@@ -185,7 +186,12 @@ const queue = buildQueue({
   since: addDays(TODAY, -10),
   movements,
   // A purchase of September's end already on November's bill: the bill rises past the sheet's.
-  lines: [...lines, { ...bankLine(2_042_80, "2026-11", "LOJA"), date: localDate("2026-09-30") }],
+  lines: [
+    ...lines,
+    { ...bankLine(2_042_80, "2026-11", "LOJA"), date: localDate("2026-09-30") },
+    // Someone else's card: its bill and her payback rise together, unless only the bill is picked.
+    { ...bankLine(2_000_00, "2026-11", "LIVRARIA"), card: "Cartão Verde" },
+  ],
   closed: [],
   othersCards: ["Cartão Verde"],
   accounts: [

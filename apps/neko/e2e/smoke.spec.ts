@@ -120,29 +120,45 @@ for (const [path, heading] of [
 test("the bank shows only where it and the sheet differ", async ({ page }) => {
   const errors = await open(page, "/");
   const queue = page.getByRole("region", { name: "Para lançar" });
-  // The first three, then the rest behind "Ver mais".
-  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(3);
-  await queue.getByRole("button", { name: "Ver mais 2" }).click();
-  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(4);
+  // One item at a time, with the count and a way to the next one.
+  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(1);
+  await expect(queue).toContainText("1 de 6");
   // Each item says why it is there and what Lançar writes, line by line, with the day's total.
-  await expect(queue).toContainText("Nada muda na planilha até você tocar em Lançar.");
   await expect(queue).toContainText("Linha nova na planilha03/10 · DiárioR$ 42,50");
-  await expect(queue.getByText("1 ignorado")).toBeVisible();
+  await queue.getByRole("button", { name: "Detalhes" }).click();
   await expect(queue).toContainText("Diário do diaR$ 56,38 → R$ 98,88");
+  await expect(queue.getByText("1 ignorado")).toBeVisible();
+  const next = queue.getByRole("button", { name: "Próximo" });
+  for (let i = 0; i < 3; i++) await next.click();
   await expect(queue).toContainText(
     "12/11 · Saída · Cartão AzulR$ 2.922,70era R$ 2.838,07+R$ 84,63",
   );
+  // Someone else's card: the bill and her payback go together unless only the bill is picked.
+  await next.click();
+  const choice = queue.getByRole("group", { name: "O que lançar" });
+  await expect(choice.getByRole("button", { name: "Fatura e reembolso" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(queue).toContainText("12/11 · Entrada · Cartão Verde");
+  await choice.getByRole("button", { name: "Só a fatura" }).click();
+  await expect(queue).not.toContainText("12/11 · Entrada · Cartão Verde");
   // A question about an account comes last, naming the account.
+  await next.click();
+  await expect(queue).toContainText("6 de 6");
   await expect(queue.getByRole("listitem").last()).toContainText("Conta Banco Verde");
   await expect(queue.getByRole("button", { name: "Guarda", exact: true })).toBeVisible();
   await queue.screenshot({ path: "test-results/para-lancar.png" });
-  await queue.getByRole("button", { name: "Lançar" }).first().click();
+  await queue.getByRole("button", { name: "Anterior" }).click();
+  await queue.getByRole("button", { name: "Lançar" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Lançado na planilha" })).toBeVisible();
-  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(3);
+  // The next one takes its place, and the count keeps its place in the whole queue.
+  await expect(queue.getByRole("button", { name: "Guarda", exact: true })).toBeVisible();
+  await expect(queue).toContainText("6 de 6");
   // Ignorar takes an item away with Desfazer, like a launch.
-  await queue.getByRole("button", { name: "Ignorar" }).first().click();
+  await queue.getByRole("button", { name: "Ignorar" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Ignorado" })).toBeVisible();
-  await expect(queue.getByRole("button", { name: "Lançar" })).toHaveCount(2);
+  await expect(queue).toContainText("Fatura Cartão Azul");
   await page.getByRole("link", { name: "Faturas", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Por mês" })).toBeVisible();
   // A bar of the card's own chart opens that month, with the card still open.
@@ -169,6 +185,8 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
     "Uns 4 dias sem gastar e você volta ao previsto",
   );
   const queue = page.getByRole("region", { name: "Para lançar" });
+  await queue.getByRole("button", { name: "Próximo" }).click();
+  await queue.getByRole("button", { name: "Próximo" }).click();
   await expect(queue).toContainText("Fechar o dia");
   await expect(queue).toContainText("04/10 · DiárioR$ 0,00era R$ 95,00−R$ 95,00");
   const review = page.getByRole("region", { name: "Diário previsto" });
