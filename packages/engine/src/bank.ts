@@ -227,6 +227,13 @@ export const TRANSFER_DAYS = 2;
 /** Paying a card bill from the account: the bills are checked on their own. */
 const BILL_PAYMENT = /gastos cart[aã]o|pagamento (de )?fatura|pagto\.? fatura/i;
 
+/**
+ * The account's automatic investment: the bank sweeps what is left into it and back when a
+ * payment needs it, and its yield stays in it. The account balance the sheet follows already
+ * counts it, so none of these moves is an Entrada or a Saída.
+ */
+const AUTO_INVEST = /aplic(?:a[cç][aã]o)?\.?\s+aut/i;
+
 /** How far apart the bank's date and the sheet's day may be, as in Actual Budget's matching. */
 export const MATCH_DAYS = 7;
 
@@ -306,8 +313,8 @@ const self = (description: string): string | null => {
  * closest in date first; what is left may still be two lines of one sheet day added up. Money
  * moved between two linked accounts (the same amount out of one and into another within
  * TRANSFER_DAYS, or both sides with the same text in one account), any Pix to or from the name
- * seen on both sides of such a move, and card bill payments never reach the sheet as such, so
- * they are left out.
+ * seen on both sides of such a move, the account's automatic investment and card bill payments
+ * never reach the sheet as such, so they are left out.
  */
 export const matchMovements = (
   ledger: Ledger,
@@ -379,7 +386,8 @@ export const matchMovements = (
       diffDays(m.date, today) >= 0 &&
       m.amount !== 0 &&
       !moved.has(m) &&
-      !(m.amount < 0 && BILL_PAYMENT.test(m.description)),
+      !(m.amount < 0 && BILL_PAYMENT.test(m.description)) &&
+      !AUTO_INVEST.test(m.description),
   );
   const candidates = open
     .flatMap((m) =>
