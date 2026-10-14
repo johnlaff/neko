@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -624,14 +626,14 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
         val hasDetails = cells.isNotEmpty() || item.bank.isNotEmpty()
         Column(dim) {
             Row(Modifier.fillMaxWidth().padding(top = 0.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (hasDetails) TextAction("Detalhes", { details = !details }, l.faint, open = details)
+                if (hasDetails) TextAction("Detalhes", { details = !details }, l.faint, open = details, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.weight(1f))
                 if (launcher != null) TextAction("Ignorar", {
                     if (!busy) run {
                         it.ignore(item.key)
                         onLaunched("$IGNORED${item.key}")
                     }
-                }, l.faint)
+                }, l.faint, style = MaterialTheme.typography.bodySmall)
             }
             if (hasDetails) Reveal(details) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -719,12 +721,12 @@ private fun Refresh(syncedAt: String?, launcher: Launcher?) {
                         reading = false
                     }
                 }
-                .heightIn(min = 48.dp),
+                .heightIn(min = 44.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(RefreshIcon, contentDescription = null, tint = l.muted, modifier = Modifier.size(14.dp))
-            Text("Atualizar", color = l.muted, style = MaterialTheme.typography.labelLarge)
+            Text("Atualizar", color = l.muted, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -804,6 +806,18 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
             if (item == null) {
                 if (saldo != null) Saldo(saldo, v, launcher, onLaunched)
             } else AnimatedContent(
+                // A swipe sideways goes to the next or the previous item, like the arrows.
+                modifier = Modifier.pointerInput(index, left.size) {
+                    var dx = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { dx = 0f },
+                        onDragEnd = {
+                            val far = 64.dp.toPx()
+                            if (dx < -far && index < left.size - 1) go(index + 1)
+                            else if (dx > far && index > 0) go(index - 1)
+                        },
+                    ) { _, amount -> dx += amount }
+                },
                 targetState = item,
                 contentKey = { it.key },
                 transitionSpec = {
@@ -838,7 +852,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.Ignored(items: List<I
     val scope = rememberCoroutineScope()
     var open by rememberSaveable { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    TextAction(if (items.size == 1) "1 ignorado" else "${items.size} ignorados", { open = !open }, open = open)
+    TextAction(if (items.size == 1) "1 ignorado" else "${items.size} ignorados", { open = !open }, l.faint, open = open, style = MaterialTheme.typography.bodySmall)
     Reveal(open) {
         Column {
             items.forEach { i ->

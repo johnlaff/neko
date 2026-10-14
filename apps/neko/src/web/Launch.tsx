@@ -842,6 +842,14 @@ export const ParaLancar = ({
       className="panel q-deck"
       aria-labelledby="h-queue"
       data-under={Math.min(Math.max(items.length - 1 - index, 0), 2)}
+      // ← and → go through the items while the focus is on the card, but not inside a field.
+      onKeyDown={(e) => {
+        if (e.defaultPrevented || e.target instanceof HTMLInputElement) return;
+        const to = e.key === "ArrowLeft" ? index - 1 : e.key === "ArrowRight" ? index + 1 : -1;
+        if (to < 0 || to >= items.length) return;
+        e.preventDefault();
+        go(to);
+      }}
     >
       <div className="panel-head">
         <h2 id="h-queue">Para lançar</h2>
@@ -851,6 +859,7 @@ export const ParaLancar = ({
               type="button"
               className="icon"
               aria-label="Anterior"
+              aria-keyshortcuts="ArrowLeft"
               disabled={index === 0}
               onClick={() => go(index - 1)}
             >
@@ -863,6 +872,7 @@ export const ParaLancar = ({
               type="button"
               className="icon"
               aria-label="Próximo"
+              aria-keyshortcuts="ArrowRight"
               disabled={index >= items.length - 1}
               onClick={() => go(index + 1)}
             >

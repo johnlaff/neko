@@ -639,6 +639,7 @@ fun TextAction(
     color: Color = LocalLedger.current.muted,
     open: Boolean? = null,
     enabled: Boolean = true,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelLarge,
 ) {
     // A finger-sized target around a short line of text.
     Row(
@@ -646,7 +647,7 @@ fun TextAction(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(text, color = color, style = MaterialTheme.typography.labelLarge)
+        Text(text, color = color, style = style)
         // A disclosure points down when closed and turns up as it opens, as on the site.
         if (open != null) Disclosure(open, color)
     }
