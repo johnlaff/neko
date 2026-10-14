@@ -233,6 +233,7 @@ const BILL_PAYMENT = /gastos cart[aã]o|pagamento (de )?fatura|pagto\.? fatura/i
  * counts it, so none of these moves is an Entrada or a Saída.
  */
 const AUTO_INVEST = /aplic(?:a[cç][aã]o)?\.?\s+aut/i;
+export const isAutoInvest = (description: string): boolean => AUTO_INVEST.test(description);
 
 /** How far apart the bank's date and the sheet's day may be, as in Actual Budget's matching. */
 export const MATCH_DAYS = 7;
@@ -387,7 +388,7 @@ export const matchMovements = (
       m.amount !== 0 &&
       !moved.has(m) &&
       !(m.amount < 0 && BILL_PAYMENT.test(m.description)) &&
-      !AUTO_INVEST.test(m.description),
+      !isAutoInvest(m.description),
   );
   const candidates = open
     .flatMap((m) =>

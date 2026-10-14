@@ -501,16 +501,18 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     });
     const billChanges = bills.some((b) => b.amount !== b.was);
     push({
-      key: `card:${normalizeName(card)}:${bills.map((b) => `${b.due}=${b.amount}`).join(",")}`,
+      // A payback left behind after "Só a fatura" is a new item, not the bill already decided.
+      key: `card:${normalizeName(card)}:${bills.map((b) => `${b.due}=${b.amount}`).join(",")}${billChanges ? "" : ":reembolso"}`,
       kind: "cartao",
       date: first.due,
       bank: [],
+      // Someone else's card is paid back: that is what Lançar does, "Só a fatura" is the choice.
       options: !billChanges
         ? [{ label: "", draft: { ...draft, also } }]
         : also.length > 0
           ? [
-              { label: "Só a fatura", draft },
               { label: "Fatura e reembolso", draft: { ...draft, also } },
+              { label: "Só a fatura", draft },
             ]
           : [{ label: "", draft }],
     });
@@ -575,12 +577,14 @@ export const saldoCheck = (
     readonly label: string;
     readonly balance: Cents;
     readonly readOn: LocalDate | null;
+    /** What the account moved today: in the balance, not yet in yesterday's Saldo. */
+    readonly today?: Cents;
   }[],
 ): SaldoCheck | null => {
   const date = addDays(today, -1);
   const sheet = ledger.find((r) => r.date === date)?.saldo;
   if (sheet === null || sheet === undefined || balances.length === 0) return null;
-  const bank = add(ZERO, ...balances.map((b) => b.balance));
+  const bank = add(ZERO, ...balances.map((b) => sub(b.balance, b.today ?? ZERO)));
   return {
     date,
     sheet,

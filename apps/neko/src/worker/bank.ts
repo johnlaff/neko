@@ -1,4 +1,5 @@
 import {
+  add,
   addDays,
   type BankCardLine,
   type BankMovement,
@@ -8,6 +9,7 @@ import {
   type ClosedBill,
   cents,
   cycleContaining,
+  isAutoInvest,
   type Ledger,
   type LocalDate,
   localDate,
@@ -15,6 +17,7 @@ import {
   saldoCheck,
   todayIn,
   unmatchedMovements,
+  ZERO,
 } from "@neko/engine";
 import { queueView } from "../shared/queue.ts";
 import type { BankView, UserSettings } from "../shared/types.ts";
@@ -217,6 +220,13 @@ export const bankView = (
           label: labels.get(a.item_id ?? "")?.label ?? "Banco",
           balance: cents(a.balance ?? 0),
           readOn: synced(a) ? todayIn(new Date(synced(a) as string)) : null,
+          today: add(
+            ZERO,
+            // The account's automatic investment is the account's own money, as in Para lançar.
+            ...movements
+              .filter((m) => m.account === a.id && m.date === today && !isAutoInvest(m.description))
+              .map((m) => m.amount),
+          ),
         })),
     ),
     // Faturas shows five months back: their bills keep what the bank had on them.
