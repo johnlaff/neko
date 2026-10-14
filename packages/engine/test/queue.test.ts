@@ -303,6 +303,27 @@ describe("Para lançar: the owner's own accounts", () => {
     });
     expect(items).toEqual([]);
   });
+
+  it("a Pix from oneself whose other side the bank has not shown yet is a move, not an Entrada", () => {
+    // Earlier moves show the owner's own name on both sides; today one account shows the money
+    // coming in, while the account it left is a few days behind at the bank.
+    const accounts: QueueInput["accounts"] = [
+      { id: "cc", label: "Banco A", use: "corrente" },
+      { id: "mp", label: "Banco B", use: "corrente" },
+    ];
+    const items = queue({
+      accounts,
+      movements: [
+        mov("2026-10-04", -23200, "PIX ENVIADO - DES: Maria Exemplo S 04/10", { id: "a" }),
+        mov("2026-10-04", 23200, "Pix recebido MARIA EXEMPLO SILVA", { account: "mp", id: "b" }),
+        mov("2026-10-13", 565655, "PIX RECEBIDO - REM: Maria Exemplo S 13/10", { id: "c" }),
+        mov("2026-10-13", 40000, "PIX RECEBIDO - REM: Joana Outra Pessoa", { id: "d" }),
+      ],
+    });
+    expect(items.map((i) => [i.kind, i.bank.map((b) => b.description)])).toEqual([
+      ["entrada", ["PIX RECEBIDO - REM: Joana Outra Pessoa"]],
+    ]);
+  });
 });
 
 describe("Para lançar: card bills", () => {
