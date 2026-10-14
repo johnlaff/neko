@@ -121,7 +121,7 @@ fun HojeScreen(
         // What asks for a tap comes right after Lançar, as on the site: the sheet's points (none when
         // all is well), then what the bank found. What to know follows.
         if (v.issues.isNotEmpty() || hidPoints != null) item { Conference(v, review, hidPoints) { hidPoints = it } }
-        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado. Não aparece mais." else "Lançado na planilha"; undo = it } }
+        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
         // A wide window's second column, as on the site: what to know.
         column()
         v.habit?.let { h -> item { Streak(h) } }

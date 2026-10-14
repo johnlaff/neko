@@ -235,13 +235,13 @@ internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, modif
         ),
     ) {
         if (spinning) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(14.dp), color = l.bg, strokeWidth = 2.dp)
-        Text(text, color = l.bg, style = MaterialTheme.typography.labelLarge)
+        Text(text, color = l.bg, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
     }
     else OutlinedButton(
         onClick, modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = BorderStroke(1.dp, if (enabled) l.borderInput else l.borderInput.copy(alpha = 0.5f)),
-    ) { Text(text, color = if (enabled) l.text else l.text.copy(alpha = 0.5f), style = MaterialTheme.typography.labelLarge) }
+    ) { Text(text, color = if (enabled) l.text else l.text.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge) }
 }
 
 @Composable
@@ -631,7 +631,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
                         it.ignore(item.key)
                         onLaunched("$IGNORED${item.key}")
                     }
-                }, l.muted)
+                }, l.faint)
             }
             if (hasDetails) Reveal(details) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -723,8 +723,8 @@ private fun Refresh(syncedAt: String?, launcher: Launcher?) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(RefreshIcon, contentDescription = null, tint = l.accent, modifier = Modifier.size(14.dp))
-            Text("Atualizar", color = l.accent, style = MaterialTheme.typography.labelLarge)
+            Icon(RefreshIcon, contentDescription = null, tint = l.muted, modifier = Modifier.size(14.dp))
+            Text("Atualizar", color = l.muted, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -779,7 +779,7 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
                         Icon(PrevIcon, contentDescription = "Anterior", tint = l.muted.copy(alpha = if (index > 0) 1f else 0.35f), modifier = Modifier.size(18.dp))
                     }
                     Text(
-                        "${index + 1} de ${left.size}",
+                        "${gone.size + index + 1} de $total",
                         Modifier.widthIn(min = 44.dp).semantics { liveRegion = LiveRegionMode.Polite },
                         color = l.muted, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center,
                     )

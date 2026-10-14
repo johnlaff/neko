@@ -152,12 +152,13 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await queue.getByRole("button", { name: "Anterior" }).click();
   await queue.getByRole("button", { name: "Lançar" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Lançado na planilha" })).toBeVisible();
-  // The next one takes its place: the count goes down.
-  await expect(queue).toContainText("5 de 5");
+  // The next one takes its place, and the count keeps its place in the whole queue.
+  await expect(queue.getByRole("button", { name: "Guarda", exact: true })).toBeVisible();
+  await expect(queue).toContainText("6 de 6");
   // Ignorar takes an item away with Desfazer, like a launch.
   await queue.getByRole("button", { name: "Ignorar" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Ignorado" })).toBeVisible();
-  await expect(queue).toContainText("4 de 4");
+  await expect(queue).toContainText("Fatura Cartão Azul");
   await page.getByRole("link", { name: "Faturas", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Por mês" })).toBeVisible();
   // A bar of the card's own chart opens that month, with the card still open.

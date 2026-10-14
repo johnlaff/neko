@@ -3130,6 +3130,10 @@ button.q-toggle[aria-expanded="true"] > svg {
   margin-left: auto;
   min-height: 44px;
   padding: 0 4px;
+  color: var(--faint);
+  font-size: 0.8125rem;
+}
+.q-foot > button.q-ignore:hover {
   color: var(--muted);
 }
 /* Room under the card while Desfazer floats over it */
@@ -3228,6 +3232,7 @@ button.small:not(.ghost) {
   padding: 0;
   gap: 6px;
   font-size: 0.8125rem;
+  color: var(--muted);
 }
 .q-sync > button.text-link > svg {
   width: 14px;

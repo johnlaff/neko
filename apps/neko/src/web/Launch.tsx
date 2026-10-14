@@ -590,8 +590,7 @@ const Row = ({
       return "ignore" in a;
     },
     onSuccess: (ignored) => {
-      if (ignored)
-        showToast({ entryId: null, text: "Ignorado. Não aparece mais.", ignored: item.key });
+      if (ignored) showToast({ entryId: null, text: "Ignorado", ignored: item.key });
       leave();
       queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
@@ -858,7 +857,7 @@ export const ParaLancar = ({
               <IconChevronLeft />
             </button>
             <span className="q-count" aria-live="polite">
-              {index + 1} de {items.length}
+              {gone.size + index + 1} de {total}
             </span>
             <button
               type="button"
