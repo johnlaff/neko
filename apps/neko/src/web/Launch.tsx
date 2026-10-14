@@ -860,6 +860,7 @@ export const ParaLancar = ({
               className="icon"
               aria-label="Anterior"
               aria-keyshortcuts="ArrowLeft"
+              title="Anterior (←)"
               disabled={index === 0}
               onClick={() => go(index - 1)}
             >
@@ -873,6 +874,7 @@ export const ParaLancar = ({
               className="icon"
               aria-label="Próximo"
               aria-keyshortcuts="ArrowRight"
+              title="Próximo (→)"
               disabled={index >= items.length - 1}
               onClick={() => go(index + 1)}
             >
