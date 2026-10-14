@@ -326,6 +326,21 @@ describe("Para lançar: the owner's own accounts", () => {
   });
 });
 
+describe("Para lançar: the checking account's automatic investment", () => {
+  it("money going into or out of it, and its yield, is the account's own, not an Entrada", () => {
+    // The bank sweeps what is left in the account into an automatic investment and back when a
+    // Pix needs it; the account balance the sheet follows already counts all of it.
+    const items = queue({
+      movements: [
+        mov("2026-10-14", 1733, "Resgate RES APLIC AUT MAIS", { id: "a" }),
+        mov("2026-10-14", 3, "Rendimentos REND PAGO APLIC AUT MAIS", { id: "b" }),
+        mov("2026-10-15", -5000, "APLICACAO AUT MAIS", { id: "c" }),
+      ],
+    });
+    expect(items).toEqual([]);
+  });
+});
+
 describe("Para lançar: card bills", () => {
   const days = ledger("2026-10-01", 130, 0, {
     "2026-11-10": { saida: cell(41000, [item(41000, "Visa")]) },
