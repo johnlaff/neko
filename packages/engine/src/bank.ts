@@ -285,10 +285,19 @@ export interface Matching {
  */
 const party = (description: string): string | null => {
   const m = normalizeName(description).match(
-    /^(?:pix|ted|transferencia)\s+(?:enviad[oa]|recebid[oa])\s+(?:-\s*(?:des|rem)\s+)?([a-z ]+)/,
+    /^(?:pix|ted|transferencia)\s+(?:enviad[oa]|recebid[oa])\s+(?:-\s*(?:des|rem):?\s+)?([a-z ]+)/,
   );
   const words = m?.[1]?.trim().split(/\s+/) ?? [];
   return words.length >= 2 ? words.join(" ") : null;
+};
+
+/**
+ * `party` cut to two words and the third one's initial: banks cut a long name at different
+ * lengths, so "Maria Exemplo S" and "Maria Exemplo Silva" are the same person.
+ */
+const self = (description: string): string | null => {
+  const [first, second, third] = party(description)?.split(" ") ?? [];
+  return third ? `${first} ${second} ${third[0]}` : null;
 };
 
 /**
@@ -296,8 +305,9 @@ const party = (description: string): string | null => {
  * amount, same direction, within MATCH_DAYS; each sheet line answers for one movement only, the
  * closest in date first; what is left may still be two lines of one sheet day added up. Money
  * moved between two linked accounts (the same amount out of one and into another within
- * TRANSFER_DAYS, or both sides with the same text in one account) and card bill payments never
- * reach the sheet as such, so they are left out.
+ * TRANSFER_DAYS, or both sides with the same text in one account), any Pix to or from the name
+ * seen on both sides of such a move, and card bill payments never reach the sheet as such, so
+ * they are left out.
  */
 export const matchMovements = (
   ledger: Ledger,
@@ -313,6 +323,7 @@ export const matchMovements = (
   );
   const transfers: { out: BankMovement; in: BankMovement }[] = [];
   const moved = new Set<BankMovement>();
+  const own = new Set<string>();
   const outs = movements.filter((m) => m.amount < 0);
   for (const m of movements) {
     if (m.amount <= 0 || m.account === undefined) continue;
@@ -329,6 +340,8 @@ export const matchMovements = (
     moved.add(m);
     moved.add(other);
     transfers.push({ out: other, in: m });
+    const who = self(m.description);
+    if (who !== null && who === self(other.description)) own.add(who);
   }
   // A Pix to oneself in two parts and one back for the sum (or the other way round): the same
   // person on all three sides, within TRANSFER_DAYS, adding up to nothing.
@@ -352,6 +365,14 @@ export const matchMovements = (
     if (!pair) continue;
     moved.add(m);
     for (const o of pair) moved.add(o);
+    const me = self(m.description);
+    if (me !== null) own.add(me);
+  }
+  // The name on both sides of those moves is the owner's: a Pix to or from it is his own money
+  // moving, even while the account on the other side is a few days behind at the bank.
+  for (const m of movements) {
+    const who = self(m.description);
+    if (who !== null && own.has(who)) moved.add(m);
   }
   const open = movements.filter(
     (m) =>
