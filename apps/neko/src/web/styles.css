@@ -321,31 +321,6 @@ details.formula summary {
   align-items: center;
   gap: 6px;
 }
-/* Para lançar's "Ver mais": the rest of the list, worded and drawn like the summaries above */
-button.q-more {
-  background: none;
-  border: 0;
-  padding: 0;
-  color: var(--faint);
-  font-size: 0.8125rem;
-  font-weight: inherit;
-  min-height: 44px;
-  margin-bottom: -10px;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 6px;
-}
-button.q-more:hover {
-  background: none;
-  color: var(--muted);
-}
-button.q-more svg {
-  order: 1;
-  width: 16px;
-  height: 16px;
-  rotate: 90deg;
-}
 details.formula summary::-webkit-details-marker {
   display: none;
 }
@@ -2835,115 +2810,199 @@ main.mia-page form.mia-form > input {
   font-size: 0.875rem;
 }
 
-/* Para lançar: one item a line, what changes under it, the three answers beside it */
+/* Para lançar: a deck, one item at a time. The card in front is the panel itself; the edges of
+   the ones waiting peek out under it, and the bar under the title fills as items are answered. */
+.panel.q-deck {
+  position: relative;
+  margin-bottom: 12px;
+}
+.q-deck::before,
+.q-deck::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  height: 16px;
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface);
+  opacity: 0;
+  transition:
+    opacity 200ms ease-out,
+    translate 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+.q-deck::before {
+  inset: auto 10px -7px;
+}
+.q-deck::after {
+  inset: auto 22px -13px;
+  background: color-mix(in oklch, var(--surface) 70%, var(--bg));
+}
+.q-deck:not([data-under="0"])::before,
+.q-deck[data-under="2"]::after {
+  opacity: 1;
+}
+.q-deck[data-under="0"]::before,
+.q-deck:not([data-under="2"])::after {
+  translate: 0 -8px;
+}
+.q-nav {
+  display: flex;
+  align-items: center;
+  margin: -12px -12px -12px 0;
+}
+.q-nav > button.icon {
+  color: var(--muted);
+}
+.q-nav > button.icon:disabled {
+  opacity: 0.35;
+  background: transparent;
+}
+.q-nav svg {
+  width: 18px;
+  height: 18px;
+}
+.q-count {
+  min-width: 3.5em;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.q-progress {
+  display: flex;
+  gap: 3px;
+  margin-top: -6px;
+}
+.q-progress > span {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background-color 300ms ease-out;
+}
+.q-progress > span.done {
+  background: var(--accent);
+}
+.q-progress > span.here {
+  background: var(--muted);
+}
 .queue {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
 }
-/* Each item folds away when done: rows to 0, then gone, so the next one slides up */
+/* The item in front comes in from the side it was asked from, and leaves to the left when done */
 .q-item {
   display: grid;
-  grid-template-rows: 1fr;
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  animation: q-in 280ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.queue.back > .q-item {
+  animation-name: q-in-back;
+}
+@keyframes q-in {
+  from {
+    opacity: 0;
+    translate: 28px 0;
+  }
+}
+@keyframes q-in-back {
+  from {
+    opacity: 0;
+    translate: -28px 0;
+  }
+}
+.q-item.leaving {
+  opacity: 0;
+  translate: -28px 0;
   transition:
-    grid-template-rows 240ms cubic-bezier(0.2, 0, 0, 1) 40ms,
-    opacity 160ms ease-out;
+    opacity 200ms ease-in,
+    translate 200ms cubic-bezier(0.4, 0, 1, 1);
 }
-.q-item:last-child {
-  border-bottom: 0;
+@media (prefers-reduced-motion: reduce) {
+  .q-item,
+  .queue.back > .q-item {
+    animation-name: q-fade;
+    animation-duration: 120ms;
+  }
+  .q-item.leaving {
+    translate: none;
+    transition: opacity 120ms linear;
+  }
+  .q-deck::before,
+  .q-deck::after {
+    transition: opacity 120ms linear;
+  }
 }
-.q-body {
-  min-height: 0;
-  overflow: hidden;
-  display: grid;
-  gap: 10px;
-  padding: 14px 0;
-}
-.q-item:last-child > .q-body {
-  padding-bottom: 0;
+@keyframes q-fade {
+  from {
+    opacity: 0;
+  }
 }
 /* While writing, the item dims and locks; the button saying "Lançando…" stays readable */
-.q-item.busy > .q-body > :not(.q-actions),
+.q-item.busy > :not(.q-actions),
 .q-item.busy .q-actions > :not([aria-busy="true"]) {
   opacity: 0.6;
   transition: opacity 120ms ease-out;
 }
-.q-item.leaving {
-  grid-template-rows: 0fr;
-  opacity: 0;
-  border-bottom-color: transparent;
-}
-@media (prefers-reduced-motion: reduce) {
-  .q-item {
-    transition: opacity 120ms linear;
-  }
-}
-.q-trust,
-.q-sync {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-.q-intro {
-  display: grid;
-}
-.q-sync {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: 12px;
-}
-.q-sync > button.text-link {
-  min-height: 44px;
-  padding: 0;
-}
-.q-spinner {
-  width: 14px;
-  height: 14px;
-  margin-right: 8px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  display: inline-block;
-  vertical-align: -2px;
-  animation: spin 800ms linear infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .q-spinner {
-    animation-duration: 2s;
-  }
-}
 .q-head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  column-gap: 16px;
-  align-items: baseline;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+}
+.q-head > .avatar > svg {
+  width: 16px;
+  height: 16px;
 }
 .q-head > .name {
-  min-width: 0;
   overflow-wrap: anywhere;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
 }
 .q-head > .meta {
-  flex: none;
   color: var(--faint);
   font-size: 0.8125rem;
-}
-.q-lines {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  font-size: 0.875rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
 }
 .q-note {
   margin: 0;
   font-size: 0.875rem;
   color: var(--muted);
+}
+/* A choice between whole launches: one track, the picked one lit, so it reads as "this or that" */
+fieldset.q-choice {
+  display: flex;
+  margin: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--pill-active);
+}
+fieldset.q-choice > button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition:
+    background-color 160ms ease-out,
+    color 160ms ease-out;
+}
+fieldset.q-choice > button:hover {
+  background: transparent;
+  color: var(--text);
+}
+fieldset.q-choice > button[aria-pressed="true"] {
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
 }
 /* What Lançar writes, as the sheet will read it: where, then before → after */
 .q-impact {
@@ -2979,10 +3038,6 @@ main.mia-page form.mia-form > input {
   color: var(--text);
   overflow-wrap: break-word;
 }
-.q-actions > button[aria-busy="true"] {
-  opacity: 1;
-  cursor: progress;
-}
 /* Narrow, or with large text: the value goes under the place instead of squeezing it */
 @container (max-width: 18em) {
   .q-impact li.q-change {
@@ -3011,26 +3066,75 @@ main.mia-page form.mia-form > input {
 .q-impact details.formula > ul {
   margin-top: 8px;
 }
-.q-ok {
-  margin: 0;
-  color: var(--pos);
+.q-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  display: inline-block;
+  animation: spin 800ms linear infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+  .q-spinner {
+    animation-duration: 2s;
+  }
+}
+/* Lançar fills the row; Ajustar stays beside it, and a question's two answers share it */
 .q-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
 }
-/* Ignorar closes the action row: quiet, at the far end */
-.q-actions > button.q-ignore {
+.q-actions > button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.q-actions > button.q-go {
+  flex-grow: 2;
+}
+.q-actions > button[aria-busy="true"] {
+  opacity: 1;
+  cursor: progress;
+}
+/* Detalhes and Ignorar: quiet, under the answer, at either end */
+.q-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -6px 0 -10px;
+}
+button.q-toggle {
+  min-height: 44px;
+  padding: 0;
+  gap: 6px;
+  background: none;
+  color: var(--faint);
+  font-size: 0.8125rem;
+  font-weight: inherit;
+}
+button.q-toggle:hover {
+  background: none;
+  color: var(--muted);
+}
+button.q-toggle > svg {
+  order: 1;
+  width: 16px;
+  height: 16px;
+  rotate: 90deg;
+  transition: rotate 160ms ease-out;
+}
+button.q-toggle[aria-expanded="true"] > svg {
+  rotate: -90deg;
+}
+.q-foot > button.q-ignore {
   margin-left: auto;
   min-height: 44px;
   padding: 0 4px;
   color: var(--muted);
 }
-/* Room under the last item while Desfazer floats over it */
-main:has(.toast) .queue {
-  padding-bottom: 4.5rem;
+/* Room under the card while Desfazer floats over it */
+main:has(.toast) .q-deck {
+  margin-bottom: 4.5rem;
 }
 button.small:not(.ghost) {
   min-height: 36px;
@@ -3054,6 +3158,85 @@ button.small:not(.ghost) {
 .q-bank .pos {
   color: var(--pos);
 }
+/* Nothing left: the verdict first, then the two Saldos side by side, as two columns of a ledger */
+.q-saldo {
+  display: grid;
+  gap: 12px;
+}
+.q-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 400 1.375rem / 1.2 var(--serif);
+  color: var(--warn);
+}
+.q-verdict.even {
+  color: var(--pos);
+}
+.q-verdict > svg {
+  width: 22px;
+  height: 22px;
+}
+.q-compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.q-compare > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+}
+.q-compare > div + div {
+  border-left: 1px solid var(--border);
+}
+.q-compare dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.q-compare dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.q-saldo-when {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+/* The panel's foot: when the banks were read, and what Ignorar set aside */
+.q-tail {
+  display: grid;
+  margin: 0 -18px -18px;
+  padding: 0 18px 6px;
+  border-top: 1px solid var(--border);
+}
+.q-sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 12px;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--faint);
+}
+.q-sync > button.text-link {
+  min-height: 44px;
+  padding: 0;
+  gap: 6px;
+  font-size: 0.8125rem;
+}
+.q-sync > button.text-link > svg {
+  width: 14px;
+  height: 14px;
+}
+.q-sync > button.text-link:disabled > svg {
+  animation: spin 800ms linear infinite;
+}
+
 fieldset.how {
   display: flex;
   flex-wrap: wrap;
@@ -3139,7 +3322,7 @@ form.entry {
 }
 /* Para lançar's ignored items, behind a tap at its foot: each one comes back with a tap. */
 .q-ignored {
-  margin-top: 8px;
+  margin: -6px 0 0;
 }
 .q-ignored .q-bank > li {
   align-items: center;

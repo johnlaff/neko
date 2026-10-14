@@ -4,8 +4,20 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { type QueueItemView, type QueueLine, saldoView } from "../shared/queue.ts";
 import type { BankView, IgnoredItem } from "../shared/types.ts";
 import { ApiError, api, once, reasonOf } from "./api.ts";
+import { CategoryIcon } from "./CategoryIcon.tsx";
 import { bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
-import { IconChevron, IconPlus } from "./icons.tsx";
+import {
+  IconCard,
+  IconCheck,
+  IconChevron,
+  IconChevronLeft,
+  IconIncome,
+  IconPlus,
+  IconReceipt,
+  IconRefresh,
+  IconRepeat,
+  IconToday,
+} from "./icons.tsx";
 
 /**
  * Para lançar and Lançar à mão (specs/005-lancamentos, Fase 2). The screen sends drafts the
@@ -189,40 +201,35 @@ const Impact = ({ lines }: { lines: readonly QueueLine[] }) => {
   );
 };
 
-/** The day's whole cell and what the bank showed: there for whoever wants to check, closed. */
-const Details = ({ item, lines }: { item: QueueItemView; lines: readonly QueueLine[] }) => {
-  const cells = lines.flatMap((l) => (l.cell ? [l.cell] : []));
-  if (cells.length === 0 && item.bank.length === 0) return null;
-  return (
-    <details className="formula q-details">
-      <summary>
-        <IconChevron />
-        Detalhes
-      </summary>
-      <ul className="q-bank">
-        {cells.map((c) => (
-          <li key={`${c.label}|${c.before}`}>
-            <span>{c.label}</span>
-            <span>
-              {money(c.before)} → {money(c.after)}
-            </span>
-          </li>
-        ))}
-        {item.bank.map((m) => (
-          <li key={`${m.date}|${m.amount}|${m.description}`}>
-            <span>
-              {shortDate(m.date)} · {bankText(m.description)}
-            </span>
-            <span className={m.amount > 0 ? "pos" : undefined}>
-              {m.amount > 0 ? "+" : "−"}
-              {money(Math.abs(m.amount))}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </details>
-  );
-};
+/** The day's whole cell and what the bank showed, for whoever wants to check; none, nothing to open. */
+const detailsOf = (item: QueueItemView, lines: readonly QueueLine[]) => ({
+  cells: lines.flatMap((l) => (l.cell ? [l.cell] : [])),
+  bank: item.bank,
+});
+
+const Details = ({ id, of }: { id: string; of: ReturnType<typeof detailsOf> }) => (
+  <ul className="q-bank" id={id}>
+    {of.cells.map((c) => (
+      <li key={`${c.label}|${c.before}`}>
+        <span>{c.label}</span>
+        <span>
+          {money(c.before)} → {money(c.after)}
+        </span>
+      </li>
+    ))}
+    {of.bank.map((m) => (
+      <li key={`${m.date}|${m.amount}|${m.description}`}>
+        <span>
+          {shortDate(m.date)} · {bankText(m.description)}
+        </span>
+        <span className={m.amount > 0 ? "pos" : undefined}>
+          {m.amount > 0 ? "+" : "−"}
+          {money(Math.abs(m.amount))}
+        </span>
+      </li>
+    ))}
+  </ul>
+);
 
 const HOW: readonly { kind: EntryKind; label: string }[] = [
   { kind: "diario", label: "Pix ou débito" },
@@ -530,6 +537,28 @@ export const ManualLaunch = ({ cards, today }: { cards: readonly string[]; today
   );
 };
 
+/** The item's mark: what it is about when the name says it, else what kind of line it makes. */
+const KIND_ICON: Partial<Record<QueueItemView["kind"], () => React.JSX.Element>> = {
+  cartao: IconCard,
+  entrada: IconIncome,
+  resgate: IconIncome,
+  previsto: IconToday,
+  "conta-propria": IconRepeat,
+  guardar: IconRepeat,
+};
+const Mark = ({ item }: { item: QueueItemView }) => {
+  const Kind = KIND_ICON[item.kind] ?? IconReceipt;
+  return (
+    <span className="avatar" aria-hidden="true">
+      {item.kind === "cartao" || item.kind === "previsto" ? (
+        <Kind />
+      ) : (
+        <CategoryIcon text={item.title} fallback={<Kind />} />
+      )}
+    </span>
+  );
+};
+
 const Row = ({
   item,
   writing,
@@ -541,16 +570,18 @@ const Row = ({
   today: LocalDate;
   onGone: (key: string) => void;
 }) => {
+  const id = useId();
   const [choice, setChoice] = useState(0);
   const [adjusting, setAdjusting] = useState(false);
+  const [open, setOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const launch = useLaunch();
   const queryClient = useQueryClient();
-  // Done: the item folds away before it leaves the list, so the next one slides up into place.
+  // Done: the item slides off the deck before the next one takes its place.
   const leave = () => {
     setLeaving(true);
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setTimeout(() => onGone(item.key), still ? 120 : 280);
+    setTimeout(() => onGone(item.key), still ? 120 : 220);
   };
   const answer = useMutation({
     mutationFn: async (a: { ignore: true } | { use: "guardado" | "corrente" }) => {
@@ -571,154 +602,177 @@ const Row = ({
   const busy = launch.isPending || answer.isPending || leaving;
   const error = launch.error ?? answer.error;
   const lines = option?.lines ?? [];
+  const details = detailsOf(item, lines);
+  const hasDetails = details.cells.length > 0 || details.bank.length > 0;
   return (
     <li
       className={`q-item${leaving ? " leaving" : ""}${busy ? " busy" : ""}`}
       data-key={item.key}
       aria-busy={busy}
     >
-      <div className="q-body">
-        <div className="q-head">
-          <span className="name">{bankText(item.title)}</span>
-          <span className="meta">{shortDate(item.date)}</span>
-        </div>
-        {item.note && <p className="q-note">{item.note}</p>}
-        {item.options.length > 1 && !question && (
-          <fieldset className="how" aria-label="O que lançar">
-            {item.options.map((o, i) => (
+      <div className="q-head">
+        <Mark item={item} />
+        <span className="name">{bankText(item.title)}</span>
+        <span className="meta">{shortDate(item.date)}</span>
+      </div>
+      {item.note && <p className="q-note">{item.note}</p>}
+      {item.options.length > 1 && !question && (
+        <fieldset className="q-choice">
+          <legend className="sr-only">O que lançar</legend>
+          {item.options.map((o, i) => (
+            <button
+              key={o.label}
+              type="button"
+              aria-pressed={choice === i}
+              disabled={busy}
+              onClick={() => setChoice(i)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </fieldset>
+      )}
+      {lines.length > 0 && <Impact lines={lines} />}
+      {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
+        <EntryForm
+          draft={draft}
+          today={today}
+          launchKey={item.key}
+          onClose={() => setAdjusting(false)}
+          onDone={leave}
+        />
+      ) : (
+        <div className="q-actions">
+          {question ? (
+            item.options.map(
+              (o) =>
+                o.answer && (
+                  <button
+                    key={o.label}
+                    type="button"
+                    className="ghost"
+                    disabled={busy}
+                    onClick={() => o.answer && answer.mutate({ use: o.answer })}
+                  >
+                    {o.label}
+                  </button>
+                ),
+            )
+          ) : (
+            <>
               <button
-                key={o.label}
                 type="button"
-                className="chip-button"
-                aria-pressed={choice === i}
-                disabled={busy}
-                onClick={() => setChoice(i)}
+                className="q-go"
+                disabled={!writing || !draft || (busy && !launch.isPending)}
+                aria-disabled={launch.isPending || undefined}
+                aria-busy={launch.isPending || undefined}
+                onClick={() =>
+                  !busy && draft && launch.mutate({ draft, key: item.key }, { onSuccess: leave })
+                }
               >
-                {o.label}
+                {launch.isPending && <span className="q-spinner" aria-hidden="true" />}
+                {launch.isPending ? "Lançando…" : "Lançar"}
               </button>
-            ))}
-          </fieldset>
-        )}
-        {lines.length > 0 && <Impact lines={lines} />}
-        {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
-          <EntryForm
-            draft={draft}
-            today={today}
-            launchKey={item.key}
-            onClose={() => setAdjusting(false)}
-            onDone={leave}
-          />
-        ) : (
-          <div className="q-actions">
-            {question ? (
-              item.options.map(
-                (o) =>
-                  o.answer && (
-                    <button
-                      key={o.label}
-                      type="button"
-                      className="ghost small"
-                      disabled={busy}
-                      onClick={() => o.answer && answer.mutate({ use: o.answer })}
-                    >
-                      {o.label}
-                    </button>
-                  ),
-              )
-            ) : (
-              <>
+              {item.adjustable && draft?.type !== "card" && (
                 <button
                   type="button"
-                  className="small"
-                  disabled={!writing || !draft || (busy && !launch.isPending)}
-                  aria-disabled={launch.isPending || undefined}
-                  aria-busy={launch.isPending || undefined}
-                  onClick={() =>
-                    !busy && draft && launch.mutate({ draft, key: item.key }, { onSuccess: leave })
-                  }
+                  className="ghost"
+                  disabled={!writing || busy}
+                  title="Ajustar valor, dia ou nome"
+                  onClick={() => setAdjusting(true)}
                 >
-                  {launch.isPending && <span className="q-spinner" aria-hidden="true" />}
-                  {launch.isPending ? "Lançando…" : "Lançar"}
+                  Ajustar
                 </button>
-                {item.adjustable && draft?.type !== "card" && (
-                  <button
-                    type="button"
-                    className="ghost small"
-                    disabled={!writing || busy}
-                    title="Ajustar valor, dia ou nome"
-                    onClick={() => setAdjusting(true)}
-                  >
-                    Ajustar
-                  </button>
-                )}
-              </>
-            )}
-            {/* Ignorar is the way out, not a third choice: quiet, at the far end, with Desfazer */}
-            <button
-              type="button"
-              className="text-link q-ignore"
-              disabled={busy}
-              onClick={() => answer.mutate({ ignore: true })}
-            >
-              Ignorar
-            </button>
-          </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {error && (
+        <p className="setting-error" role="alert">
+          {message(error)}
+        </p>
+      )}
+      {/* Detalhes to check, Ignorar to leave: both quiet, under the answer */}
+      <div className="q-foot">
+        {hasDetails && (
+          <button
+            type="button"
+            className="q-toggle"
+            aria-expanded={open}
+            aria-controls={`${id}-d`}
+            onClick={() => setOpen(!open)}
+          >
+            <IconChevron />
+            Detalhes
+          </button>
         )}
-        {error && (
-          <p className="setting-error" role="alert">
-            {message(error)}
-          </p>
-        )}
-        <Details item={item} lines={lines} />
+        <button
+          type="button"
+          className="text-link q-ignore"
+          disabled={busy}
+          onClick={() => answer.mutate({ ignore: true })}
+        >
+          Ignorar
+        </button>
       </div>
+      {hasDetails && open && <Details id={`${id}-d`} of={details} />}
     </li>
   );
 };
 
-/** With nothing left to launch, yesterday's Saldo against the bank, and the difference to launch. */
+/** With nothing left to launch: yesterday's Saldo, the sheet's beside the bank's, and the gap. */
 const Saldo = ({ bank, writing }: { bank: BankView; writing: boolean }) => {
   const s = saldoView(bank.saldo);
   const [fixing, setFixing] = useState(false);
   if (!s) return null;
-  const stale =
-    s.stale.length > 0 ? (
-      <p className="hint">Sem atualizar hoje: {s.stale.join(", ")}. O saldo pode estar velho.</p>
-    ) : null;
-  if (s.diff === 0)
-    return (
-      <>
-        <p className="q-ok">Tudo lançado. O saldo bate com o banco.</p>
-        {stale}
-      </>
-    );
+  const even = s.diff === 0;
   return (
-    <>
-      <p className="q-lines">
-        <span>
-          Saldo de {shortDate(s.date)}: {money(s.sheet)} na planilha, {money(s.bank)} no banco.
-        </span>
-        <span>
-          {s.diff > 0 ? "Faltam" : "Sobram"} {money(Math.abs(s.diff))} na planilha.
-        </span>
+    <div className="q-saldo">
+      <p className={`q-verdict${even ? " even" : ""}`}>
+        {even ? (
+          <>
+            <IconCheck />
+            Tudo lançado
+          </>
+        ) : (
+          `${s.diff > 0 ? "Faltam" : "Sobram"} ${money(Math.abs(s.diff))} na planilha`
+        )}
       </p>
-      {stale}
+      <dl className="q-compare">
+        <div>
+          <dt>Planilha</dt>
+          <dd>{money(s.sheet)}</dd>
+        </div>
+        <div>
+          <dt>Banco</dt>
+          <dd>{money(s.bank)}</dd>
+        </div>
+      </dl>
+      <p className="q-saldo-when">
+        Saldo de {shortDate(s.date)}
+        {even ? ": bate com o banco." : "."}
+      </p>
+      {s.stale.length > 0 && (
+        <p className="hint">Sem atualizar hoje: {s.stale.join(", ")}. O saldo pode estar velho.</p>
+      )}
       {s.draft?.type === "new" &&
         (fixing ? (
           <EntryForm draft={s.draft} today={s.date} onClose={() => setFixing(false)} />
         ) : (
           writing && (
             <div className="q-actions">
-              <button type="button" className="ghost small" onClick={() => setFixing(true)}>
+              <button type="button" className="ghost" onClick={() => setFixing(true)}>
                 Lançar a diferença
               </button>
             </div>
           )
         ))}
-    </>
+    </div>
   );
 };
 
-/** When the banks were last read, and Atualizar agora to read them without waiting for the morning. */
+/** When the banks were last read, and Atualizar to read them without waiting for the morning. */
 const Refresh = ({ syncedAt }: { syncedAt: string | null }) => {
   const queryClient = useQueryClient();
   const refresh = useMutation({
@@ -727,14 +781,14 @@ const Refresh = ({ syncedAt }: { syncedAt: string | null }) => {
   });
   return (
     <p className="q-sync">
-      <span>
+      <span aria-live="polite">
         {refresh.isPending
           ? "Lendo os bancos…"
           : refresh.data?.ok === false || refresh.isError
-            ? "Algum banco não respondeu. Tente de novo mais tarde."
+            ? "Algum banco não respondeu. Tente mais tarde."
             : syncedAt
-              ? `Bancos lidos ${readAtLabel(syncedAt)}.`
-              : "Bancos ainda não lidos."}
+              ? `Bancos lidos ${readAtLabel(syncedAt)}`
+              : "Bancos ainda não lidos"}
       </span>
       <button
         type="button"
@@ -742,16 +796,17 @@ const Refresh = ({ syncedAt }: { syncedAt: string | null }) => {
         disabled={refresh.isPending}
         onClick={() => refresh.mutate()}
       >
-        Atualizar agora
+        <IconRefresh />
+        Atualizar
       </button>
     </p>
   );
 };
 
-/** Items Para lançar shows before "Ver mais". */
-const QUEUE_SHOWN = 3;
-
-/** Para lançar on Hoje: what the bank showed and the sheet does not have yet, one item a line. */
+/**
+ * Para lançar on Hoje: a deck, one item at a time. The bar under the title fills as items are
+ * answered, and the edges under the card say more are waiting.
+ */
 export const ParaLancar = ({
   bank,
   writing,
@@ -769,62 +824,95 @@ export const ParaLancar = ({
     keys: new Set(),
   });
   const gone = hidden.of === queue ? hidden.keys : new Set<string>();
-  const [more, setMore] = useState(false);
+  const [at, setAt] = useState(0);
+  const [back, setBack] = useState(false);
+  const deck = useRef<HTMLElement>(null);
   if (!queue) return null;
   const items = queue.filter((i) => !gone.has(i.key));
   if (items.length === 0 && !bank.saldo) return null;
-  // The first few, so Hoje stays short; the chip counts them all and "Ver mais" opens the rest.
-  const shown = more ? items : items.slice(0, QUEUE_SHOWN);
+  const index = Math.min(at, Math.max(items.length - 1, 0));
+  const item = items[index];
+  const total = items.length + gone.size;
+  const go = (to: number) => {
+    setBack(to < index);
+    setAt(to);
+  };
   return (
-    <section className="panel" aria-labelledby="h-queue">
+    <section
+      ref={deck}
+      className="panel q-deck"
+      aria-labelledby="h-queue"
+      data-under={Math.min(Math.max(items.length - 1 - index, 0), 2)}
+    >
       <div className="panel-head">
         <h2 id="h-queue">Para lançar</h2>
-        {items.length > 0 && (
-          <span className="chip">{items.length === 1 ? "1 item" : `${items.length} itens`}</span>
+        {total > 1 && items.length > 0 && (
+          <span className="q-nav">
+            <button
+              type="button"
+              className="icon"
+              aria-label="Anterior"
+              disabled={index === 0}
+              onClick={() => go(index - 1)}
+            >
+              <IconChevronLeft />
+            </button>
+            <span className="q-count" aria-live="polite">
+              {index + 1} de {items.length}
+            </span>
+            <button
+              type="button"
+              className="icon"
+              aria-label="Próximo"
+              disabled={index >= items.length - 1}
+              onClick={() => go(index + 1)}
+            >
+              <IconChevron />
+            </button>
+          </span>
         )}
       </div>
-      <div className="q-intro">
-        <p className="q-trust">Nada muda na planilha até você tocar em Lançar.</p>
-        <Refresh syncedAt={bank.syncedAt} />
-      </div>
-      {items.length === 0 ? (
-        <Saldo bank={bank} writing={writing} />
-      ) : (
-        <ul className="queue">
-          {shown.map((i) => (
-            <Row
-              key={i.key}
-              item={i}
-              writing={writing}
-              today={today}
-              onGone={(k) => {
-                // Focus moves to the next item's first answer, so a run of items goes tap by tap.
-                const at = items.findIndex((x) => x.key === k);
-                const next = items[at + 1] ?? items[at - 1];
-                setHidden({ of: queue, keys: new Set(gone).add(k) });
-                if (next)
-                  requestAnimationFrame(() =>
-                    document
-                      .querySelector<HTMLButtonElement>(
-                        `li[data-key="${CSS.escape(next.key)}"] .q-actions button:not(:disabled)`,
-                      )
-                      ?.focus(),
-                  );
-              }}
+      {total > 1 && (
+        <div className="q-progress" aria-hidden="true">
+          {Array.from({ length: total }, (_, i) => i).map((i) => (
+            <span
+              key={i}
+              className={
+                i < gone.size ? "done" : i === gone.size + index && item ? "here" : undefined
+              }
             />
           ))}
-        </ul>
+        </div>
       )}
-      {shown.length < items.length && (
-        <button type="button" className="q-more" onClick={() => setMore(true)}>
-          <IconChevron />
-          Ver mais {items.length - shown.length}
-        </button>
+      {item ? (
+        <ul className={`queue${back ? " back" : ""}`}>
+          <Row
+            key={item.key}
+            item={item}
+            writing={writing}
+            today={today}
+            onGone={(k) => {
+              setBack(false);
+              setHidden({ of: queue, keys: new Set(gone).add(k) });
+              // The next item's Lançar takes the focus, so a run of items goes tap by tap.
+              requestAnimationFrame(() =>
+                deck.current
+                  ?.querySelector<HTMLButtonElement>(".q-actions button:not(:disabled)")
+                  ?.focus(),
+              );
+            }}
+          />
+        </ul>
+      ) : (
+        <Saldo bank={bank} writing={writing} />
       )}
       {!writing && items.length > 0 && (
         <p className="hint">Para lançar daqui, ligue Lançar pelo Neko em Ajustes.</p>
       )}
-      <Ignored items={bank.ignored ?? []} />
+      <div className="q-tail">
+        <Refresh syncedAt={bank.syncedAt} />
+        <Ignored items={bank.ignored ?? []} />
+      </div>
     </section>
   );
 };

@@ -315,6 +315,94 @@
       "note": "O banco já tem compras que a planilha não tem."
     },
     {
+      "key": "card:cartao verde:2026-11-12=200000",
+      "kind": "cartao",
+      "date": "2026-11-12",
+      "title": "Fatura Cartão Verde",
+      "options": [
+        {
+          "label": "Fatura e reembolso",
+          "draft": {
+            "type": "card",
+            "card": "Cartão Verde",
+            "bills": [
+              {
+                "due": "2026-11-12",
+                "was": 36219,
+                "amount": 200000
+              }
+            ],
+            "also": [
+              {
+                "line": {
+                  "date": "2026-11-12",
+                  "column": "entrada",
+                  "section": null,
+                  "description": "Cartão Verde",
+                  "amount": 53726
+                },
+                "amount": 200000
+              }
+            ]
+          },
+          "lines": [
+            {
+              "label": "12/11 · Saída · Cartão Verde",
+              "change": "edit",
+              "before": 36219,
+              "after": 200000,
+              "diff": 163781,
+              "cell": {
+                "label": "Saída do dia",
+                "before": 320026,
+                "after": 483807
+              }
+            },
+            {
+              "label": "12/11 · Entrada · Cartão Verde",
+              "change": "edit",
+              "before": 53726,
+              "after": 200000,
+              "diff": 146274,
+              "cell": null
+            }
+          ]
+        },
+        {
+          "label": "Só a fatura",
+          "draft": {
+            "type": "card",
+            "card": "Cartão Verde",
+            "bills": [
+              {
+                "due": "2026-11-12",
+                "was": 36219,
+                "amount": 200000
+              }
+            ]
+          },
+          "lines": [
+            {
+              "label": "12/11 · Saída · Cartão Verde",
+              "change": "edit",
+              "before": 36219,
+              "after": 200000,
+              "diff": 163781,
+              "cell": {
+                "label": "Saída do dia",
+                "before": 320026,
+                "after": 483807
+              }
+            }
+          ]
+        }
+      ],
+      "bank": [],
+      "adjustable": false,
+      "origin": null,
+      "note": "O banco já tem compras que a planilha não tem."
+    },
+    {
       "key": "conta:outra",
       "kind": "conta-propria",
       "date": "2026-10-02",
