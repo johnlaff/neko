@@ -575,7 +575,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 57314
               },
               {
@@ -990,7 +990,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 38153
               },
               {
@@ -1404,7 +1404,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 66746
               },
               {
@@ -1845,7 +1845,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 68665
               },
               {
@@ -2279,7 +2279,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 53048
               },
               {
@@ -2720,7 +2720,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 67923
               },
               {
@@ -3154,7 +3154,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 31023
               },
               {
@@ -3595,7 +3595,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 63687
               },
               {
@@ -4036,7 +4036,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 39122
               },
               {
@@ -4470,7 +4470,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 49008
               },
               {
@@ -4911,7 +4911,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 41214
               },
               {
@@ -5345,7 +5345,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 35356
               },
               {
@@ -5786,7 +5786,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 57692
               },
               {
@@ -6227,7 +6227,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 68481
               },
               {
@@ -6641,7 +6641,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 30513
               },
               {
@@ -7082,7 +7082,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 52127
               },
               {
@@ -7516,7 +7516,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 57809
               },
               {
@@ -7957,7 +7957,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 30593
               },
               {
@@ -8391,7 +8391,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 35347
               },
               {
@@ -8832,7 +8832,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 35265
               },
               {
@@ -9273,7 +9273,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 67736
               },
               {
@@ -9741,7 +9741,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 45340
               },
               {
@@ -10305,7 +10305,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 53726
               },
               {
@@ -10856,7 +10856,7 @@
             "moves": [
               {
                 "kind": "income",
-                "description": "Reembolso Cartão Verde",
+                "description": "Cartão Verde",
                 "amount": 45363
               },
               {
@@ -11829,6 +11829,94 @@
                   "label": "Saída do dia",
                   "before": 320026,
                   "after": 328489
+                }
+              }
+            ]
+          }
+        ],
+        "bank": [],
+        "adjustable": false,
+        "origin": null,
+        "note": "O banco já tem compras que a planilha não tem."
+      },
+      {
+        "key": "card:cartao verde:2026-11-12=200000",
+        "kind": "cartao",
+        "date": "2026-11-12",
+        "title": "Fatura Cartão Verde",
+        "options": [
+          {
+            "label": "Fatura e reembolso",
+            "draft": {
+              "type": "card",
+              "card": "Cartão Verde",
+              "bills": [
+                {
+                  "due": "2026-11-12",
+                  "was": 36219,
+                  "amount": 200000
+                }
+              ],
+              "also": [
+                {
+                  "line": {
+                    "date": "2026-11-12",
+                    "column": "entrada",
+                    "section": null,
+                    "description": "Cartão Verde",
+                    "amount": 53726
+                  },
+                  "amount": 200000
+                }
+              ]
+            },
+            "lines": [
+              {
+                "label": "12/11 · Saída · Cartão Verde",
+                "change": "edit",
+                "before": 36219,
+                "after": 200000,
+                "diff": 163781,
+                "cell": {
+                  "label": "Saída do dia",
+                  "before": 320026,
+                  "after": 483807
+                }
+              },
+              {
+                "label": "12/11 · Entrada · Cartão Verde",
+                "change": "edit",
+                "before": 53726,
+                "after": 200000,
+                "diff": 146274,
+                "cell": null
+              }
+            ]
+          },
+          {
+            "label": "Só a fatura",
+            "draft": {
+              "type": "card",
+              "card": "Cartão Verde",
+              "bills": [
+                {
+                  "due": "2026-11-12",
+                  "was": 36219,
+                  "amount": 200000
+                }
+              ]
+            },
+            "lines": [
+              {
+                "label": "12/11 · Saída · Cartão Verde",
+                "change": "edit",
+                "before": 36219,
+                "after": 200000,
+                "diff": 163781,
+                "cell": {
+                  "label": "Saída do dia",
+                  "before": 320026,
+                  "after": 483807
                 }
               }
             ]

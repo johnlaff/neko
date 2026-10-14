@@ -1,10 +1,39 @@
 package dev.johnlaff.neko.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import dev.johnlaff.neko.R
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.graphics.graphicsLayer
@@ -208,13 +237,13 @@ internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, modif
         ),
     ) {
         if (spinning) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(14.dp), color = l.bg, strokeWidth = 2.dp)
-        Text(text, color = l.bg, style = MaterialTheme.typography.labelLarge)
+        Text(text, color = l.bg, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
     }
     else OutlinedButton(
         onClick, modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = BorderStroke(1.dp, if (enabled) l.borderInput else l.borderInput.copy(alpha = 0.5f)),
-    ) { Text(text, color = if (enabled) l.text else l.text.copy(alpha = 0.5f), style = MaterialTheme.typography.labelLarge) }
+    ) { Text(text, color = if (enabled) l.text else l.text.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge) }
 }
 
 @Composable
@@ -441,8 +470,82 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
         }
     }
 }
+/** A stroke icon from an SVG path on a 24px grid, drawn like the site's icons (web/icons.tsx). */
+private fun stroke(name: String, path: String): ImageVector =
+    ImageVector.Builder(name = name, defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
+        .addPath(
+            pathData = PathParser().parsePathString(path).toNodes(),
+            fill = null,
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.75f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+        .build()
 
-@OptIn(ExperimentalLayoutApi::class)
+private val TodayIcon = stroke("today", "M6.5 5h11a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3zM3.5 10h17M8 3v4M16 3v4M12 14.25a0.75 0.75 0 1 1 0 1.5a0.75 0.75 0 1 1 0-1.5")
+private val CheckIcon = stroke("check", "m5 12.5 4.5 4.5L19 7.5")
+private val RefreshIcon = stroke("refresh", "M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5")
+private val PrevIcon = stroke("prev", "m15 6-6 6 6 6")
+private val NextIcon = stroke("next", "m9 6 6 6-6 6")
+
+/** The item's mark: what it is about when the name says it, else what kind of line it makes (web Mark). */
+@Composable
+private fun Mark(item: QueueItem) {
+    val l = LocalLedger.current
+    val tint = l.muted
+    Box(Modifier.size(32.dp).background(l.surface2, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+        val vector = when (item.kind) {
+            "previsto" -> TodayIcon
+            "cartao" -> null
+            else -> categoryIcon(item.title)
+        }
+        if (vector != null) Icon(vector, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+        else Icon(
+            painterResource(
+                when (item.kind) {
+                    "cartao" -> R.drawable.ic_card
+                    "entrada", "resgate" -> R.drawable.ic_income
+                    "conta-propria", "guardar" -> R.drawable.ic_repeat
+                    else -> R.drawable.ic_receipt
+                },
+            ),
+            contentDescription = null, tint = tint, modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+/** A choice between whole launches: one track, the picked one lit (web fieldset.q-choice). */
+@Composable
+private fun Segments(labels: List<String>, picked: Int, enabled: Boolean, onPick: (Int) -> Unit) {
+    val l = LocalLedger.current
+    Row(
+        Modifier.fillMaxWidth().background(l.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp)).padding(3.dp).selectableGroup(),
+    ) {
+        labels.forEachIndexed { i, label ->
+            val on = i == picked
+            val bg by animateColorAsState(if (on) l.text else Color.Transparent, tween(160), label = "segment")
+            Box(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 40.dp)
+                    .background(bg, RoundedCornerShape(9.dp))
+                    .selectable(on, enabled = enabled, role = Role.RadioButton) { onPick(i) }
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    color = if (on) l.bg else l.muted,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit, onGone: () -> Unit) {
     val l = LocalLedger.current
@@ -460,7 +563,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
     val canWrite = v.writing && launcher != null
     val isCard = draft?.get("type")?.jsonPrimitive?.content == "card"
 
-    // Done: the item folds away (ParaLancar animates it) while Hoje reads again behind it.
+    // Done: the item slides off the deck (ParaLancar animates it) while Hoje reads again behind it.
     fun run(block: suspend (Launcher) -> Unit) {
         val go = launcher ?: return
         busy = true
@@ -475,59 +578,64 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
     // While writing, the item dims and locks; the button saying "Lançando…" stays readable.
     val dim = Modifier.graphicsLayer { alpha = if (busy) 0.6f else 1f }
     Column(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { if (busy) stateDescription = "Gravando" },
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        Modifier.fillMaxWidth().semantics { if (busy) stateDescription = "Gravando" },
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(Modifier.fillMaxWidth().then(dim), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.titleSmall)
+        Row(Modifier.fillMaxWidth().then(dim), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Mark(item)
+            Text(Format.bankText(item.title), Modifier.weight(1f), color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
             Text(shortDate(item.date), color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
         item.note?.takeIf { it.isNotBlank() }?.let { Text(it, dim, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
-        if (item.options.size > 1 && !question) {
-            FlowRow(Modifier.selectableGroup().then(dim), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item.options.forEachIndexed { i, o -> Choice(o.label, choice == i) { if (!busy) choice = i } }
-            }
+        if (item.options.size > 1 && !question) Box(dim.semantics { contentDescription = "O que lançar" }) {
+            Segments(item.options.map { it.label }, choice, enabled = !busy) { choice = it }
         }
         if (lines.isNotEmpty()) Box(dim) { Impact(lines, "${item.key}|$choice") }
         if (adjusting && draft != null && launcher != null && !isCard) {
             EntryForm(launcher, v.today, { adjusting = false }, { id -> onLaunched(id); onGone() }, draft = draft, key = item.key)
         } else if (launcher != null) {
-            // Ignorar closes the action row: the way out, quiet, at the far end, with Desfazer.
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (question) {
-                        item.options.forEach { o ->
-                            o.answer?.let { use ->
-                                Small(o.label, filled = false, enabled = !busy) {
-                                    run { it.account(item.key.removePrefix("conta:"), use) }
-                                }
+            // Lançar fills the row; Ajustar stays beside it, and a question's two answers share it.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (question) {
+                    item.options.forEach { o ->
+                        o.answer?.let { use ->
+                            Small(o.label, filled = false, enabled = !busy, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                                run { it.account(item.key.removePrefix("conta:"), use) }
                             }
                         }
-                    } else {
-                        Small(if (launching) "Lançando…" else "Lançar", filled = true, enabled = canWrite && draft != null && (!busy || launching), spinning = launching) {
-                            if (busy) return@Small
-                            val d = draft ?: return@Small
-                            launching = true
-                            run { onLaunched(it.launch(d, item.key)) }
-                        }
-                        if (item.adjustable && !isCard)
-                            Small("Ajustar", filled = false, enabled = canWrite && !busy) { adjusting = true }
                     }
+                } else {
+                    Small(
+                        if (launching) "Lançando…" else "Lançar", filled = true,
+                        enabled = canWrite && draft != null && (!busy || launching), spinning = launching,
+                        modifier = Modifier.weight(2f).heightIn(min = 48.dp),
+                    ) {
+                        if (busy) return@Small
+                        val d = draft ?: return@Small
+                        launching = true
+                        run { onLaunched(it.launch(d, item.key)) }
+                    }
+                    if (item.adjustable && !isCard)
+                        Small("Ajustar", filled = false, enabled = canWrite && !busy, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { adjusting = true }
                 }
-                TextAction("Ignorar", {
+            }
+        }
+        error?.let { Failed(it) }
+        // Detalhes to check, Ignorar to leave: both quiet, under the answer (web .q-foot).
+        val cells = lines.mapNotNull { it.cell }
+        val hasDetails = cells.isNotEmpty() || item.bank.isNotEmpty()
+        Column(dim) {
+            Row(Modifier.fillMaxWidth().padding(top = 0.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (hasDetails) TextAction("Detalhes", { details = !details }, l.faint, open = details, style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.weight(1f))
+                if (launcher != null) TextAction("Ignorar", {
                     if (!busy) run {
                         it.ignore(item.key)
                         onLaunched("$IGNORED${item.key}")
                     }
-                }, l.muted)
+                }, l.faint, style = MaterialTheme.typography.bodySmall)
             }
-        }
-        error?.let { Failed(it) }
-        // The day's whole cell and what the bank showed: there to check, closed (web Details).
-        val cells = lines.mapNotNull { it.cell }
-        if (cells.isNotEmpty() || item.bank.isNotEmpty()) Column(dim) {
-            TextAction("Detalhes", { details = !details }, open = details)
-            Reveal(details) {
+            if (hasDetails) Reveal(details) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     cells.forEach { c ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -551,29 +659,43 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
     }
 }
 
-/** With nothing left to launch: yesterday's Saldo against the bank, and the difference to launch. */
+/** With nothing left to launch: yesterday's Saldo, the sheet's beside the bank's, and the gap (web Saldo). */
 @Composable
 private fun Saldo(s: SaldoView, v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) {
     val l = LocalLedger.current
     var fixing by rememberSaveable { mutableStateOf(false) }
-    if (s.diff == 0L) {
-        Text("Tudo lançado. O saldo bate com o banco.", color = l.pos)
-    } else {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("Saldo de ${shortDate(s.date)}: ${money(s.sheet)} na planilha, ${money(s.bank)} no banco.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
-            Text("${if (s.diff > 0) "Faltam" else "Sobram"} ${money(kotlin.math.abs(s.diff))} na planilha.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+    val even = s.diff == 0L
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (even) Icon(CheckIcon, contentDescription = null, tint = l.pos, modifier = Modifier.size(22.dp))
+            Text(
+                if (even) "Tudo lançado" else "${if (s.diff > 0) "Faltam" else "Sobram"} ${money(kotlin.math.abs(s.diff))} na planilha",
+                color = if (even) l.pos else l.warn,
+                style = MaterialTheme.typography.headlineSmall,
+            )
         }
-    }
-    if (s.stale.isNotEmpty())
-        Text("Sem atualizar hoje: ${s.stale.joinToString(", ")}. O saldo pode estar velho.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
-    val draft = s.draft
-    if (draft != null && launcher != null && v.writing) {
-        if (fixing) EntryForm(launcher, v.today, { fixing = false }, onLaunched, draft = draft)
-        else Small("Lançar a diferença", filled = false) { fixing = true }
+        val shape = RoundedCornerShape(10.dp)
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).border(1.dp, l.border, shape)) {
+            listOf("Planilha" to s.sheet, "Banco" to s.bank).forEachIndexed { i, (label, value) ->
+                if (i > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(l.border))
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(label, color = l.muted, style = MaterialTheme.typography.labelMedium)
+                    Text(money(value), color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
+        Text("Saldo de ${shortDate(s.date)}${if (even) ": bate com o banco." else "."}", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        if (s.stale.isNotEmpty())
+            Text("Sem atualizar hoje: ${s.stale.joinToString(", ")}. O saldo pode estar velho.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        val draft = s.draft
+        if (draft != null && launcher != null && v.writing) {
+            if (fixing) EntryForm(launcher, v.today, { fixing = false }, onLaunched, draft = draft)
+            else Small("Lançar a diferença", filled = false, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { fixing = true }
+        }
     }
 }
 
-/** When the banks were last read, and Atualizar agora to read them without waiting for the morning. */
+/** When the banks were last read, and Atualizar to read them without waiting for the morning. */
 @Composable
 private fun Refresh(syncedAt: String?, launcher: Launcher?) {
     val l = LocalLedger.current
@@ -584,28 +706,42 @@ private fun Refresh(syncedAt: String?, launcher: Launcher?) {
         Text(
             when {
                 reading -> "Lendo os bancos…"
-                failed -> "Algum banco não respondeu. Tente de novo mais tarde."
-                syncedAt != null -> "Bancos lidos ${readAtText(syncedAt)}."
-                else -> "Bancos ainda não lidos."
+                failed -> "Algum banco não respondeu. Tente mais tarde."
+                syncedAt != null -> "Bancos lidos ${readAtText(syncedAt)}"
+                else -> "Bancos ainda não lidos"
             },
-            Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall,
+            Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }, color = l.faint, style = MaterialTheme.typography.bodySmall,
         )
-        if (launcher != null) TextAction("Atualizar agora", {
-            if (!reading) {
-                reading = true
-                scope.launch {
-                    failed = !runCatching { launcher.refreshBanks() }.getOrDefault(false)
-                    reading = false
+        if (launcher != null) Row(
+            Modifier
+                .clickable(enabled = !reading, role = Role.Button) {
+                    reading = true
+                    scope.launch {
+                        failed = !runCatching { launcher.refreshBanks() }.getOrDefault(false)
+                        reading = false
+                    }
                 }
-            }
-        }, l.accent)
+                .heightIn(min = 44.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(RefreshIcon, contentDescription = null, tint = l.muted, modifier = Modifier.size(14.dp))
+            Text("Atualizar", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
-/** Items Para lançar shows before "Ver mais", as on the site. */
-private const val QUEUE_SHOWN = 3
+/** A line across the whole panel, through its padding (web .q-tail's border). */
+private fun Modifier.bleed(by: androidx.compose.ui.unit.Dp) = layout { m, c ->
+    val extra = by.roundToPx() * 2
+    val p = m.measure(c.copy(minWidth = c.maxWidth + extra, maxWidth = c.maxWidth + extra))
+    layout(c.maxWidth, p.height) { p.place(-extra / 2, 0) }
+}
 
-/** Para lançar on Hoje: what the bank showed and the sheet does not have yet, one item a line. */
+/**
+ * Para lançar on Hoje: a deck, one item at a time (web ParaLancar). The bar under the title fills
+ * as items are answered, and the edges under the card say more are waiting.
+ */
 @Composable
 fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) {
     val l = LocalLedger.current
@@ -615,37 +751,96 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
     var gone by remember(items) { mutableStateOf(emptySet<String>()) }
     val left = items.filter { it.key !in gone }
     if (items.isEmpty() && saldo == null) return
-    // The first few, so Hoje stays short; the chip counts them all and "Ver mais" opens the rest.
-    var more by remember { mutableStateOf(false) }
-    val shown = if (more) left.map { it.key }.toSet() else left.take(QUEUE_SHOWN).map { it.key }.toSet()
-    Panel {
-        PanelHead("Para lançar") {
-            if (left.isNotEmpty()) Chip(if (left.size == 1) "1 item" else "${left.size} itens", ChipTone.Plain)
+    var at by rememberSaveable { mutableStateOf(0) }
+    var back by remember { mutableStateOf(false) }
+    val index = at.coerceIn(0, (left.size - 1).coerceAtLeast(0))
+    val item = left.getOrNull(index)
+    val total = left.size + gone.size
+    val under = (left.size - 1 - index).coerceIn(0, 2)
+    fun go(to: Int) {
+        back = to < index
+        at = to
+    }
+    Box(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+        // The edges of the cards waiting, under the one in front.
+        val shape = RoundedCornerShape(12.dp)
+        listOf(2 to 22.dp, 1 to 10.dp).forEach { (n, inset) ->
+            val shown by animateFloatAsState(if (under >= n) 1f else 0f, tween(200), label = "edge$n")
+            Box(
+                Modifier.matchParentSize()
+                    .padding(horizontal = inset)
+                    .graphicsLayer { translationY = (if (n == 2) 13.dp else 7.dp).toPx() * shown; alpha = shown }
+                    .background(if (n == 2) l.surface.copy(alpha = 0.7f).compositeOver(l.bg) else l.surface, shape)
+                    .border(1.dp, l.border, shape),
+            )
         }
-        Column {
-            Text("Nada muda na planilha até você tocar em Lançar.", color = l.muted, style = MaterialTheme.typography.bodySmall)
-            Refresh(v.bankSyncedAt, launcher)
-        }
-        if (left.isEmpty() && saldo != null) Saldo(saldo, v, launcher, onLaunched)
-        items.forEachIndexed { i, item ->
-            androidx.compose.runtime.key(item.key) {
-                // Folds away when done, so the next item slides up into place (web .q-item.leaving).
-                AnimatedVisibility(
-                    item.key in shown,
-                    enter = EnterTransition.None,
-                    exit = fadeOut(tween(160)) + shrinkVertically(tween(240, 40, Motion.Enter)),
-                ) {
-                    Column {
-                        if (i > 0) androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().padding(vertical = 2.dp).heightIn(min = 1.dp, max = 1.dp).background(l.border))
-                        QueueRow(item, v, launcher, onLaunched) { gone = gone + item.key }
+        Panel {
+            PanelHead("Para lançar") {
+                if (total > 1 && left.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { go(index - 1) }, enabled = index > 0) {
+                        Icon(PrevIcon, contentDescription = "Anterior", tint = l.muted.copy(alpha = if (index > 0) 1f else 0.35f), modifier = Modifier.size(18.dp))
+                    }
+                    Text(
+                        "${gone.size + index + 1} de $total",
+                        Modifier.widthIn(min = 44.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                        color = l.muted, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center,
+                    )
+                    IconButton(onClick = { go(index + 1) }, enabled = index < left.size - 1) {
+                        Icon(NextIcon, contentDescription = "Próximo", tint = l.muted.copy(alpha = if (index < left.size - 1) 1f else 0.35f), modifier = Modifier.size(18.dp))
                     }
                 }
             }
+            if (total > 1) Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                repeat(total) { i ->
+                    val color by animateColorAsState(
+                        when {
+                            i < gone.size -> l.accent
+                            item != null && i == gone.size + index -> l.muted
+                            else -> l.border
+                        },
+                        tween(300), label = "segment",
+                    )
+                    Box(Modifier.weight(1f).height(3.dp).background(color, RoundedCornerShape(2.dp)))
+                }
+            }
+            if (item == null) {
+                if (saldo != null) Saldo(saldo, v, launcher, onLaunched)
+            } else AnimatedContent(
+                // A swipe sideways goes to the next or the previous item, like the arrows.
+                modifier = Modifier.pointerInput(index, left.size) {
+                    var dx = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { dx = 0f },
+                        onDragEnd = {
+                            val far = 64.dp.toPx()
+                            if (dx < -far && index < left.size - 1) go(index + 1)
+                            else if (dx > far && index > 0) go(index - 1)
+                        },
+                    ) { _, amount -> dx += amount }
+                },
+                targetState = item,
+                contentKey = { it.key },
+                transitionSpec = {
+                    val from = if (back) -1 else 1
+                    (slideInHorizontally(tween(280, easing = Motion.Enter)) { from * it / 12 } + fadeIn(tween(280)))
+                        .togetherWith(slideOutHorizontally(tween(200)) { -from * it / 12 } + fadeOut(tween(200)))
+                        .using(SizeTransform(clip = false))
+                },
+                label = "deck",
+            ) { shown ->
+                QueueRow(shown, v, launcher, onLaunched) {
+                    back = false
+                    gone = gone + shown.key
+                }
+            }
+            if (!v.writing && left.isNotEmpty())
+                Text("Para lançar daqui, ligue Lançar pelo Neko em Ajustes.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            Column {
+                Box(Modifier.bleed(16.dp).height(1.dp).background(l.border))
+                Refresh(v.bankSyncedAt, launcher)
+                if (launcher != null) Ignored(v.ignored, launcher)
+            }
         }
-        if (shown.size < left.size) TextAction("Ver mais ${left.size - shown.size}", { more = true }, open = false)
-        if (!v.writing && left.isNotEmpty())
-            Text("Para lançar daqui, ligue Lançar pelo Neko em Ajustes.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
-        if (launcher != null) Ignored(v.ignored, launcher)
     }
 }
 
@@ -657,7 +852,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.Ignored(items: List<I
     val scope = rememberCoroutineScope()
     var open by rememberSaveable { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    TextAction(if (items.size == 1) "1 ignorado" else "${items.size} ignorados", { open = !open }, open = open)
+    TextAction(if (items.size == 1) "1 ignorado" else "${items.size} ignorados", { open = !open }, l.faint, open = open, style = MaterialTheme.typography.bodySmall)
     Reveal(open) {
         Column {
             items.forEach { i ->
