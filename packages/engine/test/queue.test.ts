@@ -424,11 +424,20 @@ describe("Para lançar: card bills", () => {
       },
     });
     const [raised] = queue({ ledger: drift, lines: [line("Banco Gio", 18000, "2026-12")] });
-    expect(raised?.options[1]?.draft).toMatchObject({
+    expect(raised?.options[0]?.draft).toMatchObject({
       bills: [{ was: 15000, amount: 18000 }],
       also: [{ line: { amount: 10000 }, amount: 18000 }],
     });
     const [fixed] = queue({ ledger: drift, lines: [line("Banco Gio", 15000, "2026-12")] });
+    // Launched with "Só a fatura" first: the payback left behind is a new item, not the one decided.
+    expect(fixed?.key).not.toBe(raised?.key.replace("18000", "15000"));
+    expect(
+      queue({
+        ledger: drift,
+        lines: [line("Banco Gio", 15000, "2026-12")],
+        decided: new Set(["card:banco gio:2026-12-12=15000"]),
+      }),
+    ).toHaveLength(1);
     expect(fixed?.options).toHaveLength(1);
     expect(fixed?.options[0]?.draft).toMatchObject({
       bills: [{ was: 15000, amount: 15000 }],
@@ -438,8 +447,9 @@ describe("Para lançar: card bills", () => {
 
   it("asks whether the reimbursement of someone else's card follows its bill", () => {
     const [i] = queue({ ledger: days, lines: [line("Banco Gio", 25000, "2026-12")] });
-    expect(i?.options.map((o) => o.label)).toEqual(["Só a fatura", "Fatura e reembolso"]);
-    expect(i?.options[1]?.draft).toMatchObject({
+    // She pays it back: that is what Lançar does unless the owner picks "Só a fatura".
+    expect(i?.options.map((o) => o.label)).toEqual(["Fatura e reembolso", "Só a fatura"]);
+    expect(i?.options[0]?.draft).toMatchObject({
       also: [
         {
           line: { date: "2026-12-12", column: "entrada", description: "Banco Gio", amount: 20000 },
@@ -597,5 +607,10 @@ describe("saldo bate", () => {
     });
     expect(saldoCheck(days, today, [at(today, 101836)])?.diff).toBe(1836);
     expect(saldoCheck(days, today, [])).toBeNull();
+  });
+
+  it("leaves out what moved today, which yesterday's Saldo cannot have yet", () => {
+    // The account paid its yield this morning: the balance has it, yesterday's Saldo does not.
+    expect(saldoCheck(days, today, [{ ...at(today, 100439), today: cents(439) }])?.diff).toBe(0);
   });
 });
