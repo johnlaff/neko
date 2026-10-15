@@ -188,7 +188,12 @@ const queue = buildQueue({
   // A purchase of September's end already on November's bill: the bill rises past the sheet's.
   lines: [
     ...lines,
-    { ...bankLine(2_042_80, "2026-11", "LOJA"), date: localDate("2026-09-30") },
+    { ...bankLine(1_958_17, "2026-11", "LOJA"), date: localDate("2026-09-30") },
+    // The newest one is what the sheet lacks: Para lançar names it.
+    { ...bankLine(52_90, "2026-11", "PADARIA DO ZE"), date: localDate("2026-10-04") },
+    { ...bankLine(18_73, "2026-11", "FARMACIA CENTRAL"), date: localDate("2026-10-04") },
+    { ...bankLine(9_00, "2026-11", "CAFE DA PRACA"), date: localDate("2026-10-03") },
+    { ...bankLine(4_00, "2026-11", "UBER *TRIP"), date: localDate("2026-10-03") },
     // Someone else's card: its bill and her payback rise together, unless only the bill is picked.
     { ...bankLine(2_000_00, "2026-11", "LIVRARIA"), card: "Cartão Verde" },
   ],

@@ -10,7 +10,15 @@ import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
-import { bankText, capitalize, closesIn, days, money, monthName, shortDate } from "../format.ts";
+import {
+  bankLineName,
+  capitalize,
+  closesIn,
+  days,
+  money,
+  monthName,
+  shortDate,
+} from "../format.ts";
 import { Hint } from "../Hint.tsx";
 import { IconChevron } from "../icons.tsx";
 import { CARDS_COME_FROM, HINTS } from "../learn.ts";
@@ -53,14 +61,6 @@ const parcelText = (l: BankLineView) =>
     ? `${l.installment}/${l.installments}${l.installments > l.installment ? ` · Faltam ${l.installments - l.installment}` : " · Última"}`
     : null;
 
-/** The bank writes the parcel into the text too ("LOJA PARC 03/06"); the line already says it. */
-const lineName = (l: BankLineView) =>
-  bankText(
-    l.installment === null
-      ? l.description
-      : l.description.replace(/\s*(parc(ela)?\.?\s*)?\d{1,2}\s*\/\s*\d{1,2}\s*$/i, ""),
-  );
-
 const LINES_SHOWN = 8;
 
 const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineView[] }) => {
@@ -80,7 +80,7 @@ const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineVi
           // biome-ignore lint/suspicious/noArrayIndexKey: lines have no id of their own here.
           <li key={`${l.description}-${l.date}-${i}`}>
             <span className="text">
-              {lineName(l)}
+              {bankLineName(l)}
               <small>{parcelText(l) ?? (l.date ? shortDate(l.date) : "")}</small>
             </span>
             <span className="amount">{money(l.amount)}</span>

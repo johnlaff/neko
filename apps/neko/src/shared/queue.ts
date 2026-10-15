@@ -63,6 +63,25 @@ export interface QueueItemView {
   readonly origin: string | null;
   /** Why the item is there, in one plain sentence, without amounts. */
   readonly note: string;
+  /**
+   * For a card bill: the purchases behind each change, newest first (engine `BillPurchases`).
+   * `exact`: they add up to it; otherwise they are only the newest on the bill.
+   */
+  readonly purchases: readonly PurchasesView[];
+}
+
+export interface PurchasesView {
+  readonly due: LocalDate;
+  readonly exact: boolean;
+  /** What the lines add up to: the bill's change when `exact`. */
+  readonly total: Cents;
+  readonly lines: readonly {
+    readonly description: string;
+    readonly amount: Cents;
+    readonly date: LocalDate | null;
+    readonly installment: number | null;
+    readonly installments: number | null;
+  }[];
 }
 
 export const dayMonth = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
@@ -239,6 +258,18 @@ export const queueView = (
 ): QueueItemView[] =>
   items.flatMap((item) => {
     try {
+      const purchases = (item.purchases ?? []).map((p) => ({
+        due: p.due,
+        exact: p.exact,
+        total: p.total,
+        lines: p.lines.map((l) => ({
+          description: l.description,
+          amount: l.amount,
+          date: l.date ?? null,
+          installment: l.installment,
+          installments: l.installments,
+        })),
+      }));
       return [
         {
           key: item.key,
@@ -257,7 +288,9 @@ export const queueView = (
           ),
           origin:
             item.bank.length === 1 && item.bank[0] ? originKey(item.bank[0].description) : null,
-          note: closesToNothing(item, ledger) ?? noteOf(item),
+          // The purchases say why the bill went up better than a sentence.
+          note: purchases.length > 0 ? "" : (closesToNothing(item, ledger) ?? noteOf(item)),
+          purchases,
         },
       ];
     } catch (error) {

@@ -3482,3 +3482,40 @@ details.bank-lines summary {
 .figure-stack > .text-link {
   margin: -10px 0;
 }
+/* Why a bill goes up: the bank's purchases, plain ledger rows above what the sheet gets */
+.q-buys {
+  display: grid;
+  gap: 8px;
+}
+/* One line a purchase: the name, its day beside it, the amount at the edge */
+.q-buys .text {
+  display: block;
+}
+.q-buys .text > small {
+  margin-left: 4px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.q-buys ul {
+  gap: 8px;
+}
+.q-buys-head {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.q-buys ul + .q-buys-head {
+  margin-top: 4px;
+}
+.q-buys .amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.q-buys .amount.pos {
+  color: var(--pos);
+}
+/* Opened, the rest follows the summary as the rows above follow each other */
+.q-buys details.formula > ul + .q-buys-head {
+  margin-top: 10px;
+}

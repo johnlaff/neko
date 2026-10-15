@@ -104,3 +104,11 @@ export const readAtLabel = (iso: string) => {
   const d = new Date(iso);
   return `${shortDate(SP_DAY.format(d))}, ${SP_TIME.format(d)}`;
 };
+
+/** The bank writes the parcel into the text too ("LOJA PARC 03/06"); the line already says it. */
+export const bankLineName = (l: { description: string; installment: number | null }) =>
+  bankText(
+    l.installment === null
+      ? l.description
+      : l.description.replace(/\s*(parc(ela)?\.?\s*)?\d{1,2}\s*\/\s*\d{1,2}\s*$/i, ""),
+  );
