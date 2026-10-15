@@ -755,7 +755,7 @@ private fun Saldo(s: SaldoView, v: TodayView, launcher: Launcher?, onLaunched: (
                 }
             }
         }
-        Text("Saldo de ${shortDate(s.date)}${if (even) ": bate com o banco." else "."}", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        Text("Conferido até o fim de ${shortDate(s.date)}${if (even) ": bate com o banco." else "."}", color = l.muted, style = MaterialTheme.typography.bodySmall)
         if (s.stale.isNotEmpty())
             Text("Sem atualizar hoje: ${s.stale.joinToString(", ")}. O saldo pode estar velho.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
         val draft = s.draft
