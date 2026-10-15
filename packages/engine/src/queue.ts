@@ -3,6 +3,7 @@ import {
   type BankMovement,
   billChecks,
   type ClosedBill,
+  linesBehind,
   matchMovements,
   originKey,
   type SheetLine,
@@ -107,7 +108,31 @@ export interface QueueItem {
   readonly options: readonly QueueOption[];
   /** For `conta-propria`: the name of the account asked about. */
   readonly account?: string;
+  /** For a card: the bank's lines behind each bill that changes (`BillPurchases`). */
+  readonly purchases?: readonly BillPurchases[];
 }
+
+/**
+ * Why a bill changes, as the bank shows it: the lines that add up to the change (`exact`), newest
+ * first, or, when none do, the newest on the bill. A parcel already shown on an earlier bill of
+ * the same item is left out, so a new purchase in ten parcels reads once.
+ */
+export interface BillPurchases {
+  readonly due: LocalDate;
+  readonly exact: boolean;
+  /** What the lines add up to: the bill's change when `exact`. */
+  readonly total: Cents;
+  readonly lines: readonly BankCardLine[];
+}
+
+/** When no lines add up to a rise, this many of the newest stand in for them. */
+const NEWEST_SHOWN = 3;
+
+const newestOf = (lines: readonly BankCardLine[]): BankCardLine[] =>
+  lines
+    .filter((l) => l.date)
+    .toSorted((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
+    .slice(0, NEWEST_SHOWN);
 
 export interface QueueInput {
   readonly ledger: Ledger;
@@ -466,6 +491,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     return lines?.length === 1 ? lines[0] : undefined;
   };
   const byCard = new Map<string, { due: LocalDate; was: Cents; amount: Cents }[]>();
+  const onBill = new Map<string, readonly BankCardLine[]>();
   for (const c of billChecks(ledger, input.cards, input.lines, today, input.closed)) {
     // The same rule that marks the bill on Faturas, so every warning there has its item here.
     const moves = c.disagrees;
@@ -476,6 +502,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     const bills = byCard.get(c.card) ?? [];
     bills.push({ due: c.due, was: c.sheet, amount });
     byCard.set(c.card, bills);
+    onBill.set(`${c.card}|${c.due}`, c.lines);
   }
   for (const [card, bills] of byCard) {
     const first = bills[0];
@@ -500,12 +527,29 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
         : [];
     });
     const billChanges = bills.some((b) => b.amount !== b.was);
+    // A parcel reads once: the same purchase on a later bill is the same news.
+    const shown = new Set<string>();
+    const purchases = bills.flatMap((b): BillPurchases[] => {
+      const gap = sub(b.amount, b.was);
+      const all = onBill.get(`${card}|${b.due}`) ?? [];
+      const behind = linesBehind(all, gap);
+      const lines = (behind ?? (gap > 0 ? newestOf(all) : [])).filter((l) => {
+        if ((l.installments ?? 1) <= 1) return true;
+        const key = `${originKey(l.description)}|${l.installments}|${l.amount}`;
+        if (shown.has(key)) return false;
+        shown.add(key);
+        return true;
+      });
+      const total = add(ZERO, ...lines.map((l) => l.amount));
+      return lines.length > 0 ? [{ due: b.due, exact: behind !== null, total, lines }] : [];
+    });
     push({
       // A payback left behind after "Só a fatura" is a new item, not the bill already decided.
       key: `card:${normalizeName(card)}:${bills.map((b) => `${b.due}=${b.amount}`).join(",")}${billChanges ? "" : ":reembolso"}`,
       kind: "cartao",
       date: first.due,
       bank: [],
+      ...(purchases.length > 0 ? { purchases } : {}),
       // Someone else's card is paid back: that is what Lançar does, "Só a fatura" is the choice.
       options: !billChanges
         ? [{ label: "", draft: { ...draft, also } }]

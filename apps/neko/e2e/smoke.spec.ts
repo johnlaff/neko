@@ -133,6 +133,11 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await expect(queue).toContainText(
     "12/11 · Saída · Cartão AzulR$ 2.922,70era R$ 2.838,07+R$ 84,63",
   );
+  // Why the bill goes up: the purchase the sheet lacks, in place of a sentence.
+  await expect(queue).toContainText("Compras novas · R$ 84,63Padaria do Ze 4 outR$ 52,90");
+  await queue.getByText("Mais 1 compra").click();
+  await expect(queue).toContainText("Uber *trip 3 outR$ 4,00");
+  await expect(queue).not.toContainText("O banco já tem compras");
   // Someone else's card: the bill and her payback go together unless only the bill is picked.
   await next.click();
   const choice = queue.getByRole("group", { name: "O que lançar" });

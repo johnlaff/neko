@@ -5,6 +5,7 @@ import {
   billChecks,
   type CardConfig,
   cents,
+  linesBehind,
   localDate,
   unmatchedMovements,
 } from "../src/index.ts";
@@ -333,5 +334,54 @@ describe("account movements the sheet does not have", () => {
       },
     });
     expect(unmatchedMovements(two, [mov("2026-10-07", 112351, "PIX RECEBIDO")], today)).toEqual([]);
+  });
+});
+
+describe("the purchases behind a bill's change", () => {
+  const on = (
+    amount: number,
+    date: string,
+    description: string,
+    over: Partial<BankCardLine> = {},
+  ) => line(amount, "2026-11", { date: localDate(date), description, ...over });
+  const bill = [
+    on(1317, "2026-10-15", "PADARIA"),
+    on(5000, "2026-10-14", "POSTO"),
+    on(264014, "2026-10-01", "MERCADO"),
+  ];
+
+  it("takes the newest lines that add up to the change", () => {
+    expect(linesBehind(bill, cents(1317))?.map((l) => l.description)).toEqual(["PADARIA"]);
+    expect(linesBehind(bill, cents(6317))?.map((l) => l.description)).toEqual(["PADARIA", "POSTO"]);
+  });
+
+  it("finds them among the newest when the bank dated one earlier than it showed it", () => {
+    expect(linesBehind(bill, cents(5000))?.map((l) => l.description)).toEqual(["POSTO"]);
+  });
+
+  it("counts a refund as part of the change", () => {
+    const refund = [on(-2000, "2026-10-16", "ESTORNO LOJA"), ...bill];
+    expect(linesBehind(refund, cents(-683))?.map((l) => l.description)).toEqual([
+      "ESTORNO LOJA",
+      "PADARIA",
+    ]);
+  });
+
+  it("says nothing when no lines add up to it", () => {
+    expect(linesBehind(bill, cents(1000))).toBeNull();
+    expect(linesBehind(bill, cents(0))).toBeNull();
+    expect(linesBehind([], cents(1317))).toBeNull();
+  });
+
+  it("counts a later parcel as old, though the bank dates it in this cycle", () => {
+    const parcel = on(1317, "2026-10-20", "LOJA 07/12", { installment: 7, installments: 12 });
+    expect(linesBehind([parcel, ...bill], cents(1317))?.map((l) => l.description)).toEqual([
+      "PADARIA",
+    ]);
+  });
+
+  it("puts undated lines, read before the day was kept, last", () => {
+    const old = [line(1317, "2026-11", { description: "SEM DATA" }), ...bill];
+    expect(linesBehind(old, cents(1317))?.map((l) => l.description)).toEqual(["PADARIA"]);
   });
 });

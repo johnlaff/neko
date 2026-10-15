@@ -1,11 +1,16 @@
 import type { Cents, Draft, EntryKind, LocalDate, MiaEntry } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import { type QueueItemView, type QueueLine, saldoView } from "../shared/queue.ts";
+import { Fragment, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type PurchasesView,
+  type QueueItemView,
+  type QueueLine,
+  saldoView,
+} from "../shared/queue.ts";
 import type { BankView, IgnoredItem } from "../shared/types.ts";
 import { ApiError, api, once, reasonOf } from "./api.ts";
 import { CategoryIcon } from "./CategoryIcon.tsx";
-import { bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
+import { bankLineName, bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
 import {
   IconCard,
   IconCheck,
@@ -195,6 +200,73 @@ const Impact = ({ lines }: { lines: readonly QueueLine[] }) => {
               <Change key={`${l.label}|${l.before}|${l.after}`} line={l} allNew={allNew} />
             ))}
           </ul>
+        </details>
+      )}
+    </div>
+  );
+};
+
+type Purchase = PurchasesView["lines"][number];
+
+/** `15 out · 1/3`: when, and which parcel when it is one. */
+const purchaseWhen = (l: Purchase) =>
+  [
+    l.date && shortDate(l.date),
+    l.installment !== null && l.installments !== null && `${l.installment}/${l.installments}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+const Purchase = ({ line }: { line: Purchase }) => (
+  <li>
+    <span className="text">
+      {bankLineName(line)} <small>{purchaseWhen(line)}</small>
+    </span>
+    <span className={line.amount < 0 ? "amount pos" : "amount"}>{money(line.amount)}</span>
+  </li>
+);
+
+/**
+ * Why a bill goes up, as the bank lists it: the purchases that add up to the change, newest
+ * first, like a bank app's bill. Past the first three, behind a tap.
+ */
+const Purchases = ({ groups }: { groups: readonly PurchasesView[] }) => {
+  const head = (g: PurchasesView) =>
+    !g.exact
+      ? "Últimas no banco"
+      : groups.length === 1
+        ? `Compras novas · ${money(g.total)}`
+        : `Compras novas · ${money(g.total)} na fatura de ${shortDate(g.due)}`;
+  // The first three purchases in sight, the rest of each bill behind one tap.
+  let left = 3;
+  const split = groups.map((g) => {
+    const shown = g.lines.slice(0, left);
+    left -= shown.length;
+    return { g, shown, hidden: g.lines.slice(shown.length) };
+  });
+  const hidden = split.reduce((n, s) => n + s.hidden.length, 0);
+  const block = (g: PurchasesView, rows: readonly Purchase[], titled: boolean) =>
+    rows.length > 0 && (
+      <Fragment key={g.due}>
+        {titled && <p className="q-buys-head">{head(g)}</p>}
+        <ul>
+          {rows.map((l, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: the bank can list two equal purchases.
+            <Purchase key={`${l.description}|${l.date}|${i}`} line={l} />
+          ))}
+        </ul>
+      </Fragment>
+    );
+  return (
+    <div className="q-buys bank-lines">
+      {split.map(({ g, shown }) => block(g, shown, true))}
+      {hidden > 0 && (
+        <details className="formula">
+          <summary>
+            <IconChevron />
+            Mais {hidden === 1 ? "1 compra" : `${hidden} compras`}
+          </summary>
+          {split.map(({ g, shown, hidden: rows }) => block(g, rows, shown.length === 0))}
         </details>
       )}
     </div>
@@ -615,6 +687,7 @@ const Row = ({
         <span className="meta">{shortDate(item.date)}</span>
       </div>
       {item.note && <p className="q-note">{item.note}</p>}
+      {item.purchases.length > 0 && <Purchases groups={item.purchases} />}
       {item.options.length > 1 && !question && (
         <fieldset className="q-choice">
           <legend className="sr-only">O que lançar</legend>
