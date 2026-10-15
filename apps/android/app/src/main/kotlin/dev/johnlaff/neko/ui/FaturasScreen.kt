@@ -202,8 +202,10 @@ private fun parcelText(l: BankLine): String? {
 
 /** The bank writes the parcel into the text too ("LOJA PARC 03/06"); the line already says it. */
 internal fun bankLineName(l: BankLine) = bankText(
-    if (l.installment == null) l.description
-    else l.description.replace(Regex("""\s*(parc(ela)?\.?\s*)?\d{1,2}\s*/\s*\d{1,2}\s*$""", RegexOption.IGNORE_CASE), ""),
+    Format.merchantName(
+        if (l.installment == null) l.description
+        else l.description.replace(Regex("""\s*(parc(ela)?\.?\s*)?\d{1,2}\s*/\s*\d{1,2}\s*$""", RegexOption.IGNORE_CASE), ""),
+    ),
 )
 
 private const val LINES_SHOWN = 8

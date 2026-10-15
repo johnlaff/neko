@@ -54,6 +54,17 @@ object Format {
         }.joinToString(" ")
     }
 
+    private val acquirer = Regex("""^(dl|pg|pag|pags|mp|ifd|ec|pp|paypal|sumup|zp|ebn|ebanx)\s*\*\s*""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Who sold it, as a bank app shows a card line: one space between words, and without the
+     * payment company the charge went through ("DL *UberRides", "MP*MERCADOLIVRE"; web merchantName).
+     */
+    fun merchantName(text: String): String {
+        val spaced = text.trim().replace(Regex("""\s+"""), " ")
+        return spaced.replace(acquirer, "").ifEmpty { spaced }
+    }
+
     /**
      * The usual card's closing, from the API's `closesInDays`, which counts today: 1 is today,
      * 2 tomorrow.
