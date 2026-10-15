@@ -289,7 +289,7 @@ export const queueView = (
           origin:
             item.bank.length === 1 && item.bank[0] ? originKey(item.bank[0].description) : null,
           // The purchases say why the bill went up better than a sentence.
-          note: purchases[0]?.exact ? "" : (closesToNothing(item, ledger) ?? noteOf(item)),
+          note: purchases.length > 0 ? "" : (closesToNothing(item, ledger) ?? noteOf(item)),
           purchases,
         },
       ];
