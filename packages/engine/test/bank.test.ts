@@ -373,6 +373,13 @@ describe("the purchases behind a bill's change", () => {
     expect(linesBehind([], cents(1317))).toBeNull();
   });
 
+  it("counts a later parcel as old, though the bank dates it in this cycle", () => {
+    const parcel = on(1317, "2026-10-20", "LOJA 07/12", { installment: 7, installments: 12 });
+    expect(linesBehind([parcel, ...bill], cents(1317))?.map((l) => l.description)).toEqual([
+      "PADARIA",
+    ]);
+  });
+
   it("puts undated lines, read before the day was kept, last", () => {
     const old = [line(1317, "2026-11", { description: "SEM DATA" }), ...bill];
     expect(linesBehind(old, cents(1317))?.map((l) => l.description)).toEqual(["PADARIA"]);

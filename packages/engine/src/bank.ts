@@ -206,13 +206,17 @@ const NEWEST = 12;
 
 /**
  * The bank's lines behind a change of `gap` on one bill, newest first: the newest lines whose sum
- * is exactly the change, as when the sheet holds the bank's total of an earlier day. First the
+ * is exactly the change, as when the sheet holds the bank's total of an earlier day; parcels after
+ * the first count as oldest. First the
  * newest in a row; else, among the newest `NEWEST`, the fewest (the bank may date a purchase days
  * before it shows it). Null when nothing adds up, as when the bank changed or took off a charge.
  */
 export const linesBehind = (lines: readonly BankCardLine[], gap: Cents): BankCardLine[] | null => {
   if (gap === 0) return null;
+  // A later parcel belongs to an older purchase, though the bank dates it in this cycle (or ahead).
+  const later = (l: BankCardLine) => Number((l.installment ?? 1) > 1);
   const newest = lines.toSorted((a, b) => {
+    if (later(a) !== later(b)) return later(a) - later(b);
     if (!a.date || !b.date) return Number(!a.date) - Number(!b.date);
     return b.date.localeCompare(a.date);
   });
