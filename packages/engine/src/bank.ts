@@ -1,4 +1,10 @@
-import { billOnSheet, type CardConfig, cycleForDueMonth, normalizeName } from "./cards.ts";
+import {
+  billOnSheet,
+  type CardConfig,
+  cycleForDueMonth,
+  isCardItem,
+  normalizeName,
+} from "./cards.ts";
 import { diffDays, type LocalDate } from "./date.ts";
 import { type Column, isForecastItem, type Ledger, type NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
@@ -281,6 +287,37 @@ export const isAutoInvest = (description: string): boolean => AUTO_INVEST.test(d
 
 /** How far apart the bank's date and the sheet's day may be, as in Actual Budget's matching. */
 export const MATCH_DAYS = 7;
+
+/**
+ * What an account moved today that yesterday's Saldo cannot hold yet, so the balance read now
+ * compares with it. The automatic investment is the account's own money. A card bill the bank
+ * debits after its due day (a holiday, a slow posting) is not today's: the sheet took it out on
+ * the due day, so the money set aside for it is already gone from yesterday's Saldo.
+ */
+export const movedToday = (
+  ledger: Ledger,
+  today: LocalDate,
+  movements: readonly Pick<BankMovement, "date" | "amount" | "description">[],
+): Cents => {
+  const billsPaid = ledger
+    .filter((r) => diffDays(r.date, today) >= 1 && diffDays(r.date, today) <= MATCH_DAYS)
+    .map((r) => add(ZERO, ...r.saida.items.filter(isCardItem).map((i) => i.amount)));
+  return add(
+    ZERO,
+    ...movements
+      .filter(
+        (m) =>
+          m.date === today &&
+          !isAutoInvest(m.description) &&
+          !(
+            m.amount < 0 &&
+            BILL_PAYMENT.test(m.description) &&
+            billsPaid.some((b) => b === -m.amount)
+          ),
+      )
+      .map((m) => m.amount),
+  );
+};
 
 /** One line of the sheet a movement can stand for, signed like the movement. */
 export interface SheetLine {
