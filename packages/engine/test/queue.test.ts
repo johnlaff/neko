@@ -379,6 +379,52 @@ describe("Para lançar: card bills", () => {
     });
   });
 
+  it("shows the purchases behind the rise, and a new purchase's parcels once", () => {
+    const [i] = queue({
+      ledger: days,
+      lines: [
+        line("Visa", 41000, "2026-11", { date: d("2026-10-05"), description: "MERCADO" }),
+        line("Visa", 1317, "2026-11", { date: d("2026-10-19"), description: "PADARIA" }),
+        line("Visa", 3000, "2026-11", {
+          date: d("2026-10-18"),
+          description: "LOJA PARC 01/02",
+          installment: 1,
+          installments: 2,
+        }),
+      ],
+    });
+    expect(i?.purchases).toEqual([
+      {
+        due: "2026-11-10",
+        exact: true,
+        lines: [
+          expect.objectContaining({ description: "PADARIA", amount: 1317 }),
+          expect.objectContaining({ description: "LOJA PARC 01/02", installment: 1 }),
+        ],
+      },
+    ]);
+  });
+
+  it("shows the newest on the bill when no lines add up to the rise", () => {
+    const [i] = queue({
+      ledger: days,
+      lines: [
+        line("Visa", 40000, "2026-11", { date: d("2026-10-05"), description: "MERCADO" }),
+        line("Visa", 2000, "2026-11", { date: d("2026-10-19"), description: "PADARIA" }),
+      ],
+    });
+    expect(i?.purchases).toEqual([
+      {
+        due: "2026-11-10",
+        exact: false,
+        lines: [
+          expect.objectContaining({ description: "PADARIA" }),
+          expect.objectContaining({ description: "MERCADO" }),
+        ],
+      },
+    ]);
+  });
+
   it("never counts twice what the sheet already has: it sets the line to the bank's total, once", () => {
     // The sheet holds the parcels and the purchases typed so far; the bank has one more purchase.
     const lines = [

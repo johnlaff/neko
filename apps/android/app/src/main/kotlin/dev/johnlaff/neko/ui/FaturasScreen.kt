@@ -201,7 +201,7 @@ private fun parcelText(l: BankLine): String? {
 }
 
 /** The bank writes the parcel into the text too ("LOJA PARC 03/06"); the line already says it. */
-private fun lineName(l: BankLine) = bankText(
+internal fun bankLineName(l: BankLine) = bankText(
     if (l.installment == null) l.description
     else l.description.replace(Regex("""\s*(parc(ela)?\.?\s*)?\d{1,2}\s*/\s*\d{1,2}\s*$""", RegexOption.IGNORE_CASE), ""),
 )
@@ -229,7 +229,7 @@ private fun BankLines(title: String, lines: List<BankLine>) {
         (if (all) lines else lines.take(LINES_SHOWN)).forEach { x ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text(lineName(x), style = MaterialTheme.typography.bodyMedium)
+                    Text(bankLineName(x), style = MaterialTheme.typography.bodyMedium)
                     (parcelText(x) ?: x.date?.let(::shortDate))?.let {
                         Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium)
                     }

@@ -201,6 +201,46 @@ export const billChecks = (
   return out.sort((a, b) => a.due.localeCompare(b.due) || a.card.localeCompare(b.card));
 };
 
+/** How many of a bill's newest lines are searched for the ones behind a change. */
+const NEWEST = 12;
+
+/**
+ * The bank's lines behind a change of `gap` on one bill, newest first: the newest lines whose sum
+ * is exactly the change, as when the sheet holds the bank's total of an earlier day. First the
+ * newest in a row; else, among the newest `NEWEST`, the fewest (the bank may date a purchase days
+ * before it shows it). Null when nothing adds up, as when the bank changed or took off a charge.
+ */
+export const linesBehind = (lines: readonly BankCardLine[], gap: Cents): BankCardLine[] | null => {
+  if (gap === 0) return null;
+  const newest = lines.toSorted((a, b) => {
+    if (!a.date || !b.date) return Number(!a.date) - Number(!b.date);
+    return b.date.localeCompare(a.date);
+  });
+  let run = 0;
+  for (const [i, l] of newest.entries()) {
+    run += l.amount;
+    if (run === gap) return newest.slice(0, i + 1);
+  }
+  const pool = newest.slice(0, NEWEST);
+  let best: { mask: number; count: number; age: number } | null = null;
+  for (let mask = 1; mask < 1 << pool.length; mask++) {
+    let total = 0;
+    let count = 0;
+    let age = 0;
+    for (const [i, l] of pool.entries())
+      if (mask & (1 << i)) {
+        total += l.amount;
+        count++;
+        age += i;
+      }
+    if (total !== gap) continue;
+    if (!best || count < best.count || (count === best.count && age < best.age))
+      best = { mask, count, age };
+  }
+  const found = best?.mask ?? 0;
+  return found === 0 ? null : pool.filter((_, i) => found & (1 << i));
+};
+
 /** A checking-account movement: positive comes in, negative goes out. */
 export interface BankMovement {
   readonly date: LocalDate;

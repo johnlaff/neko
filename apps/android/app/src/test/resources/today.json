@@ -202,7 +202,8 @@
       ],
       "adjustable": true,
       "origin": "pix feira do bairro",
-      "note": ""
+      "note": "",
+      "purchases": []
     },
     {
       "key": "mov:m3",
@@ -240,7 +241,8 @@
       ],
       "adjustable": true,
       "origin": "pix recebido ana",
-      "note": ""
+      "note": "",
+      "purchases": []
     },
     {
       "key": "previsto:fechar:2026-10-04",
@@ -272,7 +274,8 @@
       "bank": [],
       "adjustable": false,
       "origin": null,
-      "note": "Você não gastou nada nesse dia: o Diário dele fica zerado."
+      "note": "Você não gastou nada nesse dia: o Diário dele fica zerado.",
+      "purchases": []
     },
     {
       "key": "card:cartao azul:2026-11-12=292270",
@@ -312,7 +315,43 @@
       "bank": [],
       "adjustable": false,
       "origin": null,
-      "note": "O banco já tem compras que a planilha não tem."
+      "note": "",
+      "purchases": [
+        {
+          "due": "2026-11-12",
+          "exact": true,
+          "lines": [
+            {
+              "description": "PADARIA DO ZE",
+              "amount": 5290,
+              "date": "2026-10-04",
+              "installment": null,
+              "installments": null
+            },
+            {
+              "description": "FARMACIA CENTRAL",
+              "amount": 1873,
+              "date": "2026-10-04",
+              "installment": null,
+              "installments": null
+            },
+            {
+              "description": "CAFE DA PRACA",
+              "amount": 900,
+              "date": "2026-10-03",
+              "installment": null,
+              "installments": null
+            },
+            {
+              "description": "UBER *TRIP",
+              "amount": 400,
+              "date": "2026-10-03",
+              "installment": null,
+              "installments": null
+            }
+          ]
+        }
+      ]
     },
     {
       "key": "card:cartao verde:2026-11-12=200000",
@@ -400,7 +439,22 @@
       "bank": [],
       "adjustable": false,
       "origin": null,
-      "note": "O banco já tem compras que a planilha não tem."
+      "note": "O banco já tem compras que a planilha não tem.",
+      "purchases": [
+        {
+          "due": "2026-11-12",
+          "exact": false,
+          "lines": [
+            {
+              "description": "LIVRARIA",
+              "amount": 200000,
+              "date": "2026-10-02",
+              "installment": null,
+              "installments": null
+            }
+          ]
+        }
+      ]
     },
     {
       "key": "conta:outra",
@@ -435,7 +489,8 @@
       ],
       "adjustable": false,
       "origin": null,
-      "note": "Dinheiro passou entre suas contas. A conta Banco Verde guarda dinheiro ou é do dia a dia?"
+      "note": "Dinheiro passou entre suas contas. A conta Banco Verde guarda dinheiro ou é do dia a dia?",
+      "purchases": []
     }
   ],
   "ignored": [

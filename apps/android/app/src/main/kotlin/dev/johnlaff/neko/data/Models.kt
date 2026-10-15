@@ -122,7 +122,13 @@ data class QueueItem(
     val adjustable: Boolean = false,
     /** Why the item is there, in one plain sentence. */
     val note: String? = null,
+    /** For a card bill: the purchases behind each change, newest first (shared/queue.ts PurchasesView). */
+    val purchases: List<BillPurchases> = emptyList(),
 )
+
+/** `exact`: these purchases add up to the bill's change; otherwise they are the newest on it. */
+@Serializable
+data class BillPurchases(val due: String, val exact: Boolean, val lines: List<BankLine>)
 
 /** `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. */
 @Serializable

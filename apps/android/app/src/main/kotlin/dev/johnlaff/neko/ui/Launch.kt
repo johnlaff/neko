@@ -85,6 +85,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.ApiException
+import dev.johnlaff.neko.data.BankLine
+import dev.johnlaff.neko.data.BillPurchases
 import dev.johnlaff.neko.data.MiaEntry
 import dev.johnlaff.neko.data.IgnoredItem
 import dev.johnlaff.neko.data.QueueItem
@@ -190,6 +192,64 @@ private fun Change(line: QueueLine, allNew: Boolean) {
         if (was != null || diff != null) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(was.orEmpty(), Modifier.weight(1f), color = l.muted, style = MaterialTheme.typography.bodySmall)
             diff?.let { Text(it, color = l.muted, style = MaterialTheme.typography.bodySmall, maxLines = 1) }
+        }
+    }
+}
+
+/** `15 out · 1/3`: when, and which parcel when it is one (web purchaseWhen). */
+private fun purchaseWhen(p: BankLine): String = listOfNotNull(
+    p.date?.let(::shortDate),
+    if (p.installment != null && p.installments != null) "${p.installment}/${p.installments}" else null,
+).joinToString(" · ")
+
+@Composable
+private fun Purchase(p: BankLine) {
+    val l = LocalLedger.current
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f)) {
+            Text(bankLineName(p), color = l.text, style = MaterialTheme.typography.bodyMedium)
+            purchaseWhen(p).takeIf { it.isNotEmpty() }?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
+        }
+        Text(money(p.amount), color = if (p.amount < 0) l.pos else l.text, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+    }
+}
+
+/**
+ * Why a bill goes up, as the bank lists it: the purchases that add up to the change, newest
+ * first, like a bank app's bill. Past the first three, behind a tap (web Purchases).
+ */
+@Composable
+private fun Purchases(groups: List<BillPurchases>, key: String) {
+    val l = LocalLedger.current
+    var all by rememberSaveable(key) { mutableStateOf(false) }
+    fun head(g: BillPurchases) = when {
+        !g.exact -> "Últimas compras na fatura"
+        groups.size == 1 -> "Compras novas"
+        else -> "Compras novas · fatura de ${shortDate(g.due)}"
+    }
+    // The first three purchases in sight, the rest of each bill behind one tap.
+    var left = 3
+    val split = groups.map { g ->
+        val shown = g.lines.take(left)
+        left -= shown.size
+        Triple(g, shown, g.lines.drop(shown.size))
+    }
+    val hidden = split.sumOf { it.third.size }
+    val block: @Composable (BillPurchases, List<BankLine>, Boolean) -> Unit = { g, rows, titled ->
+        if (rows.isNotEmpty()) {
+            if (titled) Text(head(g), color = l.muted, style = MaterialTheme.typography.labelMedium)
+            rows.forEach { Purchase(it) }
+        }
+    }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        split.forEach { (g, shown, _) -> block(g, shown, true) }
+        if (hidden > 0) {
+            TextAction(if (hidden == 1) "Mais 1 compra" else "Mais $hidden compras", { all = !all }, open = all)
+            Reveal(all) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    split.forEach { (g, shown, rest) -> block(g, rest, shown.isEmpty()) }
+                }
+            }
         }
     }
 }
@@ -587,6 +647,7 @@ private fun QueueRow(item: QueueItem, v: TodayView, launcher: Launcher?, onLaunc
             Text(shortDate(item.date), color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
         item.note?.takeIf { it.isNotBlank() }?.let { Text(it, dim, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
+        if (item.purchases.isNotEmpty()) Box(dim) { Purchases(item.purchases, item.key) }
         if (item.options.size > 1 && !question) Box(dim.semantics { contentDescription = "O que lançar" }) {
             Segments(item.options.map { it.label }, choice, enabled = !busy) { choice = it }
         }
