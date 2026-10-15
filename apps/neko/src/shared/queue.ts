@@ -73,6 +73,8 @@ export interface QueueItemView {
 export interface PurchasesView {
   readonly due: LocalDate;
   readonly exact: boolean;
+  /** What the lines add up to: the bill's change when `exact`. */
+  readonly total: Cents;
   readonly lines: readonly {
     readonly description: string;
     readonly amount: Cents;
@@ -259,6 +261,7 @@ export const queueView = (
       const purchases = (item.purchases ?? []).map((p) => ({
         due: p.due,
         exact: p.exact,
+        total: p.total,
         lines: p.lines.map((l) => ({
           description: l.description,
           amount: l.amount,

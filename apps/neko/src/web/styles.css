@@ -3485,10 +3485,23 @@ details.bank-lines summary {
 /* Why a bill goes up: the bank's purchases, plain ledger rows above what the sheet gets */
 .q-buys {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+}
+/* One line a purchase: the name, its day beside it, the amount at the edge */
+.q-buys .text {
+  display: block;
+}
+.q-buys .text > small {
+  margin-left: 4px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.q-buys ul {
+  gap: 8px;
 }
 .q-buys-head {
   margin: 0;
+  font-variant-numeric: tabular-nums;
   font-size: 0.75rem;
   color: var(--muted);
 }
@@ -3503,9 +3516,6 @@ details.bank-lines summary {
   color: var(--pos);
 }
 /* Opened, the rest follows the summary as the rows above follow each other */
-.q-buys details.formula[open] > summary {
-  margin-bottom: -6px;
-}
 .q-buys details.formula > ul + .q-buys-head {
   margin-top: 10px;
 }

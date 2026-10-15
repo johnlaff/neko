@@ -120,6 +120,8 @@ export interface QueueItem {
 export interface BillPurchases {
   readonly due: LocalDate;
   readonly exact: boolean;
+  /** What the lines add up to: the bill's change when `exact`. */
+  readonly total: Cents;
   readonly lines: readonly BankCardLine[];
 }
 
@@ -538,7 +540,8 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
         shown.add(key);
         return true;
       });
-      return lines.length > 0 ? [{ due: b.due, exact: behind !== null, lines }] : [];
+      const total = add(ZERO, ...lines.map((l) => l.amount));
+      return lines.length > 0 ? [{ due: b.due, exact: behind !== null, total, lines }] : [];
     });
     push({
       // A payback left behind after "Só a fatura" is a new item, not the bill already decided.

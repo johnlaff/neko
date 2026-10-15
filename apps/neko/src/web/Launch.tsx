@@ -220,8 +220,7 @@ const purchaseWhen = (l: Purchase) =>
 const Purchase = ({ line }: { line: Purchase }) => (
   <li>
     <span className="text">
-      {bankLineName(line)}
-      <small>{purchaseWhen(line)}</small>
+      {bankLineName(line)} <small>{purchaseWhen(line)}</small>
     </span>
     <span className={line.amount < 0 ? "amount pos" : "amount"}>{money(line.amount)}</span>
   </li>
@@ -234,10 +233,10 @@ const Purchase = ({ line }: { line: Purchase }) => (
 const Purchases = ({ groups }: { groups: readonly PurchasesView[] }) => {
   const head = (g: PurchasesView) =>
     !g.exact
-      ? "Últimas compras na fatura"
+      ? "Últimas no banco"
       : groups.length === 1
-        ? "Compras novas"
-        : `Compras novas · fatura de ${shortDate(g.due)}`;
+        ? `Compras novas · ${money(g.total)}`
+        : `Compras novas · ${money(g.total)} na fatura de ${shortDate(g.due)}`;
   // The first three purchases in sight, the rest of each bill behind one tap.
   let left = 3;
   const split = groups.map((g) => {

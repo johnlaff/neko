@@ -80,6 +80,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -206,10 +207,19 @@ private fun purchaseWhen(p: BankLine): String = listOfNotNull(
 private fun Purchase(p: BankLine) {
     val l = LocalLedger.current
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.weight(1f)) {
-            Text(bankLineName(p), color = l.text, style = MaterialTheme.typography.bodyMedium)
-            purchaseWhen(p).takeIf { it.isNotEmpty() }?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
-        }
+        // One line a purchase: the name, its day beside it in a quieter tone (web .q-buys).
+        val name = bankLineName(p)
+        val day = purchaseWhen(p)
+        Text(
+            androidx.compose.ui.text.buildAnnotatedString {
+                append(name)
+                if (day.isNotEmpty()) {
+                    append("  ")
+                    withStyle(androidx.compose.ui.text.SpanStyle(color = l.faint, fontSize = MaterialTheme.typography.labelMedium.fontSize)) { append(day.replace(' ', '\u00a0')) }
+                }
+            },
+            Modifier.weight(1f), color = l.text, style = MaterialTheme.typography.bodyMedium,
+        )
         Text(money(p.amount), color = if (p.amount < 0) l.pos else l.text, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
     }
 }
@@ -223,9 +233,9 @@ private fun Purchases(groups: List<BillPurchases>, key: String) {
     val l = LocalLedger.current
     var all by rememberSaveable(key) { mutableStateOf(false) }
     fun head(g: BillPurchases) = when {
-        !g.exact -> "Últimas compras na fatura"
-        groups.size == 1 -> "Compras novas"
-        else -> "Compras novas · fatura de ${shortDate(g.due)}"
+        !g.exact -> "Últimas no banco"
+        groups.size == 1 -> "Compras novas · ${money(g.total)}"
+        else -> "Compras novas · ${money(g.total)} na fatura de ${shortDate(g.due)}"
     }
     // The first three purchases in sight, the rest of each bill behind one tap.
     var left = 3

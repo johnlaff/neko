@@ -128,7 +128,7 @@ data class QueueItem(
 
 /** `exact`: these purchases add up to the bill's change; otherwise they are the newest on it. */
 @Serializable
-data class BillPurchases(val due: String, val exact: Boolean, val lines: List<BankLine>)
+data class BillPurchases(val due: String, val exact: Boolean, val lines: List<BankLine>, val total: Long = 0)
 
 /** `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. */
 @Serializable

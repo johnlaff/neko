@@ -320,6 +320,7 @@
         {
           "due": "2026-11-12",
           "exact": true,
+          "total": 8463,
           "lines": [
             {
               "description": "PADARIA DO ZE",
@@ -444,6 +445,7 @@
         {
           "due": "2026-11-12",
           "exact": false,
+          "total": 200000,
           "lines": [
             {
               "description": "LIVRARIA",

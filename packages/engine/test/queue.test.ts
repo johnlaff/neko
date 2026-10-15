@@ -397,6 +397,7 @@ describe("Para lançar: card bills", () => {
       {
         due: "2026-11-10",
         exact: true,
+        total: 4317,
         lines: [
           expect.objectContaining({ description: "PADARIA", amount: 1317 }),
           expect.objectContaining({ description: "LOJA PARC 01/02", installment: 1 }),
@@ -417,6 +418,7 @@ describe("Para lançar: card bills", () => {
       {
         due: "2026-11-10",
         exact: false,
+        total: 42000,
         lines: [
           expect.objectContaining({ description: "PADARIA" }),
           expect.objectContaining({ description: "MERCADO" }),
