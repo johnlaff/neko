@@ -7,6 +7,7 @@ import {
   cents,
   linesBehind,
   localDate,
+  movedToday,
   unmatchedMovements,
 } from "../src/index.ts";
 import { cell, item, ledger } from "./builders.ts";
@@ -383,5 +384,43 @@ describe("the purchases behind a bill's change", () => {
   it("puts undated lines, read before the day was kept, last", () => {
     const old = [line(1317, "2026-11", { description: "SEM DATA" }), ...bill];
     expect(linesBehind(old, cents(1317))?.map((l) => l.description)).toEqual(["PADARIA"]);
+  });
+});
+
+describe("what moved today, before comparing with yesterday's Saldo", () => {
+  const today = localDate("2026-10-15");
+  // The sheet paid the 5.656,55 bill (two card lines) on its due day, the 12th.
+  const days = ledger("2026-10-01", 20, 0, {
+    "2026-10-12": {
+      saida: cell(565655, [item(361600, "Bradesco João"), item(204055, "Bradesco Gio")]),
+    },
+  });
+  const m = (date: string, amount: number, description: string) => ({
+    date: localDate(date),
+    amount: cents(amount),
+    description,
+  });
+
+  it("counts today's movements and leaves out the automatic investment", () => {
+    expect(
+      movedToday(days, today, [
+        m("2026-10-15", 191, "Rendimentos"),
+        m("2026-10-15", -1733, "RES APLIC AUT MAIS"),
+        m("2026-10-14", 439, "Rendimentos"),
+      ]),
+    ).toBe(191);
+  });
+
+  it("leaves out a card bill the bank debits after the sheet already paid it", () => {
+    // Without this, the money set aside for the bill shows as missing from the sheet.
+    expect(
+      movedToday(days, today, [m("2026-10-15", -565655, "GASTOS CARTAO DE CREDITO - DOCTO: 1")]),
+    ).toBe(0);
+  });
+
+  it("keeps a bill paid today that the sheet takes out today", () => {
+    expect(
+      movedToday(days, today, [m("2026-10-15", -12580, "Pagamento de fatura Cartão de crédito")]),
+    ).toBe(-12580);
   });
 });
