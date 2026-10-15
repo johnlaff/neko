@@ -35,6 +35,15 @@ class FormatTest {
         assertEquals("Fecha em 3 dias", Format.closesIn(4))
     }
 
+    @Test fun merchantName() {
+        assertEquals("UberRides", Format.merchantName("DL      *UberRides"))
+        assertEquals("MERCADOLIVRE", Format.merchantName("MP*MERCADOLIVRE"))
+        assertEquals("NETFLIX", Format.merchantName("PAYPAL *NETFLIX"))
+        // A store's own name before the star stays: only payment companies go.
+        assertEquals("UBER *TRIP", Format.merchantName("UBER  *TRIP"))
+        assertEquals("DL *", Format.merchantName("DL *"))
+    }
+
     @Test fun bankText() {
         // A bank's capitals read as a name, keeping small words and codes; lowercase stays as sent.
         assertEquals("Pix Feira do Bairro", Format.bankText("PIX FEIRA DO BAIRRO"))
