@@ -822,7 +822,7 @@ const Saldo = ({ bank, writing }: { bank: BankView; writing: boolean }) => {
         </div>
       </dl>
       <p className="q-saldo-when">
-        Saldo de {shortDate(s.date)}
+        Conferido até o fim de {shortDate(s.date)}
         {even ? ": bate com o banco." : "."}
       </p>
       {s.stale.length > 0 && (
