@@ -455,6 +455,10 @@ export const Hoje = () => (
       const over = cs !== null && cs.perDay < 0;
       // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
       const month = cs?.mode === "month";
+      // With a ceiling for the cards, the dial is the month's purchases on all of them.
+      const cards = cs?.mode === "cards";
+      const inMonth = month || cards;
+      const monthTitle = monthName(Number(p.today.slice(5, 7)));
       const [shown, rest] = splitDays(groupUpcomingByDay(p.upcoming));
       return (
         <>
@@ -464,7 +468,11 @@ export const Hoje = () => (
                 <section className="panel hero today">
                   <div className="panel-head">
                     <h2>
-                      {month ? `Diário de ${monthName(Number(p.today.slice(5, 7)))}` : cs.card}
+                      {month
+                        ? `Diário de ${monthTitle}`
+                        : cards
+                          ? `Cartões em ${monthTitle}`
+                          : cs.card}
                     </h2>
                     {/* Over the plan, the figure already says so in red, and behind the Diário the line
                     under it says by how much: the chip would repeat either. */}
@@ -495,11 +503,11 @@ export const Hoje = () => (
                       />
                       <span className="caption">
                         {over
-                          ? month
+                          ? inMonth
                             ? "neste mês"
                             : "neste ciclo"
                           : cs.daysLeft === 1
-                            ? month
+                            ? inMonth
                               ? "até o mês acabar, hoje"
                               : "até a fatura fechar, hoje"
                             : "por dia"}
@@ -516,7 +524,7 @@ export const Hoje = () => (
                   {cs.daysLeft > 1 && (
                     <div className="chips">
                       <span className="chip plain">
-                        {month ? "Até" : "Fecha"} {shortDate(cs.closing)} · {days(cs.daysLeft)}
+                        {inMonth ? "Até" : "Fecha"} {shortDate(cs.closing)} · {days(cs.daysLeft)}
                       </span>
                     </div>
                   )}
@@ -525,7 +533,19 @@ export const Hoje = () => (
                       <IconChevron />
                       Como calculei
                     </summary>
-                    {month ? (
+                    {cards ? (
+                      <>
+                        <p>
+                          {money(cs.budget)} de teto para os seus cartões no mês menos{" "}
+                          {money(cs.accumulated)} comprados até ontem, como o banco mostra (compra
+                          parcelada conta inteira), dividido por {days(cs.daysLeft)}.
+                        </p>
+                        <p>
+                          O ponto no arco é o ritmo até ontem: o mês está{" "}
+                          {money(Math.abs(cs.paceGap))} {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
+                        </p>
+                      </>
+                    ) : month ? (
                       <>
                         <p>
                           {money(cs.budget)} de Diário previsto no mês ({money(p.dailyForecast)} por
@@ -543,7 +563,7 @@ export const Hoje = () => (
                           {money(cs.budget)}{" "}
                           {cs.budgetSource === "diario"
                             ? `de diário no ciclo (${money(p.dailyForecast)} por dia, ${dailySourceText(daily.source)})`
-                            : "planejados para o ciclo"}{" "}
+                            : "de teto para o ciclo"}{" "}
                           menos {money(cs.accumulated)} na fatura, dividido por {days(cs.daysLeft)}.
                         </p>
                         <p>
@@ -553,7 +573,9 @@ export const Hoje = () => (
                       </>
                     )}
                   </details>
-                  <Hint id="hoje">{month ? HINTS.hojeMes : HINTS.hoje}</Hint>
+                  <Hint id="hoje">
+                    {month ? HINTS.hojeMes : cards ? HINTS.hojeCartoes : HINTS.hoje}
+                  </Hint>
                 </section>
               ) : (
                 <section className="page-head empty-cards">

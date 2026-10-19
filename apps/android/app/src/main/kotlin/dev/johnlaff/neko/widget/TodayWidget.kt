@@ -70,17 +70,20 @@ fun widgetText(v: TodayView?): WidgetText {
     val week = h?.week.orEmpty().map { it.state }
     // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
     val month = cs?.mode == "month"
-    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos" else "do plano"}" }
+    // With a ceiling for the cards, it is the month's purchases on all of them against it.
+    val cards = cs?.mode == "cards"
+    val inMonth = month || cards
+    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos" else if (cards) "do teto" else "do plano"}" }
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
-        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else "Passou do plano", Format.money(cs.overBy), if (month) "neste mês" else cs.card, true, bill, billDetail, days)
+        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else "Passou do plano", Format.money(cs.overBy), if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
         else -> WidgetText(
             "Hoje cabem",
             Format.money(cs.perDay),
             when {
-                cs.daysLeft > 1 -> "por dia · ${if (month) "até" else "fecha"} ${Format.shortDate(cs.closing)}"
-                month -> "até o mês acabar, hoje"
+                cs.daysLeft > 1 -> "por dia · ${if (inMonth) "até" else "fecha"} ${Format.shortDate(cs.closing)}"
+                inMonth -> "até o mês acabar, hoje"
                 else -> "até a fatura fechar, hoje"
             },
             false,
@@ -88,7 +91,7 @@ fun widgetText(v: TodayView?): WidgetText {
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else "Fatura")
+    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else if (cards) "Cartões no mês" else "Fatura")
 }
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */

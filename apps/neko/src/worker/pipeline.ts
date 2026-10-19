@@ -38,7 +38,7 @@ import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./go
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "63";
+const PIPELINE_VERSION = "64";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -176,6 +176,7 @@ export const buildResponse = (
     savedOrigins: new Set(settings.savedOrigins),
   };
   const on = settings.previstoSince !== null && dailyForecast > 0;
+  const monthStart = localDate(`${today.slice(0, 8)}01`);
   const suggestion = spend && suggestDaily(spend);
   const projection = project(ledger, today, {
     dailyForecast,
@@ -187,9 +188,10 @@ export const buildResponse = (
       on && spend
         ? {
             value: dailyForecast,
-            spent: variableSpend(spend, localDate(`${today.slice(0, 8)}01`), today).total,
+            spent: variableSpend(spend, monthStart, today).total,
           }
         : null,
+    cardsSpent: spend ? variableSpend(spend, monthStart, today).cards : null,
   });
   return {
     projection,
