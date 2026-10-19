@@ -1,5 +1,6 @@
 import {
-  cardsMonthSpend,
+  addDays,
+  cardsBillSpend,
   cents,
   type DailySuggestion,
   editDay,
@@ -16,7 +17,6 @@ import {
   project,
   REVIEW_MONTHS,
   type SpendInput,
-  subscriptions,
   suggestDaily,
   variableSpend,
 } from "@neko/engine";
@@ -40,7 +40,7 @@ import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./go
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "65";
+const PIPELINE_VERSION = "66";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -193,13 +193,12 @@ export const buildResponse = (
             spent: variableSpend(spend, monthStart, today).total,
           }
         : null,
+    // The bills due next month: a week after the 28th is always in it.
     cardsSpent: spend
-      ? cardsMonthSpend(
+      ? cardsBillSpend(
           spend.lines,
-          monthStart,
-          today,
+          addDays(localDate(`${today.slice(0, 8)}28`), 7).slice(0, 7),
           settings.othersCards,
-          subscriptions(spend.lines, today, settings.othersCards).items,
         )
       : null,
   });

@@ -54,18 +54,19 @@ describe("reminders", () => {
     expect(withHabit({ milestone: null, record: null, editedToday: false })).not.toMatch(/Ontem/);
   });
 
-  it("morning: with a ceiling for the cards, what still fits this month and the mark already used", () => {
+  it("morning: with a ceiling for the bills, what still fits on next month's and the mark already used", () => {
     const cards = (accumulated: number, used: number, left: number, overBy = 0) =>
       morningMessage(
         response({
           canSpend: {
             mode: "cards",
             card: "",
-            budget: 2000_00,
+            budget: 3500_00,
             accumulated,
             daysLeft: 13,
             perDay: 0,
             closing: "2026-10-31",
+            due: "2026-11-30",
             left,
             used,
             overBy,
@@ -73,17 +74,15 @@ describe("reminders", () => {
           upcoming: [],
         } as never),
       );
-    expect(cards(600_00, 0, 1400_00)).toMatchObject({
-      title: "Ainda cabem R$ 1.400,00 nos cartões",
-      body: "Até o fim do mês, faltam 13 dias.",
+    expect(cards(1000_00, 0, 2500_00)).toMatchObject({
+      title: "Ainda cabem R$ 2.500,00 nas faturas de novembro",
+      body: "Teto de R$ 3.500,00.",
     });
-    expect(cards(1500_00, 75, 500_00)?.body).toBe(
-      "Até o fim do mês, faltam 13 dias. Você já usou 75% do teto de R$ 2.000,00.",
-    );
-    expect(cards(1000_00, 50, 1000_00)?.body).toMatch(/Você já usou metade do teto/);
-    expect(cards(2000_00, 100, 0)?.title).toBe("Os cartões chegaram ao teto do mês");
-    expect(cards(2100_00, 100, 0, 100_00)?.title).toBe(
-      "Os cartões passaram R$ 100,00 do teto do mês",
+    expect(cards(2700_00, 75, 800_00)?.body).toBe("Você já usou 75% do teto de R$ 3.500,00.");
+    expect(cards(1800_00, 50, 1700_00)?.body).toMatch(/Você já usou metade do teto/);
+    expect(cards(3500_00, 100, 0)?.title).toBe("As faturas de novembro chegaram ao teto");
+    expect(cards(3600_00, 100, 0, 100_00)?.title).toBe(
+      "As faturas de novembro passaram R$ 100,00 do teto",
     );
   });
 

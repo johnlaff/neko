@@ -19,6 +19,20 @@ export interface Reminder {
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const shortDate = (iso: string) =>
   `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]}`;
+const FULL_MONTHS = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
 const days = (n: number) => (n === 1 ? "1 dia" : `${n} dias`);
 /** Only the balance going red earns a line in the push; the rest waits in the app. */
 const redDay = (p: ProjectionResponse["projection"]) => {
@@ -138,29 +152,24 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
   }
   // With a ceiling for the cards: what still fits this month, and the mark of it already used.
   if (cs.mode === "cards") {
-    const left =
-      cs.daysLeft === 1 ? "O mês acaba hoje." : `Até o fim do mês, faltam ${days(cs.daysLeft)}.`;
+    const bills = `faturas de ${FULL_MONTHS[Number(cs.due.slice(5, 7)) - 1]}`;
     const used =
       cs.used === 75 || cs.used === 50
-        ? ` Você já usou ${cs.used === 75 ? "75%" : "metade"} do teto de ${money(cs.budget)}.`
-        : "";
+        ? `Você já usou ${cs.used === 75 ? "75%" : "metade"} do teto de ${money(cs.budget)}.`
+        : `Teto de ${money(cs.budget)}.`;
+    const body = (start: string) => `${start}${rest}`.trim();
     return cs.overBy > 0
       ? {
-          title: `Os cartões passaram ${money(cs.overBy)} do teto do mês`,
-          body: `${left}${rest}`,
+          title: `As ${bills} passaram ${money(cs.overBy)} do teto`,
+          body: body(used),
           url: "/",
           tag: "morning",
         }
       : cs.used === 100
-        ? {
-            title: "Os cartões chegaram ao teto do mês",
-            body: `${left}${rest}`,
-            url: "/",
-            tag: "morning",
-          }
+        ? { title: `As ${bills} chegaram ao teto`, body: body(used), url: "/", tag: "morning" }
         : {
-            title: `Ainda cabem ${money(cs.left ?? ZERO)} nos cartões`,
-            body: `${left}${used}${rest}`,
+            title: `Ainda cabem ${money(cs.left ?? ZERO)} nas ${bills}`,
+            body: body(used),
             url: "/",
             tag: "morning",
           };
