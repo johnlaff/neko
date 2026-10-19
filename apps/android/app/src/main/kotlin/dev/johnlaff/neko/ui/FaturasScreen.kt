@@ -80,7 +80,7 @@ fun FaturasScreen(
         item { MonthsPanel(v, month, onHoje) { picked = it } }
         column()
         item { CardsPanel(month, v.today, Owners(v.people, onOwner, ownerFailed)) { picked = it } }
-        if (month.owed.isNotEmpty()) item { OwedPanel(month) }
+        if (month.owed.isNotEmpty()) item { OwedPanel(month, Owners(v.people, onOwner, ownerFailed)) }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
         v.subscriptions?.let { item { SubscriptionsPanel(it, onCancel) } }
     }
@@ -331,20 +331,20 @@ private fun OwnerPick(line: BankLine, key: String, owners: Owners) {
 
 /** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
 @Composable
-private fun OwedPanel(m: InvoiceMonth) {
+private fun OwedPanel(m: InvoiceMonth, owners: Owners) {
     val l = LocalLedger.current
     Panel {
         PanelHead("A receber") {
             Text("Faturas de ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        m.owed.forEach { o -> key(o.person) { OwedLine(o) } }
+        m.owed.forEach { o -> key(o.person) { OwedLine(o, owners) } }
         Text("Fica fora do teto das faturas. Quando pagarem, lance como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
     }
 }
 
 /** One person: what they owe on the month's bills, opening into each purchase (as on the site). */
 @Composable
-private fun OwedLine(o: Owed) {
+private fun OwedLine(o: Owed, owners: Owners) {
     val l = LocalLedger.current
     var open by rememberSaveable(o.person) { mutableStateOf(false) }
     Column {
@@ -360,22 +360,33 @@ private fun OwedLine(o: Owed) {
             open = open,
         )
         Reveal(open) {
-            Column(Modifier.padding(start = 48.dp, top = 8.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(start = 48.dp, top = 8.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 o.items.forEach { i ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text(bankLineName(BankLine(i.description, i.amount, installment = i.installment)), style = MaterialTheme.typography.bodyMedium)
-                            Text(i.card + (i.due?.let { " · fatura vence ${shortDate(it)}" } ?: ""), color = l.faint, style = MaterialTheme.typography.labelMedium)
-                            i.date?.let { Text("Compra de ${shortDate(it)}", color = l.faint, style = MaterialTheme.typography.labelMedium) }
-                            val n = i.installment
-                            val total = i.installments
-                            if (n != null && total != null && total > 1) Text(
-                                "Parcela $n de $total · " + if (i.later > 0) "faltam ${money(i.later)}" else "última",
-                                color = l.faint,
-                                style = MaterialTheme.typography.labelMedium,
-                            )
+                    // A tap opens the same "De quem é?" as on the bill, to fix a mark from here.
+                    var picking by remember(i) { mutableStateOf(false) }
+                    val parcel = i.installment?.let { k -> i.installments?.takeIf { it > 1 }?.let { t -> "parcela $k de $t · " + if (i.later > 0) "faltam ${money(i.later)}" else "última" } }
+                    val whenText = listOfNotNull(i.date?.let(::shortDate), parcel).joinToString(" · ")
+                    Column {
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .background(if (picking) l.surface2 else androidx.compose.ui.graphics.Color.Transparent, RoundedCornerShape(8.dp))
+                                .clickable(onClickLabel = "marcar de quem é") { picking = !picking }
+                                .heightIn(min = 44.dp)
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(bankLineName(BankLine(i.description, i.amount, installment = i.installment)), style = MaterialTheme.typography.bodyMedium)
+                                Text(i.card + (i.due?.let { " · vence ${shortDate(it)}" } ?: ""), color = l.faint, style = MaterialTheme.typography.labelMedium)
+                                if (whenText.isNotEmpty()) Text(capitalize(whenText), color = l.faint, style = MaterialTheme.typography.labelMedium)
+                            }
+                            Text(money(i.amount), style = MaterialTheme.typography.bodyMedium)
                         }
-                        Text(money(i.amount), style = MaterialTheme.typography.bodyMedium)
+                        if (picking && i.key.isNotEmpty()) OwnerPick(
+                            BankLine(i.description, i.amount, i.date, i.installment, i.installments, i.key, o.person),
+                            i.key,
+                            owners,
+                        )
                     }
                 }
             }

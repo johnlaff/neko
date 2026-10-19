@@ -230,31 +230,65 @@ const BankLines = ({
 };
 
 /** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
-/** Where someone else's purchase is: the card and its bill, the day bought and the parcels left. */
-const OwedItemLine = ({ i }: { i: OwedView["items"][number] }) => {
+/**
+ * Where someone else's purchase is: the card and its bill's due day, the day bought and the parcels
+ * left. A tap opens the same "De quem é?" as on the bill, to fix a mark from here.
+ */
+const OwedItemLine = ({
+  i,
+  person,
+  people,
+}: {
+  i: OwedView["items"][number];
+  person: string;
+  people: readonly string[];
+}) => {
+  const [picking, setPicking] = useState(false);
   const parcel =
     i.installment !== null && i.installments !== null && i.installments > 1
-      ? `Parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · faltam ${money(i.later)}` : " · última"}`
+      ? `parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · faltam ${money(i.later)}` : " · última"}`
       : null;
-  const bought = i.date ? `Compra de ${shortDate(i.date)}` : null;
+  const when = [i.date ? shortDate(i.date) : null, parcel].filter(Boolean).join(" · ");
   return (
     <li>
-      <span className="text">
-        {bankLineName(i)}
-        <small>
-          {i.card}
-          {i.due ? ` · fatura vence ${shortDate(i.due)}` : ""}
-        </small>
-        {bought && <small>{bought}</small>}
-        {parcel && <small>{parcel}</small>}
-      </span>
-      <span className="amount">{money(i.amount)}</span>
+      <button
+        type="button"
+        className="line-pick"
+        aria-expanded={picking}
+        aria-label={`${bankLineName(i)}, ${money(i.amount)}, de ${person}: marcar de quem é`}
+        onClick={() => setPicking(!picking)}
+      >
+        <span className="text">
+          {bankLineName(i)}
+          <small>
+            {i.card}
+            {i.due ? ` · vence ${shortDate(i.due)}` : ""}
+          </small>
+          {when && <small>{capitalize(when)}</small>}
+        </span>
+        <span className="amount">{money(i.amount)}</span>
+      </button>
+      {picking && (
+        <OwnerPick
+          line={{
+            description: i.description,
+            amount: i.amount,
+            date: i.date,
+            installment: i.installment,
+            installments: i.installments,
+            key: i.key,
+            person,
+          }}
+          people={people}
+          onDone={() => setPicking(false)}
+        />
+      )}
     </li>
   );
 };
 
 /** One person: what they owe on the month's bills, opening into each purchase. */
-const OwedLine = ({ o }: { o: OwedView }) => {
+const OwedLine = ({ o, people }: { o: OwedView; people: readonly string[] }) => {
   const [open, setOpen] = useState(false);
   return (
     <li className={`bill invoice${open ? " open" : ""}`}>
@@ -282,9 +316,13 @@ const OwedLine = ({ o }: { o: OwedView }) => {
       {open && (
         <div className="invoice-detail bank-lines owed-detail">
           <ul>
-            {o.items.map((i, n) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: two equal purchases share every field.
-              <OwedItemLine key={`${i.card}-${i.description}-${n}`} i={i} />
+            {o.items.map((i) => (
+              <OwedItemLine
+                key={`${i.key}|${i.card}|${i.description}|${i.date}`}
+                i={i}
+                person={o.person}
+                people={people}
+              />
             ))}
           </ul>
         </div>
@@ -294,7 +332,7 @@ const OwedLine = ({ o }: { o: OwedView }) => {
 };
 
 /** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
-const Owed = ({ m }: { m: InvoiceMonthView }) => (
+const Owed = ({ m, people }: { m: InvoiceMonthView; people: readonly string[] }) => (
   <section className="panel">
     <div className="panel-head">
       <h2>A receber</h2>
@@ -302,7 +340,7 @@ const Owed = ({ m }: { m: InvoiceMonthView }) => (
     </div>
     <ul className="rows lead invoices owed">
       {m.owed.map((o) => (
-        <OwedLine key={o.person} o={o} />
+        <OwedLine key={o.person} o={o} people={people} />
       ))}
     </ul>
     <p className="hint">Fica fora do teto das faturas. Quando pagarem, lance como Entrada.</p>
@@ -631,7 +669,7 @@ export const Faturas = () => {
                   )}
                 </section>
               ),
-              owed: m.owed.length > 0 && <Owed m={m} />,
+              owed: m.owed.length > 0 && <Owed m={m} people={v.people} />,
               buy: best && (
                 <section className="panel">
                   <div className="panel-head">

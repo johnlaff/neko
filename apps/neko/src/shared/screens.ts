@@ -90,6 +90,8 @@ export interface InvoiceRow {
 export interface OwedView extends Omit<Owed, "items"> {
   readonly items: readonly (Omit<Owed["items"][number], "date"> & {
     readonly date: string | null;
+    /** Its mark (see engine `ownerKey`), to change whose it is from here. */
+    readonly key: string;
     /** The due day of the bill it is on; null when the bank has no bill for its card. */
     readonly due: string | null;
   })[];
@@ -282,6 +284,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
           items: o.items.map((i) => ({
             ...i,
             date: i.date ?? null,
+            key: ownerKey({ ...i, billMonth: m.month }) ?? "",
             due: mine.find((c) => normalizeName(c.card) === normalizeName(i.card))?.due ?? null,
           })),
         })),
