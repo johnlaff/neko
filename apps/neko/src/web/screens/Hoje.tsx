@@ -538,8 +538,8 @@ export const Hoje = () => (
                         <p>
                           {money(cs.budget)} de teto para os seus cartões no mês menos{" "}
                           {money(cs.accumulated)} comprados até ontem, como o banco mostra, dividido
-                          por {days(cs.daysLeft)}. Compra parcelada conta a parcela do mês;
-                          assinaturas ficam de fora.
+                          por {days(cs.daysLeft)}. Compra parcelada feita no mês conta só a 1ª
+                          parcela; assinaturas ficam de fora.
                         </p>
                         <p>
                           O ponto no arco é o ritmo até ontem: o mês está{" "}

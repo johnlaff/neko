@@ -32,8 +32,8 @@ export interface Settings {
    */
   readonly cycleBudget: Cents | null;
   /**
-   * What the bank shows bought this month before today on the owner's cards, a purchase in parcels
-   * at its full value. Null without a bank.
+   * What the bank shows bought this month before today on the owner's cards, without
+   * subscriptions; a purchase in parcels made this month counts its first parcel. Null without a bank.
    */
   readonly cardsSpent?: Cents | null;
   readonly cards: readonly CardConfig[];

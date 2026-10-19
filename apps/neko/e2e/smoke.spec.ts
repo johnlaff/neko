@@ -344,10 +344,16 @@ test("with a ceiling for the cards, Hoje paces the month on all of them", async 
     card: "",
     budget: 250_000,
     budgetSource: "configured",
-    accumulated: 200_000,
-    perDay: 5_555,
-    paceExpected: 45_161,
-    paceGap: -154_839,
+    // Today is Oct 5 of 31 days: (2.500 − 600) ÷ 27 days, pace 2.500 × 4 ÷ 31, as the engine does.
+    accumulated: 60_000,
+    daysLeft: 27,
+    perDay: 7_037,
+    closing: "2026-10-31",
+    due: "2026-10-31",
+    cycleDays: 31,
+    paceExpected: 32_258,
+    paceGap: -27_742,
+    overBy: 0,
     daysBehind: 0,
   };
   const errors = await open(page, "/", JSON.stringify(data));
