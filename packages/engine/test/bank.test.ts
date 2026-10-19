@@ -104,6 +104,23 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     ]);
   });
 
+  it("carries the later parcel's value ahead, not the first one's rounding", () => {
+    // The bank puts the rounding on parcel 1 (41,80); parcels 2 on are 41,70.
+    const checks = billChecks(
+      days,
+      [visa],
+      [
+        line(4180, "2026-10", { installment: 1, installments: 12 }),
+        line(4170, "2026-11", { installment: 2, installments: 12 }),
+      ],
+      today,
+    );
+    expect(checks.map((c) => [c.due, c.parcels])).toEqual([
+      ["2026-11-10", 4170],
+      ["2026-12-10", 4170],
+    ]);
+  });
+
   it("counts a closed bill by its total, even when the bank listed only part of it", () => {
     const checks = billChecks(
       days,

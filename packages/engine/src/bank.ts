@@ -102,7 +102,9 @@ const samePurchase = (a: BankCardLine, b: BankCardLine): boolean => {
  */
 const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
   const out = [...lines];
-  for (const l of lines) {
+  // The latest parcel first: the first one carries the bank's rounding, the later ones don't.
+  const latestFirst = [...lines].sort((a, b) => (b.installment ?? 0) - (a.installment ?? 0));
+  for (const l of latestFirst) {
     const { installment: n, installments: total } = l;
     if (n === null || total === null || n >= total) continue;
     // The bill already lists the last parcel too: the bank put the whole plan on this bill.
