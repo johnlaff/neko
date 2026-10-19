@@ -568,7 +568,8 @@ export const Hoje = () => (
                         <p>
                           {money(cs.budget)} de teto para as faturas de {billsTitle} dos seus
                           cartões menos {money(cs.accumulated)} que o banco já mostra nelas:
-                          compras, parcelas e assinaturas. O cartão de outra pessoa fica de fora.
+                          compras, parcelas e assinaturas. O cartão e as compras de outra pessoa
+                          ficam de fora.
                         </p>
                       </>
                     ) : month ? (

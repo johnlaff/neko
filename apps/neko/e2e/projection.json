@@ -12199,7 +12199,13 @@
       ],
       "total": 13980,
       "toCancel": 3990
-    }
+    },
+    "owners": [
+      {
+        "key": "cartao azul|foneparc|12990|3x",
+        "person": "Bia"
+      }
+    ]
   },
   "previsto": {
     "on": true,

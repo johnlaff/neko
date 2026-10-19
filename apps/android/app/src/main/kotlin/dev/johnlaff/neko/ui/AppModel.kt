@@ -224,6 +224,12 @@ class AppModel(
         read(Tab.Faturas, shown = false, after = true)
     }
 
+    /** Faturas › De quem é: a purchase marked as someone else's, then the screen read again. */
+    fun markOwner(key: String, person: String?) = change("owners") {
+        neko.api.markOwner(key, person)
+        read(Tab.Faturas, shown = false, after = true)
+    }
+
     fun endOtherSessions() = change("devices") {
         neko.api.endOtherSessions()
         _devices.value = neko.api.sessions()

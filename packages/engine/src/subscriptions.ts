@@ -2,6 +2,7 @@ import { type BankCardLine, isCardPayment } from "./bank.ts";
 import { normalizeName } from "./cards.ts";
 import { diffDays, type LocalDate } from "./date.ts";
 import { add, type Cents, cents, ZERO } from "./money.ts";
+import { type OwnerMark, ownerOf, storeOf } from "./owners.ts";
 
 /**
  * Subscriptions, from the bank's card lines: a charge of the very same value that comes back
@@ -41,12 +42,6 @@ const GAP_MIN = 26;
 const GAP_MAX = 35;
 /** Tax and late fees come back each month too, but there is nothing to cancel. */
 const FEE = /\biof\b|\bmulta\b|\bjuros\b|\bencargo/i;
-/** The payment company before the store ("EBN*SPOTIFY"), as the screens drop it. */
-const ACQUIRER = /^\s*(dl|pg|pag|pags|mp|ifd|ec|pp|paypal|sumup|zp|ebn|ebanx)\s*\*\s*/i;
-
-const store = (description: string) =>
-  normalizeName(description.replace(ACQUIRER, "")).replace(/[^\p{L}]+/gu, "");
-
 export const subscriptions = (
   lines: readonly BankCardLine[],
   today: LocalDate,
@@ -58,7 +53,7 @@ export const subscriptions = (
     if (!l.date || l.amount <= 0 || (l.installments ?? 1) > 1 || FEE.test(l.description)) continue;
     const age = diffDays(l.date, today);
     if (age < 0 || age > WINDOW_DAYS || others.has(normalizeName(l.card))) continue;
-    const s = store(l.description);
+    const s = storeOf(l.description);
     if (!s) continue;
     byStore.set(s, [...(byStore.get(s) ?? []), { ...l, date: l.date }]);
   }
@@ -106,18 +101,24 @@ export const subscriptions = (
 
 /**
  * What the bank already puts on the owner's bills due in a month (specs/006-sobrar), for the
- * ceiling: purchases, parcels and subscriptions alike, as the bills will show them. Card payments
- * and someone else's cards stay out.
+ * ceiling: purchases, parcels and subscriptions alike, as the bills will show them. Card payments,
+ * someone else's cards and the purchases marked as someone else's (`marks`) stay out.
  */
 export const cardsBillSpend = (
   lines: readonly BankCardLine[],
   billMonth: string,
   othersCards: readonly string[],
+  marks: readonly OwnerMark[] = [],
 ): Cents => {
   const others = new Set(othersCards.map(normalizeName));
   let total = 0;
   for (const l of lines) {
-    if (l.billMonth !== billMonth || others.has(normalizeName(l.card)) || isCardPayment(l))
+    if (
+      l.billMonth !== billMonth ||
+      others.has(normalizeName(l.card)) ||
+      isCardPayment(l) ||
+      ownerOf(l, marks) !== null
+    )
       continue;
     total += l.amount;
   }

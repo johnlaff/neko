@@ -40,7 +40,7 @@ import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./go
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "66";
+const PIPELINE_VERSION = "67";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -199,6 +199,7 @@ export const buildResponse = (
           spend.lines,
           addDays(localDate(`${today.slice(0, 8)}28`), 7).slice(0, 7),
           settings.othersCards,
+          settings.owners,
         )
       : null,
   });

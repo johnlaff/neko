@@ -104,7 +104,8 @@
           ]
         }
       ],
-      "bank": null
+      "bank": null,
+      "owed": []
     },
     {
       "key": "2026-06",
@@ -207,7 +208,8 @@
           ]
         }
       ],
-      "bank": null
+      "bank": null,
+      "owed": []
     },
     {
       "key": "2026-07",
@@ -310,7 +312,8 @@
           ]
         }
       ],
-      "bank": null
+      "bank": null,
+      "owed": []
     },
     {
       "key": "2026-08",
@@ -413,7 +416,8 @@
           ]
         }
       ],
-      "bank": null
+      "bank": null,
+      "owed": []
     },
     {
       "key": "2026-09",
@@ -516,7 +520,8 @@
           ]
         }
       ],
-      "bank": null
+      "bank": null,
+      "owed": []
     },
     {
       "key": "2026-10",
@@ -619,7 +624,8 @@
           ]
         }
       ],
-      "bank": null
+      "bank": null,
+      "owed": []
     },
     {
       "key": "2026-11",
@@ -650,21 +656,27 @@
                 "amount": 30000,
                 "date": "2026-10-02",
                 "installment": null,
-                "installments": null
+                "installments": null,
+                "key": "cartao azul|comprasdociclo|30000|2026-10-02",
+                "person": null
               },
               {
                 "description": "LOJA DE MÓVEIS PARC 03/06",
                 "amount": 45000,
                 "date": "2026-10-02",
                 "installment": 3,
-                "installments": 6
+                "installments": 6,
+                "key": "cartao azul|lojademoveisparc|45000|6x",
+                "person": null
               },
               {
                 "description": "FONE PARC 01/03",
                 "amount": 12990,
                 "date": "2026-10-02",
                 "installment": 1,
-                "installments": 3
+                "installments": 3,
+                "key": "cartao azul|foneparc|12990|3x",
+                "person": "Bia"
               }
             ]
           },
@@ -756,7 +768,15 @@
         "disagree": 0,
         "parcels": 57990,
         "fresh": 30000
-      }
+      },
+      "owed": [
+        {
+          "person": "Bia",
+          "total": 12990,
+          "later": 25980,
+          "lines": 1
+        }
+      ]
     },
     {
       "key": "2026-12",
@@ -787,14 +807,18 @@
                 "amount": 45000,
                 "date": "2026-10-02",
                 "installment": 4,
-                "installments": 6
+                "installments": 6,
+                "key": "cartao azul|lojademoveisparc|45000|6x",
+                "person": null
               },
               {
                 "description": "FONE PARC 01/03",
                 "amount": 12990,
                 "date": "2026-10-02",
                 "installment": 2,
-                "installments": 3
+                "installments": 3,
+                "key": "cartao azul|foneparc|12990|3x",
+                "person": "Bia"
               }
             ]
           },
@@ -886,7 +910,15 @@
         "disagree": 0,
         "parcels": 57990,
         "fresh": 0
-      }
+      },
+      "owed": [
+        {
+          "person": "Bia",
+          "total": 12990,
+          "later": 12990,
+          "lines": 1
+        }
+      ]
     }
   ],
   "current": "2026-10",
@@ -920,5 +952,8 @@
     ],
     "total": 13980,
     "toCancel": 3990
-  }
+  },
+  "people": [
+    "Bia"
+  ]
 }

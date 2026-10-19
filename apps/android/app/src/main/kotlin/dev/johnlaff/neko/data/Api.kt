@@ -148,6 +148,14 @@ class Api(
         }.asBody(), "PUT")
     }
 
+    /** Marks a purchase on your card as someone else's, or as yours again (person null). */
+    suspend fun markOwner(key: String, person: String?) {
+        call("/banks/owner", buildJsonObject {
+            put("key", key)
+            put("person", person)
+        }.asBody(), "PUT")
+    }
+
     suspend fun accountUse(account: String, use: String) {
         call("/queue/account", buildJsonObject {
             put("account", account)

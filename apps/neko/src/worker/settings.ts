@@ -32,10 +32,10 @@ export const settingsHash = async ({ reviewed: _, ...s }: UserSettings): Promise
 };
 
 /**
- * Fields set elsewhere than the Ajustes form (Ajustes › Bancos, Para lançar, Assinaturas): a settings body that
+ * Fields set elsewhere than the Ajustes form (Ajustes › Bancos, Para lançar, Assinaturas, De quem é): a settings body that
  * does not send them (Ajustes itself, or an older app) keeps the ones saved.
  */
-const KEPT = ["bankCards", "accountUse", "savedOrigins", "writing", "cancel"] as const;
+const KEPT = ["bankCards", "accountUse", "savedOrigins", "writing", "cancel", "owners"] as const;
 
 export const keepBankCards = (body: unknown, current: UserSettings): UserSettings => {
   const b = z.record(z.string(), z.unknown()).parse(body);

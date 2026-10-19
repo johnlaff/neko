@@ -17,6 +17,7 @@ import {
   localDate,
   mergeCards,
   type NoteItem,
+  ownerKey,
   parts,
   project,
   saldoCheck,
@@ -234,6 +235,8 @@ const bank = {
   checks: billChecks(rows, cards, lines, TODAY),
   missing: unmatchedMovements(rows, movements, TODAY),
   subscriptions: subscriptionsView(),
+  // The earphones are an invented friend's: they leave the ceiling and show up as to receive.
+  owners: [{ key: ownerKey(lines[2] as (typeof lines)[number]) ?? "", person: "Bia" }],
 };
 
 const response: ProjectionResponse = {
