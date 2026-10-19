@@ -330,6 +330,17 @@ app.put("/banks/cards", async (c) => {
   return c.json({ ok: true });
 });
 
+/** Marks a subscription to cancel, or takes the mark off: the method's tag to cancel them all at once. */
+app.put("/banks/cancel", async (c) => {
+  const { key, on } = z
+    .object({ key: z.string().min(1).max(120), on: z.boolean() })
+    .parse(await c.req.json());
+  const settings = await loadSettings(c.env.DB);
+  const rest = settings.cancel.filter((k) => k !== key);
+  await saveSettings(c.env.DB, { ...settings, cancel: on ? [...rest, key].slice(-100) : rest });
+  return c.json({ ok: true });
+});
+
 /** Replaces the list of linked banks, drops what was read from removed ones and reads the rest. */
 app.put("/banks", async (c) => {
   const { items } = BankItems.parse(await c.req.json());

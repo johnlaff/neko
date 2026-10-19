@@ -20,10 +20,32 @@ data class InvoicesView(
     val buyToday: List<BuyGroup> = emptyList(),
     /** Last bank read; null with no bank linked. */
     val bank: BankRead? = null,
+    /** Monthly charges found on the bank, with the marks to cancel; null with none. */
+    val subscriptions: Subscriptions? = null,
 )
 
 @Serializable
 data class BankRead(val syncedAt: String? = null)
+
+/** Charges of the same value back each month on the owner's cards (shared/types.ts SubscriptionsView). */
+@Serializable
+data class Subscriptions(
+    val items: List<Subscription> = emptyList(),
+    val total: Long = 0,
+    val toCancel: Long = 0,
+)
+
+@Serializable
+data class Subscription(
+    val key: String,
+    val description: String,
+    val card: String,
+    val amount: Long,
+    val last: String,
+    val charges: Int,
+    val twin: Boolean = false,
+    val cancel: Boolean = false,
+)
 
 /** Every card due in one month (shared/screens.ts InvoiceMonthView). */
 @Serializable

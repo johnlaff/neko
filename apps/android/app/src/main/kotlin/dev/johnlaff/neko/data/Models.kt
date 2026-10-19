@@ -246,6 +246,8 @@ data class Insight(
     val until: String? = null,
     val year: Int? = null,
     val month: Int? = null,
+    /** Bills and card bills over the month's own income, in percent. */
+    val share: Int? = null,
 )
 
 @Serializable

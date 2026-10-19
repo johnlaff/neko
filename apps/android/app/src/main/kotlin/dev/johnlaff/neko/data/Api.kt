@@ -140,6 +140,14 @@ class Api(
         call("/queue/unignore", buildJsonObject { put("key", key) }.asBody())
     }
 
+    /** Marks a subscription to cancel, or takes the mark off. */
+    suspend fun markCancel(key: String, on: Boolean) {
+        call("/banks/cancel", buildJsonObject {
+            put("key", key)
+            put("on", on)
+        }.asBody(), "PUT")
+    }
+
     suspend fun accountUse(account: String, use: String) {
         call("/queue/account", buildJsonObject {
             put("account", account)

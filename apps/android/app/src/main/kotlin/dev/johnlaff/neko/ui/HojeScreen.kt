@@ -338,7 +338,7 @@ private fun Insights(
                 "closing-estimated" -> onAjustes
                 "bill-above-average" -> onFaturas
                 "goes-negative" -> { { onMonth(i.start?.take(7)) } }
-                "no-spending-ahead" -> { { onMonth(if (i.year != null && i.month != null) "${i.year}-${i.month.toString().padStart(2, '0')}" else null) } }
+                "no-spending-ahead", "month-negative", "income-committed" -> { { onMonth(if (i.year != null && i.month != null) "${i.year}-${i.month.toString().padStart(2, '0')}" else null) } }
                 else -> { { onMonth(null) } }
             }
             // A setup question, not a warning: color stays for real deviations, as on the site.

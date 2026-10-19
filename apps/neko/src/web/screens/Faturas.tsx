@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -6,15 +7,19 @@ import {
   type InvoiceRow,
   invoicesView,
 } from "../../shared/screens.ts";
+import type { SubscriptionsView } from "../../shared/types.ts";
+import { api } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
 import {
   bankLineName,
+  bankText,
   capitalize,
   closesIn,
   days,
+  merchantName,
   money,
   monthName,
   shortDate,
@@ -232,6 +237,62 @@ const BuyLine = ({ g, best }: { g: BuyGroup; best: boolean }) => (
   </li>
 );
 
+/**
+ * Charges of the same value that came back each month on the owner's cards, with a mark for the ones
+ * to cancel: the method tags them all to cancel on one day. Only what was charged; nothing ahead.
+ */
+const Subscriptions = ({ subs }: { subs: SubscriptionsView }) => {
+  const queryClient = useQueryClient();
+  const mark = useMutation({
+    mutationFn: ({ key, on }: { key: string; on: boolean }) => api.markCancel(key, on),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projection"] }),
+  });
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>Assinaturas</h2>
+        <span className="meta">{money(subs.total)} por mês</span>
+      </div>
+      <p className="hint">Marque o que você vai cancelar.</p>
+      <ul className="rows subs">
+        {subs.items.map((i) => {
+          const name = bankText(merchantName(i.description));
+          const saving = mark.isPending && mark.variables?.key === i.key;
+          const on = saving ? mark.variables.on : i.cancel;
+          return (
+            <li key={i.key}>
+              <span className="name">{name}</span>
+              <span className="value">{money(i.amount)}</span>
+              <button
+                type="button"
+                className="chip-button"
+                aria-pressed={on}
+                aria-label={`Vou cancelar ${name}`}
+                disabled={saving}
+                onClick={() => mark.mutate({ key: i.key, on: !on })}
+              >
+                {on ? "✓ Vou cancelar" : "Vou cancelar"}
+              </button>
+              <span className="meta">
+                {i.card} · {i.charges} cobranças · última {shortDate(i.last)}
+                {i.twin ? " · outro plano na mesma loja" : ""}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {mark.isError && (
+        <p className="warn subs-total" role="alert">
+          Não salvou. Tente de novo.
+        </p>
+      )}
+      {subs.toCancel > 0 && (
+        <p className="pos subs-total">Marcadas: {money(subs.toCancel)} a menos por mês</p>
+      )}
+    </section>
+  );
+};
+
 export const Faturas = () => {
   const [picked, setPicked] = useState<string | null>(null);
   return (
@@ -377,10 +438,11 @@ export const Faturas = () => {
                   )}
                 </section>
               ),
+              subs: v.subscriptions && <Subscriptions subs={v.subscriptions} />,
             }}
             // Wide screens: the months beside the month's cards, then where to buy.
-            two={[["months"], ["cards", "buy"]]}
-            three={[["months"], ["cards"], ["buy"]]}
+            two={[["months"], ["cards", "buy", "subs"]]}
+            three={[["months"], ["cards"], ["buy", "subs"]]}
           />
         );
       }}

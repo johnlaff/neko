@@ -366,6 +366,7 @@ const saveFresh = async (
     accountUse: _a,
     savedOrigins: _o,
     writing: _w,
+    cancel: _c,
     ...form
   } = await api.settings();
   return api.saveSettings({ ...form, ...patch });

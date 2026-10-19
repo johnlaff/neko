@@ -218,6 +218,12 @@ class AppModel(
         readToday(shown = false, after = true)
     }
 
+    /** Faturas › Assinaturas: a mark to cancel, then the screen read again with it. */
+    fun markCancel(key: String, on: Boolean) = change("subscriptions") {
+        neko.api.markCancel(key, on)
+        read(Tab.Faturas, shown = false, after = true)
+    }
+
     fun endOtherSessions() = change("devices") {
         neko.api.endOtherSessions()
         _devices.value = neko.api.sessions()

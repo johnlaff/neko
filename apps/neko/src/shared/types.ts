@@ -8,6 +8,7 @@ import type {
   Projection,
   RefValue,
   SaldoCheck,
+  Subscription,
 } from "@neko/engine";
 import { z } from "zod";
 import type { QueueItemView } from "./queue.ts";
@@ -99,6 +100,17 @@ export interface BankView {
   readonly ignored?: readonly IgnoredItem[];
   /** Yesterday's Saldo against the accounts; null without a balance to compare. */
   readonly saldo?: SaldoCheck | null;
+  /** Charges that come back each month on your cards; absent from a Worker that predates it. */
+  readonly subscriptions?: SubscriptionsView;
+}
+
+export interface SubscriptionsView {
+  /** Biggest first; `cancel` when marked to cancel. */
+  readonly items: readonly (Subscription & { readonly cancel: boolean })[];
+  /** One month of all of them. */
+  readonly total: Cents;
+  /** One month of the ones marked to cancel. */
+  readonly toCancel: Cents;
 }
 
 export interface HistoryPoint {
@@ -151,6 +163,8 @@ export const UserSettings = z.object({
   writing: z.boolean().default(true),
   /** What each linked account is, as the owner answered: where savings go, or day to day. */
   accountUse: z.record(z.string().min(1).max(64), z.enum(["guardado", "corrente"])).default({}),
+  /** Subscriptions (see engine `subscriptions`, by key) the owner marked to cancel. */
+  cancel: z.array(z.string().min(1).max(120)).max(100).default([]),
   /** Origins (bank text, see `originKey`) the owner launched as savings: proposed so next time. */
   savedOrigins: z.array(z.string().min(1).max(80)).max(100).default([]),
   /**

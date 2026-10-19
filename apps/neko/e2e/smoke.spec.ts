@@ -93,7 +93,8 @@ const open = async (page: Page, path: string, body = projection) => {
       return route.fulfill({ json: { parts: [{ fingerprint: "f" }] } });
     if (pathname === "/api/entries")
       return route.fulfill({ json: { entryId: "e", state: "done" } });
-    if (pathname.startsWith("/api/queue/")) return route.fulfill({ json: { ok: true } });
+    if (pathname.startsWith("/api/queue/") || pathname === "/api/banks/cancel")
+      return route.fulfill({ json: { ok: true } });
     if (pathname === "/api/projection")
       return route.fulfill({ contentType: "application/json", body });
     if (pathname in API) return route.fulfill({ json: API[pathname] });
@@ -253,6 +254,25 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
 
   await page.getByRole("textbox", { name: "Pergunta para a Mia" }).press("Escape");
   await expect(page).toHaveURL(/\/faturas$/);
+  expect(errors).toEqual([]);
+});
+
+test("Faturas lists the monthly charges and marks one to cancel", async ({ page }) => {
+  const errors = await open(page, "/faturas");
+  const subs = page.locator("section", { has: page.getByRole("heading", { name: "Assinaturas" }) });
+  await expect(subs.getByText("R$ 139,80 por mês")).toBeVisible();
+  await expect(subs.getByText("Marcadas: R$ 39,90 a menos por mês")).toBeVisible();
+  const sent = page.waitForRequest(
+    (r) => r.url().endsWith("/api/banks/cancel") && r.method() === "PUT",
+  );
+  await subs.getByRole("button", { name: "Vou cancelar Academia do Bairro" }).click();
+  expect((await sent).postDataJSON()).toEqual({ key: "academiadobairro|9990", on: true });
+  expect(errors).toEqual([]);
+});
+
+test("Hoje warns of a month ahead that spends more than comes in", async ({ page }) => {
+  const errors = await open(page, "/");
+  await expect(page.getByText("Novembro gasta mais do que entra")).toBeVisible();
   expect(errors).toEqual([]);
 });
 

@@ -3,6 +3,7 @@ package dev.johnlaff.neko.ui
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -194,6 +195,25 @@ internal fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
                 if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                 onClick()
             }
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    )
+}
+
+/** The same pill as an on/off mark (a subscription to cancel); `label` names it for TalkBack. */
+@Composable
+internal fun Toggle(text: String, on: Boolean, label: String, onClick: () -> Unit) {
+    val l = LocalLedger.current
+    val shape = RoundedCornerShape(50)
+    Text(
+        text,
+        color = if (on) l.pos else l.text,
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .background(if (on) l.bg else l.surface2, shape)
+            .border(1.dp, if (on) l.pos else l.border, shape)
+            .toggleable(on, role = Role.Checkbox) { onClick() }
+            .semantics { contentDescription = label }
             .padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }

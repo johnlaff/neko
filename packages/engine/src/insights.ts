@@ -24,6 +24,32 @@ export type Insight =
     }
   | {
       /**
+       * A month ahead whose Saída and Diário on the sheet pass its Entrada: the method's
+       * performance below zero with nothing kept, the real problem even while the balance is
+       * still positive (curso 12, aula 01 [02:52]).
+       */
+      readonly kind: "month-negative";
+      readonly year: number;
+      readonly month: number;
+      /** How much more goes out than comes in. */
+      readonly amount: Cents;
+      /** Bills and card bills already on the sheet over the month's own income, in percent. */
+      readonly share: number | null;
+    }
+  | {
+      /**
+       * Next month's bills and card bills already take most of its income: the card holds the
+       * future income (curso 06, aula 02), before any day-to-day spending.
+       */
+      readonly kind: "income-committed";
+      readonly year: number;
+      readonly month: number;
+      readonly share: number;
+      /** Income left after them; below zero when they take more than all of it. */
+      readonly amount: Cents;
+    }
+  | {
+      /**
        * A month ahead with neither day-to-day spending nor a card bill on the sheet: its balances
        * only look good because the spending is missing.
        */
@@ -75,6 +101,52 @@ export const firstUnplannedMonth = (
 };
 /** How many months ahead, the current one included, a red day is worth a warning. */
 const MONTHS_AHEAD = 4;
+/** Next month's income already taken by its bills from this share on, in percent. */
+export const COMMITTED_SHARE = 80;
+
+type MonthMoney = Pick<
+  Projection["months"][number],
+  "year" | "month" | "sobra" | "saved" | "ownIncome" | "committed"
+>;
+
+/** Bills over the month's own income, in percent; null without income or on older copies. */
+const committedShare = (m: MonthMoney): number | null =>
+  m.ownIncome === undefined || m.committed === undefined || m.ownIncome <= 0
+    ? null
+    : Math.round((m.committed * 100) / m.ownIncome);
+
+/**
+ * The months after today's on the sheet: the first one that spends more than comes in (money
+ * kept does not count as spent), and how much of next month's income its bills already take.
+ */
+export const monthsAhead = (months: readonly MonthMoney[], today: LocalDate): Insight[] => {
+  const now = parts(today);
+  const at = months.findIndex((m) => m.year === now.year && m.month === now.month);
+  if (at < 0) return [];
+  const out: Insight[] = [];
+  const red = months
+    .slice(at + 1, at + MONTHS_AHEAD)
+    .find((m) => m.sobra !== undefined && m.sobra + (m.saved ?? 0) < 0);
+  if (red)
+    out.push({
+      kind: "month-negative",
+      year: red.year,
+      month: red.month,
+      amount: cents(-(red.sobra + (red.saved ?? 0))),
+      share: committedShare(red),
+    });
+  const next = months[at + 1];
+  const share = next ? committedShare(next) : null;
+  if (next && share !== null && share >= COMMITTED_SHARE && red !== next)
+    out.push({
+      kind: "income-committed",
+      year: next.year,
+      month: next.month,
+      share,
+      amount: sub(next.ownIncome, next.committed),
+    });
+  return out;
+};
 /** A bill counts as above average past both of these. */
 const BILL_OVER_MIN = cents(100_00);
 const BILL_OVER_SHARE = 0.15;
@@ -117,6 +189,8 @@ export const insights = (p: Input): Insight[] => {
         until,
       });
   }
+
+  out.push(...monthsAhead(p.months, p.today));
 
   const unplanned = firstUnplannedMonth(p.months, p.today);
   if (unplanned) out.push({ kind: "no-spending-ahead", ...unplanned });

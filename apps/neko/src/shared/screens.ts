@@ -27,7 +27,7 @@ import {
   type YearTotals,
   ZERO,
 } from "@neko/engine";
-import type { PrevistoView, ProjectionResponse, UserSettings } from "./types.ts";
+import type { PrevistoView, ProjectionResponse, SubscriptionsView, UserSettings } from "./types.ts";
 
 /**
  * Faturas, Mês and Ajustes ready to draw, for the Android app. Same rules as the site's screens
@@ -122,6 +122,8 @@ export interface InvoicesView {
   readonly buyToday: readonly BuyGroup[];
   /** Last bank read; null with no bank linked. */
   readonly bank: { readonly syncedAt: string | null } | null;
+  /** Monthly charges found on the bank, with the owner's marks to cancel; null with none. */
+  readonly subscriptions: SubscriptionsView | null;
 }
 
 /** A bank card line for the screen: no card name (the row has it), no bill month (the month has it). */
@@ -252,6 +254,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
     average: p.invoicesAverage ?? null,
     buyToday: mine.length > 1 ? groups : [],
     bank: r.bank ? { syncedAt: r.bank.syncedAt } : null,
+    subscriptions: r.bank?.subscriptions?.items.length ? r.bank.subscriptions : null,
   };
 };
 

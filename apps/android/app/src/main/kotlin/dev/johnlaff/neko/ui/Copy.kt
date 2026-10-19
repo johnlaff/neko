@@ -39,6 +39,18 @@ object Copy {
             },
             Tone.Bad,
         )
+        "month-negative" -> Line(
+            "${capitalize(monthName(i.month ?: return null))} gasta mais do que entra",
+            "Saem ${money(i.amount ?: 0)} a mais",
+        )
+        "income-committed" -> Line(
+            "${capitalize(monthName(i.month ?: return null))}: ${i.share ?: return null}% da renda já tem destino",
+            if ((i.amount ?: 0) > 0) {
+                "Sobram ${money(i.amount ?: 0)} para o Diário"
+            } else {
+                "Faltam ${money(-(i.amount ?: 0))} antes do Diário"
+            },
+        )
         "no-spending-ahead" -> Line(
             "${capitalize(monthName(i.month ?: return null))} ainda sem gastos previstos",
             "Sem diário nem fatura lançados, esse saldo ainda está alto",

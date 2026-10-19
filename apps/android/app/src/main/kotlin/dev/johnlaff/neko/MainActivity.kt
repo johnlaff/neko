@@ -214,7 +214,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                     Tab.Faturas -> {
                                         val invoices by model.invoices.collectAsStateWithLifecycle()
-                                        FaturasScreen(invoices, { model.refresh(Tab.Faturas) }, onAjustes = { go(Tab.Ajustes) }, onHoje = { go(Tab.Hoje) })
+                                        FaturasScreen(invoices, { model.refresh(Tab.Faturas) }, onAjustes = { go(Tab.Ajustes) }, onHoje = { go(Tab.Hoje) }, onCancel = model::markCancel)
                                     }
                                     Tab.Mes -> {
                                         val months by model.months.collectAsStateWithLifecycle()

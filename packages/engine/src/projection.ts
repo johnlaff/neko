@@ -141,8 +141,15 @@ export interface MonthView {
   readonly savedToDate: Cents;
   /** Entrada from lines dated up to today only. */
   readonly entradaToDate: Cents;
-  /** Saída plus diário minus what was saved: what the month cost to live (curso 05, aula 01). */
+  /**
+   * Saída plus diário minus what was saved, a card someone else pays and what is paid back: what
+   * the month cost you to live (curso 05, aula 01).
+   */
   readonly livingCost: Cents;
+  /** Entrada without the money that only pays something back (a reimbursed bill, a repasse). */
+  readonly ownIncome: Cents;
+  /** Saída already on the sheet without what is paid back or kept: the income it already takes. */
+  readonly committed: Cents;
 }
 
 /**
@@ -249,9 +256,11 @@ const REIMBURSE_WINDOW_DAYS = 15;
 /**
  * Card lines someone else pays back: tagged `#reembolso` in the note, or matched by an Entrada
  * line of the same amount within 15 days of the due date (each Entrada pays back one line).
- * Either way they net to zero for your own spending.
+ * Either way they net to zero for your own spending. `paybacks` are the Entrada lines matched.
  */
-export const findReimbursed = (ledger: Ledger): Set<NoteItem> => {
+export const reimbursements = (
+  ledger: Ledger,
+): { readonly lines: Set<NoteItem>; readonly paybacks: Set<NoteItem> } => {
   const out = new Set<NoteItem>();
   const used = new Set<NoteItem>();
   ledger.forEach((row, i) => {
@@ -274,6 +283,26 @@ export const findReimbursed = (ledger: Ledger): Set<NoteItem> => {
       }
     }
   });
+  return { lines: out, paybacks: used };
+};
+
+export const findReimbursed = (ledger: Ledger): Set<NoteItem> => reimbursements(ledger).lines;
+
+/**
+ * A Saída paid back the same day by an Entrada of the same name and amount (a loan installment
+ * someone else pays): both lines, which net to zero.
+ */
+const passThrough = (row: Ledger[number]): Set<NoteItem> => {
+  const out = new Set<NoteItem>();
+  const key = (i: NoteItem) => `${normalizeName(i.description)}|${i.amount}`;
+  for (const o of row.saida.items) {
+    if (o.amount === 0 || out.has(o)) continue;
+    const back = row.entrada.items.find((e) => !out.has(e) && key(e) === key(o));
+    if (back) {
+      out.add(o);
+      out.add(back);
+    }
+  }
   return out;
 };
 
@@ -431,7 +460,7 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
   const sheetBalance = (d: LocalDate): Cents => byDate.get(d)?.saldo ?? computed.get(d) ?? ZERO;
 
   const others = new Set(settings.othersCards.map(normalizeName));
-  const reimbursed = findReimbursed(ledger);
+  const { lines: reimbursed, paybacks } = reimbursements(ledger);
   const notMine = notMyCardLines(ledger, settings.othersCards, reimbursed);
   const dailyForecast = settings.dailyForecast ?? inferDailyForecast(ledger, today, notMine);
   const usual =
@@ -570,6 +599,8 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
         savedToDate: ZERO,
         entradaToDate: ZERO,
         livingCost: ZERO,
+        ownIncome: ZERO,
+        committed: ZERO,
       };
       months.push(m);
     }
@@ -584,6 +615,11 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     );
     const saved = add(m.saved, savedToday);
     const past = row.date <= today;
+    const through = passThrough(row);
+    // A cell without a note counts whole; noted lines that are not yours come off it.
+    const without = (c: Ledger[number]["saida"], skip: (i: NoteItem) => boolean) =>
+      sub(c.amount, add(ZERO, ...c.items.filter(skip).map((i) => i.amount)));
+    const paidBack = (i: NoteItem) => through.has(i) || reimbursed.has(i) || isSavingItem(i);
     const balance = sheetBalance(row.date);
     const moves: DayMove[] = [
       ...cellMoves(row.entrada, () => "income"),
@@ -614,7 +650,16 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       savedShare: entrada > 0 ? Math.round((saved * 100) / entrada) : null,
       savedToDate: past ? add(m.savedToDate, savedToday) : m.savedToDate,
       entradaToDate: past ? add(m.entradaToDate, row.entrada.amount) : m.entradaToDate,
-      livingCost: add(m.livingCost, sub(add(row.saida.amount, row.diario.amount), keptToday)),
+      livingCost: add(
+        m.livingCost,
+        without(row.saida, (i) => paidBack(i) || notMine.has(i)),
+        row.diario.amount,
+      ),
+      ownIncome: add(
+        m.ownIncome,
+        without(row.entrada, (i) => through.has(i) || paybacks.has(i) || isSavingItem(i)),
+      ),
+      committed: add(m.committed, without(row.saida, paidBack)),
     };
   }
 
