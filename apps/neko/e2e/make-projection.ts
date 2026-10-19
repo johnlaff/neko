@@ -20,6 +20,7 @@ import {
   parts,
   project,
   saldoCheck,
+  subscriptions,
   unmatchedMovements,
   variableSpend,
 } from "../../../packages/engine/src/index.ts";
@@ -207,6 +208,21 @@ const queue = buildQueue({
   decided: new Set(),
   forecast: dailyForecast,
 });
+/** Invented monthly charges on the usual card: a streaming plan and a gym, one marked to cancel. */
+function subscriptionsView() {
+  const monthly = (amount: number, description: string, dates: string[]) =>
+    dates.map((d) => ({ ...bankLine(amount, "2026-11", description), date: localDate(d) }));
+  const found = subscriptions(
+    [
+      ...monthly(39_90, "STREAMING DE FILMES", ["2026-08-03", "2026-09-03", "2026-10-03"]),
+      ...monthly(99_90, "ACADEMIA DO BAIRRO", ["2026-08-25", "2026-09-25"]),
+    ],
+    TODAY,
+    ["Cartão Verde"],
+  );
+  const items = found.items.map((i) => ({ ...i, cancel: i.amount === 39_90 }));
+  return { items, total: found.total, toCancel: cents(39_90) };
+}
 const bank = {
   syncedAt: "2026-10-05T09:00:00.000Z",
   queue: queueView(queue, rows, cards),
@@ -217,6 +233,7 @@ const bank = {
   ]),
   checks: billChecks(rows, cards, lines, TODAY),
   missing: unmatchedMovements(rows, movements, TODAY),
+  subscriptions: subscriptionsView(),
 };
 
 const response: ProjectionResponse = {

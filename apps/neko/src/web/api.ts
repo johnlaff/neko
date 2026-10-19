@@ -47,6 +47,7 @@ export type KeptSetting =
   | "accountUse"
   | "savedOrigins"
   | "writing"
+  | "cancel"
   | "previstoSince"
   | "previstoUndo";
 
@@ -167,6 +168,9 @@ export const api = {
   saveSettings: (s: Omit<UserSettings, KeptSetting> & Partial<Pick<UserSettings, KeptSetting>>) =>
     request<UserSettings>("/settings", { method: "PUT", body: JSON.stringify(s) }),
   banks: () => request<BanksResponse>("/banks"),
+  /** Marks a subscription to cancel, or takes the mark off. */
+  markCancel: (key: string, on: boolean) =>
+    request<{ ok: true }>("/banks/cancel", { method: "PUT", body: JSON.stringify({ key, on }) }),
   saveBanks: (items: readonly { itemId: string; label: string }[]) =>
     request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
   mia: () => request<MiaStatus>("/mia"),

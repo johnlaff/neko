@@ -60,6 +60,25 @@ const insightView = (i: Insight) => {
             ? `Positivo de novo em ${shortDate(i.until)}. No pior dia, faltam ${money(-i.deepest)}`
             : `No pior dia, ${shortDate(i.deepestDate)}, faltam ${money(-i.deepest)}`,
       } as const;
+    case "month-negative":
+      return {
+        tone: "warn",
+        to: "/mes",
+        month: `${i.year}-${String(i.month).padStart(2, "0")}`,
+        title: `${capitalize(monthName(i.month))} gasta mais do que entra`,
+        detail: `Saem ${money(i.amount)} a mais`,
+      } as const;
+    case "income-committed":
+      return {
+        tone: "warn",
+        to: "/mes",
+        month: `${i.year}-${String(i.month).padStart(2, "0")}`,
+        title: `${capitalize(monthName(i.month))}: ${i.share}% da renda já tem destino`,
+        detail:
+          i.amount > 0
+            ? `Sobram ${money(i.amount)} para o Diário`
+            : `Faltam ${money(-i.amount)} antes do Diário`,
+      } as const;
     case "no-spending-ahead":
       return {
         tone: "warn",

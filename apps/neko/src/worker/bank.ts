@@ -14,6 +14,7 @@ import {
   movedToday,
   normalizeName,
   saldoCheck,
+  subscriptions,
   todayIn,
   unmatchedMovements,
 } from "@neko/engine";
@@ -244,6 +245,23 @@ export const bankView = (
     missing: unmatchedMovements(ledger, movements, today)
       .filter((m) => m.date >= addDays(today, -MISSING_DAYS))
       .map(({ account: _, ...m }) => m),
+    subscriptions: subscriptionsView(lines, today, settings),
+  };
+};
+
+/** Subscriptions with the owner's marks to cancel; a mark on one that stopped coming just drops. */
+const subscriptionsView = (
+  lines: readonly BankCardLine[],
+  today: LocalDate,
+  settings: UserSettings,
+): NonNullable<BankView["subscriptions"]> => {
+  const { items, total } = subscriptions(lines, today, settings.othersCards);
+  const marked = new Set(settings.cancel);
+  const view = items.map((i) => ({ ...i, cancel: marked.has(i.key) }));
+  return {
+    items: view,
+    total,
+    toCancel: cents(view.filter((i) => i.cancel).reduce((s, i) => s + i.amount, 0)),
   };
 };
 
