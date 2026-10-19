@@ -4,6 +4,7 @@ import {
   type BankMovement,
   buildQueue,
   type CardConfig,
+  ceilingMark,
   cents,
   isFreeDiario,
   isOnlyForecast,
@@ -233,7 +234,23 @@ describe("Hoje cabem with the Diário previsto", () => {
       paceExpected: 190000,
       paceGap: -10000,
       overBy: 0,
+      left: 110000,
+      used: 50,
     });
+  });
+
+  it("marks 50, 75 and 100% of the ceiling, and nothing left past it", () => {
+    expect(
+      [0, 49_99, 50_00, 74_99, 75_00, 99_99, 100_00, 130_00].map((s) =>
+        ceilingMark(cents(s), cents(100_00)),
+      ),
+    ).toEqual([0, 0, 50, 50, 75, 75, 100, 100]);
+    const p = project(ledger("2026-10-01", 92, 0), today, {
+      ...settings,
+      cycleBudget: cents(310000),
+      cardsSpent: cents(330000),
+    });
+    expect(p.canSpend).toMatchObject({ left: 0, overBy: 20000, used: 100 });
   });
 
   it("keeps the usual card's cycle for the ceiling without a bank", () => {

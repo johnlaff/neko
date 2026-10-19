@@ -1,5 +1,5 @@
 import { buildPushPayload, type VapidKeys } from "@block65/webcrypto-web-push";
-import { addDays, formatBRL, sub } from "@neko/engine";
+import { addDays, formatBRL, sub, ZERO } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import { sheetCellUrl } from "../shared/sheet.ts";
 import type { ProjectionResponse } from "../shared/types.ts";
@@ -99,7 +99,7 @@ const dueDay = (p: ProjectionResponse["projection"]) =>
     .map((b) => ` ${b.title}: ${money(b.amount)}.`)
     .join("");
 
-/** 08:00: how much fits today on the usual card. */
+/** 08:00: how much fits today on the usual card, or this month on all of them under a ceiling. */
 export const morningMessage = (data: ProjectionResponse): Reminder | null => {
   const p = data.projection;
   const cs = p.canSpend;
@@ -132,6 +132,28 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
       : {
           title: `Hoje cabem ${money(cs.perDay)}`,
           body: `${left}${behind}${rest}`,
+          url: "/",
+          tag: "morning",
+        };
+  }
+  // With a ceiling for the cards: what still fits this month, and the mark of it already used.
+  if (cs.mode === "cards") {
+    const left =
+      cs.daysLeft === 1 ? "O mês acaba hoje." : `Até o fim do mês, faltam ${days(cs.daysLeft)}.`;
+    const used =
+      cs.used === 75 || cs.used === 50
+        ? ` Você já usou ${cs.used === 75 ? "75%" : "metade"} do teto de ${money(cs.budget)}.`
+        : "";
+    return cs.overBy > 0
+      ? {
+          title: `Os cartões passaram ${money(cs.overBy)} do teto do mês`,
+          body: `${left}${rest}`,
+          url: "/",
+          tag: "morning",
+        }
+      : {
+          title: `Ainda cabem ${money(cs.left ?? ZERO)} nos cartões`,
+          body: `${left}${used}${rest}`,
           url: "/",
           tag: "morning",
         };

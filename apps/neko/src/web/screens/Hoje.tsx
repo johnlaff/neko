@@ -6,6 +6,7 @@ import {
   type MonthRecap,
   type Saving,
   type UpcomingDay,
+  ZERO,
 } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -452,7 +453,7 @@ export const Hoje = () => (
       // Same window the copy promises: the last 60 days and anything ahead.
       const since = addDays(p.today, -HEALTH_DAYS);
       const issues = p.health.filter((i) => i.date >= since).reverse();
-      const over = cs !== null && cs.perDay < 0;
+      const over = cs !== null && (cs.mode === "cards" ? cs.overBy > 0 : cs.perDay < 0);
       // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
       const month = cs?.mode === "month";
       // With a ceiling for the cards, the dial is the month's purchases on all of them.
@@ -476,14 +477,21 @@ export const Hoje = () => (
                     </h2>
                     {/* Over the plan, the figure already says so in red, and behind the Diário the line
                     under it says by how much: the chip would repeat either. */}
-                    {!over && !(month && cs.daysBehind > 0) && (
-                      <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
-                        {cs.paceGap >= 0
-                          ? "No ritmo"
-                          : month
-                            ? "Acima do previsto"
-                            : "Acima do ritmo"}
+                    {!over && cards && (cs.used ?? 0) >= 50 ? (
+                      <span className={`chip ${cs.used === 75 ? "warn" : "plain"}`}>
+                        {cs.used === 75 ? "75% do teto" : "Metade do teto"}
                       </span>
+                    ) : (
+                      !over &&
+                      !(month && cs.daysBehind > 0) && (
+                        <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
+                          {cs.paceGap >= 0
+                            ? "No ritmo"
+                            : month
+                              ? "Acima do previsto"
+                              : "Acima do ritmo"}
+                        </span>
+                      )
                     )}
                   </div>
                   <div className="dial">
@@ -494,25 +502,40 @@ export const Hoje = () => (
                       over={over || cs.paceGap < 0}
                       bad={over}
                     />
-                    <p className="dial-label">
-                      <span className="caption">{over ? "Passou do plano" : "Hoje cabem"}</span>
-                      <BigMoney
-                        cents={over ? cs.overBy : cs.perDay}
-                        // Ink, as in the app: the line under it carries the colour when it matters.
-                        tone={over ? "neg" : "plain"}
-                      />
-                      <span className="caption">
-                        {over
-                          ? inMonth
-                            ? "neste mês"
-                            : "neste ciclo"
-                          : cs.daysLeft === 1
+                    {cards ? (
+                      // What still fits on all the cards this month: a daily allowance spent in full
+                      // each day leaves nothing over, so the month's room leads.
+                      <p className="dial-label">
+                        <span className="caption">{over ? "Passou do teto" : "Ainda cabem"}</span>
+                        <BigMoney
+                          cents={over ? cs.overBy : (cs.left ?? ZERO)}
+                          tone={over ? "neg" : "plain"}
+                        />
+                        <span className="caption">
+                          {over ? "neste mês" : `de ${money(cs.budget)} no mês`}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="dial-label">
+                        <span className="caption">{over ? "Passou do plano" : "Hoje cabem"}</span>
+                        <BigMoney
+                          cents={over ? cs.overBy : cs.perDay}
+                          // Ink, as in the app: the line under it carries the colour when it matters.
+                          tone={over ? "neg" : "plain"}
+                        />
+                        <span className="caption">
+                          {over
                             ? inMonth
-                              ? "até o mês acabar, hoje"
-                              : "até a fatura fechar, hoje"
-                            : "por dia"}
-                      </span>
-                    </p>
+                              ? "neste mês"
+                              : "neste ciclo"
+                            : cs.daysLeft === 1
+                              ? inMonth
+                                ? "até o mês acabar, hoje"
+                                : "até a fatura fechar, hoje"
+                              : "por dia"}
+                        </span>
+                      </p>
+                    )}
                   </div>
                   {/* How far ahead of the Diário the month went, in days without spending. */}
                   {month && cs.daysBehind > 0 && !over && (
@@ -537,9 +560,8 @@ export const Hoje = () => (
                       <>
                         <p>
                           {money(cs.budget)} de teto para os seus cartões no mês menos{" "}
-                          {money(cs.accumulated)} comprados até ontem, como o banco mostra, dividido
-                          por {days(cs.daysLeft)}. Compra parcelada feita no mês conta só a 1ª
-                          parcela; assinaturas ficam de fora.
+                          {money(cs.accumulated)} comprados até ontem, como o banco mostra. Compra
+                          parcelada feita no mês conta só a 1ª parcela; assinaturas ficam de fora.
                         </p>
                         <p>
                           O ponto no arco é o ritmo até ontem: o mês está{" "}
