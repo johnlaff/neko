@@ -283,6 +283,15 @@ test("Faturas marks a purchase as someone else's and shows what they owe", async
   await expect(owed.getByText("Bia")).toBeVisible();
   await expect(owed.getByText("R$ 129,90")).toBeVisible();
   await expect(owed.getByText("1 compra · mais R$ 259,80 nas próximas parcelas")).toBeVisible();
+  // Each purchase opens with where it is: the card, its bill and the parcels left.
+  await owed.getByRole("button", { name: "Bia: ver compras" }).click();
+  await expect(owed.getByText("Cartão Azul · vence 12 nov")).toBeVisible();
+  await expect(owed.getByText("2 out · parcela 1 de 3 · faltam R$ 259,80")).toBeVisible();
+  // A purchase there opens the same "De quem é?", to fix the mark without hunting for it.
+  await owed.getByRole("button", { name: /^Fone, R\$ 129,90, de Bia/ }).click();
+  await expect(owed.getByRole("button", { name: "É minha" })).toBeVisible();
+  await owed.getByRole("button", { name: /^Fone, R\$ 129,90, de Bia/ }).click();
+  await owed.screenshot({ path: "test-results/owed-detail.png" });
   await page.getByRole("button", { name: "Cartão Azul: ver detalhes" }).click();
   await page.getByText("Parcelas no banco (2)").click();
   await expect(page.getByText("De Bia · 1/3 · Faltam 2")).toBeVisible();

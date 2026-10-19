@@ -65,9 +65,22 @@ describe("owedOnBills", () => {
   ];
 
   it("adds each person's lines on the month's bills, with their parcels still to come", () => {
-    expect(owedOnBills(lines, "2026-11", marks)).toEqual([
+    const owed = owedOnBills(lines, "2026-11", marks);
+    expect(owed.map(({ items: _, ...o }) => o)).toEqual([
       { person: "Bia", total: 150_00, later: 1500_00, lines: 1 },
       { person: "Rafa", total: 80_00, later: 0, lines: 1 },
+    ]);
+    // Each purchase says where it is: the card, the day, the parcel and what is still to come.
+    expect(owed[0]?.items).toEqual([
+      {
+        card: "Cartão Azul",
+        description: "ESTUDIO SOFT 02/12",
+        amount: 150_00,
+        date: "2026-09-24",
+        installment: 2,
+        installments: 12,
+        later: 1500_00,
+      },
     ]);
     expect(ownerOf(lines[3] as BankCardLine, marks)).toBeNull();
   });
