@@ -168,6 +168,9 @@ private fun Hero(v: TodayView) {
             // Behind the Diário, the line under the figure already says by how much.
             when {
                 cs.pace == "over" || (month && cs.daysBehind > 0) -> Unit
+                cards && cs.used == 100 -> Chip("No teto", ChipTone.Warn)
+                cards && cs.used == 75 -> Chip("75% do teto", ChipTone.Warn)
+                cards && cs.used == 50 -> Chip("Metade do teto", if (cs.paceGap >= 0) ChipTone.Plain else ChipTone.Warn)
                 cs.pace == "on-pace" -> Chip("No ritmo", ChipTone.Ok)
                 else -> Chip(if (month) "Acima do previsto" else "Acima do ritmo", ChipTone.Warn)
             }
@@ -186,14 +189,20 @@ private fun Hero(v: TodayView) {
         }
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
             if (!stacked) gauge()
-            // Read as one sentence: "Hoje cabem, R$ 147,00, por dia".
+            // Read as one sentence: "Hoje cabem, R$ 147,00, por dia". With a ceiling for the cards, what
+            // still fits in the month leads: a daily allowance spent in full each day leaves nothing over.
             Column(Modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (stacked) gauge()
-                Text(if (over) "Passou do plano" else "Hoje cabem", color = l.muted, style = MaterialTheme.typography.labelMedium)
-                BigMoney(if (over) cs.overBy else cs.perDay, if (over) l.neg else l.text)
+                Text(
+                    if (cards) (if (over) "Passou do teto" else "Ainda cabem") else if (over) "Passou do plano" else "Hoje cabem",
+                    color = l.muted,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                BigMoney(if (over) cs.overBy else if (cards) cs.left else cs.perDay, if (over) l.neg else l.text)
                 Text(
                     when {
                         over -> if (inMonth) "neste mês" else "neste ciclo"
+                        cards -> "de ${money(cs.budget)} no mês"
                         cs.daysLeft == 1 -> if (inMonth) "até o mês acabar, hoje" else "até a fatura fechar, hoje"
                         else -> "por dia"
                     },
@@ -227,7 +236,7 @@ private fun Formula(cs: CanSpend, v: TodayView) {
     if (cs.mode == "cards") {
         Text(
             "${money(cs.budget)} de teto para os seus cartões no mês menos ${money(cs.accumulated)} comprados até ontem, " +
-                "como o banco mostra, dividido por ${days(cs.daysLeft)}. Compra parcelada feita no mês conta só a 1ª parcela; assinaturas ficam de fora.",
+                "como o banco mostra. Compra parcelada feita no mês conta só a 1ª parcela; assinaturas ficam de fora.",
             color = l.muted,
         )
         Text(

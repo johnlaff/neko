@@ -90,7 +90,15 @@ export interface CanSpend {
   readonly overBy: Cents;
   /** Days without spending that would bring the month back to the pace; 0 when on it. */
   readonly daysBehind: number;
+  /** `cards`: what still fits under the ceiling this month; zero once past it. */
+  readonly left?: Cents;
+  /** `cards`: the last mark of the ceiling the month reached, for the 50/75/100% warnings. */
+  readonly used?: 0 | 50 | 75 | 100;
 }
+
+/** The last of 50%, 75% and 100% of the ceiling that the spending reached; 0 below half. */
+export const ceilingMark = (spent: Cents, budget: Cents): 0 | 50 | 75 | 100 =>
+  spent >= budget ? 100 : spent * 4 >= budget * 3 ? 75 : spent * 2 >= budget ? 50 : 0;
 
 export interface Simulation {
   readonly perDay: Cents;
@@ -555,6 +563,8 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       paceGap: sub(paceExpected, spent),
       overBy: spent > budget ? sub(spent, budget) : ZERO,
       daysBehind: 0,
+      left: spent < budget ? sub(budget, spent) : ZERO,
+      used: ceilingMark(spent, budget),
     };
   } else if (usualView) {
     const cycleDays = diffDays(usualView.cycle.start, usualView.cycle.closing);

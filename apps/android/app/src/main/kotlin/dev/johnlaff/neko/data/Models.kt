@@ -215,6 +215,10 @@ data class CanSpend(
     val mode: String = "cycle",
     /** In month mode, how many days without spending bring the month back to the Diário. */
     val daysBehind: Int = 0,
+    /** In cards mode, what still fits under the ceiling this month; zero once past it. */
+    val left: Long = 0,
+    /** In cards mode, the last mark of the ceiling reached: 0, 50, 75 or 100. */
+    val used: Int = 0,
 )
 
 @Serializable
