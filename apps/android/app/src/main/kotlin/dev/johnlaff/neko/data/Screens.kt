@@ -22,6 +22,8 @@ data class InvoicesView(
     val bank: BankRead? = null,
     /** Monthly charges found on the bank, with the marks to cancel; null with none. */
     val subscriptions: Subscriptions? = null,
+    /** Names already used for someone else's purchases, most recent first, to pick again. */
+    val people: List<String> = emptyList(),
 )
 
 @Serializable
@@ -57,7 +59,13 @@ data class InvoiceMonth(
     val cards: List<InvoiceRow> = emptyList(),
     /** The month against the bank; null when the bank has none of its bills. */
     val bank: MonthBank? = null,
+    /** Purchases on the month's bills marked as someone else's: what each will pay back. */
+    val owed: List<Owed> = emptyList(),
 )
+
+/** One person's purchases on a month's bills (engine `Owed`); `later` is their parcels still to come. */
+@Serializable
+data class Owed(val person: String, val total: Long, val later: Long = 0, val lines: Int = 0)
 
 @Serializable
 data class MonthBank(val disagree: Int = 0, val parcels: Long = 0, val fresh: Long = 0)
@@ -98,6 +106,10 @@ data class BankLine(
     val date: String? = null,
     val installment: Int? = null,
     val installments: Int? = null,
+    /** What a mark of someone else's holds on to; null for a refund or an old line. */
+    val key: String? = null,
+    /** Whose it is, when marked as someone else's; null for yours. */
+    val person: String? = null,
 )
 
 @Serializable

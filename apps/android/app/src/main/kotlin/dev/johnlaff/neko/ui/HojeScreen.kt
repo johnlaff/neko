@@ -237,7 +237,7 @@ private fun Formula(cs: CanSpend, v: TodayView) {
     if (cs.mode == "cards") {
         Text(
             "${money(cs.budget)} de teto para as faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())} dos seus cartões " +
-                "menos ${money(cs.accumulated)} que o banco já mostra nelas: compras, parcelas e assinaturas. O cartão de outra pessoa fica de fora.",
+                "menos ${money(cs.accumulated)} que o banco já mostra nelas: compras, parcelas e assinaturas. O cartão e as compras de outra pessoa ficam de fora.",
             color = l.muted,
         )
         return

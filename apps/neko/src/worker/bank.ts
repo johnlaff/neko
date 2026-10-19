@@ -246,6 +246,7 @@ export const bankView = (
       .filter((m) => m.date >= addDays(today, -MISSING_DAYS))
       .map(({ account: _, ...m }) => m),
     subscriptions: subscriptionsView(lines, today, settings),
+    owners: settings.owners,
   };
 };
 

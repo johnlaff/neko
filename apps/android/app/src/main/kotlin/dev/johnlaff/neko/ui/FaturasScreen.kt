@@ -26,6 +26,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.BankLine
 import dev.johnlaff.neko.data.BuyGroup
@@ -56,6 +58,10 @@ fun FaturasScreen(
     onHoje: () -> Unit = {},
     /** Marks a subscription to cancel, or takes the mark off. */
     onCancel: (key: String, on: Boolean) -> Unit = { _, _ -> },
+    /** Marks a purchase as someone else's, or as yours again (null). */
+    onOwner: (key: String, person: String?) -> Unit = { _, _ -> },
+    /** The last mark of whose a purchase is did not save. */
+    ownerFailed: Boolean = false,
 ) {
     var picked by rememberSaveable { mutableStateOf<String?>(null) }
     ScreenFrame("Faturas", state, { it.readAt }, onRefresh, miaTopic = "faturas") { v ->
@@ -72,7 +78,8 @@ fun FaturasScreen(
         }
         item { MonthsPanel(v, month, onHoje) { picked = it } }
         column()
-        item { CardsPanel(month, v.today) { picked = it } }
+        item { CardsPanel(month, v.today, Owners(v.people, onOwner, ownerFailed)) { picked = it } }
+        if (month.owed.isNotEmpty()) item { OwedPanel(month) }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
         v.subscriptions?.let { item { SubscriptionsPanel(it, onCancel) } }
     }
@@ -162,7 +169,7 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onHoje: () -> Unit, on
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CardsPanel(m: InvoiceMonth, today: String, onPick: (String) -> Unit) {
+private fun CardsPanel(m: InvoiceMonth, today: String, owners: Owners, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     Panel {
         PanelHead("Cartões") {
@@ -170,12 +177,12 @@ private fun CardsPanel(m: InvoiceMonth, today: String, onPick: (String) -> Unit)
         }
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
         // By card only: it stays open while its chart picks another month.
-        m.cards.forEach { key(it.card) { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, onPick) } }
+        m.cards.forEach { key(it.card) { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, owners, onPick) } }
     }
 }
 
 @Composable
-private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean, onPick: (String) -> Unit) {
+private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean, owners: Owners, onPick: (String) -> Unit) {
     var open by rememberSaveable(c.card) { mutableStateOf(false) }
     Column {
         ListRow(
@@ -194,7 +201,7 @@ private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Bool
             },
             open = open,
         )
-        Reveal(open) { Detail(c, month, today, alone, onPick) }
+        Reveal(open) { Detail(c, month, today, alone, owners, onPick) }
     }
 }
 
@@ -215,13 +222,17 @@ internal fun bankLineName(l: BankLine) = bankText(
 
 private const val LINES_SHOWN = 8
 
+/** Who the bank's lines can be marked for, how to mark one, and whether the last mark failed. */
+private data class Owners(val people: List<String>, val onOwner: (String, String?) -> Unit, val failed: Boolean)
+
 @Composable
-private fun BankLines(title: String, lines: List<BankLine>) {
+private fun BankLines(title: String, lines: List<BankLine>, owners: Owners, hint: Boolean) {
     if (lines.isEmpty()) return
     val l = LocalLedger.current
     var all by remember(lines) { mutableStateOf(false) }
     // Closed by default: a bill can bring dozens of lines, the details above come first.
     var open by rememberSaveable(title) { mutableStateOf(false) }
+    var picking by remember(lines) { mutableStateOf<Int?>(null) }
     Column {
     // A full-width row with its chevron at the edge, like the card rows above it.
     Row(
@@ -232,16 +243,34 @@ private fun BankLines(title: String, lines: List<BankLine>) {
         Text("$title (${lines.size})", color = l.muted, style = MaterialTheme.typography.labelLarge)
         Disclosure(open, l.muted)
     }
-    Reveal(open) { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        (if (all) lines else lines.take(LINES_SHOWN)).forEach { x ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.weight(1f)) {
-                    Text(bankLineName(x), style = MaterialTheme.typography.bodyMedium)
-                    (parcelText(x) ?: x.date?.let(::shortDate))?.let {
-                        Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium)
+    Reveal(open) { Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (hint) Text("Toque numa compra que é de outra pessoa.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        (if (all) lines else lines.take(LINES_SHOWN)).forEachIndexed { i, x ->
+            val when_ = parcelText(x) ?: x.date?.let(::shortDate)
+            val tint = if (x.person != null) l.muted else l.text
+            Column {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .background(if (picking == i) l.surface2 else androidx.compose.ui.graphics.Color.Transparent, RoundedCornerShape(8.dp))
+                        .then(if (x.key != null) Modifier.clickable(onClickLabel = "marcar de quem é") { picking = if (picking == i) null else i } else Modifier)
+                        .heightIn(min = 44.dp)
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(bankLineName(x), style = MaterialTheme.typography.bodyMedium)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // Someone else's: "De Bia", the amount quieter, never struck through
+                            // (the money still leaves your account to pay the bill).
+                            val meta = x.person?.let { "De $it" + (when_?.let { w -> " · $w" } ?: "") } ?: when_
+                            meta?.let { Text(it, color = if (x.person != null) l.muted else l.faint, style = MaterialTheme.typography.labelMedium) }
+                        }
                     }
+                    Text(money(x.amount), color = tint, style = MaterialTheme.typography.bodyMedium)
                 }
-                Text(money(x.amount), style = MaterialTheme.typography.bodyMedium)
+                val key = x.key
+                // The picker stays open while saving; the screen read again with the mark closes it.
+                if (picking == i && key != null) OwnerPick(x, key, owners)
             }
         }
         if (!all && lines.size > LINES_SHOWN) TextAction("Ver mais ${lines.size - LINES_SHOWN}", { all = true })
@@ -249,9 +278,84 @@ private fun BankLines(title: String, lines: List<BankLine>) {
     }
 }
 
+/**
+ * Whose a purchase is: someone named before, a new name, or yours again. A parcel takes its whole
+ * plan along, so every later bill follows.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OwnerPick(line: BankLine, key: String, owners: Owners) {
+    val l = LocalLedger.current
+    val people = owners.people
+    var name by remember(key) { mutableStateOf("") }
+    var saving by remember(key) { mutableStateOf(false) }
+    // A failure seen before this tap is not this save's.
+    var failedBefore by remember(key) { mutableStateOf(owners.failed) }
+    if (saving && owners.failed && !failedBefore) saving = false
+    val onPick = { person: String? ->
+        failedBefore = false
+        saving = true
+        owners.onOwner(key, person)
+    }
+    Column(Modifier.padding(top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            if ((line.installments ?: 1) > 1) "De quem são estas parcelas? Vale para todas." else "De quem é esta compra?",
+            color = l.muted,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (people.isNotEmpty() || line.person != null) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            people.forEach { p -> Choice(p, line.person == p) { if (line.person != p) onPick(p) } }
+            if (line.person != null) Choice("É minha", false) { onPick(null) }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.OutlinedTextField(
+                value = name,
+                onValueChange = { name = it.take(40) },
+                singleLine = true,
+                placeholder = { Text(if (people.isEmpty()) "Nome da pessoa" else "Outra pessoa", color = l.faint) },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words,
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { if (name.isNotBlank()) onPick(name.trim()) }),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
+                modifier = Modifier.weight(1f).semantics { contentDescription = "Nome de outra pessoa" },
+            )
+            TextAction("Marcar", { onPick(name.trim()) }, enabled = name.isNotBlank() && !saving)
+        }
+        if (saving) Text("Salvando…", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        else if (owners.failed && !failedBefore) Text("Não salvou. Tente de novo.", color = l.warn, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
+@Composable
+private fun OwedPanel(m: InvoiceMonth) {
+    val l = LocalLedger.current
+    Panel {
+        PanelHead("A receber") {
+            Text("Faturas de ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        }
+        m.owed.forEach { o ->
+            key(o.person) {
+                ListRow(
+                    name = o.person,
+                    value = money(o.total),
+                    // A person, not a card: one initial, in the accent's tint (as on the site).
+                    avatar = o.person.take(1).uppercase(),
+                    accent = true,
+                    meta = (if (o.lines == 1) "1 compra" else "${o.lines} compras") +
+                        if (o.later > 0) " · mais ${money(o.later)} nas próximas parcelas" else "",
+                )
+            }
+        }
+        Text("Fica fora do teto das faturas. Quando pagarem, lance como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
 /** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
 @Composable
-private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, onPick: (String) -> Unit) {
+private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, owners: Owners, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     Column(Modifier.padding(start = 48.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // The bill's facts on their own tinted block, set apart from the bank's lines below.
@@ -286,8 +390,9 @@ private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, 
             }
         }
         c.bank?.let { b ->
-            BankLines("Compras novas no banco", b.lines.filter { (it.installments ?: 1) <= 1 })
-            BankLines("Parcelas no banco", b.lines.filter { (it.installments ?: 1) > 1 })
+            // The lists say their lines can be tapped until someone has been named once.
+            BankLines("Compras novas no banco", b.lines.filter { (it.installments ?: 1) <= 1 }, owners, hint = owners.people.isEmpty())
+            BankLines("Parcelas no banco", b.lines.filter { (it.installments ?: 1) > 1 }, owners, hint = owners.people.isEmpty())
         }
     }
 }

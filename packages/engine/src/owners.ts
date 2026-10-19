@@ -1,0 +1,75 @@
+import type { BankCardLine } from "./bank.ts";
+import { normalizeName } from "./cards.ts";
+import { add, type Cents, mul, ZERO } from "./money.ts";
+
+/**
+ * Purchases on the owner's cards that are someone else's (a partner's, a brother's), marked by
+ * the owner so the money they will pay back is known ahead (specs/006-sobrar). Like Monarch's
+ * per-transaction owner and Nubank's "Dividir valor", the mark starts from the charge on the bill.
+ * Nothing is guessed: only what the owner marked.
+ */
+export interface OwnerMark {
+  /** See `ownerKey`. */
+  readonly key: string;
+  readonly person: string;
+}
+
+/** The payment company before the store ("EBN*SPOTIFY"), as the screens drop it. */
+const ACQUIRER = /^\s*(dl|pg|pag|pags|mp|ifd|ec|pp|paypal|sumup|zp|ebn|ebanx)\s*\*\s*/i;
+
+/** The store a bank text names, letters only: "EBN*SPOTIFY 12" and "Spotify" are one. */
+export const storeOf = (description: string): string =>
+  normalizeName(description.replace(ACQUIRER, "")).replace(/[^\p{L}]+/gu, "");
+
+/**
+ * What a mark holds on to. A parcel marks its whole plan (card, store, value, number of parcels),
+ * so every bill it lands on follows; any other charge marks just itself (its day too). Null for a
+ * refund, a payment, or an old line with no day: there is nothing to mark.
+ */
+export const ownerKey = (l: BankCardLine): string | null => {
+  const store = storeOf(l.description);
+  if (l.amount <= 0 || !store) return null;
+  const head = `${normalizeName(l.card)}|${store}|${l.amount}`;
+  if ((l.installments ?? 1) > 1) return `${head}|${l.installments}x`;
+  return l.date ? `${head}|${l.date}` : null;
+};
+
+/** Who the line belongs to, as the owner marked it; null for the owner's own. */
+export const ownerOf = (l: BankCardLine, marks: readonly OwnerMark[]): string | null => {
+  if (marks.length === 0) return null;
+  const key = ownerKey(l);
+  return (key && marks.find((m) => m.key === key)?.person) || null;
+};
+
+/** What one person owes on the bills due in a month. */
+export interface Owed {
+  readonly person: string;
+  /** Their lines on that month's bills. */
+  readonly total: Cents;
+  /** Their parcels still to come on later bills, already bought: not a forecast. */
+  readonly later: Cents;
+  readonly lines: number;
+}
+
+/** Each person with something on the bills due in `billMonth`, biggest first. */
+export const owedOnBills = (
+  lines: readonly BankCardLine[],
+  billMonth: string,
+  marks: readonly OwnerMark[],
+): Owed[] => {
+  const by = new Map<string, Owed>();
+  for (const l of lines) {
+    if (l.billMonth !== billMonth) continue;
+    const person = ownerOf(l, marks);
+    if (!person) continue;
+    const left = (l.installments ?? 1) > 1 ? (l.installments ?? 0) - (l.installment ?? 1) : 0;
+    const was = by.get(person) ?? { person, total: ZERO, later: ZERO, lines: 0 };
+    by.set(person, {
+      person,
+      total: add(was.total, l.amount),
+      later: add(was.later, mul(l.amount, Math.max(0, left))),
+      lines: was.lines + 1,
+    });
+  }
+  return [...by.values()].sort((a, b) => b.total - a.total || a.person.localeCompare(b.person));
+};

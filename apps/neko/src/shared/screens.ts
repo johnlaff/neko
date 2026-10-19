@@ -16,7 +16,12 @@ import {
   monthWins,
   normalizeName,
   type Outflow,
+  type Owed,
+  type OwnerMark,
   outflowTrend,
+  owedOnBills,
+  ownerKey,
+  ownerOf,
   type Reserve,
   type Saving,
   simulateInstallments,
@@ -43,6 +48,10 @@ export interface BankLineView {
   readonly date: string | null;
   readonly installment: number | null;
   readonly installments: number | null;
+  /** What a mark of someone else's holds on to; null for a refund or an old line. */
+  readonly key: string | null;
+  /** Whose it is, when marked as someone else's; null for yours. */
+  readonly person: string | null;
 }
 
 /** One card's bill in a month: the sheet's amount, where it stands, and what the bank has on it. */
@@ -95,6 +104,8 @@ export interface InvoiceMonthView {
     readonly parcels: number;
     readonly fresh: number;
   } | null;
+  /** Purchases on the month's bills marked as someone else's: what each will pay back. */
+  readonly owed: readonly Owed[];
 }
 
 /** Cards that charge a purchase made today on the same dates, read as one line. */
@@ -124,15 +135,19 @@ export interface InvoicesView {
   readonly bank: { readonly syncedAt: string | null } | null;
   /** Monthly charges found on the bank, with the owner's marks to cancel; null with none. */
   readonly subscriptions: SubscriptionsView | null;
+  /** Names already used for someone else's purchases, most recent first, to pick again. */
+  readonly people: readonly string[];
 }
 
 /** A bank card line for the screen: no card name (the row has it), no bill month (the month has it). */
-const lineView = (l: BillCheck["lines"][number]): BankLineView => ({
+const lineView = (l: BillCheck["lines"][number], owners: readonly OwnerMark[]): BankLineView => ({
   description: l.description,
   amount: l.amount,
   date: l.date ?? null,
   installment: l.installment,
   installments: l.installments,
+  key: ownerKey(l),
+  person: ownerOf(l, owners),
 });
 
 export const invoicesView = (r: ProjectionResponse): InvoicesView => {
@@ -166,6 +181,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
       });
   }
   const checks = r.bank?.checks ?? [];
+  const owners = r.bank?.owners ?? [];
   const limits = r.bank?.limits ?? [];
   const views = new Map(p.cards.map((c) => [normalizeName(c.card.name), c]));
   const invoices = p.invoices ?? [];
@@ -226,7 +242,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
                 closed: check.closed ?? false,
                 disagrees: check.disagrees ?? check.gap > 0,
                 onlyParcels: !check.closed && check.parcels > 0 && check.parcels === check.bank,
-                lines: (check.lines ?? []).map(lineView),
+                lines: (check.lines ?? []).map((l) => lineView(l, owners)),
               }
             : null,
           limit: limit ? { limit: limit.limit, available: limit.available } : null,
@@ -248,6 +264,11 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
                 parcels,
                 fresh: sub(add(ZERO, ...mine.map((c) => c.bank)), parcels),
               },
+        owed: owedOnBills(
+          mine.flatMap((c) => c.lines ?? []),
+          m.month,
+          owners,
+        ),
       };
     }),
     current: p.invoiceMonth ?? null,
@@ -255,6 +276,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
     buyToday: mine.length > 1 ? groups : [],
     bank: r.bank ? { syncedAt: r.bank.syncedAt } : null,
     subscriptions: r.bank?.subscriptions?.items.length ? r.bank.subscriptions : null,
+    people: [...new Set(owners.map((m) => m.person).reverse())],
   };
 };
 

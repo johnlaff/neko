@@ -48,6 +48,7 @@ export type KeptSetting =
   | "savedOrigins"
   | "writing"
   | "cancel"
+  | "owners"
   | "previstoSince"
   | "previstoUndo";
 
@@ -171,6 +172,8 @@ export const api = {
   /** Marks a subscription to cancel, or takes the mark off. */
   markCancel: (key: string, on: boolean) =>
     request<{ ok: true }>("/banks/cancel", { method: "PUT", body: JSON.stringify({ key, on }) }),
+  markOwner: (key: string, person: string | null) =>
+    request<{ ok: true }>("/banks/owner", { method: "PUT", body: JSON.stringify({ key, person }) }),
   saveBanks: (items: readonly { itemId: string; label: string }[]) =>
     request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
   mia: () => request<MiaStatus>("/mia"),

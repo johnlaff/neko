@@ -1,4 +1,4 @@
-import { type Cents, historyDelta, MAX_INSTALLMENTS, todayIn } from "@neko/engine";
+import { type Cents, historyDelta, MAX_INSTALLMENTS, normalizeName, todayIn } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import * as Sentry from "@sentry/cloudflare";
 import { Hono, type MiddlewareHandler } from "hono";
@@ -338,6 +338,27 @@ app.put("/banks/cancel", async (c) => {
   const settings = await loadSettings(c.env.DB);
   const rest = settings.cancel.filter((k) => k !== key);
   await saveSettings(c.env.DB, { ...settings, cancel: on ? [...rest, key].slice(-100) : rest });
+  return c.json({ ok: true });
+});
+
+/** Marks a purchase on your card as someone else's, or as yours again (person null). */
+app.put("/banks/owner", async (c) => {
+  const { key, person } = z
+    .object({
+      key: z.string().min(1).max(160),
+      person: z.string().trim().min(1).max(40).nullable(),
+    })
+    .parse(await c.req.json());
+  const settings = await loadSettings(c.env.DB);
+  const rest = settings.owners.filter((m) => m.key !== key);
+  // "bia" typed again is the Bia already named, not a second person.
+  const known =
+    person && settings.owners.find((m) => normalizeName(m.person) === normalizeName(person));
+  const who = known ? known.person : person;
+  await saveSettings(c.env.DB, {
+    ...settings,
+    owners: who ? [...rest, { key, person: who }].slice(-200) : rest,
+  });
   return c.json({ ok: true });
 });
 

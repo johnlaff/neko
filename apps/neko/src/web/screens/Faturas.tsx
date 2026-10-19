@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   type BankLineView,
   type BuyGroup,
+  type InvoiceMonthView,
   type InvoiceRow,
   invoicesView,
 } from "../../shared/screens.ts";
@@ -68,8 +69,106 @@ const parcelText = (l: BankLineView) =>
 
 const LINES_SHOWN = 8;
 
-const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineView[] }) => {
+/**
+ * Whose a purchase is: someone you named before, a new name, or yours again. A parcel takes its
+ * whole plan along, so every later bill follows.
+ */
+const OwnerPick = ({
+  line,
+  people,
+  onDone,
+}: {
+  line: BankLineView & { key: string };
+  people: readonly string[];
+  onDone: () => void;
+}) => {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const save = useMutation({
+    mutationFn: (person: string | null) => api.markOwner(line.key, person),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projection"] });
+      onDone();
+    },
+  });
+  const plan = (line.installments ?? 1) > 1;
+  return (
+    <div className="owner-pick">
+      <p className="hint">
+        {plan ? "De quem são estas parcelas? Vale para todas." : "De quem é esta compra?"}
+      </p>
+      <div className="owner-chips">
+        {people.map((p) => (
+          <button
+            key={p}
+            type="button"
+            className="chip-button"
+            aria-pressed={line.person === p}
+            disabled={save.isPending}
+            onClick={() => (line.person === p ? onDone() : save.mutate(p))}
+          >
+            {p}
+          </button>
+        ))}
+        {line.person && (
+          <button
+            type="button"
+            className="chip-button"
+            disabled={save.isPending}
+            onClick={() => save.mutate(null)}
+          >
+            É minha
+          </button>
+        )}
+      </div>
+      <form
+        className="owner-new"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (name.trim()) save.mutate(name.trim());
+        }}
+      >
+        <input
+          aria-label="Nome de outra pessoa"
+          placeholder={people.length > 0 ? "Outra pessoa" : "Nome da pessoa"}
+          autoCapitalize="words"
+          autoComplete="off"
+          maxLength={40}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <button type="submit" className="ghost small" disabled={save.isPending || !name.trim()}>
+          Marcar
+        </button>
+      </form>
+      {save.isPending && (
+        <p className="saving" role="status">
+          Salvando…
+        </p>
+      )}
+      {save.isError && (
+        <p className="warn" role="alert">
+          Não salvou. Tente de novo.
+        </p>
+      )}
+    </div>
+  );
+};
+
+const BankLines = ({
+  title,
+  lines,
+  people,
+  hint,
+}: {
+  title: string;
+  lines: readonly BankLineView[];
+  people: readonly string[];
+  /** Says the lines can be tapped, until someone has been named once. */
+  hint: boolean;
+}) => {
   const [all, setAll] = useState(false);
+  const [picking, setPicking] = useState<number | null>(null);
   if (lines.length === 0) return null;
   const shown = all ? lines : lines.slice(0, LINES_SHOWN);
   return (
@@ -79,18 +178,46 @@ const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineVi
         {title} ({lines.length})
         <IconChevron />
       </summary>
+      {hint && <p className="hint">Toque numa compra que é de outra pessoa.</p>}
       <ul>
-        {shown.map((l, i) => (
-          // The bank sends the same text twice for two equal purchases: the index tells them apart.
-          // biome-ignore lint/suspicious/noArrayIndexKey: lines have no id of their own here.
-          <li key={`${l.description}-${l.date}-${i}`}>
-            <span className="text">
-              {bankLineName(l)}
-              <small>{parcelText(l) ?? (l.date ? shortDate(l.date) : "")}</small>
-            </span>
-            <span className="amount">{money(l.amount)}</span>
-          </li>
-        ))}
+        {shown.map((l, i) => {
+          const when = parcelText(l) ?? (l.date ? shortDate(l.date) : "");
+          const body = (
+            <>
+              <span className="text">
+                {bankLineName(l)}
+                <small>{l.person ? `De ${l.person}${when ? ` · ${when}` : ""}` : when}</small>
+              </span>
+              <span className="amount">{money(l.amount)}</span>
+            </>
+          );
+          return (
+            // The bank sends the same text twice for two equal purchases: the index tells them apart.
+            // biome-ignore lint/suspicious/noArrayIndexKey: lines have no id of their own here.
+            <li key={`${l.description}-${l.date}-${i}`} className={l.person ? "theirs" : undefined}>
+              {l.key === null ? (
+                body
+              ) : (
+                <button
+                  type="button"
+                  className="line-pick"
+                  aria-expanded={picking === i}
+                  aria-label={`${bankLineName(l)}, ${money(l.amount)}${l.person ? `, de ${l.person}` : ""}: marcar de quem é`}
+                  onClick={() => setPicking(picking === i ? null : i)}
+                >
+                  {body}
+                </button>
+              )}
+              {picking === i && l.key !== null && (
+                <OwnerPick
+                  line={{ ...l, key: l.key }}
+                  people={people}
+                  onDone={() => setPicking(null)}
+                />
+              )}
+            </li>
+          );
+        })}
       </ul>
       {lines.length > shown.length && (
         <button type="button" className="ghost small" onClick={() => setAll(true)}>
@@ -101,12 +228,39 @@ const BankLines = ({ title, lines }: { title: string; lines: readonly BankLineVi
   );
 };
 
+/** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
+const Owed = ({ m }: { m: InvoiceMonthView }) => (
+  <section className="panel">
+    <div className="panel-head">
+      <h2>A receber</h2>
+      <span className="meta">Faturas de {monthOf(m.key)}</span>
+    </div>
+    <ul className="rows lead owed">
+      {m.owed.map((o) => (
+        <li key={o.person} className="bill">
+          <span className="avatar person" aria-hidden="true">
+            {o.person.slice(0, 1).toUpperCase()}
+          </span>
+          <span className="name">{o.person}</span>
+          <span className="value">{money(o.total)}</span>
+          <span className="meta">
+            {o.lines === 1 ? "1 compra" : `${o.lines} compras`}
+            {o.later > 0 && ` · mais ${money(o.later)} nas próximas parcelas`}
+          </span>
+        </li>
+      ))}
+    </ul>
+    <p className="hint">Fica fora do teto das faturas. Quando pagarem, lance como Entrada.</p>
+  </section>
+);
+
 /** Everything about one card's bill, opened from its row. */
 const Detail = ({
   c,
   month,
   today,
   alone,
+  people,
   onPick,
 }: {
   c: InvoiceRow;
@@ -114,6 +268,7 @@ const Detail = ({
   today: string;
   /** The month's only card: its history is the top chart already. */
   alone: boolean;
+  people: readonly string[];
   /** Opens another month of the screen, with this card still open. */
   onPick: (month: string) => void;
 }) => {
@@ -170,8 +325,15 @@ const Detail = ({
           <BankLines
             title="Compras novas no banco"
             lines={c.bank.lines.filter((l) => !isParcel(l))}
+            people={people}
+            hint={people.length === 0}
           />
-          <BankLines title="Parcelas no banco" lines={c.bank.lines.filter(isParcel)} />
+          <BankLines
+            title="Parcelas no banco"
+            lines={c.bank.lines.filter(isParcel)}
+            people={people}
+            hint={people.length === 0}
+          />
         </>
       )}
     </div>
@@ -183,12 +345,14 @@ const InvoiceLine = ({
   month,
   today,
   alone,
+  people,
   onPick,
 }: {
   c: InvoiceRow;
   month: string;
   today: string;
   alone: boolean;
+  people: readonly string[];
   onPick: (month: string) => void;
 }) => {
   const [open, setOpen] = useState(false);
@@ -220,7 +384,9 @@ const InvoiceLine = ({
         </span>
       </span>
       <span className="meta">{stateLine(c, today)}</span>
-      {open && <Detail c={c} month={month} today={today} alone={alone} onPick={onPick} />}
+      {open && (
+        <Detail c={c} month={month} today={today} alone={alone} people={people} onPick={onPick} />
+      )}
     </li>
   );
 };
@@ -402,6 +568,7 @@ export const Faturas = () => {
                           month={m.key}
                           today={v.today}
                           alone={m.cards.length === 1}
+                          people={v.people}
                           onPick={setPicked}
                         />
                       ))}
@@ -409,6 +576,7 @@ export const Faturas = () => {
                   )}
                 </section>
               ),
+              owed: m.owed.length > 0 && <Owed m={m} />,
               buy: best && (
                 <section className="panel">
                   <div className="panel-head">
@@ -441,8 +609,8 @@ export const Faturas = () => {
               subs: v.subscriptions && <Subscriptions subs={v.subscriptions} />,
             }}
             // Wide screens: the months beside the month's cards, then where to buy.
-            two={[["months"], ["cards", "buy", "subs"]]}
-            three={[["months"], ["cards"], ["buy", "subs"]]}
+            two={[["months"], ["cards", "owed", "buy", "subs"]]}
+            three={[["months"], ["cards", "owed"], ["buy", "subs"]]}
           />
         );
       }}
