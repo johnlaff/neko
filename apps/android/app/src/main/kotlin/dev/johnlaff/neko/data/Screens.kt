@@ -85,6 +85,8 @@ data class OwedItem(
     val installments: Int? = null,
     val later: Long = 0,
     val due: String? = null,
+    /** Its mark, to change whose it is from here. */
+    val key: String = "",
 )
 
 @Serializable

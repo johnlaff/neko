@@ -784,6 +784,7 @@
               "installment": 1,
               "installments": 3,
               "later": 25980,
+              "key": "cartao azul|foneparc|12990|3x",
               "due": "2026-11-12"
             }
           ]
@@ -938,6 +939,7 @@
               "installment": 2,
               "installments": 3,
               "later": 12990,
+              "key": "cartao azul|foneparc|12990|3x",
               "due": "2026-12-12"
             }
           ]
