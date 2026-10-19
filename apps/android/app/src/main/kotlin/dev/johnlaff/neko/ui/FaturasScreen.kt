@@ -34,6 +34,7 @@ import dev.johnlaff.neko.data.BuyGroup
 import dev.johnlaff.neko.data.InvoiceMonth
 import dev.johnlaff.neko.data.InvoiceRow
 import dev.johnlaff.neko.data.InvoicesView
+import dev.johnlaff.neko.data.Owed
 import dev.johnlaff.neko.data.Subscriptions
 import dev.johnlaff.neko.ui.Format.bankText
 import dev.johnlaff.neko.ui.Format.capitalize
@@ -336,20 +337,49 @@ private fun OwedPanel(m: InvoiceMonth) {
         PanelHead("A receber") {
             Text("Faturas de ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        m.owed.forEach { o ->
-            key(o.person) {
-                ListRow(
-                    name = o.person,
-                    value = money(o.total),
-                    // A person, not a card: one initial, in the accent's tint (as on the site).
-                    avatar = o.person.take(1).uppercase(),
-                    accent = true,
-                    meta = (if (o.lines == 1) "1 compra" else "${o.lines} compras") +
-                        if (o.later > 0) " · mais ${money(o.later)} nas próximas parcelas" else "",
-                )
+        m.owed.forEach { o -> key(o.person) { OwedLine(o) } }
+        Text("Fica fora do teto das faturas. Quando pagarem, lance como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** One person: what they owe on the month's bills, opening into each purchase (as on the site). */
+@Composable
+private fun OwedLine(o: Owed) {
+    val l = LocalLedger.current
+    var open by rememberSaveable(o.person) { mutableStateOf(false) }
+    Column {
+        ListRow(
+            name = o.person,
+            value = money(o.total),
+            modifier = Modifier.clickable(onClickLabel = if (open) "fechar compras" else "ver compras") { open = !open },
+            // A person, not a card: one initial, in the accent's tint (as on the site).
+            avatar = o.person.take(1).uppercase(),
+            accent = true,
+            meta = (if (o.lines == 1) "1 compra" else "${o.lines} compras") +
+                if (o.later > 0) " · mais ${money(o.later)} nas próximas parcelas" else "",
+            open = open,
+        )
+        Reveal(open) {
+            Column(Modifier.padding(start = 48.dp, top = 8.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                o.items.forEach { i ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text(bankLineName(BankLine(i.description, i.amount, installment = i.installment)), style = MaterialTheme.typography.bodyMedium)
+                            Text(i.card + (i.due?.let { " · fatura vence ${shortDate(it)}" } ?: ""), color = l.faint, style = MaterialTheme.typography.labelMedium)
+                            i.date?.let { Text("Compra de ${shortDate(it)}", color = l.faint, style = MaterialTheme.typography.labelMedium) }
+                            val n = i.installment
+                            val total = i.installments
+                            if (n != null && total != null && total > 1) Text(
+                                "Parcela $n de $total · " + if (i.later > 0) "faltam ${money(i.later)}" else "última",
+                                color = l.faint,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                        Text(money(i.amount), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
-        Text("Fica fora do teto das faturas. Quando pagarem, lance como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
     }
 }
 

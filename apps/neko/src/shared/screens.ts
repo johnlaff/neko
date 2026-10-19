@@ -86,6 +86,15 @@ export interface InvoiceRow {
   readonly history: readonly { readonly month: string; readonly amount: number }[];
 }
 
+/** One person's purchases on a month's bills, each with the bill it is on. */
+export interface OwedView extends Omit<Owed, "items"> {
+  readonly items: readonly (Omit<Owed["items"][number], "date"> & {
+    readonly date: string | null;
+    /** The due day of the bill it is on; null when the bank has no bill for its card. */
+    readonly due: string | null;
+  })[];
+}
+
 /** Every card due in one month, with the month's total. */
 export interface InvoiceMonthView {
   /** Due month, `yyyy-MM`. */
@@ -105,7 +114,7 @@ export interface InvoiceMonthView {
     readonly fresh: number;
   } | null;
   /** Purchases on the month's bills marked as someone else's: what each will pay back. */
-  readonly owed: readonly Owed[];
+  readonly owed: readonly OwedView[];
 }
 
 /** Cards that charge a purchase made today on the same dates, read as one line. */
@@ -268,7 +277,14 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
           mine.flatMap((c) => c.lines ?? []),
           m.month,
           owners,
-        ),
+        ).map((o) => ({
+          ...o,
+          items: o.items.map((i) => ({
+            ...i,
+            date: i.date ?? null,
+            due: mine.find((c) => normalizeName(c.card) === normalizeName(i.card))?.due ?? null,
+          })),
+        })),
       };
     }),
     current: p.invoiceMonth ?? null,

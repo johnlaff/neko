@@ -65,7 +65,27 @@ data class InvoiceMonth(
 
 /** One person's purchases on a month's bills (engine `Owed`); `later` is their parcels still to come. */
 @Serializable
-data class Owed(val person: String, val total: Long, val later: Long = 0, val lines: Int = 0)
+data class Owed(
+    val person: String,
+    val total: Long,
+    val later: Long = 0,
+    val lines: Int = 0,
+    /** Biggest first, each with the bill it is on. */
+    val items: List<OwedItem> = emptyList(),
+)
+
+/** One of someone else's purchases: its card, the due day of its bill, the parcels still to come. */
+@Serializable
+data class OwedItem(
+    val card: String,
+    val description: String,
+    val amount: Long,
+    val date: String? = null,
+    val installment: Int? = null,
+    val installments: Int? = null,
+    val later: Long = 0,
+    val due: String? = null,
+)
 
 @Serializable
 data class MonthBank(val disagree: Int = 0, val parcels: Long = 0, val fresh: Long = 0)

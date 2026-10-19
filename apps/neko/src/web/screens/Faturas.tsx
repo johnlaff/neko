@@ -7,6 +7,7 @@ import {
   type InvoiceMonthView,
   type InvoiceRow,
   invoicesView,
+  type OwedView,
 } from "../../shared/screens.ts";
 import type { SubscriptionsView } from "../../shared/types.ts";
 import { api } from "../api.ts";
@@ -229,25 +230,79 @@ const BankLines = ({
 };
 
 /** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
+/** Where someone else's purchase is: the card and its bill, the day bought and the parcels left. */
+const OwedItemLine = ({ i }: { i: OwedView["items"][number] }) => {
+  const parcel =
+    i.installment !== null && i.installments !== null && i.installments > 1
+      ? `Parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · faltam ${money(i.later)}` : " · última"}`
+      : null;
+  const bought = i.date ? `Compra de ${shortDate(i.date)}` : null;
+  return (
+    <li>
+      <span className="text">
+        {bankLineName(i)}
+        <small>
+          {i.card}
+          {i.due ? ` · fatura vence ${shortDate(i.due)}` : ""}
+        </small>
+        {bought && <small>{bought}</small>}
+        {parcel && <small>{parcel}</small>}
+      </span>
+      <span className="amount">{money(i.amount)}</span>
+    </li>
+  );
+};
+
+/** One person: what they owe on the month's bills, opening into each purchase. */
+const OwedLine = ({ o }: { o: OwedView }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <li className={`bill invoice${open ? " open" : ""}`}>
+      <button
+        type="button"
+        className="row-toggle"
+        aria-expanded={open}
+        aria-label={`${o.person}: ${open ? "fechar" : "ver"} compras`}
+        onClick={() => setOpen(!open)}
+      />
+      <span className="avatar person" aria-hidden="true">
+        {o.person.slice(0, 1).toUpperCase()}
+      </span>
+      <span className="name">{o.person}</span>
+      <span className="value">
+        <span className="opens">
+          {money(o.total)}
+          <IconChevron />
+        </span>
+      </span>
+      <span className="meta">
+        {o.lines === 1 ? "1 compra" : `${o.lines} compras`}
+        {o.later > 0 && ` · mais ${money(o.later)} nas próximas parcelas`}
+      </span>
+      {open && (
+        <div className="invoice-detail bank-lines owed-detail">
+          <ul>
+            {o.items.map((i, n) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: two equal purchases share every field.
+              <OwedItemLine key={`${i.card}-${i.description}-${n}`} i={i} />
+            ))}
+          </ul>
+        </div>
+      )}
+    </li>
+  );
+};
+
+/** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
 const Owed = ({ m }: { m: InvoiceMonthView }) => (
   <section className="panel">
     <div className="panel-head">
       <h2>A receber</h2>
       <span className="meta">Faturas de {monthOf(m.key)}</span>
     </div>
-    <ul className="rows lead owed">
+    <ul className="rows lead invoices owed">
       {m.owed.map((o) => (
-        <li key={o.person} className="bill">
-          <span className="avatar person" aria-hidden="true">
-            {o.person.slice(0, 1).toUpperCase()}
-          </span>
-          <span className="name">{o.person}</span>
-          <span className="value">{money(o.total)}</span>
-          <span className="meta">
-            {o.lines === 1 ? "1 compra" : `${o.lines} compras`}
-            {o.later > 0 && ` · mais ${money(o.later)} nas próximas parcelas`}
-          </span>
-        </li>
+        <OwedLine key={o.person} o={o} />
       ))}
     </ul>
     <p className="hint">Fica fora do teto das faturas. Quando pagarem, lance como Entrada.</p>
