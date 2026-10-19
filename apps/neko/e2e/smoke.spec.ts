@@ -93,7 +93,10 @@ const open = async (page: Page, path: string, body = projection) => {
       return route.fulfill({ json: { parts: [{ fingerprint: "f" }] } });
     if (pathname === "/api/entries")
       return route.fulfill({ json: { entryId: "e", state: "done" } });
-    if (pathname.startsWith("/api/queue/") || pathname === "/api/banks/cancel")
+    if (
+      pathname.startsWith("/api/queue/") ||
+      ["/api/banks/cancel", "/api/banks/owner"].includes(pathname)
+    )
       return route.fulfill({ json: { ok: true } });
     if (pathname === "/api/projection")
       return route.fulfill({ contentType: "application/json", body });
@@ -267,6 +270,33 @@ test("Faturas lists the monthly charges and marks one to cancel", async ({ page 
   );
   await subs.getByRole("button", { name: "Vou cancelar Academia do Bairro" }).click();
   expect((await sent).postDataJSON()).toEqual({ key: "academiadobairro|9990", on: true });
+  expect(errors).toEqual([]);
+});
+
+test("Faturas marks a purchase as someone else's and shows what they owe", async ({ page }) => {
+  const errors = await open(page, "/faturas");
+  await page
+    .getByRole("button", { name: /^Novembro:/ })
+    .first()
+    .click();
+  const owed = page.locator("section", { has: page.getByRole("heading", { name: "A receber" }) });
+  await expect(owed.getByText("Bia")).toBeVisible();
+  await expect(owed.getByText("R$ 129,90")).toBeVisible();
+  await expect(owed.getByText("1 compra · mais R$ 259,80 nas próximas parcelas")).toBeVisible();
+  await page.getByRole("button", { name: "Cartão Azul: ver detalhes" }).click();
+  await page.getByText("Parcelas no banco (2)").click();
+  await expect(page.getByText("De Bia · 1/3 · Faltam 2")).toBeVisible();
+  await page.getByRole("button", { name: /Loja de Móveis/ }).click();
+  await expect(page.getByText("De quem são estas parcelas? Vale para todas.")).toBeVisible();
+  await page.screenshot({ path: "test-results/owed-faturas.png", fullPage: true });
+  const sent = page.waitForRequest(
+    (r) => r.url().endsWith("/api/banks/owner") && r.method() === "PUT",
+  );
+  await page.getByRole("button", { name: "Bia", exact: true }).click();
+  expect((await sent).postDataJSON()).toEqual({
+    key: "cartao azul|lojademoveisparc|45000|6x",
+    person: "Bia",
+  });
   expect(errors).toEqual([]);
 });
 

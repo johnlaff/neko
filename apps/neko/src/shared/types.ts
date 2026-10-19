@@ -5,6 +5,7 @@ import type {
   Cents,
   DailySuggestion,
   Habit,
+  OwnerMark,
   Projection,
   RefValue,
   SaldoCheck,
@@ -102,6 +103,8 @@ export interface BankView {
   readonly saldo?: SaldoCheck | null;
   /** Charges that come back each month on your cards; absent from a Worker that predates it. */
   readonly subscriptions?: SubscriptionsView;
+  /** Purchases on your cards marked as someone else's; absent from a Worker that predates it. */
+  readonly owners?: readonly OwnerMark[];
 }
 
 export interface SubscriptionsView {
@@ -165,6 +168,11 @@ export const UserSettings = z.object({
   accountUse: z.record(z.string().min(1).max(64), z.enum(["guardado", "corrente"])).default({}),
   /** Subscriptions (see engine `subscriptions`, by key) the owner marked to cancel. */
   cancel: z.array(z.string().min(1).max(120)).max(100).default([]),
+  /** Purchases on your cards that are someone else's (see engine `ownerKey`), to be paid back. */
+  owners: z
+    .array(z.object({ key: z.string().min(1).max(160), person: z.string().trim().min(1).max(40) }))
+    .max(200)
+    .default([]),
   /** Origins (bank text, see `originKey`) the owner launched as savings: proposed so next time. */
   savedOrigins: z.array(z.string().min(1).max(80)).max(100).default([]),
   /**

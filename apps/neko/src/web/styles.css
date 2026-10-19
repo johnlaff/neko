@@ -1327,6 +1327,14 @@ fieldset.panel > legend {
 .bill > .avatar {
   grid-row: span 2;
 }
+/* A person, not a card: round, one initial, in the accent's tint. */
+.avatar.person {
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
 
 /* Month figure with its movement underneath, the way banking apps show a balance change */
 .figure-stack {
@@ -3455,6 +3463,80 @@ details.bank-lines summary {
 }
 .bank-lines button {
   margin-top: 6px;
+}
+.bank-lines > .hint {
+  margin: 8px 0 0;
+}
+
+/* A line is a tap target that reads as a plain ledger row: no fill, the same two columns. */
+.bank-lines button.line-pick {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  min-height: 44px;
+  margin: 0;
+  padding: 6px 0;
+  border-radius: 2px;
+  background: none;
+  color: inherit;
+  font-weight: inherit;
+  text-align: left;
+}
+.bank-lines button.line-pick:hover,
+.bank-lines button.line-pick[aria-expanded="true"] {
+  /* The tint reaches past the text without moving it. */
+  background: var(--surface-2);
+  box-shadow: 0 0 0 8px var(--surface-2);
+  border-radius: 2px;
+}
+.bank-lines button.line-pick:active {
+  scale: 1;
+}
+/* Someone else's: "De Bia" in the meta, the amount quieter, never struck through (the money
+   still leaves your account to pay the bill). */
+.bank-lines li.theirs .text > small {
+  color: var(--muted);
+}
+.bank-lines li.theirs .amount {
+  color: var(--muted);
+}
+.owner-pick {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+.owner-pick .hint,
+.owner-pick .warn {
+  margin: 0;
+}
+.owner-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.owner-chips:empty {
+  display: none;
+}
+.bank-lines .owner-chips > button.chip-button {
+  flex: none;
+  margin: 0;
+}
+.owner-new {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.bank-lines .owner-new > button {
+  margin: 0;
+}
+.owner-pick .saving {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 .columns-key {
   flex-wrap: wrap;
