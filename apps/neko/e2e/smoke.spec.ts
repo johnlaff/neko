@@ -342,7 +342,7 @@ test("with a ceiling for the cards, Hoje paces the month on all of them", async 
     ...data.projection.canSpend,
     mode: "cards",
     card: "",
-    budget: 350_000,
+    budget: 250_000,
     budgetSource: "configured",
     accumulated: 200_000,
     perDay: 5_555,
@@ -353,7 +353,7 @@ test("with a ceiling for the cards, Hoje paces the month on all of them", async 
   const errors = await open(page, "/", JSON.stringify(data));
   await expect(page.getByRole("heading", { name: "Cartões em outubro" })).toBeVisible();
   await page.getByText("Como calculei").click();
-  await expect(page.getByText(/3\.500,00 de teto para os seus cartões no mês/)).toBeVisible();
+  await expect(page.getByText(/2\.500,00 de teto para os seus cartões no mês/)).toBeVisible();
   await page.screenshot({ path: "test-results/teto-cartoes.png", fullPage: true });
   expect(errors).toEqual([]);
 });

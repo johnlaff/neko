@@ -191,8 +191,8 @@ const Form = ({
                 Teto dos cartões no mês
                 <span className={shows("budget", badMoney(v.budget)) ? "sub error" : "sub"}>
                   {shows("budget", badMoney(v.budget))
-                    ? "Use um valor como 3.500,00"
-                    : "Todos os seus cartões. Em branco, só o principal"}
+                    ? "Use um valor como 2.500,00"
+                    : "Todos os seus cartões, sem assinaturas"}
                 </span>
               </span>
               <span className="affix">

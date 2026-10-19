@@ -1,4 +1,5 @@
 import {
+  cardsMonthSpend,
   cents,
   type DailySuggestion,
   editDay,
@@ -15,6 +16,7 @@ import {
   project,
   REVIEW_MONTHS,
   type SpendInput,
+  subscriptions,
   suggestDaily,
   variableSpend,
 } from "@neko/engine";
@@ -191,7 +193,15 @@ export const buildResponse = (
             spent: variableSpend(spend, monthStart, today).total,
           }
         : null,
-    cardsSpent: spend ? variableSpend(spend, monthStart, today).cards : null,
+    cardsSpent: spend
+      ? cardsMonthSpend(
+          spend.lines,
+          monthStart,
+          today,
+          settings.othersCards,
+          subscriptions(spend.lines, today, settings.othersCards).items,
+        )
+      : null,
   });
   return {
     projection,

@@ -227,7 +227,7 @@ private fun Formula(cs: CanSpend, v: TodayView) {
     if (cs.mode == "cards") {
         Text(
             "${money(cs.budget)} de teto para os seus cartões no mês menos ${money(cs.accumulated)} comprados até ontem, " +
-                "como o banco mostra (compra parcelada conta inteira), dividido por ${days(cs.daysLeft)}.",
+                "como o banco mostra, dividido por ${days(cs.daysLeft)}. Compra parcelada conta a parcela do mês; assinaturas ficam de fora.",
             color = l.muted,
         )
         Text(

@@ -730,7 +730,7 @@ private fun Pace(f: AjustesForm, dailyAuto: Long, previsto: Long?) {
     Setting("Cartão principal", "O que aparece em Hoje") { CardPicker(f) }
     if (previsto != null) return
     val budgetBad = "budget" in f.left && badMoney(f.budget)
-    Setting("Teto dos cartões no mês", if (budgetBad) "Use um valor como 3.500,00" else "Todos os seus cartões. Em branco, só o principal", budgetBad) {
+    Setting("Teto dos cartões no mês", if (budgetBad) "Use um valor como 2.500,00" else "Todos os seus cartões, sem assinaturas", budgetBad) {
         Field(
             f.budget, { f.budget = it }, { f.left += "budget"; f.now = true },
             placeholder = "Sem teto", description = "Teto dos cartões no mês", money = true, error = budgetBad, width = 150,

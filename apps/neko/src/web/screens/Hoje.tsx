@@ -537,8 +537,9 @@ export const Hoje = () => (
                       <>
                         <p>
                           {money(cs.budget)} de teto para os seus cartões no mês menos{" "}
-                          {money(cs.accumulated)} comprados até ontem, como o banco mostra (compra
-                          parcelada conta inteira), dividido por {days(cs.daysLeft)}.
+                          {money(cs.accumulated)} comprados até ontem, como o banco mostra, dividido
+                          por {days(cs.daysLeft)}. Compra parcelada conta a parcela do mês;
+                          assinaturas ficam de fora.
                         </p>
                         <p>
                           O ponto no arco é o ritmo até ontem: o mês está{" "}
