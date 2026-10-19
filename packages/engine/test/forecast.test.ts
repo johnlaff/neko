@@ -217,7 +217,7 @@ describe("Hoje cabem with the Diário previsto", () => {
     expect(p.canSpend).toMatchObject({ mode: "cycle", daysBehind: 0 });
   });
 
-  it("with a ceiling and the bank, follows the month on all the owner's cards", () => {
+  it("with a ceiling and the bank, weighs next month's bills on all the owner's cards", () => {
     const p = project(ledger("2026-10-01", 92, 0), today, {
       ...settings,
       cycleBudget: cents(310000),
@@ -231,8 +231,9 @@ describe("Hoje cabem with the Diário previsto", () => {
       daysLeft: 12,
       perDay: 9166,
       closing: "2026-10-31",
-      paceExpected: 190000,
-      paceGap: -10000,
+      due: "2026-11-30",
+      paceExpected: 200000,
+      paceGap: 0,
       overBy: 0,
       left: 110000,
       used: 50,

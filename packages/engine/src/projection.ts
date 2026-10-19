@@ -26,14 +26,14 @@ export interface Settings {
   /** Card whose cycle sets the pace in "Hoje cabem". Null: the card with the largest bills. */
   readonly usualCard: string | null;
   /**
-   * The ceiling for the owner's cards in a month (all of them, not someone else's). With the bank's
-   * purchases (`cardsSpent`) "Hoje cabem" follows the month on all cards; without them, the usual
-   * card's cycle. Null: diário × days in the cycle.
+   * The ceiling for the owner's bills due next month (all his cards, not someone else's). With the
+   * bank (`cardsSpent`) Hoje shows what still fits on those bills; without it, the usual card's
+   * cycle. Null: diário × days in the cycle.
    */
   readonly cycleBudget: Cents | null;
   /**
-   * What the bank shows bought this month before today on the owner's cards, without
-   * subscriptions; a purchase in parcels made this month counts its first parcel. Null without a bank.
+   * What the bank already puts on the owner's bills due next month: purchases, parcels and
+   * subscriptions (`cardsBillSpend`). Null without a bank.
    */
   readonly cardsSpent?: Cents | null;
   readonly cards: readonly CardConfig[];
@@ -69,7 +69,7 @@ export interface CanSpend {
   /**
    * `cycle`: the usual card's bill against its plan for the cycle. `month`: with the Diário
    * previsto on, the month's spending (cards and Pix, as the bank shows it) against the Diário.
-   * `cards`: the month's purchases on all the owner's cards against the ceiling set for them.
+   * `cards`: the owner's bills due next month, all his cards, against the ceiling set for them.
    */
   readonly mode: "cycle" | "month" | "cards";
   readonly card: string;
@@ -90,7 +90,7 @@ export interface CanSpend {
   readonly overBy: Cents;
   /** Days without spending that would bring the month back to the pace; 0 when on it. */
   readonly daysBehind: number;
-  /** `cards`: what still fits under the ceiling this month; zero once past it. */
+  /** `cards`: what still fits on next month's bills under the ceiling; zero once past it. */
   readonly left?: Cents;
   /** `cards`: the last mark of the ceiling the month reached, for the 50/75/100% warnings. */
   readonly used?: 0 | 50 | 75 | 100;
@@ -540,14 +540,16 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       daysBehind: paceGap < 0 ? Math.ceil(-paceGap / previsto.value) : 0,
     };
   } else if (settings.cycleBudget !== null && settings.cardsSpent != null) {
-    // The month on all the owner's cards: what the bank shows bought before today against the ceiling.
+    // Next month's bills on all the owner's cards: what the bank already put on them against the
+    // ceiling. Parcels and subscriptions sit on a bill from the start, so there is no even pace:
+    // the dot stands where the bills are.
     const { year, month, day } = parts(today);
     const monthDays = daysInMonth(year, month);
     const budget = settings.cycleBudget;
     const spent = settings.cardsSpent;
     const daysLeft = monthDays - day + 1;
-    const paceExpected = divFloor(mul(budget, day - 1), monthDays);
     const closing = ymd(year, month, monthDays);
+    const next = parts(addDays(closing, 1));
     canSpend = {
       mode: "cards",
       card: "",
@@ -557,10 +559,10 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       daysLeft,
       perDay: divFloor(sub(budget, spent), daysLeft),
       closing,
-      due: closing,
+      due: ymd(next.year, next.month, daysInMonth(next.year, next.month)),
       cycleDays: monthDays,
-      paceExpected,
-      paceGap: sub(paceExpected, spent),
+      paceExpected: spent,
+      paceGap: ZERO,
       overBy: spent > budget ? sub(spent, budget) : ZERO,
       daysBehind: 0,
       left: spent < budget ? sub(budget, spent) : ZERO,
