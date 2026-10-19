@@ -25,8 +25,17 @@ export interface Settings {
   readonly dailyForecast: Cents | null;
   /** Card whose cycle sets the pace in "Hoje cabem". Null: the card with the largest bills. */
   readonly usualCard: string | null;
-  /** What you plan to spend on the usual card per cycle. Null: diário × days in the cycle. */
+  /**
+   * The ceiling for the owner's cards in a month (all of them, not someone else's). With the bank's
+   * purchases (`cardsSpent`) "Hoje cabem" follows the month on all cards; without them, the usual
+   * card's cycle. Null: diário × days in the cycle.
+   */
   readonly cycleBudget: Cents | null;
+  /**
+   * What the bank shows bought this month before today on the owner's cards, without
+   * subscriptions; a purchase in parcels made this month counts its first parcel. Null without a bank.
+   */
+  readonly cardsSpent?: Cents | null;
   readonly cards: readonly CardConfig[];
   /** Cards someone else pays (e.g. a partner's card): left out of your spending pace. */
   readonly othersCards: readonly string[];
@@ -60,8 +69,9 @@ export interface CanSpend {
   /**
    * `cycle`: the usual card's bill against its plan for the cycle. `month`: with the Diário
    * previsto on, the month's spending (cards and Pix, as the bank shows it) against the Diário.
+   * `cards`: the month's purchases on all the owner's cards against the ceiling set for them.
    */
-  readonly mode: "cycle" | "month";
+  readonly mode: "cycle" | "month" | "cards";
   readonly card: string;
   readonly budget: Cents;
   readonly budgetSource: "configured" | "diario";
@@ -520,6 +530,31 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       paceGap,
       overBy: previsto.spent > budget ? sub(previsto.spent, budget) : ZERO,
       daysBehind: paceGap < 0 ? Math.ceil(-paceGap / previsto.value) : 0,
+    };
+  } else if (settings.cycleBudget !== null && settings.cardsSpent != null) {
+    // The month on all the owner's cards: what the bank shows bought before today against the ceiling.
+    const { year, month, day } = parts(today);
+    const monthDays = daysInMonth(year, month);
+    const budget = settings.cycleBudget;
+    const spent = settings.cardsSpent;
+    const daysLeft = monthDays - day + 1;
+    const paceExpected = divFloor(mul(budget, day - 1), monthDays);
+    const closing = ymd(year, month, monthDays);
+    canSpend = {
+      mode: "cards",
+      card: "",
+      budget,
+      budgetSource: "configured",
+      accumulated: spent,
+      daysLeft,
+      perDay: divFloor(sub(budget, spent), daysLeft),
+      closing,
+      due: closing,
+      cycleDays: monthDays,
+      paceExpected,
+      paceGap: sub(paceExpected, spent),
+      overBy: spent > budget ? sub(spent, budget) : ZERO,
+      daysBehind: 0,
     };
   } else if (usualView) {
     const cycleDays = diffDays(usualView.cycle.start, usualView.cycle.closing);

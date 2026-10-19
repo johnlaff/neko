@@ -335,6 +335,35 @@ test("keys switch screens and months, but a calendar arrow stays in the calendar
   await expect(page).toHaveURL(/\/ajustes$/);
 });
 
+test("with a ceiling for the cards, Hoje paces the month on all of them", async ({ page }) => {
+  const data = JSON.parse(projection);
+  data.previsto.on = false;
+  data.projection.canSpend = {
+    ...data.projection.canSpend,
+    mode: "cards",
+    card: "",
+    budget: 250_000,
+    budgetSource: "configured",
+    // Today is Oct 5 of 31 days: (2.500 − 600) ÷ 27 days, pace 2.500 × 4 ÷ 31, as the engine does.
+    accumulated: 60_000,
+    daysLeft: 27,
+    perDay: 7_037,
+    closing: "2026-10-31",
+    due: "2026-10-31",
+    cycleDays: 31,
+    paceExpected: 32_258,
+    paceGap: -27_742,
+    overBy: 0,
+    daysBehind: 0,
+  };
+  const errors = await open(page, "/", JSON.stringify(data));
+  await expect(page.getByRole("heading", { name: "Cartões em outubro" })).toBeVisible();
+  await page.getByText("Como calculei").click();
+  await expect(page.getByText(/2\.500,00 de teto para os seus cartões no mês/)).toBeVisible();
+  await page.screenshot({ path: "test-results/teto-cartoes.png", fullPage: true });
+  expect(errors).toEqual([]);
+});
+
 test("Lançar à mão asks the value, how it was paid and the name, then offers Desfazer", async ({
   page,
 }) => {

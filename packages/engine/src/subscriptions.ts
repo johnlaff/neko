@@ -1,7 +1,7 @@
-import type { BankCardLine } from "./bank.ts";
+import { type BankCardLine, isCardPayment } from "./bank.ts";
 import { normalizeName } from "./cards.ts";
 import { diffDays, type LocalDate } from "./date.ts";
-import { add, type Cents, ZERO } from "./money.ts";
+import { add, type Cents, cents, ZERO } from "./money.ts";
 
 /**
  * Subscriptions, from the bank's card lines: a charge of the very same value that comes back
@@ -102,4 +102,31 @@ export const subscriptions = (
   }
   items.sort((a, b) => b.amount - a.amount || a.key.localeCompare(b.key));
   return { items, total: add(ZERO, ...items.map((i) => i.amount)) };
+};
+
+/**
+ * What the owner bought this month on his own cards, for the ceiling (specs/006-sobrar): by the
+ * day of the purchase, a purchase in parcels at one parcel (the method puts each parcel on its own
+ * bill), and without the subscriptions, which are fixed and have their own list. Card payments and
+ * someone else's cards stay out.
+ */
+export const cardsMonthSpend = (
+  lines: readonly BankCardLine[],
+  from: LocalDate,
+  to: LocalDate,
+  othersCards: readonly string[],
+  subs: readonly Subscription[],
+): Cents => {
+  const others = new Set(othersCards.map(normalizeName));
+  const fixed = new Set(subs.map((i) => `${normalizeName(i.card)}|${i.key.replace(/#\d+$/, "")}`));
+  let total = 0;
+  for (const l of lines) {
+    if (!l.date || l.date < from || l.date >= to) continue;
+    if (others.has(normalizeName(l.card)) || isCardPayment(l)) continue;
+    // Later parcels belong to a purchase of an earlier month.
+    if ((l.installment ?? 1) > 1) continue;
+    if (fixed.has(`${normalizeName(l.card)}|${store(l.description)}|${l.amount}`)) continue;
+    total += l.amount;
+  }
+  return cents(total);
 };
