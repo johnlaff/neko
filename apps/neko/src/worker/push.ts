@@ -151,12 +151,19 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
           url: "/",
           tag: "morning",
         }
-      : {
-          title: `Ainda cabem ${money(cs.left ?? ZERO)} nos cartões`,
-          body: `${left}${used}${rest}`,
-          url: "/",
-          tag: "morning",
-        };
+      : cs.used === 100
+        ? {
+            title: "Os cartões chegaram ao teto do mês",
+            body: `${left}${rest}`,
+            url: "/",
+            tag: "morning",
+          }
+        : {
+            title: `Ainda cabem ${money(cs.left ?? ZERO)} nos cartões`,
+            body: `${left}${used}${rest}`,
+            url: "/",
+            tag: "morning",
+          };
   }
   if (cs.perDay < 0)
     return {

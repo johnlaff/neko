@@ -81,6 +81,7 @@ describe("reminders", () => {
       "Até o fim do mês, faltam 13 dias. Você já usou 75% do teto de R$ 2.000,00.",
     );
     expect(cards(1000_00, 50, 1000_00)?.body).toMatch(/Você já usou metade do teto/);
+    expect(cards(2000_00, 100, 0)?.title).toBe("Os cartões chegaram ao teto do mês");
     expect(cards(2100_00, 100, 0, 100_00)?.title).toBe(
       "Os cartões passaram R$ 100,00 do teto do mês",
     );

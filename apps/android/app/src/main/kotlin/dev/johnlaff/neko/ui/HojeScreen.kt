@@ -168,8 +168,9 @@ private fun Hero(v: TodayView) {
             // Behind the Diário, the line under the figure already says by how much.
             when {
                 cs.pace == "over" || (month && cs.daysBehind > 0) -> Unit
+                cards && cs.used == 100 -> Chip("No teto", ChipTone.Warn)
                 cards && cs.used == 75 -> Chip("75% do teto", ChipTone.Warn)
-                cards && cs.used == 50 -> Chip("Metade do teto", ChipTone.Plain)
+                cards && cs.used == 50 -> Chip("Metade do teto", if (cs.paceGap >= 0) ChipTone.Plain else ChipTone.Warn)
                 cs.pace == "on-pace" -> Chip("No ritmo", ChipTone.Ok)
                 else -> Chip(if (month) "Acima do previsto" else "Acima do ritmo", ChipTone.Warn)
             }
