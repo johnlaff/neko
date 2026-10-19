@@ -894,5 +894,31 @@
   "buyToday": [],
   "bank": {
     "syncedAt": "2026-10-05T09:00:00.000Z"
+  },
+  "subscriptions": {
+    "items": [
+      {
+        "key": "academiadobairro|9990",
+        "description": "ACADEMIA DO BAIRRO",
+        "card": "Cartão Azul",
+        "amount": 9990,
+        "last": "2026-09-25",
+        "charges": 2,
+        "twin": false,
+        "cancel": false
+      },
+      {
+        "key": "streamingdefilmes|3990",
+        "description": "STREAMING DE FILMES",
+        "card": "Cartão Azul",
+        "amount": 3990,
+        "last": "2026-10-03",
+        "charges": 3,
+        "twin": false,
+        "cancel": true
+      }
+    ],
+    "total": 13980,
+    "toCancel": 3990
   }
 }

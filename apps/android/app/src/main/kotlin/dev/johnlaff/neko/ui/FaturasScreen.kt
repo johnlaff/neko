@@ -32,9 +32,11 @@ import dev.johnlaff.neko.data.BuyGroup
 import dev.johnlaff.neko.data.InvoiceMonth
 import dev.johnlaff.neko.data.InvoiceRow
 import dev.johnlaff.neko.data.InvoicesView
+import dev.johnlaff.neko.data.Subscriptions
 import dev.johnlaff.neko.ui.Format.bankText
 import dev.johnlaff.neko.ui.Format.capitalize
 import dev.johnlaff.neko.ui.Format.days
+import dev.johnlaff.neko.ui.Format.merchantName
 import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.monthName
 import dev.johnlaff.neko.ui.Format.shortDate
@@ -52,6 +54,8 @@ fun FaturasScreen(
     onAjustes: () -> Unit,
     /** Para lançar lives on Hoje: where a bill the bank disagrees with gets fixed. */
     onHoje: () -> Unit = {},
+    /** Marks a subscription to cancel, or takes the mark off. */
+    onCancel: (key: String, on: Boolean) -> Unit = { _, _ -> },
 ) {
     var picked by rememberSaveable { mutableStateOf<String?>(null) }
     ScreenFrame("Faturas", state, { it.readAt }, onRefresh, miaTopic = "faturas") { v ->
@@ -70,6 +74,7 @@ fun FaturasScreen(
         column()
         item { CardsPanel(month, v.today) { picked = it } }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
+        v.subscriptions?.let { item { SubscriptionsPanel(it, onCancel) } }
     }
 }
 
@@ -313,5 +318,41 @@ private fun BuyToday(groups: List<BuyGroup>, onAjustes: () -> Unit) {
             Reveal(all) { groups.drop(1).forEach { BuyLine(it, best = false) } }
         }
         if (groups.any { it.estimated }) TextAction("Dias com ≈ são estimados. Corrigir em Ajustes", onAjustes)
+    }
+}
+
+/**
+ * Charges of the same value back each month on the owner's cards, with a mark for the ones to
+ * cancel: the method tags them all to cancel on one day. Only what was charged; nothing ahead.
+ */
+@Composable
+private fun SubscriptionsPanel(subs: Subscriptions, onCancel: (String, Boolean) -> Unit) {
+    val l = LocalLedger.current
+    // The tap shows at once; the next read of the screen brings the Worker's own marks.
+    var marks by remember(subs) { mutableStateOf(subs.items.associate { it.key to it.cancel }) }
+    Panel {
+        PanelHead("Assinaturas") {
+            Text("${money(subs.total)} por mês", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        }
+        Text("Marque o que você vai cancelar.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        subs.items.forEach { i ->
+            key(i.key) {
+                val name = bankText(merchantName(i.description))
+                val on = marks[i.key] ?: i.cancel
+                ListRow(
+                    name = name,
+                    value = money(i.amount),
+                    meta = "${i.card} · ${i.charges} cobranças · última ${shortDate(i.last)}" +
+                        if (i.twin) " · outro plano na mesma loja" else "",
+                    chips = {
+                        Toggle(if (on) "✓ Vou cancelar" else "Vou cancelar", on, "Vou cancelar $name") {
+                            marks = marks + (i.key to !on)
+                            onCancel(i.key, !on)
+                        }
+                    },
+                )
+            }
+        }
+        if (subs.toCancel > 0) Text("Marcadas: ${money(subs.toCancel)} a menos por mês", color = l.pos, style = MaterialTheme.typography.labelLarge)
     }
 }

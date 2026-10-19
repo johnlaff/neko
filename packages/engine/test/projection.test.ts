@@ -113,6 +113,35 @@ describe("credit mode projection", () => {
     expect(fifth.years).toEqual([{ year: 2026, entrada: 5000_00, saved: 0, savedShare: 0 }]);
   });
 
+  it("leaves what is paid back and a card someone else pays out of the cost of living", () => {
+    // Nov: R$ 5.000 of salary. A car installment someone pays back the same day (R$ 1.000 in and
+    // out), the partner's card paid back by her (R$ 800), and the partner's other card that she
+    // did not pay back this month (R$ 300). Own spending: rent R$ 1.500 and the Visa R$ 2.000.
+    const l = ledger("2026-10-01", 92, 10_000_00, {
+      "2026-11-05": {
+        entrada: cell(6000_00, [item(5000_00, "Salário", null), item(1000_00, "Carro 3/36", null)]),
+        saida: cell(1000_00, [item(1000_00, "Carro 3/36", null)]),
+      },
+      "2026-11-10": {
+        saida: cell(4600_00, [
+          item(1500_00, "Aluguel", "contas"),
+          item(2000_00, "Visa"),
+          item(800_00, "Verde"),
+          item(300_00, "Azul"),
+        ]),
+      },
+      "2026-11-12": { entrada: cell(800_00, [item(800_00, "Ana", null)]) },
+    });
+    const nov = project(
+      l,
+      today,
+      settings({ cards: [visa, verde], othersCards: ["Azul"] }),
+    ).months.find((m) => m.month === 11);
+    // What it cost you: rent and your card. What your income already pays: also the other card
+    // nobody paid back. What came in for you: the salary.
+    expect(nov).toMatchObject({ livingCost: 3500_00, committed: 3800_00, ownIncome: 5000_00 });
+  });
+
   it("a resgate, an Entrada under Reserva:, takes back from what was kept", () => {
     // R$ 500 kept on the 6th, R$ 200 drawn back on the 20th: the month kept R$ 300, and the
     // money drawn back is not a cost of living.

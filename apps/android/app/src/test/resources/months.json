@@ -472,7 +472,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 599238,
+      "livingCost": 560364,
       "wins": [
         {
           "kind": "blue",
@@ -957,7 +957,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 651574,
+      "livingCost": 621505,
       "wins": [
         {
           "kind": "blue",
@@ -1550,7 +1550,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 693768,
+      "livingCost": 651721,
       "wins": [
         {
           "kind": "blue",
@@ -2171,7 +2171,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 715890,
+      "livingCost": 678597,
       "wins": [
         {
           "kind": "blue",
@@ -2834,7 +2834,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 714443,
+      "livingCost": 653734,
       "wins": [
         {
           "kind": "blue",
@@ -3528,7 +3528,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 676242,
+      "livingCost": 634713,
       "wins": [
         {
           "kind": "blue",
@@ -4229,7 +4229,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 745578,
+      "livingCost": 683900,
       "wins": []
     },
     {
@@ -4922,7 +4922,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 694448,
+      "livingCost": 624730,
       "wins": [
         {
           "kind": "blue",
@@ -5616,7 +5616,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 665542,
+      "livingCost": 627406,
       "wins": [
         {
           "kind": "blue",
@@ -6318,7 +6318,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 659164,
+      "livingCost": 619201,
       "wins": [
         {
           "kind": "blue",
@@ -7012,7 +7012,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 704539,
+      "livingCost": 671020,
       "wins": [
         {
           "kind": "blue",
@@ -7710,7 +7710,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 702333,
+      "livingCost": 642456,
       "wins": [
         {
           "kind": "blue",
@@ -8411,7 +8411,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 637979,
+      "livingCost": 580827,
       "wins": [
         {
           "kind": "blue",
@@ -9085,7 +9085,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 657372,
+      "livingCost": 614988,
       "wins": [
         {
           "kind": "blue",
@@ -9783,7 +9783,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 589219,
+      "livingCost": 554016,
       "wins": [
         {
           "kind": "blue",
@@ -10477,7 +10477,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 666454,
+      "livingCost": 614571,
       "wins": [
         {
           "kind": "blue",
@@ -11175,7 +11175,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 637384,
+      "livingCost": 579048,
       "wins": [
         {
           "kind": "blue",
@@ -11869,7 +11869,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 724843,
+      "livingCost": 659513,
       "wins": []
     },
     {
@@ -12562,7 +12562,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 669622,
+      "livingCost": 611890,
       "wins": [
         {
           "kind": "blue",
@@ -13263,7 +13263,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 626833,
+      "livingCost": 576812,
       "wins": [
         {
           "kind": "blue",
@@ -13957,7 +13957,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 734972,
+      "livingCost": 665876,
       "wins": [
         {
           "kind": "blue",
@@ -14766,7 +14766,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 937321,
+      "livingCost": 884551,
       "wins": []
     },
     {
@@ -15569,7 +15569,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 861754,
+      "livingCost": 825535,
       "wins": []
     },
     {
@@ -16385,7 +16385,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 983691,
+      "livingCost": 920953,
       "wins": []
     }
   ],
@@ -16399,12 +16399,12 @@
     "until": "2026-12-31"
   },
   "reserve": {
-    "cost": 677142,
+    "cost": 618192,
     "costMonths": 3,
-    "min": 4062852,
-    "max": 8125704,
+    "min": 3709152,
+    "max": 7418304,
     "kept": 1680000,
-    "coveredTenths": 24
+    "coveredTenths": 27
   },
   "years": [
     {

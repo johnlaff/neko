@@ -3519,3 +3519,37 @@ details.bank-lines summary {
 .q-buys details.formula > ul + .q-buys-head {
   margin-top: 10px;
 }
+
+/* Subscriptions: name and value, then the mark to cancel beside them */
+.rows.subs > li {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+.rows.subs button.chip-button {
+  flex: none;
+  font-size: 0.8125rem;
+}
+.subs-total {
+  margin: 12px 0 0;
+  font-weight: 500;
+}
+/* Marked: a note for the owner, outlined in the color of money kept, not a filled action */
+.rows.subs button.chip-button[aria-pressed="true"] {
+  background: var(--bg);
+  color: var(--pos);
+  box-shadow: inset 0 0 0 1px var(--pos);
+}
+/* A narrow phone: the mark goes under the name, so the name keeps its width */
+@media (max-width: 22.5rem) {
+  .rows.subs > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .rows.subs button.chip-button {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: start;
+  }
+}
+.rows.subs .name {
+  white-space: normal;
+}

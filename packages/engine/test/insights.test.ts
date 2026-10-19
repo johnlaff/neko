@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cents, insights, localDate, type Projection } from "../src/index.ts";
+import { cents, insights, localDate, monthsAhead, type Projection } from "../src/index.ts";
 
 type Month = Projection["months"][number];
 const month = (y: number, m: number, end: number, extra: Partial<Month> = {}): Month =>
@@ -190,6 +190,65 @@ describe("insights", () => {
     expect(insights({ ...base, months, cards: [guessed] }).map((i) => i.kind)).toEqual([
       "goes-negative",
       "closing-estimated",
+    ]);
+  });
+});
+
+describe("months ahead", () => {
+  const m = (month: number, sobra: number, ownIncome: number, committed: number, saved = 0) =>
+    month_(month, {
+      sobra: cents(sobra),
+      saved: cents(saved),
+      ownIncome: cents(ownIncome),
+      committed: cents(committed),
+    });
+  const month_ = (mo: number, extra: Partial<Projection["months"][number]>) =>
+    ({ year: 2026, month: mo, ...extra }) as Projection["months"][number];
+  const today = localDate("2026-10-19");
+
+  it("warns of the first month ahead that spends more than comes in, with what its bills take", () => {
+    const months = [
+      m(10, -5599_05, 6000_00, 9000_00),
+      m(11, -113_89, 6312_98, 6425_87),
+      m(12, 2630_20, 6312_98, 3000_00),
+    ];
+    expect(monthsAhead(months, today)).toEqual([
+      { kind: "month-negative", year: 2026, month: 11, amount: 113_89, share: 102 },
+    ]);
+  });
+
+  it("does not count money kept as money spent", () => {
+    const months = [m(10, 0, 0, 0), m(11, -500_00, 6000_00, 4000_00, 800_00)];
+    expect(monthsAhead(months, today)).toEqual([]);
+  });
+
+  it("says when next month's bills already take most of its income, and how much is left", () => {
+    const months = [
+      m(10, 0, 0, 0),
+      m(11, 1000_00, 6000_00, 5100_00),
+      m(12, 3000_00, 6000_00, 1000_00),
+    ];
+    expect(monthsAhead(months, today)).toEqual([
+      { kind: "income-committed", year: 2026, month: 11, share: 85, amount: 900_00 },
+    ]);
+    // Below the line, or with no income on the sheet, it stays quiet.
+    expect(monthsAhead([m(10, 0, 0, 0), m(11, 2000_00, 6000_00, 4000_00)], today)).toEqual([]);
+    expect(monthsAhead([m(10, 0, 0, 0), m(11, -100_00, 0, 100_00)], today)).toEqual([
+      { kind: "month-negative", year: 2026, month: 11, amount: 100_00, share: null },
+    ]);
+  });
+
+  it("looks three months ahead for the red one, and still tells next month's share", () => {
+    const months = [
+      m(10, 0, 0, 0),
+      m(11, 500_00, 6000_00, 5000_00),
+      m(12, 100_00, 6000_00, 2000_00),
+      m(1, -300_00, 6000_00, 2000_00),
+    ];
+    months[3] = { ...months[3], year: 2027 } as Projection["months"][number];
+    expect(monthsAhead(months, today)).toEqual([
+      { kind: "month-negative", year: 2027, month: 1, amount: 300_00, share: 33 },
+      { kind: "income-committed", year: 2026, month: 11, share: 83, amount: 1000_00 },
     ]);
   });
 });

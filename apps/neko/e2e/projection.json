@@ -785,7 +785,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 807314,
-        "livingCost": 599238
+        "livingCost": 560364,
+        "ownIncome": 807314,
+        "committed": 556096
       },
       {
         "year": 2025,
@@ -1173,7 +1175,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 788153,
-        "livingCost": 651574
+        "livingCost": 621505,
+        "ownIncome": 788153,
+        "committed": 601243
       },
       {
         "year": 2025,
@@ -1614,7 +1618,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 816746,
-        "livingCost": 693768
+        "livingCost": 651721,
+        "ownIncome": 816746,
+        "committed": 646451
       },
       {
         "year": 2025,
@@ -2048,7 +2054,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 818665,
-        "livingCost": 715890
+        "livingCost": 678597,
+        "ownIncome": 818665,
+        "committed": 656696
       },
       {
         "year": 2025,
@@ -2489,7 +2497,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 803048,
-        "livingCost": 714443
+        "livingCost": 653734,
+        "ownIncome": 803048,
+        "committed": 661442
       },
       {
         "year": 2025,
@@ -2923,7 +2933,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 817923,
-        "livingCost": 676242
+        "livingCost": 634713,
+        "ownIncome": 817923,
+        "committed": 620061
       },
       {
         "year": 2025,
@@ -3364,7 +3376,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 781023,
-        "livingCost": 745578
+        "livingCost": 683900,
+        "ownIncome": 781023,
+        "committed": 690225
       },
       {
         "year": 2025,
@@ -3805,7 +3819,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 813687,
-        "livingCost": 694448
+        "livingCost": 624730,
+        "ownIncome": 813687,
+        "committed": 638109
       },
       {
         "year": 2025,
@@ -4239,7 +4255,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 789122,
-        "livingCost": 665542
+        "livingCost": 627406,
+        "ownIncome": 789122,
+        "committed": 625766
       },
       {
         "year": 2025,
@@ -4680,7 +4698,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 799008,
-        "livingCost": 659164
+        "livingCost": 619201,
+        "ownIncome": 799008,
+        "committed": 601612
       },
       {
         "year": 2025,
@@ -5114,7 +5134,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 791214,
-        "livingCost": 704539
+        "livingCost": 671020,
+        "ownIncome": 791214,
+        "committed": 658665
       },
       {
         "year": 2025,
@@ -5555,7 +5577,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 785356,
-        "livingCost": 702333
+        "livingCost": 642456,
+        "ownIncome": 785356,
+        "committed": 657757
       },
       {
         "year": 2026,
@@ -5996,7 +6020,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 807692,
-        "livingCost": 637979
+        "livingCost": 580827,
+        "ownIncome": 807692,
+        "committed": 584552
       },
       {
         "year": 2026,
@@ -6410,7 +6436,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 818481,
-        "livingCost": 657372
+        "livingCost": 614988,
+        "ownIncome": 818481,
+        "committed": 613618
       },
       {
         "year": 2026,
@@ -6851,7 +6879,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 780513,
-        "livingCost": 589219
+        "livingCost": 554016,
+        "ownIncome": 780513,
+        "committed": 549094
       },
       {
         "year": 2026,
@@ -7285,7 +7315,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 802127,
-        "livingCost": 666454
+        "livingCost": 614571,
+        "ownIncome": 802127,
+        "committed": 613601
       },
       {
         "year": 2026,
@@ -7726,7 +7758,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 807809,
-        "livingCost": 637384
+        "livingCost": 579048,
+        "ownIncome": 807809,
+        "committed": 581637
       },
       {
         "year": 2026,
@@ -8160,7 +8194,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 780593,
-        "livingCost": 724843
+        "livingCost": 659513,
+        "ownIncome": 780593,
+        "committed": 661600
       },
       {
         "year": 2026,
@@ -8601,7 +8637,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 785347,
-        "livingCost": 669622
+        "livingCost": 611890,
+        "ownIncome": 785347,
+        "committed": 607867
       },
       {
         "year": 2026,
@@ -9042,7 +9080,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 785265,
-        "livingCost": 626833
+        "livingCost": 576812,
+        "ownIncome": 785265,
+        "committed": 566222
       },
       {
         "year": 2026,
@@ -9476,7 +9516,9 @@
         "savedShare": 10,
         "savedToDate": 80000,
         "entradaToDate": 817736,
-        "livingCost": 734972
+        "livingCost": 665876,
+        "ownIncome": 817736,
+        "committed": 686766
       },
       {
         "year": 2026,
@@ -10028,7 +10070,9 @@
         "savedShare": 10,
         "savedToDate": 0,
         "entradaToDate": 560000,
-        "livingCost": 937321
+        "livingCost": 884551,
+        "ownIncome": 795340,
+        "committed": 665683
       },
       {
         "year": 2026,
@@ -10579,7 +10623,9 @@
         "savedShare": 10,
         "savedToDate": 0,
         "entradaToDate": 0,
-        "livingCost": 861754
+        "livingCost": 825535,
+        "ownIncome": 803726,
+        "committed": 576754
       },
       {
         "year": 2026,
@@ -11143,7 +11189,9 @@
         "savedShare": 10,
         "savedToDate": 0,
         "entradaToDate": 0,
-        "livingCost": 983691
+        "livingCost": 920953,
+        "ownIncome": 795363,
+        "committed": 689191
       }
     ],
     "upcoming": [
@@ -11561,12 +11609,12 @@
       "until": "2026-12-31"
     },
     "reserve": {
-      "cost": 677142,
+      "cost": 618192,
       "costMonths": 3,
-      "min": 4062852,
-      "max": 8125704,
+      "min": 3709152,
+      "max": 7418304,
       "kept": 1680000,
-      "coveredTenths": 24
+      "coveredTenths": 27
     },
     "recap": {
       "year": 2026,
@@ -11574,8 +11622,8 @@
       "result": 2764,
       "saved": 80000,
       "savedShare": 10,
-      "livingCost": 734972,
-      "costChange": 108139,
+      "livingCost": 665876,
+      "costChange": 89064,
       "top": {
         "label": "Cartão Azul",
         "amount": 361629
@@ -11602,6 +11650,13 @@
       }
     ],
     "insights": [
+      {
+        "kind": "month-negative",
+        "year": 2026,
+        "month": 11,
+        "amount": 58028,
+        "share": 72
+      },
       {
         "kind": "bill-above-average",
         "card": "Cartão Azul",
@@ -12118,7 +12173,33 @@
         "amount": 15000,
         "description": "PIX RECEBIDO ANA"
       }
-    ]
+    ],
+    "subscriptions": {
+      "items": [
+        {
+          "key": "academiadobairro|9990",
+          "description": "ACADEMIA DO BAIRRO",
+          "card": "Cartão Azul",
+          "amount": 9990,
+          "last": "2026-09-25",
+          "charges": 2,
+          "twin": false,
+          "cancel": false
+        },
+        {
+          "key": "streamingdefilmes|3990",
+          "description": "STREAMING DE FILMES",
+          "card": "Cartão Azul",
+          "amount": 3990,
+          "last": "2026-10-03",
+          "charges": 3,
+          "twin": false,
+          "cancel": true
+        }
+      ],
+      "total": 13980,
+      "toCancel": 3990
+    }
   },
   "previsto": {
     "on": true,

@@ -43,9 +43,9 @@ class ScreensContractTest {
         assertTrue(v.months.first().past)
         assertTrue(now.days.isNotEmpty())
         assertTrue(now.days.all { it.band in setOf("negative", "attention", "healthy", "surplus") })
-        // What the month kept, and what it cost without that.
+        // What the month kept, and what it cost without that (nor what someone else pays back).
         assertTrue(now.saved > 0)
-        assertEquals(now.saida + now.diario - now.saved, now.livingCost)
+        assertTrue(now.livingCost in 1..(now.saida + now.diario - now.saved))
         assertTrue(now.savedShare != null)
         // The emergency reserve and the Economia tab, from the same months.
         val r = v.reserve!!
