@@ -157,10 +157,14 @@ private fun Hero(v: TodayView) {
     val over = cs.pace == "over"
     // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
     val month = cs.mode == "month"
+    // With a ceiling for the cards, the dial is the month's purchases on all of them.
+    val cards = cs.mode == "cards"
+    val inMonth = month || cards
     var formula by remember { mutableStateOf(false) }
     Panel {
         // Over the plan, the figure already says so in red: the chip would repeat it.
-        PanelHead(if (month) "Diário de ${Format.monthName(v.today.substring(5, 7).toInt())}" else cs.card) {
+        val monthTitle = Format.monthName(v.today.substring(5, 7).toInt())
+        PanelHead(if (month) "Diário de $monthTitle" else if (cards) "Cartões em $monthTitle" else cs.card) {
             // Behind the Diário, the line under the figure already says by how much.
             when {
                 cs.pace == "over" || (month && cs.daysBehind > 0) -> Unit
@@ -189,8 +193,8 @@ private fun Hero(v: TodayView) {
                 BigMoney(if (over) cs.overBy else cs.perDay, if (over) l.neg else l.text)
                 Text(
                     when {
-                        over -> if (month) "neste mês" else "neste ciclo"
-                        cs.daysLeft == 1 -> if (month) "até o mês acabar, hoje" else "até a fatura fechar, hoje"
+                        over -> if (inMonth) "neste mês" else "neste ciclo"
+                        cs.daysLeft == 1 -> if (inMonth) "até o mês acabar, hoje" else "até a fatura fechar, hoje"
                         else -> "por dia"
                     },
                     color = l.muted,
@@ -207,19 +211,32 @@ private fun Hero(v: TodayView) {
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
-        if (cs.daysLeft > 1) Chip("${if (month) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
+        if (cs.daysLeft > 1) Chip("${if (inMonth) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
         // The toggle and what it opens sit together: closed, the panel spends no gap on it.
         Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
             TextAction(if (formula) "Esconder a conta" else "Como calculei", { formula = !formula }, open = formula)
             Reveal(formula) { Formula(cs, v) }
         }
-        Hint("hoje", if (month) Learn.HOJE_MES else Learn.HOJE)
+        Hint("hoje", if (month) Learn.HOJE_MES else if (cards) Learn.HOJE_CARTOES else Learn.HOJE)
     }
 }
 
 @Composable
 private fun Formula(cs: CanSpend, v: TodayView) {
     val l = LocalLedger.current
+    if (cs.mode == "cards") {
+        Text(
+            "${money(cs.budget)} de teto para os seus cartões no mês menos ${money(cs.accumulated)} comprados até ontem, " +
+                "como o banco mostra, dividido por ${days(cs.daysLeft)}. Compra parcelada feita no mês conta só a 1ª parcela; assinaturas ficam de fora.",
+            color = l.muted,
+        )
+        Text(
+            "O ponto no arco é o ritmo até ontem: o mês está ${money(kotlin.math.abs(cs.paceGap))} " +
+                "${if (cs.paceGap >= 0) "abaixo" else "acima"} dele.",
+            color = l.muted,
+        )
+        return
+    }
     if (cs.mode == "month") {
         Text(
             "${money(cs.budget)} de Diário previsto no mês (${money(v.dailyForecast)} por dia) menos ${money(cs.accumulated)} " +
@@ -235,7 +252,7 @@ private fun Formula(cs: CanSpend, v: TodayView) {
     }
     val budget = if (cs.budgetSource == "diario")
         "de diário no ciclo (${money(v.dailyForecast)} por dia, ${Copy.dailySource(v.dailySource)})"
-    else "planejados para o ciclo"
+    else "de teto para o ciclo"
     Text(
         "${money(cs.budget)} $budget menos ${money(cs.accumulated)} na fatura, dividido por ${days(cs.daysLeft)}.",
         color = l.muted,

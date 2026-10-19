@@ -188,18 +188,18 @@ const Form = ({
           {previsto === null && (
             <label className="setting">
               <span className="label">
-                Plano por ciclo
+                Teto dos cartões no mês
                 <span className={shows("budget", badMoney(v.budget)) ? "sub error" : "sub"}>
                   {shows("budget", badMoney(v.budget))
-                    ? "Use um valor como 5.000,00"
-                    : "Em branco, diário × dias do ciclo"}
+                    ? "Use um valor como 2.500,00"
+                    : "Todos os seus cartões, sem assinaturas"}
                 </span>
               </span>
               <span className="affix">
                 <span aria-hidden="true">R$</span>
                 <input
                   inputMode="decimal"
-                  placeholder="Automático"
+                  placeholder="Sem teto"
                   value={v.budget}
                   aria-invalid={shows("budget", badMoney(v.budget))}
                   onChange={(e) => change({ budget: e.target.value })}

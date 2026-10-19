@@ -216,6 +216,35 @@ describe("Hoje cabem with the Diário previsto", () => {
     expect(p.canSpend).toMatchObject({ mode: "cycle", daysBehind: 0 });
   });
 
+  it("with a ceiling and the bank, follows the month on all the owner's cards", () => {
+    const p = project(ledger("2026-10-01", 92, 0), today, {
+      ...settings,
+      cycleBudget: cents(310000),
+      cardsSpent: cents(200000),
+    });
+    expect(p.canSpend).toMatchObject({
+      mode: "cards",
+      budget: 310000,
+      budgetSource: "configured",
+      accumulated: 200000,
+      daysLeft: 12,
+      perDay: 9166,
+      closing: "2026-10-31",
+      paceExpected: 190000,
+      paceGap: -10000,
+      overBy: 0,
+    });
+  });
+
+  it("keeps the usual card's cycle for the ceiling without a bank", () => {
+    const p = project(ledger("2026-10-01", 92, 0), today, {
+      ...settings,
+      cycleBudget: cents(310000),
+      cardsSpent: null,
+    });
+    expect(p.canSpend).toMatchObject({ mode: "cycle", budget: 310000 });
+  });
+
   it("does not count the forecast as today's logging", () => {
     const days = ledger("2026-10-01", 92, 0, { "2026-10-20": { diario: forecast(4500) } });
     expect(project(days, today, settings).todayLogged).toBe(false);
