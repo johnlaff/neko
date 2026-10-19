@@ -77,7 +77,17 @@ fun widgetText(v: TodayView?): WidgetText {
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
-        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else "Passou do plano", Format.money(cs.overBy), if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
+        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else if (cards) "Passou do teto" else "Passou do plano", Format.money(cs.overBy), if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
+        // The month's room on all the cards, not a daily allowance (as on Hoje).
+        cards -> WidgetText(
+            "Ainda cabem",
+            Format.money(cs.left),
+            if (cs.daysLeft > 1) "no mês · até ${Format.shortDate(cs.closing)}" else "no mês, que acaba hoje",
+            false,
+            bill,
+            billDetail,
+            days,
+        )
         else -> WidgetText(
             "Hoje cabem",
             Format.money(cs.perDay),
