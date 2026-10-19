@@ -188,7 +188,7 @@ const Form = ({
           {previsto === null && (
             <label className="setting">
               <span className="label">
-                Teto das faturas do mês
+                Teto das faturas
                 <span className={shows("budget", badMoney(v.budget)) ? "sub error" : "sub"}>
                   {shows("budget", badMoney(v.budget))
                     ? "Use um valor como 2.500,00"

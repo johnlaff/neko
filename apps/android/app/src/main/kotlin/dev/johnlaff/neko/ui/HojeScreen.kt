@@ -170,7 +170,7 @@ private fun Hero(v: TodayView) {
                 cs.pace == "over" || (month && cs.daysBehind > 0) -> Unit
                 cards && cs.used == 100 -> Chip("No teto", ChipTone.Warn)
                 cards && cs.used == 75 -> Chip("75% do teto", ChipTone.Warn)
-                cards && cs.used == 50 -> Chip("Metade do teto", if (cs.paceGap >= 0) ChipTone.Plain else ChipTone.Warn)
+                cards && cs.used == 50 -> Chip("Metade do teto", ChipTone.Plain)
                 cards -> Chip("Dentro do teto", ChipTone.Ok)
                 cs.pace == "on-pace" -> Chip("No ritmo", ChipTone.Ok)
                 else -> Chip(if (month) "Acima do previsto" else "Acima do ritmo", ChipTone.Warn)
@@ -202,7 +202,7 @@ private fun Hero(v: TodayView) {
                 BigMoney(if (over) cs.overBy else if (cards) cs.left else cs.perDay, if (over) l.neg else l.text)
                 Text(
                     when {
-                        over -> if (inMonth) "neste mês" else "neste ciclo"
+                        over -> if (cards) "nas faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())}" else if (inMonth) "neste mês" else "neste ciclo"
                         cards -> "de ${money(cs.budget)} de teto"
                         cs.daysLeft == 1 -> if (inMonth) "até o mês acabar, hoje" else "até a fatura fechar, hoje"
                         else -> "por dia"

@@ -479,9 +479,7 @@ export const Hoje = () => (
                     {/* Over the plan, the figure already says so in red, and behind the Diário the line
                     under it says by how much: the chip would repeat either. */}
                     {!over && cards && (cs.used ?? 0) >= 50 ? (
-                      <span
-                        className={`chip ${cs.used === 50 && cs.paceGap >= 0 ? "plain" : "warn"}`}
-                      >
+                      <span className={`chip ${cs.used === 50 ? "plain" : "warn"}`}>
                         {cs.used === 100
                           ? "No teto"
                           : cs.used === 75
@@ -521,7 +519,7 @@ export const Hoje = () => (
                           tone={over ? "neg" : "plain"}
                         />
                         <span className="caption">
-                          {over ? "neste mês" : `de ${money(cs.budget)} de teto`}
+                          {over ? `nas faturas de ${billsTitle}` : `de ${money(cs.budget)} de teto`}
                         </span>
                       </p>
                     ) : (
