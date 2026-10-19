@@ -774,7 +774,20 @@
           "person": "Bia",
           "total": 12990,
           "later": 25980,
-          "lines": 1
+          "lines": 1,
+          "items": [
+            {
+              "card": "Cartão Azul",
+              "description": "FONE PARC 01/03",
+              "amount": 12990,
+              "date": "2026-10-02",
+              "installment": 1,
+              "installments": 3,
+              "later": 25980,
+              "key": "cartao azul|foneparc|12990|3x",
+              "due": "2026-11-12"
+            }
+          ]
         }
       ]
     },
@@ -916,7 +929,20 @@
           "person": "Bia",
           "total": 12990,
           "later": 12990,
-          "lines": 1
+          "lines": 1,
+          "items": [
+            {
+              "card": "Cartão Azul",
+              "description": "FONE PARC 01/03",
+              "amount": 12990,
+              "date": "2026-10-02",
+              "installment": 2,
+              "installments": 3,
+              "later": 12990,
+              "key": "cartao azul|foneparc|12990|3x",
+              "due": "2026-12-12"
+            }
+          ]
         }
       ]
     }
