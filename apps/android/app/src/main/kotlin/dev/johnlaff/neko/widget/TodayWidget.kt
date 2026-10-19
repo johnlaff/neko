@@ -70,19 +70,20 @@ fun widgetText(v: TodayView?): WidgetText {
     val week = h?.week.orEmpty().map { it.state }
     // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
     val month = cs?.mode == "month"
-    // With a ceiling for the cards, it is the month's purchases on all of them against it.
+    // With a ceiling for the cards, it is next month's bills on all of them against it.
     val cards = cs?.mode == "cards"
+    val bills = cs?.let { "nas faturas de ${Format.monthName(it.due.substring(5, 7).toInt())}" } ?: ""
     val inMonth = month || cards
     val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos" else if (cards) "do teto" else "do plano"}" }
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
-        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else if (cards) "Passou do teto" else "Passou do plano", Format.money(cs.overBy), if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
-        // The month's room on all the cards, not a daily allowance (as on Hoje).
+        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else if (cards) "Passou do teto" else "Passou do plano", Format.money(cs.overBy), if (cards) bills else if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
+        // What still fits on next month's bills, not a daily allowance (as on Hoje).
         cards -> WidgetText(
             "Ainda cabem",
             Format.money(cs.left),
-            if (cs.daysLeft > 1) "no mês · até ${Format.shortDate(cs.closing)}" else "no mês, que acaba hoje",
+            bills,
             false,
             bill,
             billDetail,
@@ -101,7 +102,7 @@ fun widgetText(v: TodayView?): WidgetText {
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else if (cards) "Cartões no mês" else "Fatura")
+    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else if (cards) "Faturas" else "Fatura")
 }
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */

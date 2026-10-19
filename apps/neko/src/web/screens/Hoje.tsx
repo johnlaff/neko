@@ -456,10 +456,11 @@ export const Hoje = () => (
       const over = cs !== null && (cs.mode === "cards" ? cs.overBy > 0 : cs.perDay < 0);
       // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
       const month = cs?.mode === "month";
-      // With a ceiling for the cards, the dial is the month's purchases on all of them.
+      // With a ceiling for the cards, the dial is next month's bills on all of them.
       const cards = cs?.mode === "cards";
       const inMonth = month || cards;
       const monthTitle = monthName(Number(p.today.slice(5, 7)));
+      const billsTitle = cs ? monthName(Number(cs.due.slice(5, 7))) : "";
       const [shown, rest] = splitDays(groupUpcomingByDay(p.upcoming));
       return (
         <>
@@ -472,7 +473,7 @@ export const Hoje = () => (
                       {month
                         ? `Diário de ${monthTitle}`
                         : cards
-                          ? `Cartões em ${monthTitle}`
+                          ? `Faturas de ${billsTitle}`
                           : cs.card}
                     </h2>
                     {/* Over the plan, the figure already says so in red, and behind the Diário the line
@@ -491,11 +492,13 @@ export const Hoje = () => (
                       !over &&
                       !(month && cs.daysBehind > 0) && (
                         <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
-                          {cs.paceGap >= 0
-                            ? "No ritmo"
-                            : month
-                              ? "Acima do previsto"
-                              : "Acima do ritmo"}
+                          {cards
+                            ? "Dentro do teto"
+                            : cs.paceGap >= 0
+                              ? "No ritmo"
+                              : month
+                                ? "Acima do previsto"
+                                : "Acima do ritmo"}
                         </span>
                       )
                     )}
@@ -505,7 +508,7 @@ export const Hoje = () => (
                       value={cs.accumulated}
                       total={cs.budget}
                       mark={cs.paceExpected}
-                      over={over || cs.paceGap < 0}
+                      over={over || cs.paceGap < 0 || (cs.used ?? 0) >= 75}
                       bad={over}
                     />
                     {cards ? (
@@ -518,7 +521,7 @@ export const Hoje = () => (
                           tone={over ? "neg" : "plain"}
                         />
                         <span className="caption">
-                          {over ? "neste mês" : `de ${money(cs.budget)} no mês`}
+                          {over ? "neste mês" : `de ${money(cs.budget)} de teto`}
                         </span>
                       </p>
                     ) : (
@@ -550,7 +553,7 @@ export const Hoje = () => (
                       você volta ao previsto.
                     </p>
                   )}
-                  {cs.daysLeft > 1 && (
+                  {cs.daysLeft > 1 && !cards && (
                     <div className="chips">
                       <span className="chip plain">
                         {inMonth ? "Até" : "Fecha"} {shortDate(cs.closing)} · {days(cs.daysLeft)}
@@ -565,13 +568,9 @@ export const Hoje = () => (
                     {cards ? (
                       <>
                         <p>
-                          {money(cs.budget)} de teto para os seus cartões no mês menos{" "}
-                          {money(cs.accumulated)} comprados até ontem, como o banco mostra. Compra
-                          parcelada feita no mês conta só a 1ª parcela; assinaturas ficam de fora.
-                        </p>
-                        <p>
-                          O ponto no arco é o ritmo até ontem: o mês está{" "}
-                          {money(Math.abs(cs.paceGap))} {cs.paceGap >= 0 ? "abaixo" : "acima"} dele.
+                          {money(cs.budget)} de teto para as faturas de {billsTitle} dos seus
+                          cartões menos {money(cs.accumulated)} que o banco já mostra nelas:
+                          compras, parcelas e assinaturas. O cartão de outra pessoa fica de fora.
                         </p>
                       </>
                     ) : month ? (

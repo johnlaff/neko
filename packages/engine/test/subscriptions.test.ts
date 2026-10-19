@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type BankCardLine,
-  cardsMonthSpend,
+  cardsBillSpend,
   cents,
   localDate,
   subscriptions,
@@ -131,22 +131,20 @@ describe("subscriptions", () => {
   });
 });
 
-describe("cardsMonthSpend", () => {
-  it("counts the month's purchases on the owner's cards, one parcel each, without subscriptions", () => {
+describe("cardsBillSpend", () => {
+  it("adds what the owner's bills due that month hold: purchases, parcels and subscriptions", () => {
     const lines = [
-      line("2026-08-06", "EBN*SPOTIFY", 23_90),
-      line("2026-09-06", "EBN*SPOTIFY", 23_90),
-      line("2026-10-06", "EBN*SPOTIFY", 23_90),
-      line("2026-10-02", "PADARIA", 30_00),
-      line("2026-10-03", "TV PARC 01/10", 200_00, { installment: 1, installments: 10 }),
-      line("2026-09-03", "SOFA PARC 02/05", 300_00, { installment: 2, installments: 5 }),
-      line("2026-10-04", "LIVRARIA", 80_00, { card: "Cartão Verde" }),
-      line("2026-09-30", "MERCADO", 100_00),
-      line("2026-10-19", "FARMACIA", 15_00),
+      line("2026-10-06", "EBN*SPOTIFY", 23_90, { billMonth: "2026-11" }),
+      line("2026-10-02", "PADARIA", 30_00, { billMonth: "2026-11" }),
+      line("2026-09-03", "SOFA PARC 02/05", 300_00, {
+        installment: 2,
+        installments: 5,
+        billMonth: "2026-11",
+      }),
+      line("2026-10-04", "LIVRARIA", 80_00, { card: "Cartão Verde", billMonth: "2026-11" }),
+      line("2026-10-13", "PAGTO. POR DEB EM C/C", -500_00, { billMonth: "2026-11" }),
+      line("2026-09-20", "MERCADO", 100_00, { billMonth: "2026-10" }),
     ];
-    const subs = subscriptions(lines, today, ["Cartão Verde"]).items;
-    expect(cardsMonthSpend(lines, localDate("2026-10-01"), today, ["Cartão Verde"], subs)).toBe(
-      230_00,
-    );
+    expect(cardsBillSpend(lines, "2026-11", ["Cartão Verde"])).toBe(353_90);
   });
 });

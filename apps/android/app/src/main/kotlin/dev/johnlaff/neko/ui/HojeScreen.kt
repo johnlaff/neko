@@ -157,20 +157,21 @@ private fun Hero(v: TodayView) {
     val over = cs.pace == "over"
     // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
     val month = cs.mode == "month"
-    // With a ceiling for the cards, the dial is the month's purchases on all of them.
+    // With a ceiling for the cards, the dial is next month's bills on all of them.
     val cards = cs.mode == "cards"
     val inMonth = month || cards
     var formula by remember { mutableStateOf(false) }
     Panel {
         // Over the plan, the figure already says so in red: the chip would repeat it.
         val monthTitle = Format.monthName(v.today.substring(5, 7).toInt())
-        PanelHead(if (month) "Diário de $monthTitle" else if (cards) "Cartões em $monthTitle" else cs.card) {
+        PanelHead(if (month) "Diário de $monthTitle" else if (cards) "Faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())}" else cs.card) {
             // Behind the Diário, the line under the figure already says by how much.
             when {
                 cs.pace == "over" || (month && cs.daysBehind > 0) -> Unit
                 cards && cs.used == 100 -> Chip("No teto", ChipTone.Warn)
                 cards && cs.used == 75 -> Chip("75% do teto", ChipTone.Warn)
                 cards && cs.used == 50 -> Chip("Metade do teto", if (cs.paceGap >= 0) ChipTone.Plain else ChipTone.Warn)
+                cards -> Chip("Dentro do teto", ChipTone.Ok)
                 cs.pace == "on-pace" -> Chip("No ritmo", ChipTone.Ok)
                 else -> Chip(if (month) "Acima do previsto" else "Acima do ritmo", ChipTone.Warn)
             }
@@ -182,7 +183,7 @@ private fun Hero(v: TodayView) {
                 value = cs.accumulated,
                 total = cs.budget,
                 mark = cs.paceExpected,
-                over = over || cs.paceGap < 0,
+                over = over || cs.paceGap < 0 || cs.used >= 75,
                 bad = over,
                 modifier = Modifier.fillMaxWidth(if (stacked) 0.6f else 0.86f).aspectRatio(2f),
             )
@@ -202,7 +203,7 @@ private fun Hero(v: TodayView) {
                 Text(
                     when {
                         over -> if (inMonth) "neste mês" else "neste ciclo"
-                        cards -> "de ${money(cs.budget)} no mês"
+                        cards -> "de ${money(cs.budget)} de teto"
                         cs.daysLeft == 1 -> if (inMonth) "até o mês acabar, hoje" else "até a fatura fechar, hoje"
                         else -> "por dia"
                     },
@@ -220,7 +221,7 @@ private fun Hero(v: TodayView) {
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
-        if (cs.daysLeft > 1) Chip("${if (inMonth) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
+        if (cs.daysLeft > 1 && !cards) Chip("${if (inMonth) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
         // The toggle and what it opens sit together: closed, the panel spends no gap on it.
         Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
             TextAction(if (formula) "Esconder a conta" else "Como calculei", { formula = !formula }, open = formula)
@@ -235,13 +236,8 @@ private fun Formula(cs: CanSpend, v: TodayView) {
     val l = LocalLedger.current
     if (cs.mode == "cards") {
         Text(
-            "${money(cs.budget)} de teto para os seus cartões no mês menos ${money(cs.accumulated)} comprados até ontem, " +
-                "como o banco mostra. Compra parcelada feita no mês conta só a 1ª parcela; assinaturas ficam de fora.",
-            color = l.muted,
-        )
-        Text(
-            "O ponto no arco é o ritmo até ontem: o mês está ${money(kotlin.math.abs(cs.paceGap))} " +
-                "${if (cs.paceGap >= 0) "abaixo" else "acima"} dele.",
+            "${money(cs.budget)} de teto para as faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())} dos seus cartões " +
+                "menos ${money(cs.accumulated)} que o banco já mostra nelas: compras, parcelas e assinaturas. O cartão de outra pessoa fica de fora.",
             color = l.muted,
         )
         return
