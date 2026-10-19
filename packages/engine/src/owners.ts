@@ -1,5 +1,6 @@
 import type { BankCardLine } from "./bank.ts";
 import { normalizeName } from "./cards.ts";
+import type { LocalDate } from "./date.ts";
 import { add, type Cents, mul, ZERO } from "./money.ts";
 
 /**
@@ -41,6 +42,19 @@ export const ownerOf = (l: BankCardLine, marks: readonly OwnerMark[]): string | 
   return (key && marks.find((m) => m.key === key)?.person) || null;
 };
 
+/** One of someone else's purchases on a bill: where it is and what is still to come of it. */
+export interface OwedItem {
+  readonly card: string;
+  readonly description: string;
+  readonly amount: Cents;
+  /** The day of the charge; absent in data read before it was kept. */
+  readonly date?: LocalDate;
+  readonly installment: number | null;
+  readonly installments: number | null;
+  /** Its parcels still to come on later bills. */
+  readonly later: Cents;
+}
+
 /** What one person owes on the bills due in a month. */
 export interface Owed {
   readonly person: string;
@@ -49,6 +63,8 @@ export interface Owed {
   /** Their parcels still to come on later bills, already bought: not a forecast. */
   readonly later: Cents;
   readonly lines: number;
+  /** Biggest first. */
+  readonly items: readonly OwedItem[];
 }
 
 /** Each person with something on the bills due in `billMonth`, biggest first. */
@@ -57,19 +73,32 @@ export const owedOnBills = (
   billMonth: string,
   marks: readonly OwnerMark[],
 ): Owed[] => {
-  const by = new Map<string, Owed>();
+  const by = new Map<string, OwedItem[]>();
   for (const l of lines) {
     if (l.billMonth !== billMonth) continue;
     const person = ownerOf(l, marks);
     if (!person) continue;
     const left = (l.installments ?? 1) > 1 ? (l.installments ?? 0) - (l.installment ?? 1) : 0;
-    const was = by.get(person) ?? { person, total: ZERO, later: ZERO, lines: 0 };
-    by.set(person, {
-      person,
-      total: add(was.total, l.amount),
-      later: add(was.later, mul(l.amount, Math.max(0, left))),
-      lines: was.lines + 1,
-    });
+    by.set(person, [
+      ...(by.get(person) ?? []),
+      {
+        card: l.card,
+        description: l.description,
+        amount: l.amount,
+        ...(l.date ? { date: l.date } : {}),
+        installment: l.installment,
+        installments: l.installments,
+        later: mul(l.amount, Math.max(0, left)),
+      },
+    ]);
   }
-  return [...by.values()].sort((a, b) => b.total - a.total || a.person.localeCompare(b.person));
+  return [...by]
+    .map(([person, items]) => ({
+      person,
+      total: add(ZERO, ...items.map((i) => i.amount)),
+      later: add(ZERO, ...items.map((i) => i.later)),
+      lines: items.length,
+      items: items.toSorted((a, b) => b.amount - a.amount),
+    }))
+    .sort((a, b) => b.total - a.total || a.person.localeCompare(b.person));
 };
