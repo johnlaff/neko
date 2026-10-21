@@ -7,6 +7,9 @@
   // Only the live version answers: older versions stay unreachable at their own preview URLs,
   // which would otherwise reach the same database and secrets.
   "preview_urls": false,
+  // Runs the API next to D1 (eastern North America): a request makes several D1 round trips,
+  // each ~130 ms from São Paulo, but only one trip from the phone to here. Assets stay at the edge.
+  "placement": { "region": "aws:us-east-2" },
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/.well-known/assetlinks.json"]
