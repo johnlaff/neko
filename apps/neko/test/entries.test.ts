@@ -84,14 +84,31 @@ describe("launch routes", () => {
 });
 
 describe("one write at a time", () => {
-  it("refuses a second write while one holds the lock, and frees it after", async () => {
+  it("makes a second write wait for the first, then run", async () => {
+    const db = sqliteD1() as unknown as D1Database;
+    let release = () => {};
+    const order: string[] = [];
+    const first = withLock(db, async () => {
+      await new Promise<void>((r) => (release = r));
+      order.push("first");
+    });
+    await new Promise((r) => setTimeout(r, 10));
+    const second = withLock(db, async () => order.push("second"));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(order).toEqual([]);
+    release();
+    await Promise.all([first, second]);
+    expect(order).toEqual(["first", "second"]);
+  });
+
+  it("refuses a write that waited too long, and frees the lock after", async () => {
     const db = sqliteD1() as unknown as D1Database;
     let release = () => {};
     const first = withLock(db, () => new Promise<void>((r) => (release = r)));
     await new Promise((r) => setTimeout(r, 10));
-    await expect(withLock(db, async () => 1)).rejects.toBeInstanceOf(Busy);
+    await expect(withLock(db, async () => 1, 30)).rejects.toBeInstanceOf(Busy);
     release();
     await first;
-    expect(await withLock(db, async () => 2)).toBe(2);
+    expect(await withLock(db, async () => 2, 0)).toBe(2);
   });
 });

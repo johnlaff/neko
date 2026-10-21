@@ -105,16 +105,33 @@ const Commit = z.object({
 /** How long a write may hold the lock: a crashed one frees it by itself. */
 const LOCK_MS = 120_000;
 
-/** One write at a time across every request: the Saldo check must see only its own change. */
-export const withLock = async <T>(db: D1Database, run: () => Promise<T>): Promise<T> => {
-  const now = Date.now();
-  const got = await db
-    .prepare(
-      "INSERT INTO setting (key, value) VALUES ('write_lock', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value WHERE CAST(setting.value AS INTEGER) < ?",
-    )
-    .bind(String(now + LOCK_MS), now)
-    .run();
-  if ((got.meta.changes ?? 0) === 0) throw new Busy();
+/** How long a write waits for the one before it: a launch takes a few seconds. */
+const LOCK_WAIT_MS = 25_000;
+const LOCK_POLL_MS = 400;
+
+/**
+ * One write at a time across every request: the Saldo check must see only its own change. A
+ * second write waits its turn instead of failing: a double tap or a retry after a dropped
+ * connection then reports the first write (same id) rather than an error.
+ */
+export const withLock = async <T>(
+  db: D1Database,
+  run: () => Promise<T>,
+  wait = LOCK_WAIT_MS,
+): Promise<T> => {
+  const until = Date.now() + wait;
+  for (;;) {
+    const now = Date.now();
+    const got = await db
+      .prepare(
+        "INSERT INTO setting (key, value) VALUES ('write_lock', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value WHERE CAST(setting.value AS INTEGER) < ?",
+      )
+      .bind(String(now + LOCK_MS), now)
+      .run();
+    if ((got.meta.changes ?? 0) > 0) break;
+    if (now >= until) throw new Busy();
+    await new Promise((r) => setTimeout(r, Math.min(LOCK_POLL_MS, Math.max(until - now, 1))));
+  }
   try {
     return await run();
   } finally {
