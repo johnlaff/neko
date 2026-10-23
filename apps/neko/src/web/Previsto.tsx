@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useId, useRef, useState } from "react";
 import type { PrevistoView } from "../shared/types.ts";
 import { ApiError, api, once, reasonOf } from "./api.ts";
@@ -38,6 +39,9 @@ const useSetPrevisto = (onDone: () => void) => {
 };
 
 const failure = reasonOf;
+
+/** The review leaves once answered: the keyboard goes on to the next days, not back to the top. */
+const handOff = () => requestAnimationFrame(() => document.getElementById("h-next")?.focus());
 
 /** Ajustes › Planilha: on, off, and the value per day. */
 export const PrevistoSetting = ({
@@ -274,12 +278,13 @@ export const PrevistoReview = ({
   writing: boolean;
 }) => {
   const queryClient = useQueryClient();
-  const change = useSetPrevisto(() => undefined);
+  const change = useSetPrevisto(handOff);
   const keep = useMutation({
     mutationFn: api.keepPrevisto,
     onSuccess: () => {
       // The panel leaves with the next read: say why it went.
       showToast({ entryId: null, text: "Mantido. O Neko pergunta de novo em 3 meses" });
+      handOff();
       queryClient.invalidateQueries();
     },
   });
@@ -297,9 +302,14 @@ export const PrevistoReview = ({
       <p className="muted">
         Hora de ver se o valor ainda serve.
         {r.real !== p.value &&
-          (writing
-            ? ` Usar grava o novo valor nos dias que vêm${p.lastYear > 0 ? `, até dezembro de ${p.lastYear}` : ""}.`
-            : " Para usar o gasto real, ligue Lançar pelo Neko em Ajustes.")}
+          (writing ? (
+            ` Usar grava o novo valor nos dias que vêm${p.lastYear > 0 ? `, até dezembro de ${p.lastYear}` : ""}.`
+          ) : (
+            <>
+              {" "}
+              Para usar o gasto real, ligue <Link to="/ajustes">Lançar pelo Neko em Ajustes</Link>.
+            </>
+          ))}
       </p>
       <dl className="ledger">
         <dt>Previsto por dia</dt>

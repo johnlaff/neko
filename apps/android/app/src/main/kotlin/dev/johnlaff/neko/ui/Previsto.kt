@@ -32,7 +32,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.PrevistoView
@@ -171,6 +177,8 @@ internal fun PrevistoReview(
     launcher: Launcher?,
     /** Kept: the panel leaves with the next read, and the bar says why. */
     onKept: () -> Unit = {},
+    /** With writing off, the line under the title says where to turn it on. */
+    onAjustes: () -> Unit = {},
     onLaunched: (String) -> Unit = {},
 ) {
     val l = LocalLedger.current
@@ -195,11 +203,19 @@ internal fun PrevistoReview(
             Text("A cada 3 meses", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
         // Why it asks, and what Usar does before it is tapped (as on the site).
+        val link = TextLinkStyles(SpanStyle(color = l.text, textDecoration = TextDecoration.Underline))
         Text(
-            "Hora de ver se o valor ainda serve." + when {
-                r.real == p.value -> ""
-                writing -> " Usar grava o novo valor nos dias que vêm${if (p.lastYear > 0) ", até dezembro de ${p.lastYear}" else ""}."
-                else -> " Para usar o gasto real, ligue Lançar pelo Neko em Ajustes."
+            buildAnnotatedString {
+                append("Hora de ver se o valor ainda serve.")
+                when {
+                    r.real == p.value -> Unit
+                    writing -> append(" Usar grava o novo valor nos dias que vêm${if (p.lastYear > 0) ", até dezembro de ${p.lastYear}" else ""}.")
+                    else -> {
+                        append(" Para usar o gasto real, ligue ")
+                        withLink(LinkAnnotation.Clickable("ajustes", link) { onAjustes() }) { append("Lançar pelo Neko em Ajustes") }
+                        append(".")
+                    }
+                }
             },
             color = l.muted,
             style = MaterialTheme.typography.bodyMedium,

@@ -531,7 +531,10 @@ export const Hoje = () => (
               next: (
                 <section className="panel">
                   <div className="panel-head">
-                    <h2>Próximos 7 dias</h2>
+                    {/* Where the keyboard goes when the Diário previsto review leaves. */}
+                    <h2 id="h-next" tabIndex={-1}>
+                      Próximos 7 dias
+                    </h2>
                     {p.upcoming.length > 0 && (
                       <span className="meta">{p.upcoming.length} itens</span>
                     )}

@@ -223,6 +223,8 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
   await expect(
     page.getByRole("status").filter({ hasText: "Mantido. O Neko pergunta de novo em 3 meses" }),
   ).toBeVisible();
+  // The keyboard goes on to the next days, not back to the top of the page.
+  await expect(page.getByRole("heading", { name: "Próximos 7 dias" })).toBeFocused();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("switch", { name: /Diário previsto/ })).toBeChecked();
   await page.getByRole("button", { name: "Trocar o valor" }).click();

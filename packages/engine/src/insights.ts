@@ -7,7 +7,7 @@ import type { Projection } from "./projection.ts";
  * Things worth a look, only the actionable and negative kind (users switch off feeds of
  * neutral tips): the balance going below zero on some day ahead (the method's "mar vermelho":
  * when it starts and how deep it gets, aulas/03 … 04-aula-3-resultado-do-cha-revelacao [08:50]), the usual card's bill above its average,
- * a fixed bill that went up, the usual card's closing day still a guess. Worst first, at most MAX.
+ * a fixed bill that went up, the usual card's closing day still a guess. Worst first, all of them.
  */
 export type Insight =
   | {
@@ -75,8 +75,6 @@ export type Insight =
       readonly card: string;
       readonly closing: LocalDate;
     };
-
-export const MAX_INSIGHTS = 3;
 
 /**
  * The first month after today's, within the warning horizon, with no diário and no card bill of
@@ -234,5 +232,6 @@ export const insights = (p: Input): Insight[] => {
   if (usual?.card.closingEstimated)
     out.push({ kind: "closing-estimated", card: usual.card.name, closing: usual.cycle.closing });
 
-  return out.slice(0, MAX_INSIGHTS);
+  // Every one, worst first: Hoje shows one and folds the rest, Mês takes those about a month.
+  return out;
 };

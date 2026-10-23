@@ -82,7 +82,7 @@ class StressScreensTest {
     }
 
     @Test fun ajustesHugeText() = compose.shot(path("ajustes-200"), night = true, Device.HugeText, Tab.Ajustes) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher)
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher, usage = Fakes.usage)
     }
 
     @Test fun simular() = compose.shot(path("simular"), night = true, Device.SmallLargeText) {
@@ -111,7 +111,7 @@ class StressScreensTest {
     }
 
     @Test fun ajustes() = compose.shot(path("ajustes"), night = false, Device.SmallLargeText, Tab.Ajustes) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher)
+        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher, usage = Fakes.usage)
     }
 
     // Hoje with Mia on: her mark and name beside the title.
