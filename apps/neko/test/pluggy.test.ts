@@ -5,8 +5,10 @@ import worker from "../src/worker/index.ts";
 import {
   civilDate,
   ensureWebhook,
+  hookSync,
   pluggy,
   refreshAll,
+  retryD1,
   sameSecret,
   syncAll,
   syncItem,
@@ -235,6 +237,87 @@ describe("bank sync", () => {
     expect(await ensureWebhook(api, "https://neko.test/api/pluggy/webhook", "s3cret")).toBe(true);
     expect(await ensureWebhook(api, "https://neko.test/api/pluggy/webhook", "s3cret")).toBe(false);
     expect(state.hooks).toHaveLength(1);
+  });
+});
+
+describe("D1 hiccups", () => {
+  const hiccup = () => new Error("D1_ERROR: internal error; reference = abc");
+
+  it("tries a transient D1 error again, and fails a real one at once", async () => {
+    let calls = 0;
+    const flaky = () => (++calls < 3 ? Promise.reject(hiccup()) : Promise.resolve("ok"));
+    expect(await retryD1(flaky, [0, 0, 0])).toBe("ok");
+    expect(calls).toBe(3);
+    calls = 0;
+    const broken = () => {
+      calls++;
+      return Promise.reject(new Error("D1_ERROR: no such table: bank_item: SQLITE_ERROR"));
+    };
+    await expect(retryD1(broken, [0, 0, 0])).rejects.toThrow("no such table");
+    expect(calls).toBe(1);
+  });
+
+  it("the webhook answers Pluggy even when D1 fails, and still reads the bank", async () => {
+    const db = await withItem();
+    let failures = 1;
+    const prepare = db.prepare.bind(db);
+    const flakyDb = {
+      ...db,
+      prepare: (sql: string) => {
+        if (sql.startsWith("SELECT item_id FROM bank_item") && failures-- > 0) throw hiccup();
+        return prepare(sql);
+      },
+    };
+    const started: Promise<unknown>[] = [];
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 500 }));
+    const res = await worker.fetch(
+      new Request("https://neko.test/api/pluggy/webhook", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-neko-hook": "s3cret" },
+        body: JSON.stringify({ event: "item/updated", itemId: ITEM }),
+      }) as never,
+      {
+        DB: flakyDb,
+        SESSION_SECRET: "test-secret",
+        ALLOWED_EMAILS: "dono@example.com",
+        PLUGGY_WEBHOOK_SECRET: "s3cret",
+        PLUGGY_CLIENT_ID: "id",
+        PLUGGY_CLIENT_SECRET: "s",
+      } as unknown as Env,
+      {
+        waitUntil: (p: Promise<unknown>) => started.push(p),
+        passThroughOnException: () => {},
+      } as unknown as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+    await Promise.all(started);
+    // The failed lookup was tried again, and the bank was then read.
+    expect(failures).toBeLessThan(0);
+    expect(fetchSpy.mock.calls.some((c) => String(c[0]).startsWith("https://api.pluggy.ai"))).toBe(
+      true,
+    );
+    fetchSpy.mockRestore();
+  });
+
+  it("reads only our own banks, and reads again after a D1 hiccup mid-sync", async () => {
+    const db = await withItem();
+    const { api } = fakeApi({ txns: [txn("t1")] });
+    expect(await hookSync(db as never, api, "someone-else", TODAY, [0])).toBe(false);
+    let failures = 1;
+    const batch = db.batch.bind(db);
+    const flakyDb = {
+      ...db,
+      batch: (stmts: never[]) => (failures-- > 0 ? Promise.reject(hiccup()) : batch(stmts)),
+    };
+    expect(await hookSync(flakyDb as never, api, ITEM, TODAY, [0])).toBe(true);
+    const row = await db
+      .prepare("SELECT synced_at, error FROM bank_item WHERE item_id = ?")
+      .bind(ITEM)
+      .first<{ synced_at: string | null; error: string | null }>();
+    expect(row?.synced_at).not.toBeNull();
+    expect(row?.error).toBeNull();
   });
 });
 
