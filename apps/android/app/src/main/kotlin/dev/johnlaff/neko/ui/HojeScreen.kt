@@ -133,17 +133,17 @@ fun HojeScreen(
         // all is well), then what the bank found. What to know follows.
         if (v.issues.isNotEmpty() || hidPoints != null) item { Conference(v, review, hidPoints) { hidPoints = it } }
         if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
+        // On payday, what to save comes next: pay yourself first. The Worker sends it on its day only.
+        v.saving?.let { s -> item { SaveCard(s) { onMonth(s.date.take(7)) } } }
         // A wide window's second column, as on the site: what to know. Hoje keeps three fixed panels
         // (the dial, Para lançar, the next 7 days); the rest shows only on the day it matters.
         column()
         v.habit?.takeIf { it.milestone != null || it.record != null }?.let { h -> item { Streak(h) } }
-        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, v.writing, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
+        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, v.writing, launcher, { undoText = KEPT_TEXT; undo = NOTICE }) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
         val over = v.canSpend?.pace == "over"
         val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
         if (insights.isNotEmpty()) item { Insights(insights, onAjustes, { onScreen("faturas") }, onMonth) }
-        // The Worker sends the payday saving on its day only.
-        v.saving?.let { s -> item { SaveCard(s) { onMonth(s.date.take(7)) } } }
         item { Upcoming(v) }
     }
     UndoBar(
@@ -377,29 +377,34 @@ private fun Insights(
     val known = insights.mapNotNull { i -> Copy.insight(i)?.let { i to it } }
     var more by rememberSaveable { mutableStateOf(false) }
     val rest = known.size - ShownAlerts
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        (if (more) known else known.take(ShownAlerts)).forEach { (i, line) ->
-            // Each warning opens where to look next, as on the site; a guessed closing day is fixed in Ajustes.
-            val open: () -> Unit = when (i.kind) {
-                "closing-estimated" -> onAjustes
-                "bill-above-average" -> onFaturas
-                "goes-negative" -> { { onMonth(i.start?.take(7)) } }
-                else -> { { onMonth(null) } }
-            }
-            // A setup question, not a warning: color stays for real deviations, as on the site.
-            val tone = when {
-                line.tone == Copy.Tone.Bad -> l.neg
-                i.kind == "closing-estimated" -> l.muted
-                else -> l.warn
-            }
-            Alert(line.title, line.detail, tone, open)
+    val row = @Composable { (i, line): Pair<Insight, Copy.Line> ->
+        // Each warning opens where to look next, as on the site; a guessed closing day is fixed in Ajustes.
+        val open: () -> Unit = when (i.kind) {
+            "closing-estimated" -> onAjustes
+            "bill-above-average" -> onFaturas
+            "goes-negative" -> { { onMonth(i.start?.take(7)) } }
+            else -> { { onMonth(null) } }
         }
+        // A setup question, not a warning: color stays for real deviations, as on the site.
+        val tone = when {
+            line.tone == Copy.Tone.Bad -> l.neg
+            i.kind == "closing-estimated" -> l.muted
+            else -> l.warn
+        }
+        Alert(line.title, line.detail, tone, open)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        known.take(ShownAlerts).forEach { row(it) }
+        // The toggle, then what it opens under it, as on the site.
         if (rest > 0) {
             TextAction(
                 if (rest == 1) "Mais 1 aviso" else "Mais $rest avisos",
                 { more = !more },
                 open = more,
             )
+            Reveal(more) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { known.drop(ShownAlerts).forEach { row(it) } }
+            }
         }
     }
 }

@@ -10,7 +10,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { aboutMonthAhead, HEALTH_DAYS, issueKey, saveToday } from "../../shared/today.ts";
+import { HEALTH_DAYS, inMes, issueKey, saveToday } from "../../shared/today.ts";
 import { AlertList, insightView } from "../Alerts.tsx";
 import { api, type DailySource, type ProjectionResponse, used } from "../api.ts";
 import { Board } from "../Board.tsx";
@@ -83,11 +83,14 @@ const SaveCard = ({ save }: { save: Saving }) => (
     <p className="save-text">
       <strong>Na conta, dá para guardar {money(save.amount)} hoje</strong>
       <span className="muted">
-        Depois de guardar, menor saldo até {shortDate(save.until)}: {money(save.leftAtLowest)}
+        Depois de guardar, menor saldo até <span className="nowrap">{shortDate(save.until)}</span>:{" "}
+        {money(save.leftAtLowest)}
       </span>
     </p>
     <Link to="/mes" search={{ m: save.date.slice(0, 7) }} className="text-link">
-      Ver no mês ›
+      {/* A flex link drops a plain space before the arrow. */}
+      Ver no mês{"\u00a0"}
+      <span aria-hidden="true">›</span>
     </Link>
   </section>
 );
@@ -510,20 +513,21 @@ export const Hoje = () => (
                 </div>
               ),
               // What asks for a tap comes right after Lançar: the sheet's points (none when all is
-              // well), then what the bank found. What to know follows.
+              // well), then what the bank found, then on payday what to save (pay yourself first).
+              // What to know follows.
               conference: issues.length > 0 && <Conference issues={issues} sheet={sheet} />,
               queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
+              save: save && <SaveCard save={save} />,
               streak: showsStreak(habit) && <Streak habit={habit} />,
               previsto: <PrevistoReview previsto={previsto} writing={writing ?? false} />,
               // Over the plan, the red figure already says the bill is high: no second card.
               insights: (
                 <Insights
                   items={(p.insights ?? []).filter(
-                    (i) => !aboutMonthAhead(i) && !(over && i.kind === "bill-above-average"),
+                    (i) => !inMes(i) && !(over && i.kind === "bill-above-average"),
                   )}
                 />
               ),
-              save: save && <SaveCard save={save} />,
               next: (
                 <section className="panel">
                   <div className="panel-head">
@@ -555,13 +559,13 @@ export const Hoje = () => (
             // the keyboard go down one column and then the next. Today's number and what to do now,
             // then what to know.
             two={[
-              ["dial", "quick", "conference", "queue"],
-              ["streak", "previsto", "insights", "save", "next"],
+              ["dial", "quick", "conference", "queue", "save"],
+              ["streak", "previsto", "insights", "next"],
             ]}
             three={[
               ["dial", "quick"],
-              ["conference", "queue"],
-              ["streak", "previsto", "insights", "save", "next"],
+              ["conference", "queue", "save", "streak"],
+              ["previsto", "insights", "next"],
             ]}
           />
           <LaunchToast />

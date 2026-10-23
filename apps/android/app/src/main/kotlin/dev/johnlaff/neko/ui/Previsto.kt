@@ -165,7 +165,14 @@ internal fun PrevistoForm(
  * the real cost writes the days ahead, so it needs writing on; keeping writes nothing (as on the site).
  */
 @Composable
-internal fun PrevistoReview(p: PrevistoView?, writing: Boolean, launcher: Launcher?, onLaunched: (String) -> Unit = {}) {
+internal fun PrevistoReview(
+    p: PrevistoView?,
+    writing: Boolean,
+    launcher: Launcher?,
+    /** Kept: the panel leaves with the next read, and the bar says why. */
+    onKept: () -> Unit = {},
+    onLaunched: (String) -> Unit = {},
+) {
     val l = LocalLedger.current
     val r = p?.review
     if (p == null || !p.on || r == null) return
@@ -187,7 +194,16 @@ internal fun PrevistoReview(p: PrevistoView?, writing: Boolean, launcher: Launch
         PanelHead("Diário previsto") {
             Text("A cada 3 meses", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        Text("Hora de ver se o valor ainda serve.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        // Why it asks, and what Usar does before it is tapped (as on the site).
+        Text(
+            "Hora de ver se o valor ainda serve." + when {
+                r.real == p.value -> ""
+                writing -> " Usar grava o novo valor nos dias que vêm${if (p.lastYear > 0) ", até dezembro de ${p.lastYear}" else ""}."
+                else -> " Para usar o gasto real, ligue Lançar pelo Neko em Ajustes."
+            },
+            color = l.muted,
+            style = MaterialTheme.typography.bodyMedium,
+        )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             ReviewLine("Previsto por dia", money(p.value))
             ReviewLine("Gasto por dia desde ${shortDate(r.from)}", money(r.real))
@@ -199,7 +215,10 @@ internal fun PrevistoReview(p: PrevistoView?, writing: Boolean, launcher: Launch
                     act("change") { onLaunched(it.previsto(r.real)) }
                 }
             Small("Manter ${money(p.value)}", filled = false, enabled = busy == null, modifier = Modifier.weight(1f).fillMaxHeight()) {
-                act("keep") { it.keepPrevisto() }
+                act("keep") {
+                    it.keepPrevisto()
+                    onKept()
+                }
             }
         }
         error?.let { Failed(it) }

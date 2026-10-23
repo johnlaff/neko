@@ -74,28 +74,44 @@ export const insightView = (i: Insight) => {
   }
 };
 
-/** Warnings as calm rows, each one opening where to look next: Hoje's now, Mês's months ahead. */
+/**
+ * Warnings as calm rows, each one opening where to look next: Hoje's now, Mês's month. `here`
+ * marks the ones already on the right screen, which are plain rows with nowhere to go.
+ */
 export const AlertList = ({
   items,
-  label = "Avisos",
+  here = () => false,
 }: {
   items: readonly Insight[];
-  label?: string;
+  here?: (i: Insight) => boolean;
 }) => (
-  <ul className="alerts" aria-label={label}>
+  <ul className="alerts" aria-label="Avisos">
     {items.map((i) => {
       const v = insightView(i);
       if (!v) return null;
+      const text = (
+        <>
+          <span className="alert-dot" aria-hidden="true" />
+          <span className="alert-text">
+            <strong>{v.title}</strong>
+            <span>{v.detail}</span>
+          </span>
+        </>
+      );
       return (
         <li key={i.kind}>
-          <Link to={v.to} search={"month" in v ? { m: v.month } : {}} className={`alert ${v.tone}`}>
-            <span className="alert-dot" aria-hidden="true" />
-            <span className="alert-text">
-              <strong>{v.title}</strong>
-              <span>{v.detail}</span>
-            </span>
-            <IconChevron />
-          </Link>
+          {here(i) ? (
+            <div className={`alert ${v.tone}`}>{text}</div>
+          ) : (
+            <Link
+              to={v.to}
+              search={"month" in v ? { m: v.month } : {}}
+              className={`alert ${v.tone}`}
+            >
+              {text}
+              <IconChevron />
+            </Link>
+          )}
         </li>
       );
     })}

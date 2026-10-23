@@ -23,11 +23,19 @@ export const saveToday = (saving: Saving | null | undefined, today: string): Sav
   saving?.date === today ? saving : null;
 
 /**
- * A warning about a month ahead (it spends more than comes in, its income already has a use, it
- * has no spending yet) lives in Mês, on today's month: Hoje keeps what matters now.
+ * Warnings that live in Mês, not on Hoje: a fixed bill that went up (Para onde foi shows it all
+ * month) and a month ahead that spends more than comes in, has its income taken or no spending
+ * yet. Hoje keeps what matters now.
  */
-export const aboutMonthAhead = (i: Insight): boolean =>
-  i.kind === "month-negative" || i.kind === "income-committed" || i.kind === "no-spending-ahead";
+export const inMes = (i: Insight): boolean =>
+  i.kind === "fixed-up" ||
+  i.kind === "month-negative" ||
+  i.kind === "income-committed" ||
+  i.kind === "no-spending-ahead";
+
+/** The month a Mês warning is about, as "2026-11"; a fixed bill that went up, today's. */
+export const warningMonth = (i: Insight, today: string): string =>
+  "month" in i && "year" in i ? `${i.year}-${String(i.month).padStart(2, "0")}` : today.slice(0, 7);
 
 /** Stable name of a Conferência point, kept in settings once checked. */
 export const issueKey = (i: HealthIssue) => `${i.kind}|${i.date}|${i.ref.tab}!${i.ref.a1}`;
@@ -128,7 +136,7 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     dailySource: r.daily.source,
     upcoming: groupUpcomingByDay(p.upcoming),
     upcomingCount: p.upcoming.length,
-    insights: (p.insights ?? []).filter((i) => !aboutMonthAhead(i)),
+    insights: (p.insights ?? []).filter((i) => !inMes(i)),
     saving: saveToday(p.saving, p.today),
     issues: inWindow
       .filter((i) => !seen.has(issueKey(i)))

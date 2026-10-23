@@ -98,8 +98,9 @@ fun MesScreen(
             )
         }
         item { Hero(m, v.months.filter { it.year == m.year }, history.takeIf { m.key == v.current }) { picked = it } }
-        // Warnings about the months ahead, on today's month: Hoje keeps to what matters now (as on the site).
-        if (m.key == v.current && v.ahead.isNotEmpty()) item { Ahead(v.ahead) { picked = it } }
+        // The warnings Hoje leaves to Mês: all of them on today's month, each also on its own (as on the site).
+        val warnings = v.warnings.filter { m.key == v.current || warningMonth(it, v.current) == m.key }
+        if (warnings.isNotEmpty()) item { Warnings(warnings, m.key, v.current) { picked = it } }
         if (m.days.isNotEmpty()) item { Thermo(m, v.today, v.saving) }
         column()
         if (m.outflows.isNotEmpty()) item { Outflows(m) }
@@ -107,15 +108,19 @@ fun MesScreen(
     }
 }
 
-/** Each warning about a month ahead opens that month, as the site's do. */
+/** The month a Mês warning is about ("2026-11"); a fixed bill that went up, today's. */
+private fun warningMonth(i: Insight, current: String?): String? =
+    if (i.year != null && i.month != null) "${i.year}-${i.month.toString().padStart(2, '0')}" else current
+
+/** Each warning opens the month it is about; one already on it is a plain row, as on the site. */
 @Composable
-private fun Ahead(ahead: List<Insight>, onMonth: (String) -> Unit) {
+private fun Warnings(warnings: List<Insight>, shown: String, current: String?, onMonth: (String) -> Unit) {
     val l = LocalLedger.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ahead.forEach { i ->
+        warnings.forEach { i ->
             val line = Copy.insight(i) ?: return@forEach
-            val key = if (i.year != null && i.month != null) "${i.year}-${i.month.toString().padStart(2, '0')}" else null
-            Alert(line.title, line.detail, if (line.tone == Copy.Tone.Bad) l.neg else l.warn, key?.let { k -> { onMonth(k) } })
+            val key = warningMonth(i, current)
+            Alert(line.title, line.detail, if (line.tone == Copy.Tone.Bad) l.neg else l.warn, key?.takeIf { it != shown }?.let { k -> { onMonth(k) } })
         }
     }
 }

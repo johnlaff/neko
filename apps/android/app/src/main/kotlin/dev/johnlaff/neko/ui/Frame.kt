@@ -651,7 +651,10 @@ fun TextAction(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(text, color = color, style = style)
+        // A trailing "›" is drawn, never read aloud (the site hides it the same way).
+        val arrow = text.endsWith(" ›")
+        Text(text.removeSuffix(" ›"), color = color, style = style)
+        if (arrow) Text("›", Modifier.clearAndSetSemantics {}, color = color, style = style)
         // A disclosure points down when closed and turns up as it opens, as on the site.
         if (open != null) Disclosure(open, color)
     }

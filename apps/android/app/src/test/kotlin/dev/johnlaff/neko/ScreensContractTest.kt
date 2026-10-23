@@ -55,9 +55,9 @@ class ScreensContractTest {
         assertEquals((r.kept * 10 / r.cost).toInt(), r.coveredTenths)
         // The year counts only what is dated up to today: the fixture's deposit on the 20th is still ahead.
         assertEquals(v.months.filter { it.year == 2026 && it.past }.sumOf { it.saved }, v.years.single { it.year == 2026 }.saved)
-        // Warnings about the months ahead come with Mês, on today's month; Hoje leaves them out.
-        assertEquals(listOf("month-negative"), v.ahead.map { it.kind })
-        assertTrue(v.ahead.all { dev.johnlaff.neko.ui.Copy.insight(it) != null })
+        // The warnings Hoje leaves to Mês come with it: a month ahead, a fixed bill that went up.
+        assertEquals(listOf("month-negative"), v.warnings.map { it.kind })
+        assertTrue(v.warnings.all { dev.johnlaff.neko.ui.Copy.insight(it) != null })
     }
 
     /** The bank table and the card names the Worker's tests match (test/institutions.test.ts). */

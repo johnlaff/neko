@@ -214,9 +214,15 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
   await expect(queue).toContainText("Fechar o dia");
   await expect(queue).toContainText("04/10 · DiárioR$ 0,00era R$ 95,00−R$ 95,00");
   const review = page.getByRole("region", { name: "Diário previsto" });
-  await expect(review).toContainText("Hora de ver se o valor ainda serve.");
+  await expect(review).toContainText(
+    "Hora de ver se o valor ainda serve. Usar grava o novo valor nos dias que vêm, até dezembro de 2026.",
+  );
   await expect(review.getByRole("button", { name: "Usar R$ 100,00" })).toBeVisible();
-  await expect(review.getByRole("button", { name: "Manter R$ 95,00" })).toBeVisible();
+  // Keeping writes nothing, and says why the panel goes.
+  await review.getByRole("button", { name: "Manter R$ 95,00" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Mantido. O Neko pergunta de novo em 3 meses" }),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("switch", { name: /Diário previsto/ })).toBeChecked();
   await page.getByRole("button", { name: "Trocar o valor" }).click();
@@ -339,10 +345,12 @@ test("Hoje shows one warning at a time and leaves the months ahead to Mês", asy
   await expect(page.getByRole("list", { name: "Avisos" }).getByText(/guardar/)).toHaveCount(0);
   // Mês warns of it on today's month, and the warning opens the month it is about.
   await page.getByRole("link", { name: "Mês" }).first().click();
-  const ahead = page.getByRole("list", { name: "Meses à frente" });
-  await ahead.getByText("Novembro gasta mais do que entra").click();
+  const warnings = page.getByRole("list", { name: "Avisos" });
+  await warnings.getByText("Novembro gasta mais do que entra").click();
   await expect(page.getByRole("heading", { name: "Novembro 2026" })).toBeVisible();
-  await expect(page.getByRole("list", { name: "Meses à frente" })).toHaveCount(0);
+  // There it stays, a plain row: it is already where it points.
+  await expect(warnings.getByText("Novembro gasta mais do que entra")).toBeVisible();
+  await expect(warnings.getByRole("link")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

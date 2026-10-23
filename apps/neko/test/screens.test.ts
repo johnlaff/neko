@@ -113,9 +113,15 @@ describe("months view", () => {
     expect(v.months[at + 1]?.future).toBe(true);
   });
 
-  it("brings the warnings about the months ahead, which Hoje leaves out", () => {
-    expect(monthsView(fixture).ahead).toEqual([
+  it("brings the warnings about the month and the months ahead, which Hoje leaves out", () => {
+    const up = { kind: "fixed-up", label: "aluguel", amount: 1_950_00, change: 50_00 } as const;
+    const r = {
+      ...fixture,
+      projection: { ...fixture.projection, insights: [...fixture.projection.insights, up] },
+    } as ProjectionResponse;
+    expect(monthsView(r).warnings).toEqual([
       { kind: "month-negative", year: 2026, month: 11, amount: 58028, share: 72 },
+      up,
     ]);
   });
 

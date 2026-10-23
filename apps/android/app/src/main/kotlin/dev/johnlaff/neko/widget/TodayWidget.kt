@@ -28,6 +28,8 @@ import androidx.glance.layout.height
 import androidx.glance.layout.width
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -158,7 +160,7 @@ class TodayWidget : GlanceAppWidget() {
         ) {
             if (wide) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Figure(t, roomy, GlanceModifier.defaultWeight())
+                    Figure(t, roomy, false, GlanceModifier.defaultWeight())
                     Column(GlanceModifier.defaultWeight()) {
                         Text(t.billLabel, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
                         Text(t.bill ?: "", style = TextStyle(color = if (t.billWarn) pair { it.warn } else pair { it.text }, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1)
@@ -166,7 +168,8 @@ class TodayWidget : GlanceAppWidget() {
                     }
                 }
             } else {
-                Figure(t, roomy)
+                // Alone, the figure carries the warning the bill side would show.
+                Figure(t, roomy, t.billWarn)
             }
             if (tall && t.days.isNotEmpty()) {
                 Spacer(GlanceModifier.height(10.dp))
@@ -205,11 +208,15 @@ class TodayWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun Figure(t: WidgetText, roomy: Boolean, modifier: GlanceModifier = GlanceModifier) {
-        Column(modifier) {
-            // Ahead of the Diário, the caption takes the warning color, as Hoje's arc does: the small
-            // widget has no room for the line that says by how much.
-            Text(t.caption, style = TextStyle(color = if (t.billWarn) pair { it.warn } else pair { it.muted }, fontSize = 12.sp))
+    private fun Figure(t: WidgetText, roomy: Boolean, behind: Boolean, modifier: GlanceModifier = GlanceModifier) {
+        // Ahead of the Diário with no room for the line that says by how much: a mark beside the
+        // caption shows it, not by color alone, and TalkBack reads the amount, as on Hoje.
+        Column(if (behind) modifier.semantics { contentDescription = "${t.caption} ${t.figure}. ${t.bill} acima do previsto até ontem" } else modifier) {
+            Text(
+                if (behind) "▲ ${t.caption}" else t.caption,
+                style = TextStyle(color = if (behind) pair { it.warn } else pair { it.muted }, fontSize = 12.sp),
+                maxLines = 1,
+            )
             Text(
                 t.figure,
                 style = TextStyle(

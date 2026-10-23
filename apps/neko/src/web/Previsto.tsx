@@ -277,7 +277,11 @@ export const PrevistoReview = ({
   const change = useSetPrevisto(() => undefined);
   const keep = useMutation({
     mutationFn: api.keepPrevisto,
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => {
+      // The panel leaves with the next read: say why it went.
+      showToast({ entryId: null, text: "Mantido. O Neko pergunta de novo em 3 meses" });
+      queryClient.invalidateQueries();
+    },
   });
   const r = p?.review;
   if (!p?.on || !r) return null;
@@ -289,7 +293,14 @@ export const PrevistoReview = ({
         <h2 id="h-previsto">Diário previsto</h2>
         <span className="meta">A cada 3 meses</span>
       </div>
-      <p className="muted">Hora de ver se o valor ainda serve.</p>
+      {/* Why it asks, and what Usar does before it is tapped (as on Android). */}
+      <p className="muted">
+        Hora de ver se o valor ainda serve.
+        {r.real !== p.value &&
+          (writing
+            ? ` Usar grava o novo valor nos dias que vêm${p.lastYear > 0 ? `, até dezembro de ${p.lastYear}` : ""}.`
+            : " Para usar o gasto real, ligue Lançar pelo Neko em Ajustes.")}
+      </p>
       <dl className="ledger">
         <dt>Previsto por dia</dt>
         <dd>{money(p.value)}</dd>

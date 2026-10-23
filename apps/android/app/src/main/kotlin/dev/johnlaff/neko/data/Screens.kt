@@ -196,8 +196,8 @@ data class MonthsView(
     val reserve: Reserve? = null,
     /** The sheet's Economia tab, one entry per year. */
     val years: List<YearTotals> = emptyList(),
-    /** Warnings about the months ahead, shown on today's month; Hoje leaves them out. */
-    val ahead: List<Insight> = emptyList(),
+    /** Warnings that live here, not on Hoje: all on today's month, each also on its own. */
+    val warnings: List<Insight> = emptyList(),
 )
 
 /** The method's emergency reserve: cost of living times 6 to 12 months, against what was kept. */

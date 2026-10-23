@@ -126,8 +126,13 @@ describe("today view", () => {
     expect(checked.issuesInWindow).toBe(2);
   });
 
-  it("leaves the warnings about a month ahead to Mês", () => {
-    const kinds = todayView(fixture, []).insights.map((i) => i.kind);
+  it("leaves the warnings about the month and the months ahead to Mês", () => {
+    const up = { kind: "fixed-up", label: "aluguel", amount: 1_950_00, change: 50_00 } as const;
+    const r = {
+      ...fixture,
+      projection: { ...fixture.projection, insights: [...fixture.projection.insights, up] },
+    } as ProjectionResponse;
+    const kinds = todayView(r, []).insights.map((i) => i.kind);
     expect(kinds).toEqual(["bill-above-average", "closing-estimated"]);
   });
 
