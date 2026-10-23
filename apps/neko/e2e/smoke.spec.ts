@@ -20,6 +20,17 @@ const API: Record<string, unknown> = {
     writing: true,
     previstoSince: "2026-07-01",
   },
+  "/api/usage": {
+    window: 30,
+    days: 12,
+    android: 10,
+    web: 4,
+    screens: [
+      { event: "hoje", label: "Hoje", count: 31 },
+      { event: "faturas", label: "Faturas", count: 6 },
+    ],
+    taps: [{ event: "simular", label: "Simular compra", count: 0 }],
+  },
   // Invented bank, the same one e2e/make-projection.ts puts in the projection.
   "/api/banks": {
     configured: true,
@@ -190,16 +201,30 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
 }) => {
   const errors = await open(page, "/");
   await expect(page.getByRole("heading", { name: "Diário de outubro" })).toBeVisible();
-  await expect(page.locator(".behind")).toContainText(
-    "Uns 4 dias sem gastar e você volta ao previsto",
+  // What still fits in the month, never split by the days left: the diário is an average.
+  await expect(page.locator(".dial-label")).toContainText("Ainda cabem");
+  await expect(page.locator(".dial-label")).toContainText("de R$ 2.945,00 no mês");
+  await expect(page.locator(".behind")).toHaveText(
+    "R$ 352,20 acima do previsto até ontem. Uns 4 dias sem gastar e você volta ao previsto.",
   );
+  await expect(page.locator(".dial-label")).not.toContainText("por dia");
   const queue = page.getByRole("region", { name: "Para lançar" });
   await queue.getByRole("button", { name: "Próximo" }).click();
   await queue.getByRole("button", { name: "Próximo" }).click();
   await expect(queue).toContainText("Fechar o dia");
   await expect(queue).toContainText("04/10 · DiárioR$ 0,00era R$ 95,00−R$ 95,00");
   const review = page.getByRole("region", { name: "Diário previsto" });
-  await expect(review.getByRole("button", { name: "Trocar para R$ 100,00" })).toBeVisible();
+  await expect(review).toContainText(
+    "Hora de ver se o valor ainda serve. Usar grava o novo valor nos dias que vêm, até dezembro de 2026.",
+  );
+  await expect(review.getByRole("button", { name: "Usar R$ 100,00" })).toBeVisible();
+  // Keeping writes nothing, and says why the panel goes.
+  await review.getByRole("button", { name: "Manter R$ 95,00" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Mantido. O Neko pergunta de novo em 3 meses" }),
+  ).toBeVisible();
+  // The keyboard goes on to the next days, not back to the top of the page.
+  await expect(page.getByRole("heading", { name: "Próximos 7 dias" })).toBeFocused();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("switch", { name: /Diário previsto/ })).toBeChecked();
   await page.getByRole("button", { name: "Trocar o valor" }).click();
@@ -230,7 +255,7 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
     "href",
     "/mes?m=2026-09",
   );
-  await expect(page.getByRole("button", { name: "Quanto cabe por dia?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Quanto ainda cabe?" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Quanto saiu no mês passado?" })).toHaveCount(0);
   await page.screenshot({ path: "test-results/mia.png" });
   // Leaving and coming back finds the conversation where it was.
@@ -309,9 +334,38 @@ test("Faturas marks a purchase as someone else's and shows what they owe", async
   expect(errors).toEqual([]);
 });
 
-test("Hoje warns of a month ahead that spends more than comes in", async ({ page }) => {
+test("Hoje shows one warning at a time and leaves the months ahead to Mês", async ({ page }) => {
   const errors = await open(page, "/");
-  await expect(page.getByText("Novembro gasta mais do que entra")).toBeVisible();
+  await expect(page.getByText("Fatura acima do normal")).toBeVisible();
+  // One warning at a time: the others wait behind a quiet line.
+  await expect(page.getByText("Qual dia fecha o Cartão Azul?")).toBeHidden();
+  await expect(page.getByText("Mais 1 aviso")).toBeVisible();
+  await expect(page.getByText("Novembro gasta mais do que entra")).toHaveCount(0);
+  // The payday's saving is a panel of its own, not one more warning.
+  const save = page.getByRole("region", { name: "Dia de guardar" });
+  await expect(save).toContainText("Na conta, dá para guardar R$ 11.200,00 hoje");
+  await expect(page.getByRole("list", { name: "Avisos" }).getByText(/guardar/)).toHaveCount(0);
+  // Mês warns of it on today's month, and the warning opens the month it is about.
+  await page.getByRole("link", { name: "Mês" }).first().click();
+  const warnings = page.getByRole("list", { name: "Avisos" });
+  await warnings.getByText("Novembro gasta mais do que entra").click();
+  await expect(page.getByRole("heading", { name: "Novembro 2026" })).toBeVisible();
+  // There it stays, a plain row: it is already where it points.
+  await expect(warnings.getByText("Novembro gasta mais do que entra")).toBeVisible();
+  await expect(warnings.getByRole("link")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("Hoje keeps to its three fixed panels on a day with nothing special", async ({ page }) => {
+  const errors = await open(page, "/");
+  await expect(page.getByRole("heading", { name: "Próximos 7 dias" })).toBeVisible();
+  // The run only on the day of a mark or a record; the closed month lives in Mês.
+  await expect(page.getByText(/Planilha em dia/)).toHaveCount(0);
+  await expect(page.getByText("Setembro fechou")).toHaveCount(0);
+  const marked = JSON.parse(projection);
+  marked.habit = { ...marked.habit, milestone: 14 };
+  await open(page, "/", JSON.stringify(marked));
+  await expect(page.getByText(/Planilha em dia/)).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -345,7 +399,7 @@ test("a tip shows one at a time and stays gone once dismissed", async ({ page })
 });
 
 test("the month's wins become a picture to share, with no amounts", async ({ page }) => {
-  const errors = await open(page, "/");
+  const errors = await open(page, "/mes?m=2026-09");
   const box = page.getByRole("list", { name: "Conquistas do mês" }).locator("..");
   const download = page.waitForEvent("download");
   await box.getByRole("button", { name: "Compartilhar" }).click();
@@ -482,5 +536,23 @@ test("on a desktop the tabs stand on the left and the panels in three columns", 
   // Para lançar stands in the column beside the dial, near the top; what to know goes to the third.
   expect(dial && queue && queue.x > dial.x + 300 && queue.y < dial.y + 300).toBe(true);
   expect(queue && next && next.x > queue.x + 300).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("Neko counts the screens it shows, and Ajustes tells what was used", async ({ page }) => {
+  const counted: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/usage") && r.method() === "POST")
+      counted.push(JSON.parse(r.postData() ?? "{}").event);
+  });
+  const errors = await open(page, "/");
+  await page.getByRole("link", { name: "Ajustes", exact: true }).click();
+  await expect.poll(() => counted).toEqual(["hoje", "ajustes"]);
+  const usage = page.getByRole("region", { name: "Uso do Neko" });
+  await usage.getByText("Aberto em 12 dos últimos 30 dias").click();
+  await expect(usage).toContainText("OndeNo app Android10 dias");
+  await expect(usage).toContainText("TelasHoje31 vezes");
+  await expect(usage).toContainText("BotõesSimular compraNunca");
+  await expect(usage).toContainText("Nenhum valor da planilha");
   expect(errors).toEqual([]);
 });

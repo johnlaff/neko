@@ -83,6 +83,16 @@ class Api(
 
     suspend fun sessions(): List<Device> = json.decodeFromString(call("/sessions"))
 
+    /** Counts a screen shown or a tap ("hoje", "simular"…), as the site does; nothing else is sent. */
+    suspend fun used(event: String) {
+        call("/usage", buildJsonObject {
+            put("event", event)
+            put("app", "android")
+        }.asBody())
+    }
+
+    suspend fun usage(): UsageSummary = json.decodeFromString(call("/usage"))
+
     suspend fun endSession(id: String) {
         call("/sessions/${java.net.URLEncoder.encode(id, "UTF-8")}", method = "DELETE")
     }

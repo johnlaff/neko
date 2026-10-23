@@ -2,6 +2,7 @@ import {
   daysInMonth,
   type Fixed,
   fixedOf,
+  type Insight,
   type MonthView,
   monthWins,
   type Outflow,
@@ -13,6 +14,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRef, useState } from "react";
+import { inMes, warningMonth } from "../../shared/today.ts";
+import { AlertList } from "../Alerts.tsx";
 import { api } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
@@ -311,6 +314,10 @@ export const Mes = () => {
         const saved = m.saved ?? 0;
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         const wins = past ? monthWins(p.months, m.year, m.month) : [];
+        // The warnings Hoje leaves to Mês: all of them on today's month, each also on its own.
+        const shownKey = key(m.year, m.month);
+        const about = (i: Insight) => warningMonth(i, p.today) === shownKey;
+        const warnings = (p.insights ?? []).filter(inMes).filter((i) => idx === nowIdx || about(i));
         return (
           <>
             <div className="month-nav">
@@ -463,6 +470,7 @@ export const Mes = () => {
                     </details>
                   </section>
                 ),
+                warnings: warnings.length > 0 && <AlertList items={warnings} here={about} />,
                 thermo: (m.days ?? []).length > 0 && (
                   <Thermo
                     key={key(m.year, m.month)}
@@ -489,10 +497,10 @@ export const Mes = () => {
               }}
               // Wide screens: each column takes the next panels in the phone's order.
               two={[
-                ["hero", "thermo"],
+                ["hero", "warnings", "thermo"],
                 ["outflows", "reserve"],
               ]}
-              three={[["hero"], ["thermo"], ["outflows", "reserve"]]}
+              three={[["hero", "warnings"], ["thermo"], ["outflows", "reserve"]]}
             />
           </>
         );

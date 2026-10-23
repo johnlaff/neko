@@ -113,6 +113,18 @@ describe("months view", () => {
     expect(v.months[at + 1]?.future).toBe(true);
   });
 
+  it("brings the warnings about the month and the months ahead, which Hoje leaves out", () => {
+    const up = { kind: "fixed-up", label: "aluguel", amount: 1_950_00, change: 50_00 } as const;
+    const r = {
+      ...fixture,
+      projection: { ...fixture.projection, insights: [...fixture.projection.insights, up] },
+    } as ProjectionResponse;
+    expect(monthsView(r).warnings).toEqual([
+      { kind: "month-negative", year: 2026, month: 11, amount: 58028, share: 72 },
+      up,
+    ]);
+  });
+
   it("leaves out the performance of months without lines", () => {
     const empty = {
       ...fixture,
@@ -142,9 +154,14 @@ describe("simulate view", () => {
   it("answers as the site's simulator does", () => {
     const cs = fixture.projection.canSpend;
     if (!cs) throw new Error("fixture has a usual card");
-    expect(simulateView(fixture, 600_00 as never, 3)).toEqual(
+    expect(simulateView(fixture, 600_00 as never, 3)).toMatchObject(
       simulateInstallments(cs, fixture.projection.months, 600_00 as never, 3),
     );
+  });
+
+  it("still sends the old amount per day, which Android 0.73 and older cannot read without", () => {
+    // (R$ 2.945,00 − R$ 732,20 − R$ 200,00 of the first parcel) over the 27 days left.
+    expect(simulateView(fixture, 600_00 as never, 3)?.cycle.perDay).toBe(7454);
   });
 
   it("has nothing to simulate without a usual card", () => {

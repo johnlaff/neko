@@ -81,6 +81,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -641,13 +642,19 @@ fun TextAction(
     enabled: Boolean = true,
     style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelLarge,
 ) {
-    // A finger-sized target around a short line of text.
+    // A finger-sized target around a short line of text; a disclosure says whether it is open.
     Row(
-        Modifier.clickable(enabled = enabled, onClick = onClick).heightIn(min = 48.dp),
+        Modifier
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { if (open != null) stateDescription = if (open) "Aberto" else "Fechado" }
+            .heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(text, color = color, style = style)
+        // A trailing "›" is drawn, never read aloud (the site hides it the same way).
+        val arrow = text.endsWith(" ›")
+        Text(text.removeSuffix(" ›"), color = color, style = style)
+        if (arrow) Text("›", Modifier.clearAndSetSemantics {}, color = color, style = style)
         // A disclosure points down when closed and turns up as it opens, as on the site.
         if (open != null) Disclosure(open, color)
     }

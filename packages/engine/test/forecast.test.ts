@@ -184,7 +184,7 @@ describe("Para lançar: the Diário previsto", () => {
   });
 });
 
-describe("Hoje cabem with the Diário previsto", () => {
+describe("Ainda cabem with the Diário previsto", () => {
   const settings = {
     dailyForecast: cents(5000),
     usualCard: null,
@@ -193,7 +193,7 @@ describe("Hoje cabem with the Diário previsto", () => {
     othersCards: [],
   };
 
-  it("follows the month: the Diário against what the bank shows spent before today", () => {
+  it("follows the month: what still fits of the Diário, with the pace marked, never per day", () => {
     const p = project(ledger("2026-10-01", 92, 0), today, {
       ...settings,
       previsto: { value: cents(5000), spent: cents(113000) },
@@ -203,13 +203,15 @@ describe("Hoje cabem with the Diário previsto", () => {
       card: "Visa",
       budget: 155000,
       accumulated: 113000,
+      left: 42000,
       daysLeft: 12,
-      perDay: 3500,
       closing: "2026-10-31",
       paceExpected: 95000,
       paceGap: -18000,
       daysBehind: 4,
     });
+    // Spending more does not lower the days ahead: no allowance per day.
+    expect(p.canSpend).not.toHaveProperty("perDay");
   });
 
   it("keeps the card's cycle when the Diário previsto is off", () => {
@@ -229,7 +231,6 @@ describe("Hoje cabem with the Diário previsto", () => {
       budgetSource: "configured",
       accumulated: 200000,
       daysLeft: 12,
-      perDay: 9166,
       closing: "2026-10-31",
       due: "2026-11-30",
       paceExpected: 200000,

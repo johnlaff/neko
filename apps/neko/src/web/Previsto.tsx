@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useId, useRef, useState } from "react";
 import type { PrevistoView } from "../shared/types.ts";
 import { ApiError, api, once, reasonOf } from "./api.ts";
@@ -38,6 +39,9 @@ const useSetPrevisto = (onDone: () => void) => {
 };
 
 const failure = reasonOf;
+
+/** The review leaves once answered: the keyboard goes on to the next days, not back to the top. */
+const handOff = () => requestAnimationFrame(() => document.getElementById("h-next")?.focus());
 
 /** Ajustes › Planilha: on, off, and the value per day. */
 export const PrevistoSetting = ({
@@ -262,13 +266,27 @@ export const PrevistoSetting = ({
   );
 };
 
-/** Hoje, every 3 months: what a day really cost beside the value, and whether to change it. */
-export const PrevistoReview = ({ previsto: p }: { previsto: PrevistoView | undefined }) => {
+/**
+ * Hoje, every 3 months: what a day really cost beside the value, and whether to change it. Using
+ * the real cost writes the days ahead, so it needs writing on; keeping writes nothing.
+ */
+export const PrevistoReview = ({
+  previsto: p,
+  writing,
+}: {
+  previsto: PrevistoView | undefined;
+  writing: boolean;
+}) => {
   const queryClient = useQueryClient();
-  const change = useSetPrevisto(() => undefined);
+  const change = useSetPrevisto(handOff);
   const keep = useMutation({
     mutationFn: api.keepPrevisto,
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => {
+      // The panel leaves with the next read: say why it went.
+      showToast({ entryId: null, text: "Mantido. O Neko pergunta de novo em 3 meses" });
+      handOff();
+      queryClient.invalidateQueries();
+    },
   });
   const r = p?.review;
   if (!p?.on || !r) return null;
@@ -280,21 +298,35 @@ export const PrevistoReview = ({ previsto: p }: { previsto: PrevistoView | undef
         <h2 id="h-previsto">Diário previsto</h2>
         <span className="meta">A cada 3 meses</span>
       </div>
+      {/* Why it asks, and what Usar does before it is tapped (as on Android). */}
+      <p className="muted">
+        Hora de ver se o valor ainda serve.
+        {r.real !== p.value &&
+          (writing ? (
+            ` Usar grava o novo valor nos dias que vêm${p.lastYear > 0 ? `, até dezembro de ${p.lastYear}` : ""}.`
+          ) : (
+            <>
+              {" "}
+              Para usar o gasto real, ligue <Link to="/ajustes">Lançar pelo Neko em Ajustes</Link>.
+            </>
+          ))}
+      </p>
       <dl className="ledger">
         <dt>Previsto por dia</dt>
         <dd>{money(p.value)}</dd>
         <dt>Gasto por dia desde {shortDate(r.from)}</dt>
         <dd>{money(r.real)}</dd>
       </dl>
+      {/* Two even choices: Neko suggests no value, and Lançar keeps the one fill (as on Android). */}
       <div className="q-actions">
-        {r.real !== p.value && (
+        {writing && r.real !== p.value && (
           <button
             type="button"
-            className="small"
+            className="ghost small"
             aria-disabled={busy}
             onClick={() => busy || change.mutate(r.real)}
           >
-            {change.isPending ? "Trocando…" : `Trocar para ${money(r.real)}`}
+            {change.isPending ? "Trocando…" : `Usar ${money(r.real)}`}
           </button>
         )}
         <button

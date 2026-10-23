@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -28,9 +31,14 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.PrevistoView
@@ -101,8 +109,8 @@ internal fun PrevistoForm(
             }
             p.suggestion?.let { s ->
                 Text("Pelo banco, um dia seu custa ${money(s.perDay)}.")
-                Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
-                    TextAction(if (formula) "Esconder a conta" else "Como calculei", { formula = !formula }, open = formula)
+                Column {
+                    TextAction("Como calculei", { formula = !formula }, open = formula)
                     Reveal(formula) {
                         Text(
                             "Desde ${shortDate(s.from)}: ${money(s.cards)} em compras nos seus cartões e ${money(s.pix)} em Pix e " +
@@ -158,10 +166,21 @@ internal fun PrevistoForm(
     }
 }
 
-/** Hoje, every 3 months: what a day really cost beside the value, and whether to change it. */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Hoje, every 3 months: what a day really cost beside the value, and whether to change it. Using
+ * the real cost writes the days ahead, so it needs writing on; keeping writes nothing (as on the site).
+ */
 @Composable
-internal fun PrevistoReview(p: PrevistoView?, launcher: Launcher?, onLaunched: (String) -> Unit = {}) {
+internal fun PrevistoReview(
+    p: PrevistoView?,
+    writing: Boolean,
+    launcher: Launcher?,
+    /** Kept: the panel leaves with the next read, and the bar says why. */
+    onKept: () -> Unit = {},
+    /** With writing off, the line under the title says where to turn it on. */
+    onAjustes: () -> Unit = {},
+    onLaunched: (String) -> Unit = {},
+) {
     val l = LocalLedger.current
     val r = p?.review
     if (p == null || !p.on || r == null) return
@@ -183,18 +202,38 @@ internal fun PrevistoReview(p: PrevistoView?, launcher: Launcher?, onLaunched: (
         PanelHead("Diário previsto") {
             Text("A cada 3 meses", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
+        // Why it asks, and what Usar does before it is tapped (as on the site).
+        val link = TextLinkStyles(SpanStyle(color = l.text, textDecoration = TextDecoration.Underline))
+        Text(
+            buildAnnotatedString {
+                append("Hora de ver se o valor ainda serve.")
+                when {
+                    r.real == p.value -> Unit
+                    writing -> append(" Usar grava o novo valor nos dias que vêm${if (p.lastYear > 0) ", até dezembro de ${p.lastYear}" else ""}.")
+                    else -> {
+                        append(" Para usar o gasto real, ligue ")
+                        withLink(LinkAnnotation.Clickable("ajustes", link) { onAjustes() }) { append("Lançar pelo Neko em Ajustes") }
+                        append(".")
+                    }
+                }
+            },
+            color = l.muted,
+            style = MaterialTheme.typography.bodyMedium,
+        )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             ReviewLine("Previsto por dia", money(p.value))
             ReviewLine("Gasto por dia desde ${shortDate(r.from)}", money(r.real))
         }
-        if (launcher != null) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (r.real != p.value)
-                    Small(if (busy == "change") "Trocando…" else "Trocar para ${money(r.real)}", filled = true, enabled = busy == null) {
-                        act("change") { onLaunched(it.previsto(r.real)) }
-                    }
-                Small("Manter ${money(p.value)}", filled = false, enabled = busy == null) {
-                    act("keep") { it.keepPrevisto() }
+        // Two even choices sharing the row, as on the site: Neko suggests no value, and Lançar keeps the one fill.
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (writing && r.real != p.value)
+                Small(if (busy == "change") "Trocando…" else "Usar ${money(r.real)}", filled = false, enabled = busy == null, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    act("change") { onLaunched(it.previsto(r.real)) }
+                }
+            Small("Manter ${money(p.value)}", filled = false, enabled = busy == null, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                act("keep") {
+                    it.keepPrevisto()
+                    onKept()
                 }
             }
         }

@@ -24,8 +24,6 @@ data class TodayView(
     val issuesInWindow: Int = 0,
     val readAt: String = "",
     val habit: Habit? = null,
-    /** The month that just closed, in the first week of the next (engine recap.ts). */
-    val recap: MonthRecap? = null,
     /** Account movements the sheet does not have yet; null with no bank linked. */
     val bankMissing: List<MissingMovement>? = null,
     /** Para lançar (shared/queue.ts); null with no bank linked. */
@@ -154,25 +152,9 @@ data class MissingMovement(
     val line: String,
 )
 
-@Serializable
-data class MonthRecap(
-    val year: Int,
-    val month: Int,
-    val result: Long,
-    val saved: Long = 0,
-    val savedShare: Int? = null,
-    val livingCost: Long = 0,
-    val costChange: Long? = null,
-    val top: RecapTop? = null,
-    /** What the month achieved (engine recap.ts `Win`): kind "blue", "kept" or "reserve". */
-    val wins: List<Win> = emptyList(),
-)
-
+/** What a closed month achieved (engine recap.ts `Win`): kind "blue", "kept" or "reserve". */
 @Serializable
 data class Win(val kind: String, val months: Int? = null, val share: Int? = null)
-
-@Serializable
-data class RecapTop(val label: String, val amount: Long)
 
 /** Days the sheet changed, as a streak (engine habit.ts); one missed day a week is a rest day. */
 @Serializable
@@ -202,7 +184,6 @@ data class CanSpend(
     val budgetSource: String,
     val accumulated: Long,
     val daysLeft: Int,
-    val perDay: Long,
     val closing: String,
     val due: String,
     val cycleDays: Int,
@@ -211,12 +192,18 @@ data class CanSpend(
     val overBy: Long,
     /** "over", "on-pace" or "ahead". */
     val pace: String,
-    /** "cycle": the usual card's bill. "month": with the Diário previsto on, cards and Pix against it. */
+    /**
+     * "cycle": the usual card's bill. "month": with the Diário previsto on, cards and Pix against it.
+     * "cards": next month's bills on all the owner's cards against their ceiling.
+     */
     val mode: String = "cycle",
     /** In month mode, how many days without spending bring the month back to the Diário. */
     val daysBehind: Int = 0,
-    /** In cards mode, what still fits under the ceiling this month; zero once past it. */
-    val left: Long = 0,
+    /**
+     * What still fits: the budget minus what was spent, zero once past it. Never split by the days
+     * left. Required: a Hoje cached by 0.73 or older lacks it and is dropped, never shown as zero.
+     */
+    val left: Long,
     /** In cards mode, the last mark of the ceiling reached: 0, 50, 75 or 100. */
     val used: Int = 0,
 )

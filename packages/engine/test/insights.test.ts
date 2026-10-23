@@ -192,6 +192,25 @@ describe("insights", () => {
       "closing-estimated",
     ]);
   });
+
+  it("keeps every warning, worst first: Hoje and Mês each take their own", () => {
+    const guessed = {
+      usual: true,
+      card: { name: "Cartão Azul", closingEstimated: true },
+      cycle: { closing: localDate("2026-10-05") },
+    } as Projection["cards"][number];
+    const months = [
+      daily(2026, 10, 500_00, { 20: -1_00 }),
+      month(2026, 11, 200_00, { diario: cents(0) }),
+    ];
+    const all = insights({ ...base, months, cards: [guessed], openVsAverage: cents(451_00) });
+    expect(all.map((i) => i.kind)).toEqual([
+      "goes-negative",
+      "no-spending-ahead",
+      "bill-above-average",
+      "closing-estimated",
+    ]);
+  });
 });
 
 describe("months ahead", () => {

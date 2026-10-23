@@ -221,12 +221,16 @@ internal fun Toggle(text: String, on: Boolean, label: String, onClick: () -> Uni
 internal data class SimFigure(val label: String, val amount: Long, val over: Boolean)
 
 /**
- * The simulator's first figure: what is left per day, or by how much the cycle goes over the
- * plan. Before a value is typed it speaks for the card as it is, which may already be over.
+ * The simulator's first figure, as on the site: what still fits, as on the dial, or by how much
+ * the plan (or the cards' ceiling) is passed. Before a value is typed it speaks for things as they
+ * are, which may already be over; after, for what is left once the purchase is made. Never per day.
  */
-internal fun simFigure(cs: CanSpend, cycle: SimulatedCycle?): SimFigure = when {
-    cycle == null && cs.perDay < 0 -> SimFigure("Passa do plano", cs.overBy, true)
-    cycle == null -> SimFigure("Sobra por dia", cs.perDay, false)
-    cycle.perDay < 0 -> SimFigure("Passa do plano", -cycle.remaining, true)
-    else -> SimFigure("Sobra por dia", cycle.perDay, false)
+internal fun simFigure(cs: CanSpend, cycle: SimulatedCycle?): SimFigure {
+    val past = if (cs.mode == "cards") "Passa do teto" else "Passa do plano"
+    return when {
+        cycle == null && cs.overBy > 0 -> SimFigure(past, cs.overBy, true)
+        cycle == null -> SimFigure("Ainda cabem", cs.left, false)
+        cycle.remaining < 0 -> SimFigure(past, -cycle.remaining, true)
+        else -> SimFigure("Ainda cabem", cycle.remaining, false)
+    }
 }

@@ -94,7 +94,7 @@ object Reminders {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL, "Lembretes", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Quanto cabe hoje, de manhã, e o lembrete de lançar o dia, à noite"
+                description = "Quanto ainda cabe, de manhã, e o lembrete de lançar o dia, à noite"
             },
         )
         // "/" is the app itself; anything else (today's row in the sheet) opens where it lives.
@@ -116,7 +116,7 @@ object Reminders {
                 NotificationCompat.Builder(context, CHANNEL)
                     .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle("Neko")
-                    .setContentText(if (slot == Slot.Morning) "Quanto cabe hoje" else "Hora de lançar o dia")
+                    .setContentText(if (slot == Slot.Morning) "Quanto ainda cabe" else "Hora de lançar o dia")
                     .build(),
             )
             .build()

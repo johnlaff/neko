@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { ApiError, api, type ProjectionResponse } from "./api.ts";
+import { ApiError, api, type ProjectionResponse, used } from "./api.ts";
 import { BrandMark } from "./BrandMark.tsx";
 
 export const useProjection = () => useQuery({ queryKey: ["projection"], queryFn: api.projection });
@@ -73,7 +73,10 @@ export const WithProjection = ({
             ? `${q.error.message} Fora do formato esperado, nada foi calculado.`
             : "Pode ser a conexão ou o Google fora do ar. A planilha não foi alterada."
         }
-        retry={() => q.refetch()}
+        retry={() => {
+          used("ler");
+          q.refetch();
+        }}
         busy={q.isFetching}
       />
     );

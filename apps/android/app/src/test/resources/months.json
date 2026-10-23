@@ -16419,5 +16419,14 @@
       "saved": 720000,
       "savedShare": 9
     }
+  ],
+  "warnings": [
+    {
+      "kind": "month-negative",
+      "year": 2026,
+      "month": 11,
+      "amount": 58028,
+      "share": 72
+    }
   ]
 }

@@ -28,6 +28,8 @@ import androidx.glance.layout.height
 import androidx.glance.layout.width
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -57,6 +59,8 @@ data class WidgetText(
     val week: List<String> = emptyList(),
     /** What `bill` is: the open bill, or with the Diário previsto on, the month's spending. */
     val billLabel: String = "Fatura",
+    /** `bill` is how far the month runs ahead of the Diário, drawn in the warning color. */
+    val billWarn: Boolean = false,
 )
 
 fun widgetText(v: TodayView?): WidgetText {
@@ -74,44 +78,42 @@ fun widgetText(v: TodayView?): WidgetText {
     val cards = cs?.mode == "cards"
     val bills = cs?.let { "nas faturas de ${Format.monthName(it.due.substring(5, 7).toInt())}" } ?: ""
     val inMonth = month || cards
-    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos" else if (cards) "do teto" else "do plano"}" }
+    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "no mês" else if (cards) "do teto" else "do plano"}" }
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
-        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else if (cards) "Passou do teto" else "Passou do plano", Format.money(cs.overBy), if (cards) bills else if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
-        // What still fits on next month's bills, not a daily allowance (as on Hoje).
-        cards -> WidgetText(
+        cs.pace == "over" -> WidgetText(if (cards) "Passou do teto" else if (month) "Passou do previsto" else "Passou do plano", Format.money(cs.overBy), if (cards) bills else if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
+        // What still fits, never a daily allowance: the diário is an average (as on Hoje).
+        else -> WidgetText(
             "Ainda cabem",
             Format.money(cs.left),
-            bills,
-            false,
-            bill,
-            billDetail,
-            days,
-        )
-        else -> WidgetText(
-            "Hoje cabem",
-            Format.money(cs.perDay),
             when {
-                cs.daysLeft > 1 -> "por dia · ${if (inMonth) "até" else "fecha"} ${Format.shortDate(cs.closing)}"
-                inMonth -> "até o mês acabar, hoje"
-                else -> "até a fatura fechar, hoje"
+                cards -> bills
+                month -> if (cs.daysLeft > 1) "no mês · até ${Format.shortDate(cs.closing)}" else "no mês, que acaba hoje"
+                cs.daysLeft > 1 -> "no ${cs.card} · fecha ${Format.shortDate(cs.closing)}"
+                else -> "no ${cs.card}, que fecha hoje"
             },
             false,
             bill,
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else if (cards) "Faturas" else "Fatura")
+    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else if (cards) "Faturas" else "Fatura").let { t ->
+        // Ahead of the Diário previsto, the line Hoje keeps under its figure takes the bill's place.
+        if (cs != null && month && cs.pace != "over" && cs.daysBehind > 0)
+            t.copy(bill = Format.money(-cs.paceGap), billLabel = "Acima do previsto", billDetail = "Uns ${Format.days(cs.daysBehind)} sem gastar", billWarn = true)
+        else t
+    }
 }
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
 val PREVIEW = WidgetText(
-    "Hoje cabem", "R$ 148,00", "por dia · fecha 5 nov", false,
-    "R$ 2.310,00", "de R$ 4.500,00 do plano",
+    "Ainda cabem", "R$ 1.480,00", "nas faturas de novembro", false,
+    "R$ 2.020,00", "de R$ 3.500,00 do teto",
     listOf(WidgetDay("Amanhã", "−R$ 120,00", false), WidgetDay("Sexta, 10 out", "+R$ 5.600,00", true)),
     "Planilha em dia · 5 dias",
     listOf("edited", "edited", "rest", "edited", "edited", "today", "future"),
+    "Faturas",
 )
 
 private val SMALL = DpSize(110.dp, 50.dp)
@@ -158,15 +160,16 @@ class TodayWidget : GlanceAppWidget() {
         ) {
             if (wide) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Figure(t, roomy, GlanceModifier.defaultWeight())
+                    Figure(t, roomy, false, GlanceModifier.defaultWeight())
                     Column(GlanceModifier.defaultWeight()) {
                         Text(t.billLabel, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
-                        Text(t.bill ?: "", style = TextStyle(color = pair { it.text }, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1)
+                        Text(t.bill ?: "", style = TextStyle(color = if (t.billWarn) pair { it.warn } else pair { it.text }, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1)
                         Text(t.billDetail ?: "", style = TextStyle(color = pair { it.faint }, fontSize = 11.sp), maxLines = 1)
                     }
                 }
             } else {
-                Figure(t, roomy)
+                // Alone, the figure carries the warning the bill side would show.
+                Figure(t, roomy, t.billWarn)
             }
             if (tall && t.days.isNotEmpty()) {
                 Spacer(GlanceModifier.height(10.dp))
@@ -205,9 +208,15 @@ class TodayWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun Figure(t: WidgetText, roomy: Boolean, modifier: GlanceModifier = GlanceModifier) {
-        Column(modifier) {
-            Text(t.caption, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
+    private fun Figure(t: WidgetText, roomy: Boolean, behind: Boolean, modifier: GlanceModifier = GlanceModifier) {
+        // Ahead of the Diário with no room for the line that says by how much: a mark beside the
+        // caption shows it, not by color alone, and TalkBack reads the amount, as on Hoje.
+        Column(if (behind) modifier.semantics { contentDescription = "${t.caption} ${t.figure}. ${t.bill} acima do previsto até ontem" } else modifier) {
+            Text(
+                if (behind) "▲ ${t.caption}" else t.caption,
+                style = TextStyle(color = if (behind) pair { it.warn } else pair { it.muted }, fontSize = 12.sp),
+                maxLines = 1,
+            )
             Text(
                 t.figure,
                 style = TextStyle(

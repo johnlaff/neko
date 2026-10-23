@@ -10,6 +10,7 @@ import {
   diffDays,
   type Fixed,
   fixedOf,
+  type Insight,
   type InstallmentSimulation,
   type InvoiceCard,
   type LocalDate,
@@ -32,6 +33,7 @@ import {
   type YearTotals,
   ZERO,
 } from "@neko/engine";
+import { inMes, legacyPerDay } from "./today.ts";
 import type { PrevistoView, ProjectionResponse, SubscriptionsView, UserSettings } from "./types.ts";
 
 /**
@@ -348,6 +350,8 @@ export interface MonthsView {
   readonly reserve: Reserve | null;
   /** The Economia tab, one entry per year. */
   readonly years: readonly YearTotals[];
+  /** Warnings that live here, not on Hoje: all on today's month, each also on its own. */
+  readonly warnings: readonly Insight[];
 }
 
 const monthKey = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
@@ -393,6 +397,7 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
     saving: p.saving,
     reserve: p.reserve ?? null,
     years: p.years ?? [],
+    warnings: (p.insights ?? []).filter(inMes),
   };
 };
 
@@ -404,10 +409,15 @@ export const simulateView = (
   r: ProjectionResponse,
   amount: Cents,
   count: number,
-): InstallmentSimulation | null =>
-  r.projection.canSpend
-    ? simulateInstallments(r.projection.canSpend, r.projection.months, amount, count)
-    : null;
+): (InstallmentSimulation & { readonly cycle: { readonly perDay: Cents } }) | null => {
+  const cs = r.projection.canSpend;
+  if (!cs) return null;
+  const sim = simulateInstallments(cs, r.projection.months, amount, count);
+  return {
+    ...sim,
+    cycle: { ...sim.cycle, perDay: legacyPerDay(sim.cycle.remaining, cs.daysLeft) },
+  };
+};
 
 export interface AjustesView {
   readonly settings: UserSettings;

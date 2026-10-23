@@ -9,7 +9,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.johnlaff.neko.data.TodayView
@@ -57,16 +59,14 @@ class ScreenshotTest {
     @Test fun hojeLight() = shot("hoje-light", night = false) { HojeScreen(TodayState(view), {}, {}) }
 
     /** The day the run reaches 21: the week's marks and the one card that celebrates it. */
-    @Test fun hojeResumo() = shot("hoje-resumo-dark", night = true) { dev.johnlaff.neko.ui.RecapPanel(view.recap!!) }
-
-    @Test fun hojeMarco() = shot("hoje-marco-dark", night = true) {
+    @Test fun hojeMarco() = shot("hoje-marco-dark", night = true, scrollTo = "Planilha em dia · 21 dias") {
         val h = view.habit!!
-        val reached = h.copy(streak = 21, milestone = 21, editedToday = true, week = h.week.mapIndexed { i, d -> if (i == 1) d.copy(state = "edited") else d })
+        val reached = h.copy(streak = 21, milestone = 21, next = 66, editedToday = true, week = h.week.mapIndexed { i, d -> if (i == 1) d.copy(state = "edited") else d })
         HojeScreen(TodayState(view.copy(habit = reached)), {}, {})
     }
 
     /** The day the run passes its best before: the same card, a new best instead of a mark. */
-    @Test fun hojeRecorde() = shot("hoje-recorde-light", night = false) {
+    @Test fun hojeRecorde() = shot("hoje-recorde-light", night = false, scrollTo = "Planilha em dia · 11 dias") {
         val h = view.habit!!
         HojeScreen(TodayState(view.copy(habit = h.copy(streak = 11, best = 11, milestone = null, record = 10, editedToday = true))), {}, {})
     }
@@ -135,7 +135,12 @@ class ScreenshotTest {
     }
 
     @Test fun cicloHojeDark() = shot("ciclo-hoje-dark", night = true) {
-        val cycle = view.canSpend!!.copy(mode = "cycle", pace = "over", perDay = -2_000, overBy = 30_000, daysBehind = 0)
+        // The open bill R$ 300 past its plan: the arc full, the figure in red.
+        val plan = view.canSpend!!.budget
+        val cycle = view.canSpend!!.copy(
+            mode = "cycle", pace = "over", accumulated = plan + 30_000, left = 0, overBy = 30_000,
+            paceGap = -(plan + 30_000 - view.canSpend!!.paceExpected), budgetSource = "configured",
+        )
         HojeScreen(TodayState(view.copy(canSpend = cycle, previsto = null)), {}, {})
     }
 
@@ -231,6 +236,14 @@ class ScreenshotTest {
         )
     }
 
+    /** Ajustes › Uso do Neko opened: what was used in the last 30 days, and what never was. */
+    @Test fun usoAjustesDark() = shot("uso-ajustes-dark", night = true, scrollTo = "Uso do Neko", tap = "Aberto em 12 dos últimos 30 dias") {
+        AjustesScreen(
+            ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices,
+            LockSwitch(on = true), usage = Fakes.usage,
+        )
+    }
+
     @Test fun loadingDark() = shot("carregando-dark", night = true) { HojeScreen(TodayState(loading = true), {}, {}) }
 
     @Test fun lockLight() = shot("lock-light", night = false) { LockScreen {} }
@@ -241,6 +254,8 @@ class ScreenshotTest {
         name: String,
         night: Boolean,
         scrollTo: String? = null,
+        /** A text to tap before the picture, to show what it opens. */
+        tap: String? = null,
         content: @androidx.compose.runtime.Composable () -> Unit,
     ) {
         // Each screen shows its own first-time tip, whatever the test before it showed.
@@ -252,6 +267,7 @@ class ScreenshotTest {
         }
         // The screen's list, not a row that slides sideways inside it (Mia's suggestions).
         scrollTo?.let { compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(it)) }
+        tap?.let { compose.onNodeWithText(it).performClick() }
         compose.onRoot().captureRoboImage("screenshots/$name.png")
     }
 }

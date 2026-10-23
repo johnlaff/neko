@@ -1176,7 +1176,8 @@ fieldset.columns {
   .dock a,
   .button,
   button,
-  .formula summary svg {
+  .formula summary svg,
+  .more-alerts > summary svg {
     transition: none;
   }
 }
@@ -1874,11 +1875,25 @@ button.chip-button[aria-pressed="true"] {
 .alert.warn {
   --tone: var(--warn);
 }
-.alert.good {
-  --tone: var(--pos);
-}
 .alert.ask {
   --tone: var(--muted);
+}
+/* Dia de guardar: a panel on the payday only, not a warning; the amount, then the proof under it */
+.nowrap {
+  white-space: nowrap;
+}
+.save-text {
+  display: grid;
+  gap: 2px;
+}
+.save-text > strong {
+  font-weight: 550;
+}
+.save-text > span {
+  font-size: 0.875rem;
+}
+.panel.save > .text-link {
+  margin: -10px 0;
 }
 /* Color only where it informs: one small dot carries the tone, as on Android. */
 .alert-dot {
@@ -1904,8 +1919,9 @@ button.chip-button[aria-pressed="true"] {
   height: 16px;
   color: var(--faint);
 }
+/* Only a warning that opens somewhere answers the pointer; one already on its screen is plain. */
 @media (hover: hover) {
-  .alert:hover {
+  a.alert:hover {
     border-color: color-mix(in oklch, var(--tone) 45%, var(--border));
   }
 }
@@ -2031,7 +2047,8 @@ button.chip-button[aria-pressed="true"] {
 button.ghost.small {
   position: relative;
   min-height: 36px;
-  padding: 0 14px;
+  /* Room above and below when a long label wraps on a phone; one line stays 36px. */
+  padding: 6px 14px;
   font-size: 0.875rem;
 }
 /* Drawn at 36px, tapped at 44px */
@@ -2252,7 +2269,8 @@ button.ghost.tip-ok {
   font-weight: 550;
 }
 /* Como funciona: a short list of ideas, each one tap away */
-.panel.list.learn details.formula {
+.panel.list.learn details.formula,
+.panel.list.usage details.formula {
   padding: 12px 0;
 }
 .learn-text {
@@ -2281,12 +2299,23 @@ button.setting.quiet:disabled {
   color: var(--muted);
   opacity: 1;
 }
-.panel.list.learn details.formula summary {
+.panel.list.learn details.formula summary,
+.panel.list.usage details.formula summary {
   color: var(--text);
   font-size: 0.9375rem;
 }
 .panel.list.learn details.formula p {
   margin: 4px 0 0;
+}
+/* Uso do Neko: where, which screens, which buttons, each a short ledger under its own word;
+   compact rows with no rules between them, as on Android, so the counts read as one list */
+.panel.list.usage h3 {
+  margin: 18px 0 0;
+}
+.panel.list.usage .ledger dt,
+.panel.list.usage .ledger dd {
+  padding: 5px 0;
+  border-bottom: 0;
 }
 
 /* Hoje's streak: this week as seven quiet marks, the run in words, the rule behind a tap */
@@ -2458,12 +2487,31 @@ a.icon.mia-head {
   color: var(--muted);
   font: italic 600 0.75rem / 1 var(--serif);
 }
-/* Hoje: two warnings in view, the rest behind one quiet line */
+/* Hoje: one warning in view, the rest behind one quiet line */
+.more-alerts {
+  --open-turn: -90deg;
+}
+/* The chevron trails the words, as in every other disclosure (and on Android) */
 .more-alerts > summary {
-  padding: 4px 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 2px;
   font-size: 0.875rem;
   color: var(--muted);
   cursor: pointer;
+  list-style: none;
+}
+.more-alerts > summary::-webkit-details-marker {
+  display: none;
+}
+.more-alerts > summary svg {
+  order: 1;
+  width: 16px;
+  height: 16px;
+  rotate: 90deg;
+  transition: rotate 180ms ease-out;
 }
 .more-alerts[open] > summary {
   margin-bottom: 8px;
@@ -3150,7 +3198,7 @@ main:has(.toast) .q-deck {
 }
 button.small:not(.ghost) {
   min-height: 36px;
-  padding: 0 14px;
+  padding: 6px 14px;
   font-size: 0.875rem;
 }
 .q-bank {

@@ -22,6 +22,7 @@ import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MiaStatus
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.TodayView
+import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.data.UserSettings
 import dev.johnlaff.neko.data.Effects
 import dev.johnlaff.neko.data.Neko
@@ -90,6 +91,9 @@ class AppModel(
     val banks: StateFlow<BanksView?> = _banks
     private val _mia = MutableStateFlow<MiaStatus?>(null)
     val mia: StateFlow<MiaStatus?> = _mia
+    /** Ajustes › Uso do Neko; null until read, or from a Worker that predates it. */
+    private val _usage = MutableStateFlow<UsageSummary?>(null)
+    val usage: StateFlow<UsageSummary?> = _usage
     private val _save = MutableStateFlow(SaveState.Idle)
     val save: StateFlow<SaveState> = _save
 
@@ -115,7 +119,10 @@ class AppModel(
     }
 
     /** Hoje read now, as asked (the refresh button, a pull, "Tentar de novo"). */
-    fun refresh() = readToday(shown = true)
+    fun refresh() {
+        used("ler")
+        readToday(shown = true)
+    }
 
     private fun readToday(shown: Boolean, after: Boolean = false) = load(_today, { neko.today.refresh() }, shown, after) { v ->
         effects.todayChanged(v)
@@ -138,7 +145,16 @@ class AppModel(
     }
 
     /** Reads the screen now, as asked; what was read before stays on screen until the new read lands. */
-    fun refresh(tab: Tab) = read(tab, shown = true)
+    fun refresh(tab: Tab) {
+        used("ler")
+        read(tab, shown = true)
+    }
+
+    /**
+     * Counts a screen shown or a tap ("hoje", "simular"…) on Neko's server, for Ajustes › Uso do
+     * Neko. Only the name goes; a count that fails is just lost.
+     */
+    fun used(event: String) = side { neko.api.used(event) }
 
     /**
      * A tab shown or the app back in front: a fresh reading is kept as is, an older one is read
@@ -167,6 +183,7 @@ class AppModel(
             load(_ajustes, { neko.api.ajustes().also { neko.caches.ajustes.write(it) } }, shown, after)
             readDevices()
             side { _banks.value = neko.api.banks() }
+            side { _usage.value = neko.api.usage() }
         }
     }
 
@@ -453,6 +470,7 @@ class AppModel(
         _devices.value = null
         _banks.value = null
         _mia.value = null
+        _usage.value = null
         miaChat.clear()
         miaChat.limited = false
         _save.value = SaveState.Idle

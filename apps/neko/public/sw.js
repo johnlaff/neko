@@ -5,7 +5,8 @@
 const BUILD = "dev";
 const ASSETS = [];
 const SHELL = `neko-shell-${BUILD}`;
-const DATA = "neko-data-v1";
+// v2: the projection's canSpend says "left" instead of "perDay"; the old copy is dropped.
+const DATA = "neko-data-v2";
 const OFFLINE_API = ["/api/me", "/api/projection", "/api/history", "/api/settings"];
 
 self.addEventListener("install", (event) => {
@@ -78,7 +79,7 @@ self.addEventListener("message", (event) => {
   if (event.data === "logout") event.waitUntil(caches.delete(DATA));
 });
 
-// Daily reminders sent by the Worker cron (08:00 "hoje cabem", 21:00 "lançou os gastos?").
+// Daily reminders sent by the Worker cron (08:00 "ainda cabem", 21:00 "lançou os gastos?").
 self.addEventListener("push", (event) => {
   const msg = event.data?.json() ?? { title: "Neko", body: "", url: "/", tag: "neko" };
   event.waitUntil(

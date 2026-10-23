@@ -1,0 +1,55 @@
+{
+  "window": 30,
+  "days": 2,
+  "android": 1,
+  "web": 1,
+  "screens": [
+    {
+      "event": "hoje",
+      "label": "Hoje",
+      "count": 1
+    },
+    {
+      "event": "faturas",
+      "label": "Faturas",
+      "count": 1
+    },
+    {
+      "event": "mes",
+      "label": "Mês",
+      "count": 0
+    },
+    {
+      "event": "ajustes",
+      "label": "Ajustes",
+      "count": 0
+    },
+    {
+      "event": "mia",
+      "label": "Mia",
+      "count": 0
+    }
+  ],
+  "taps": [
+    {
+      "event": "lancar",
+      "label": "Lançar",
+      "count": 0
+    },
+    {
+      "event": "simular",
+      "label": "Simular compra",
+      "count": 0
+    },
+    {
+      "event": "calculo",
+      "label": "Como calculei",
+      "count": 0
+    },
+    {
+      "event": "ler",
+      "label": "Ler a planilha de novo",
+      "count": 0
+    }
+  ]
+}

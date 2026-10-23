@@ -130,6 +130,10 @@ interface Launcher {
 /** An undo id for Ignorar: Desfazer brings the item back instead of undoing a launch. */
 const val IGNORED = "ignored:"
 
+/** Not an undo id: the bar only says what happened (Manter on the Diário previsto). */
+const val NOTICE = "notice"
+const val KEPT_TEXT = "Mantido. O Neko pergunta de novo em 3 meses"
+
 /** How long Desfazer stays after a launch. */
 private const val UNDO_MS = 10_000L
 
@@ -295,7 +299,8 @@ private fun Impact(lines: List<QueueLine>, key: String) {
 internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, modifier: Modifier = Modifier, spinning: Boolean = false, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(10.dp)
-    val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)
+    // Room above and below, and centred, when large text wraps a label (as the site's small buttons).
+    val padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 6.dp)
     if (filled) Button(
         onClick, modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         // Dimmed when off, as the site's disabled buttons.
@@ -307,13 +312,13 @@ internal fun Small(text: String, filled: Boolean, enabled: Boolean = true, modif
         ),
     ) {
         if (spinning) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(14.dp), color = l.bg, strokeWidth = 2.dp)
-        Text(text, color = l.bg, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+        Text(text, color = l.bg, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
     }
     else OutlinedButton(
         onClick, modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape, contentPadding = padding,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
         border = BorderStroke(1.dp, if (enabled) l.borderInput else l.borderInput.copy(alpha = 0.5f)),
-    ) { Text(text, color = if (enabled) l.text else l.text.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge) }
+    ) { Text(text, color = if (enabled) l.text else l.text.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center) }
 }
 
 @Composable
@@ -981,7 +986,7 @@ fun UndoBar(
     ) {
         Text(shown, Modifier.weight(1f), color = l.bg, style = MaterialTheme.typography.bodyMedium)
         val undoing = id
-        if (undoing != null && launcher != null) {
+        if (undoing != null && undoing != NOTICE && launcher != null) {
             TextAction(if (busy) "Desfazendo…" else "Desfazer", {
                 if (!busy) {
                     busy = true
