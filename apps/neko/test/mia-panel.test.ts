@@ -41,11 +41,11 @@ describe("Mia panel", () => {
     ]);
     expect(faturas).toHaveLength(5);
     expect(new Set(faturas).size).toBe(5);
-    expect(miaStarters()[0]).toBe("Quanto cabe por dia?");
+    expect(miaStarters()[0]).toBe("Quanto ainda cabe?");
   });
 
   it("suggests two questions not asked yet", () => {
-    expect(miaNext(["Quanto cabe por dia?"])).toEqual([
+    expect(miaNext(["Quanto ainda cabe?"])).toEqual([
       "Como está minha reserva?",
       "Quanto vem nas próximas faturas?",
     ]);

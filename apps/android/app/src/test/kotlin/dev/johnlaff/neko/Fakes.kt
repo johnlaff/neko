@@ -9,6 +9,8 @@ import dev.johnlaff.neko.data.BankAccount
 import dev.johnlaff.neko.data.BankCard
 import dev.johnlaff.neko.data.BankItem
 import dev.johnlaff.neko.data.BanksView
+import dev.johnlaff.neko.data.UsageCount
+import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.ui.BanksList
 import dev.johnlaff.neko.ui.DevicesList
 import java.io.File
@@ -22,6 +24,27 @@ object Fakes {
             Device("a", "Android", "2026-10-05T12:00:00Z", current = true),
             Device("b", "Chrome no Windows", "2026-10-04T12:00:00Z"),
             Device("c", "Safari no iPhone", "2026-09-20T12:00:00Z"),
+        ),
+    )
+
+    /** A month of use, as the same invented numbers of the site's smoke test, Simular never opened. */
+    val usage = UsageSummary(
+        window = 30,
+        days = 12,
+        android = 10,
+        web = 4,
+        screens = listOf(
+            UsageCount("hoje", "Hoje", 31),
+            UsageCount("faturas", "Faturas", 6),
+            UsageCount("mes", "Mês", 3),
+            UsageCount("ajustes", "Ajustes", 2),
+            UsageCount("mia", "Mia", 1),
+        ),
+        taps = listOf(
+            UsageCount("lancar", "Lançar", 9),
+            UsageCount("simular", "Simular compra", 0),
+            UsageCount("calculo", "Como calculei", 1),
+            UsageCount("ler", "Ler a planilha de novo", 4),
         ),
     )
 

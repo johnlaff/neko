@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Neko Finance",
   "short_name": "Neko",
-  "description": "Quanto cabe hoje no cartão, lido da sua planilha.",
+  "description": "Quanto ainda cabe no mês, lido da sua planilha.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0e0d",
@@ -49,7 +49,7 @@
       "sizes": "540x960",
       "type": "image/webp",
       "form_factor": "narrow",
-      "label": "Quanto cabe hoje no cartão"
+      "label": "Quanto ainda cabe no mês"
     },
     {
       "src": "/screenshots/phone-2-faturas.webp",

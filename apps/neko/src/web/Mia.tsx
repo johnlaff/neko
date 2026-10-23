@@ -11,7 +11,7 @@ export type MiaTopic = "hoje" | "faturas" | "mes";
 
 /** Questions Mia answers well, one tap each (specs/004-mia), led by the screen she came from. */
 const MIA_TOPICS: Record<MiaTopic, readonly string[]> = {
-  hoje: ["Quanto cabe por dia?", "Como está minha reserva?"],
+  hoje: ["Quanto ainda cabe?", "Como está minha reserva?"],
   faturas: ["Quanto vem nas próximas faturas?", "Qual fatura está mais alta?"],
   mes: [
     "Quanto saiu no mês passado?",

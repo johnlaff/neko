@@ -23,7 +23,7 @@ import { type DayMove, type ThermoDay, thermometer } from "./thermometer.ts";
 export interface Settings {
   /** Expected variable spending per day (the method's "diário"). Null: inferred from past bills. */
   readonly dailyForecast: Cents | null;
-  /** Card whose cycle sets the pace in "Hoje cabem". Null: the card with the largest bills. */
+  /** Card whose cycle sets the pace in "Ainda cabem". Null: the card with the largest bills. */
   readonly usualCard: string | null;
   /**
    * The ceiling for the owner's bills due next month (all his cards, not someone else's). With the
@@ -40,7 +40,7 @@ export interface Settings {
   /** Cards someone else pays (e.g. a partner's card): left out of your spending pace. */
   readonly othersCards: readonly string[];
   /**
-   * The Diário previsto is on (specs/005-lancamentos, Fase 3): "Hoje cabem" follows the month,
+   * The Diário previsto is on (specs/005-lancamentos, Fase 3): "Ainda cabem" follows the month,
    * the day's value against what the bank shows spent this month before today.
    */
   readonly previsto?: { readonly value: Cents; readonly spent: Cents } | null;
@@ -76,8 +76,13 @@ export interface CanSpend {
   readonly budget: Cents;
   readonly budgetSource: "configured" | "diario";
   readonly accumulated: Cents;
+  /**
+   * What still fits: the budget minus what was spent, zero once past it. Never split by the days
+   * left: the diário is the method's average, and spending more one day does not lower the next
+   * ones (Breno, "ajuste automático do diário").
+   */
+  readonly left: Cents;
   readonly daysLeft: number;
-  readonly perDay: Cents;
   readonly closing: LocalDate;
   /** When this bill leaves the account. */
   readonly due: LocalDate;
@@ -90,8 +95,6 @@ export interface CanSpend {
   readonly overBy: Cents;
   /** Days without spending that would bring the month back to the pace; 0 when on it. */
   readonly daysBehind: number;
-  /** `cards`: what still fits on next month's bills under the ceiling; zero once past it. */
-  readonly left?: Cents;
   /** `cards`: the last mark of the ceiling the month reached, for the 50/75/100% warnings. */
   readonly used?: 0 | 50 | 75 | 100;
 }
@@ -101,29 +104,27 @@ export const ceilingMark = (spent: Cents, budget: Cents): 0 | 50 | 75 | 100 =>
   spent >= budget ? 100 : spent * 4 >= budget * 3 ? 75 : spent * 2 >= budget ? 50 : 0;
 
 export interface Simulation {
-  readonly perDay: Cents;
-  /** Budget left for the cycle after the purchase. */
+  /** Budget left for the cycle after the purchase; below zero when it goes past it. */
   readonly remaining: Cents;
   readonly due: LocalDate;
 }
 
-/** A purchase made today on the usual card: what is left per day until the bill closes. */
-export const simulatePurchase = (cs: CanSpend, amount: Cents): Simulation => {
-  const remaining = sub(sub(cs.budget, cs.accumulated), amount);
-  return { perDay: divFloor(remaining, cs.daysLeft), remaining, due: cs.due };
-};
+/** A purchase made today on the usual card: what is left of the plan after it. */
+export const simulatePurchase = (cs: CanSpend, amount: Cents): Simulation => ({
+  remaining: sub(sub(cs.budget, cs.accumulated), amount),
+  due: cs.due,
+});
+
+/** Where spending stands against a budget: what still fits, or by how much it went past. */
+const standing = (budget: Cents, spent: Cents) => ({
+  left: spent < budget ? sub(budget, spent) : ZERO,
+  overBy: spent > budget ? sub(spent, budget) : ZERO,
+});
 
 /** A closed bill of the usual card, as the sheet holds it. */
 export interface PastBill {
   readonly due: LocalDate;
   readonly amount: Cents;
-}
-
-export interface SeriesPoint {
-  readonly date: LocalDate;
-  readonly sheet: Cents;
-  /** Allowance for that day; outside the open cycle it falls back to the diário. */
-  readonly canSpend: Cents | null;
 }
 
 export interface MonthView {
@@ -229,7 +230,6 @@ export interface Projection {
   readonly dailyForecastSource: "configured" | "inferred";
   readonly canSpend: CanSpend | null;
   readonly cards: readonly CardView[];
-  readonly series: readonly SeriesPoint[];
   readonly months: readonly MonthView[];
   readonly upcoming: readonly UpcomingItem[];
   /** Card lines due from 3 months before today to 3 months after, for the bills history. */
@@ -259,7 +259,6 @@ export interface Projection {
   readonly recap: MonthRecap | null;
 }
 
-const SERIES_DAYS = 60;
 const UPCOMING_DAYS = 7;
 const HISTORY_BILLS = 6;
 // Nine columns at most: on a phone each month's label still fits on one line.
@@ -529,14 +528,13 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       budget,
       budgetSource: "diario",
       accumulated: previsto.spent,
+      ...standing(budget, previsto.spent),
       daysLeft,
-      perDay: divFloor(sub(budget, previsto.spent), daysLeft),
       closing,
       due: usualView?.cycle.due ?? closing,
       cycleDays: monthDays,
       paceExpected,
       paceGap,
-      overBy: previsto.spent > budget ? sub(previsto.spent, budget) : ZERO,
       daysBehind: paceGap < 0 ? Math.ceil(-paceGap / previsto.value) : 0,
     };
   } else if (settings.cycleBudget !== null && settings.cardsSpent != null) {
@@ -556,16 +554,14 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       budget,
       budgetSource: "configured",
       accumulated: spent,
+      ...standing(budget, spent),
       daysLeft,
-      perDay: divFloor(sub(budget, spent), daysLeft),
       closing,
       due: ymd(next.year, next.month, daysInMonth(next.year, next.month)),
       cycleDays: monthDays,
       paceExpected: spent,
       paceGap: ZERO,
-      overBy: spent > budget ? sub(spent, budget) : ZERO,
       daysBehind: 0,
-      left: spent < budget ? sub(budget, spent) : ZERO,
       used: ceilingMark(spent, budget),
     };
   } else if (usualView) {
@@ -579,14 +575,13 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       budget,
       budgetSource: settings.cycleBudget === null ? "diario" : "configured",
       accumulated: usualView.onSheet,
+      ...standing(budget, usualView.onSheet),
       daysLeft,
-      perDay: divFloor(sub(budget, usualView.onSheet), daysLeft),
       closing: usualView.cycle.closing,
       due: usualView.cycle.due,
       cycleDays,
       paceExpected: divFloor(mul(budget, daysIn), cycleDays),
       paceGap: sub(divFloor(mul(budget, daysIn), cycleDays), usualView.onSheet),
-      overBy: usualView.onSheet > budget ? sub(usualView.onSheet, budget) : ZERO,
       daysBehind: 0,
     };
   }
@@ -600,18 +595,6 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       if (amount === null) break;
       history.unshift({ due: cycle.due, amount });
     }
-  }
-
-  const series: SeriesPoint[] = [];
-  for (let i = 0; i < SERIES_DAYS; i++) {
-    const d = addDays(today, i);
-    if (d > last.date) break;
-    const inOpenCycle = canSpend !== null && d <= canSpend.closing;
-    series.push({
-      date: d,
-      sheet: sheetBalance(d),
-      canSpend: canSpend === null ? null : inOpenCycle ? canSpend.perDay : dailyForecast,
-    });
   }
 
   const cardNames = settings.cards.map((c) => c.name);
@@ -787,7 +770,6 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     dailyForecastSource: settings.dailyForecast === null ? "inferred" : "configured",
     canSpend,
     cards,
-    series,
     months,
     upcoming,
     bills,

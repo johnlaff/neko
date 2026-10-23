@@ -140,6 +140,21 @@ class MainActivity : ComponentActivity() {
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     if (session == Session.SignedIn) model.show(tab)
                 }
+                // Each screen shown counts once, and again when the app comes back to the front, as
+                // on the site: only how often, for Ajustes › Uso do Neko. The tabs' names are the
+                // site's ("hoje", "faturas", "mes", "ajustes"); turning the phone counts nothing.
+                val screen = if (miaOpen) "mia" else tab.name.lowercase()
+                var counted by rememberSaveable { mutableStateOf<String?>(null) }
+                LaunchedEffect(screen, session) {
+                    if (session == Session.SignedIn && screen != counted) model.used(screen)
+                    counted = screen.takeIf { session == Session.SignedIn }
+                }
+                var away by remember { mutableStateOf(false) }
+                LifecycleEventEffect(Lifecycle.Event.ON_STOP) { away = true }
+                LifecycleEventEffect(Lifecycle.Event.ON_START) {
+                    if (away && session == Session.SignedIn) model.used(screen)
+                    away = false
+                }
                 // Back from another place returns to Hoje before leaving the app.
                 BackHandler(enabled = session == Session.SignedIn && (tab != Tab.Hoje || fromMia)) {
                     if (fromMia) {
@@ -210,6 +225,7 @@ class MainActivity : ComponentActivity() {
                                             launcher = model.launcher,
                                             onScreen = toScreen,
                                             onMonth = toMonth,
+                                            onUse = model::used,
                                         )
                                     }
                                     Tab.Faturas -> {
@@ -228,6 +244,7 @@ class MainActivity : ComponentActivity() {
                                         val devices by model.devices.collectAsStateWithLifecycle()
                                         val banks by model.banks.collectAsStateWithLifecycle()
                                         val failed by model.changeFailed.collectAsStateWithLifecycle()
+                                        val usage by model.usage.collectAsStateWithLifecycle()
                                         AjustesScreen(
                                             ajustes, save, { model.refresh(Tab.Ajustes) }, model::saveSettings, model::logout,
                                             remindersSwitch(),
@@ -236,6 +253,7 @@ class MainActivity : ComponentActivity() {
                                             BanksList(banks, model::saveBanks, model::saveBankCards, model::saveAccountUse, failed == "banks"),
                                             model::restoreReviewed,
                                             launcher = model.launcher,
+                                            usage = usage,
                                         )
                                     }
                                 }

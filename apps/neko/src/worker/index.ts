@@ -57,6 +57,7 @@ import {
   sendReminder,
 } from "./push.ts";
 import { keepBankCards, loadSettings, saveSettings, UserSettings } from "./settings.ts";
+import { recordUse, UsagePost, usageSummary } from "./usage.ts";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
@@ -158,6 +159,7 @@ app.use("/mia/*", requireSession);
 app.use("/entries", requireSession);
 app.use("/entries/*", requireSession);
 app.use("/queue/*", requireSession);
+app.use("/usage", requireSession);
 app.route("/entries", entries);
 app.route("/queue", queue);
 
@@ -530,6 +532,15 @@ app.get("/history", async (c) => {
 
 app.get("/settings", async (c) => c.json(await loadSettings(c.env.DB)));
 
+/** One screen opened or button used, by name only (shared/usage.ts); Ajustes reads the summary. */
+app.post("/usage", async (c) => {
+  const { event, app: from } = UsagePost.parse(await c.req.json());
+  await recordUse(c.env.DB, todayIn(new Date()), event, from);
+  return c.body(null, 204);
+});
+
+app.get("/usage", async (c) => c.json(await usageSummary(c.env.DB, todayIn(new Date()))));
+
 app.put("/settings", async (c) => {
   const settings = keepBankCards(await c.req.json(), await loadSettings(c.env.DB));
   await saveSettings(c.env.DB, settings);
@@ -566,7 +577,7 @@ app.delete("/push/subscription", async (c) => {
 /** Crons run in UTC; São Paulo is UTC−3 all year. */
 const MORNING = "0 11 * * *"; // 08:00
 const EVENING = "0 0 * * *"; // 21:00
-const BANKS = "0 9 * * *"; // 06:00, after Meu Pluggy's daily refresh and before "hoje cabem"
+const BANKS = "0 9 * * *"; // 06:00, after Meu Pluggy's daily refresh and before "ainda cabem"
 
 /** Errors go to Sentry when SENTRY_DSN is set; without it the SDK stays off. */
 const sentry = (env: Env) => ({
@@ -586,7 +597,7 @@ export default Sentry.withSentry(sentry, {
   fetch: site.fetch,
   /**
    * 08:00 in São Paulo: refresh the projection, record the day's point in the forecast history
-   * and send "hoje cabem". 21:00: remind to log the day in the sheet, unless it already is.
+   * and send "ainda cabem". 21:00: remind to log the day in the sheet, unless it already is.
    */
   async scheduled(event, env, ctx) {
     if (event.cron === BANKS) {

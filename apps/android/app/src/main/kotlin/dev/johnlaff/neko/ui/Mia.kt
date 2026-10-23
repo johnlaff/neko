@@ -102,7 +102,7 @@ typealias AskMia = suspend (MiaAsk) -> MiaReply
 
 /** Questions Mia answers well, one tap each, led by the screen she came from (the site's MIA_TOPICS). */
 private val MIA_TOPICS = mapOf(
-    "hoje" to listOf("Quanto cabe por dia?", "Como está minha reserva?"),
+    "hoje" to listOf("Quanto ainda cabe?", "Como está minha reserva?"),
     "faturas" to listOf("Quanto vem nas próximas faturas?", "Qual fatura está mais alta?"),
     "mes" to listOf("Quanto saiu no mês passado?", "Este mês está melhor que o anterior?", "Quanto gastei com mercado este ano?"),
 )

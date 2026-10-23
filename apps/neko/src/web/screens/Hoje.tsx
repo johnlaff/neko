@@ -1,18 +1,18 @@
 import {
   addDays,
   groupUpcomingByDay,
+  type Habit,
   type HealthIssue,
   type Insight,
-  type MonthRecap,
   type Saving,
   type UpcomingDay,
-  ZERO,
 } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { HEALTH_DAYS, issueKey, SAVE_LEAD } from "../../shared/today.ts";
-import { api, type DailySource, type ProjectionResponse } from "../api.ts";
+import { HEALTH_DAYS, inMes, issueKey, saveToday } from "../../shared/today.ts";
+import { AlertList, insightView } from "../Alerts.tsx";
+import { api, type DailySource, type ProjectionResponse, used } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
@@ -43,82 +43,12 @@ import { Simulator } from "../Pace.tsx";
 import { PrevistoReview } from "../Previsto.tsx";
 import { Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
-import { Wins } from "../Wins.tsx";
 
-/** Each warning in a few words, with the figure that shows it and where to look next. */
-const insightView = (i: Insight) => {
-  switch (i.kind) {
-    case "goes-negative":
-      return {
-        tone: "bad",
-        to: "/mes",
-        month: i.start.slice(0, 7),
-        title: i.already
-          ? "Saldo negativo agora"
-          : `Saldo negativo a partir de ${shortDate(i.start)}`,
-        detail:
-          i.already && i.until
-            ? `Positivo de novo em ${shortDate(i.until)}. No pior dia, faltam ${money(-i.deepest)}`
-            : `No pior dia, ${shortDate(i.deepestDate)}, faltam ${money(-i.deepest)}`,
-      } as const;
-    case "month-negative":
-      return {
-        tone: "warn",
-        to: "/mes",
-        month: `${i.year}-${String(i.month).padStart(2, "0")}`,
-        title: `${capitalize(monthName(i.month))} gasta mais do que entra`,
-        detail: `Saem ${money(i.amount)} a mais`,
-      } as const;
-    case "income-committed":
-      return {
-        tone: "warn",
-        to: "/mes",
-        month: `${i.year}-${String(i.month).padStart(2, "0")}`,
-        title: `${capitalize(monthName(i.month))}: ${i.share}% da renda já tem destino`,
-        detail:
-          i.amount > 0
-            ? `Sobram ${money(i.amount)} para o Diário`
-            : `Faltam ${money(-i.amount)} antes do Diário`,
-      } as const;
-    case "no-spending-ahead":
-      return {
-        tone: "warn",
-        to: "/mes",
-        month: `${i.year}-${String(i.month).padStart(2, "0")}`,
-        title: `${capitalize(monthName(i.month))} ainda sem gastos previstos`,
-        detail: "Sem diário nem fatura lançados, esse saldo ainda está alto",
-      } as const;
-    case "bill-above-average":
-      return {
-        tone: "warn",
-        to: "/faturas",
-        title: "Fatura acima do normal",
-        detail: `${i.card}: ${money(i.over)} acima da média`,
-      } as const;
-    case "fixed-up":
-      return {
-        tone: "warn",
-        to: "/mes",
-        title: `${capitalize(i.label)} subiu`,
-        detail: `${money(i.amount)} este mês, ${money(i.change)} a mais`,
-      } as const;
-    case "closing-estimated":
-      return {
-        // A setup question, not a warning: color stays for real deviations.
-        tone: "ask",
-        to: "/ajustes",
-        title: `Qual dia fecha o ${i.card}?`,
-        detail: `Estimado: fecha perto de ${shortDate(i.closing)}. Confirme em Ajustes`,
-      } as const;
-    default:
-      // A copy cached by an older version can carry a kind this one no longer knows.
-      return null;
-  }
-};
-
-/** Only problems worth acting on; nothing at all when everything is calm. */
-/** Warnings in view at once; the rest wait behind one quiet line, most important first. */
-const SHOWN_ALERTS = 2;
+/**
+ * Only problems worth acting on, nothing when all is calm, and one at a time: the worst shows, the
+ * rest wait behind one quiet line, so Hoje keeps to its three fixed panels.
+ */
+const SHOWN_ALERTS = 1;
 
 const Insights = ({ items }: { items: readonly Insight[] }) => {
   const known = items.filter((i) => insightView(i) !== null);
@@ -129,7 +59,10 @@ const Insights = ({ items }: { items: readonly Insight[] }) => {
       <AlertList items={known.slice(0, SHOWN_ALERTS)} />
       {rest.length > 0 && (
         <details className="more-alerts">
-          <summary>{rest.length === 1 ? "Mais 1 aviso" : `Mais ${rest.length} avisos`}</summary>
+          <summary>
+            <IconChevron />
+            {rest.length === 1 ? "Mais 1 aviso" : `Mais ${rest.length} avisos`}
+          </summary>
           <AlertList items={rest} />
         </details>
       )}
@@ -137,54 +70,30 @@ const Insights = ({ items }: { items: readonly Insight[] }) => {
   );
 };
 
-const AlertList = ({ items }: { items: readonly Insight[] }) => (
-  <ul className="alerts" aria-label="Avisos">
-    {items.map((i) => {
-      const v = insightView(i);
-      if (!v) return null;
-      return (
-        <li key={i.kind}>
-          <Link to={v.to} search={"month" in v ? { m: v.month } : {}} className={`alert ${v.tone}`}>
-            <span className="alert-dot" aria-hidden="true" />
-            <span className="alert-text">
-              <strong>{v.title}</strong>
-              <span>{v.detail}</span>
-            </span>
-            <IconChevron />
-          </Link>
-        </li>
-      );
-    })}
-  </ul>
-);
-
 /**
- * The payday nudge as an active choice (pay yourself first): the amount, the day, and the proof
- * that the account still holds. Neko never moves money, so it only says how much fits.
+ * The payday nudge as an active choice (pay yourself first), on the payday itself: the amount and
+ * the proof that the account still holds. Neko never moves money, so it only says how much fits.
+ * A panel of its own, not a warning: nothing is wrong on a day to save.
  */
-const SaveCard = ({ save, today }: { save: Saving; today: string }) => {
-  const isToday = save.date === today;
-  return (
-    <ul className="alerts" aria-label="Guardar">
-      <li>
-        <Link to="/mes" search={{ m: save.date.slice(0, 7) }} className="alert good">
-          <span className="alert-dot" aria-hidden="true" />
-          <span className="alert-text">
-            <strong>
-              {isToday
-                ? `Na conta, dá para guardar ${money(save.amount)} hoje`
-                : `${relativeDay(save.date, today)}: dá para guardar ${money(save.amount)}`}
-            </strong>
-            <span>
-              Depois de guardar, menor saldo até {shortDate(save.until)}: {money(save.leftAtLowest)}
-            </span>
-          </span>
-          <IconChevron />
-        </Link>
-      </li>
-    </ul>
-  );
-};
+const SaveCard = ({ save }: { save: Saving }) => (
+  <section className="panel save" aria-labelledby="h-save">
+    <div className="panel-head">
+      <h2 id="h-save">Dia de guardar</h2>
+    </div>
+    <p className="save-text">
+      <strong>Na conta, dá para guardar {money(save.amount)} hoje</strong>
+      <span className="muted">
+        Depois de guardar, menor saldo até <span className="nowrap">{shortDate(save.until)}</span>:{" "}
+        {money(save.leftAtLowest)}
+      </span>
+    </p>
+    <Link to="/mes" search={{ m: save.date.slice(0, 7) }} className="text-link">
+      {/* A flex link drops a plain space before the arrow. */}
+      Ver no mês{"\u00a0"}
+      <span aria-hidden="true">›</span>
+    </Link>
+  </section>
+);
 
 const COLUMN = { entrada: "Entrada", saida: "Saída", diario: "Diário" } as const;
 
@@ -403,45 +312,14 @@ const splitDays = (days: readonly UpcomingDay[]) => {
   return [days.slice(0, cut), days.slice(cut)] as const;
 };
 
-/**
- * The month that just closed, in the first week of the next: how it ended, what it kept, what it
- * cost to live and where most of it went. A plain panel: it informs, it does not warn.
- */
-const RecapPanel = ({ r }: { r: MonthRecap }) => {
-  const name = monthName(r.month);
-  return (
-    <section className="panel recap">
-      <div className="panel-head">
-        <h2>{capitalize(name)} fechou</h2>
-        <Link
-          to="/mes"
-          search={{ m: `${r.year}-${String(r.month).padStart(2, "0")}` }}
-          className="text-link"
-        >
-          Ver o mês
-        </Link>
-      </div>
-      <Wins wins={r.wins} year={r.year} month={r.month} />
-      <dl className="ledger">
-        <dt>{r.result < 0 ? "Faltou" : "Sobrou"}</dt>
-        <dd className={r.result > 0 ? "pos" : r.result < 0 ? "neg" : undefined}>
-          {money(Math.abs(r.result))}
-        </dd>
-        {r.saved > 0 && (
-          <>
-            <dt>Guardado{r.savedShare !== null && ` · ${r.savedShare}% das entradas`}</dt>
-            <dd>{money(r.saved)}</dd>
-          </>
-        )}
-        {/* Custo de vida and the largest line are one tap away, on Mês. */}
-      </dl>
-    </section>
-  );
-};
+/** The run, on Hoje only the day it reaches a mark or passes its best (and the day after). */
+const showsStreak = (h: Habit | null | undefined): h is Habit =>
+  h != null && (h.milestone != null || h.record != null);
 
 /**
- * The day the run reaches a mark or passes its best before, and the day after: one card, then
- * it leaves on its own. A mark wins when both land on the same day.
+ * Hoje answers the daily check-in with three fixed panels: what still fits, Para lançar and the
+ * next 7 days. Anything else shows only on the day it matters: a Conferência point, a mark of the
+ * run, the review of the Diário previsto, a warning, the payday saving.
  */
 export const Hoje = () => (
   <WithProjection>
@@ -453,14 +331,17 @@ export const Hoje = () => (
       // Same window the copy promises: the last 60 days and anything ahead.
       const since = addDays(p.today, -HEALTH_DAYS);
       const issues = p.health.filter((i) => i.date >= since).reverse();
-      const over = cs !== null && (cs.mode === "cards" ? cs.overBy > 0 : cs.perDay < 0);
+      const over = cs !== null && cs.overBy > 0;
       // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
       const month = cs?.mode === "month";
       // With a ceiling for the cards, the dial is next month's bills on all of them.
       const cards = cs?.mode === "cards";
       const inMonth = month || cards;
+      // Behind the Diário, the line under the figure says by how much: the chip would repeat it.
+      const behind = month && !over && (cs?.daysBehind ?? 0) > 0;
       const monthTitle = monthName(Number(p.today.slice(5, 7)));
       const billsTitle = cs ? monthName(Number(cs.due.slice(5, 7))) : "";
+      const save = saveToday(p.saving, p.today);
       const [shown, rest] = splitDays(groupUpcomingByDay(p.upcoming));
       return (
         <>
@@ -476,8 +357,7 @@ export const Hoje = () => (
                           ? `Faturas de ${billsTitle}`
                           : cs.card}
                     </h2>
-                    {/* Over the plan, the figure already says so in red, and behind the Diário the line
-                    under it says by how much: the chip would repeat either. */}
+                    {/* Over the plan, the figure already says so in red: the chip would repeat it. */}
                     {!over && cards && (cs.used ?? 0) >= 50 ? (
                       <span className={`chip ${cs.used === 50 ? "plain" : "warn"}`}>
                         {cs.used === 100
@@ -488,15 +368,13 @@ export const Hoje = () => (
                       </span>
                     ) : (
                       !over &&
-                      !(month && cs.daysBehind > 0) && (
+                      !behind && (
                         <span className={`chip ${cs.paceGap >= 0 ? "ok" : "warn"}`}>
                           {cards
                             ? "Dentro do teto"
                             : cs.paceGap >= 0
                               ? "No ritmo"
-                              : month
-                                ? "Acima do previsto"
-                                : "Acima do ritmo"}
+                              : "Acima do ritmo"}
                         </span>
                       )
                     )}
@@ -509,46 +387,43 @@ export const Hoje = () => (
                       over={over || cs.paceGap < 0 || (cs.used ?? 0) >= 75}
                       bad={over}
                     />
-                    {cards ? (
-                      // What still fits on all the cards this month: a daily allowance spent in full
-                      // each day leaves nothing over, so the month's room leads.
-                      <p className="dial-label">
-                        <span className="caption">{over ? "Passou do teto" : "Ainda cabem"}</span>
-                        <BigMoney
-                          cents={over ? cs.overBy : (cs.left ?? ZERO)}
-                          tone={over ? "neg" : "plain"}
-                        />
-                        <span className="caption">
-                          {over ? `nas faturas de ${billsTitle}` : `de ${money(cs.budget)} de teto`}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="dial-label">
-                        <span className="caption">{over ? "Passou do plano" : "Hoje cabem"}</span>
-                        <BigMoney
-                          cents={over ? cs.overBy : cs.perDay}
-                          // Ink, as in the app: the line under it carries the colour when it matters.
-                          tone={over ? "neg" : "plain"}
-                        />
-                        <span className="caption">
-                          {over
-                            ? inMonth
+                    {/* What still fits, never split by the days left: the diário is an average,
+                    and a day above it does not lower the next ones. */}
+                    <p className="dial-label">
+                      <span className="caption">
+                        {over
+                          ? cards
+                            ? "Passou do teto"
+                            : month
+                              ? "Passou do previsto"
+                              : "Passou do plano"
+                          : "Ainda cabem"}
+                      </span>
+                      <BigMoney
+                        cents={over ? cs.overBy : cs.left}
+                        // Ink, as in the app: the line under it carries the colour when it matters.
+                        tone={over ? "neg" : "plain"}
+                      />
+                      <span className="caption">
+                        {over
+                          ? cards
+                            ? `nas faturas de ${billsTitle}`
+                            : inMonth
                               ? "neste mês"
                               : "neste ciclo"
-                            : cs.daysLeft === 1
-                              ? inMonth
-                                ? "até o mês acabar, hoje"
-                                : "até a fatura fechar, hoje"
-                              : "por dia"}
-                        </span>
-                      </p>
-                    )}
+                          : cards
+                            ? `de ${money(cs.budget)} de teto`
+                            : month
+                              ? `de ${money(cs.budget)} no mês`
+                              : `de ${money(cs.budget)} no ciclo`}
+                      </span>
+                    </p>
                   </div>
                   {/* How far ahead of the Diário the month went, in days without spending. */}
-                  {month && cs.daysBehind > 0 && !over && (
+                  {behind && (
                     <p className="behind">
-                      {money(-cs.paceGap)} acima do previsto. Uns {days(cs.daysBehind)} sem gastar e
-                      você volta ao previsto.
+                      {money(-cs.paceGap)} acima do previsto até ontem. Uns {days(cs.daysBehind)}{" "}
+                      sem gastar e você volta ao previsto.
                     </p>
                   )}
                   {cs.daysLeft > 1 && !cards && (
@@ -558,26 +433,26 @@ export const Hoje = () => (
                       </span>
                     </div>
                   )}
-                  <details className="formula">
+                  <details
+                    className="formula"
+                    onToggle={(e) => e.currentTarget.open && used("calculo")}
+                  >
                     <summary>
                       <IconChevron />
                       Como calculei
                     </summary>
                     {cards ? (
-                      <>
-                        <p>
-                          {money(cs.budget)} de teto para as faturas de {billsTitle} dos seus
-                          cartões menos {money(cs.accumulated)} que o banco já mostra nelas:
-                          compras, parcelas e assinaturas. O cartão e as compras de outra pessoa
-                          ficam de fora.
-                        </p>
-                      </>
+                      <p>
+                        {money(cs.budget)} de teto para as faturas de {billsTitle} dos seus cartões
+                        menos {money(cs.accumulated)} que o banco já mostra nelas: compras, parcelas
+                        e assinaturas. O cartão e as compras de outra pessoa ficam de fora.
+                      </p>
                     ) : month ? (
                       <>
                         <p>
                           {money(cs.budget)} de Diário previsto no mês ({money(p.dailyForecast)} por
                           dia) menos {money(cs.accumulated)} gastos até ontem nos seus cartões e no
-                          Pix, como o banco mostra, dividido por {days(cs.daysLeft)}.
+                          Pix, como o banco mostra.
                         </p>
                         <p>
                           O ponto no arco é o previsto até ontem: o mês está{" "}
@@ -591,7 +466,7 @@ export const Hoje = () => (
                           {cs.budgetSource === "diario"
                             ? `de diário no ciclo (${money(p.dailyForecast)} por dia, ${dailySourceText(daily.source)})`
                             : "de teto para o ciclo"}{" "}
-                          menos {money(cs.accumulated)} na fatura, dividido por {days(cs.daysLeft)}.
+                          menos {money(cs.accumulated)} na fatura.
                         </p>
                         <p>
                           O ponto no arco é o ritmo de hoje: a fatura está{" "}
@@ -625,6 +500,7 @@ export const Hoje = () => (
                         href={todayUrl}
                         target="_blank"
                         rel="noreferrer"
+                        onClick={() => used("lancar")}
                         aria-keyshortcuts="L"
                         title="Lançar na planilha (L)"
                       >
@@ -637,30 +513,28 @@ export const Hoje = () => (
                 </div>
               ),
               // What asks for a tap comes right after Lançar: the sheet's points (none when all is
-              // well), then what the bank found. What to know follows.
+              // well), then what the bank found, then on payday what to save (pay yourself first).
+              // What to know follows.
               conference: issues.length > 0 && <Conference issues={issues} sheet={sheet} />,
               queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
-              streak: habit && <Streak habit={habit} />,
-              previsto: <PrevistoReview previsto={previsto} />,
+              save: save && <SaveCard save={save} />,
+              streak: showsStreak(habit) && <Streak habit={habit} />,
+              previsto: <PrevistoReview previsto={previsto} writing={writing ?? false} />,
               // Over the plan, the red figure already says the bill is high: no second card.
               insights: (
                 <Insights
                   items={(p.insights ?? []).filter(
-                    (i) => !(over && i.kind === "bill-above-average"),
+                    (i) => !inMes(i) && !(over && i.kind === "bill-above-average"),
                   )}
                 />
               ),
-              save: p.saving &&
-                p.saving.date >= p.today &&
-                p.saving.date <= addDays(p.today, SAVE_LEAD) && (
-                  <SaveCard save={p.saving} today={p.today} />
-                ),
-              // Missing on projections cached before it existed.
-              recap: p.recap && <RecapPanel r={p.recap} />,
               next: (
                 <section className="panel">
                   <div className="panel-head">
-                    <h2>Próximos 7 dias</h2>
+                    {/* Where the keyboard goes when the Diário previsto review leaves. */}
+                    <h2 id="h-next" tabIndex={-1}>
+                      Próximos 7 dias
+                    </h2>
                     {p.upcoming.length > 0 && (
                       <span className="meta">{p.upcoming.length} itens</span>
                     )}
@@ -688,13 +562,13 @@ export const Hoje = () => (
             // the keyboard go down one column and then the next. Today's number and what to do now,
             // then what to know.
             two={[
-              ["dial", "quick", "conference", "queue"],
-              ["streak", "previsto", "insights", "save", "recap", "next"],
+              ["dial", "quick", "conference", "queue", "save"],
+              ["streak", "previsto", "insights", "next"],
             ]}
             three={[
               ["dial", "quick"],
-              ["conference", "queue"],
-              ["streak", "previsto", "insights", "save", "recap", "next"],
+              ["conference", "queue", "save", "streak"],
+              ["previsto", "insights", "next"],
             ]}
           />
           <LaunchToast />

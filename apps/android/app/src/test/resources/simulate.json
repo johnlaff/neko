@@ -1,8 +1,8 @@
 {
   "cycle": {
-    "perDay": 7454,
     "remaining": 201280,
-    "due": "2026-10-12"
+    "due": "2026-10-12",
+    "perDay": 7454
   },
   "parcels": [
     {

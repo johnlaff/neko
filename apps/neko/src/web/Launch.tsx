@@ -8,7 +8,7 @@ import {
   saldoView,
 } from "../shared/queue.ts";
 import type { BankView, IgnoredItem } from "../shared/types.ts";
-import { ApiError, api, once, reasonOf } from "./api.ts";
+import { ApiError, api, once, reasonOf, used } from "./api.ts";
 import { CategoryIcon } from "./CategoryIcon.tsx";
 import { bankLineName, bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
 import {
@@ -599,7 +599,10 @@ export const ManualLaunch = ({ cards, today }: { cards: readonly string[]; today
         aria-expanded={open}
         aria-keyshortcuts="L"
         title="Lançar (L)"
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (!open) used("lancar");
+          setOpen(!open);
+        }}
       >
         <IconPlus />
         Lançar

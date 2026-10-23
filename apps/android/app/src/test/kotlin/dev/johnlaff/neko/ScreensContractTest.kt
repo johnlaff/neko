@@ -5,6 +5,7 @@ import dev.johnlaff.neko.data.InstallmentSimulation
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.data.json
 import java.io.File
 import kotlinx.serialization.json.contentOrNull
@@ -54,6 +55,9 @@ class ScreensContractTest {
         assertEquals((r.kept * 10 / r.cost).toInt(), r.coveredTenths)
         // The year counts only what is dated up to today: the fixture's deposit on the 20th is still ahead.
         assertEquals(v.months.filter { it.year == 2026 && it.past }.sumOf { it.saved }, v.years.single { it.year == 2026 }.saved)
+        // The warnings Hoje leaves to Mês come with it: a month ahead, a fixed bill that went up.
+        assertEquals(listOf("month-negative"), v.warnings.map { it.kind })
+        assertTrue(v.warnings.all { dev.johnlaff.neko.ui.Copy.insight(it) != null })
     }
 
     /** The bank table and the card names the Worker's tests match (test/institutions.test.ts). */
@@ -127,5 +131,16 @@ class ScreensContractTest {
         assertEquals(15_000L, v.settings.dailyForecast)
         assertEquals(listOf("Cartão Verde"), v.settings.othersCards)
         assertEquals(2, v.cards.size)
+    }
+
+    @Test fun usage() {
+        val v = json.decodeFromString<UsageSummary>(text("usage.json"))
+        assertEquals(30, v.window)
+        assertEquals(2, v.days)
+        // Every screen and tap is listed, the ones never used with zero.
+        assertEquals(listOf("hoje", "faturas", "mes", "ajustes", "mia"), v.screens.map { it.event })
+        assertEquals(4, v.taps.size)
+        assertEquals("Hoje", v.screens.first().label)
+        assertEquals(0, v.taps.single { it.event == "simular" }.count)
     }
 }

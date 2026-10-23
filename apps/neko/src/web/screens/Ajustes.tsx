@@ -13,6 +13,7 @@ import { LaunchToast } from "../Launch.tsx";
 import { IDEAS, LEARN_INTRO } from "../learn.ts";
 import { PrevistoSetting } from "../Previsto.tsx";
 import { Reminders } from "../Reminders.tsx";
+import { Usage } from "../Usage.tsx";
 import { ErrorBlock, Skeleton, useProjection } from "../useProjection.tsx";
 
 const fromCents = (c: number | null) => (c === null ? "" : (c / 100).toFixed(2).replace(".", ","));
@@ -316,6 +317,7 @@ export const Ajustes = () => {
             </section>
           ),
           devices: <Devices />,
+          usage: <Usage />,
           learn: <HowItWorks reviewed={settings.data} />,
           session: (
             <section className="group" aria-label="Sessão">
@@ -340,12 +342,12 @@ export const Ajustes = () => {
         // Wide screens: each column takes the next groups in the phone's order.
         two={[
           ["form", "writing"],
-          ["banks", "device", "devices", "learn", "session"],
+          ["banks", "device", "devices", "usage", "learn", "session"],
         ]}
         three={[
           ["form", "writing"],
           ["banks", "device", "devices"],
-          ["learn", "session"],
+          ["usage", "learn", "session"],
         ]}
       />
       <LaunchToast />

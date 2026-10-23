@@ -196,6 +196,8 @@ data class MonthsView(
     val reserve: Reserve? = null,
     /** The sheet's Economia tab, one entry per year. */
     val years: List<YearTotals> = emptyList(),
+    /** Warnings that live here, not on Hoje: all on today's month, each also on its own. */
+    val warnings: List<Insight> = emptyList(),
 )
 
 /** The method's emergency reserve: cost of living times 6 to 12 months, against what was kept. */
@@ -330,6 +332,25 @@ data class Device(
     val current: Boolean = false,
 )
 
+/**
+ * GET /api/usage: how often each screen and tap was used in the last [window] days, counted on
+ * Neko's own server. Only counts: nothing of what the screens showed.
+ */
+@Serializable
+data class UsageSummary(
+    val window: Int,
+    /** Days with any use, on either app. */
+    val days: Int,
+    val android: Int,
+    val web: Int,
+    /** Every screen, then every button, the ones never used with zero. */
+    val screens: List<UsageCount>,
+    val taps: List<UsageCount>,
+)
+
+@Serializable
+data class UsageCount(val event: String, val label: String, val count: Int)
+
 /** GET /api/simulate: a purchase today on the usual card, in parcels (engine/installments.ts). */
 @Serializable
 data class InstallmentSimulation(
@@ -340,7 +361,7 @@ data class InstallmentSimulation(
 )
 
 @Serializable
-data class SimulatedCycle(val perDay: Long, val remaining: Long, val due: String)
+data class SimulatedCycle(val remaining: Long, val due: String)
 
 @Serializable
 data class Parcel(val due: String, val amount: Long)

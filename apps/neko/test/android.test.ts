@@ -87,10 +87,25 @@ describe("today view", () => {
     expect(v.upcomingCount).toBe(4);
   });
 
-  it("says how far the month is ahead of the Diário previsto", () => {
+  it("says what still fits in the month and how far it is ahead of the Diário previsto", () => {
     const v = todayView(fixture, []);
-    expect(v.canSpend).toMatchObject({ mode: "month", pace: "ahead", daysBehind: 4 });
+    expect(v.canSpend).toMatchObject({
+      mode: "month",
+      pace: "ahead",
+      left: 294500 - 73220,
+      paceGap: -35220,
+      daysBehind: 4,
+    });
     expect(v.previsto).toMatchObject({ on: true, review: { real: 10000 } });
+  });
+
+  it("still sends the old amount per day, which Android 0.73 and older cannot read without", () => {
+    // (R$ 2.945,00 − R$ 732,20) over the 27 days left: only an older app shows it.
+    expect(todayView(fixture, []).canSpend?.perDay).toBe(8195);
+  });
+
+  it("leaves the month that closed to Mês", () => {
+    expect(todayView(fixture, [])).not.toHaveProperty("recap");
   });
 
   it("links today's row in the sheet", () => {
@@ -111,16 +126,31 @@ describe("today view", () => {
     expect(checked.issuesInWindow).toBe(2);
   });
 
-  it("shows the payday saving only in the days just before it", () => {
-    expect(todayView(fixture, []).saving?.date).toBe("2026-10-05");
-    const later = {
+  it("leaves the warnings about the month and the months ahead to Mês", () => {
+    const up = { kind: "fixed-up", label: "aluguel", amount: 1_950_00, change: 50_00 } as const;
+    const r = {
       ...fixture,
-      projection: {
-        ...fixture.projection,
-        saving: { ...(fixture.projection.saving as object), date: "2026-10-20" },
-      },
+      projection: { ...fixture.projection, insights: [...fixture.projection.insights, up] },
     } as ProjectionResponse;
-    expect(todayView(later, []).saving).toBeNull();
+    const kinds = todayView(r, []).insights.map((i) => i.kind);
+    expect(kinds).toEqual(["bill-above-average", "closing-estimated"]);
+  });
+
+  it("shows the payday saving on its day only", () => {
+    expect(todayView(fixture, []).saving?.date).toBe("2026-10-05");
+    const on = (date: string) =>
+      todayView(
+        {
+          ...fixture,
+          projection: {
+            ...fixture.projection,
+            saving: { ...(fixture.projection.saving as object), date },
+          },
+        } as ProjectionResponse,
+        [],
+      ).saving;
+    expect(on("2026-10-06")).toBeNull();
+    expect(on("2026-10-20")).toBeNull();
   });
 });
 

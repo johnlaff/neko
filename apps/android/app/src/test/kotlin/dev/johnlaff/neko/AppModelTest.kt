@@ -44,6 +44,8 @@ class AppModelTest {
     private val dir: File = Files.createTempDirectory("neko").toFile()
     private val asked: MutableList<String> = Collections.synchronizedList(mutableListOf())
     private val todayChanges: MutableList<TodayView?> = Collections.synchronizedList(mutableListOf())
+    /** What each usage count sent. */
+    private val counted: MutableList<String> = Collections.synchronizedList(mutableListOf())
 
     /** Path → answer; anything missing is a 404. */
     private val answers = mutableMapOf<String, MockResponse>()
@@ -66,6 +68,7 @@ class AppModelTest {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 val path = request.url.encodedPath.removePrefix("/api")
                 asked += path
+                if (path == "/usage" && request.method == "POST") counted += request.body?.utf8() ?: ""
                 gates[path]?.await(5, TimeUnit.SECONDS)
                 return answers[path] ?: MockResponse(code = 404, body = """{"error":"not-found"}""")
             }
@@ -145,6 +148,21 @@ class AppModelTest {
         until("checked") { again.session.value != Session.Checking }
         assertNull(again.today.value.view)
         assertFalse(File(dir, "today.json").exists())
+    }
+
+    @Test fun aScreenOrATapCountsWithOnlyItsNameAndAFailedCountChangesNothing() {
+        val m = model()
+        until("Hoje read") { m.today.value.view != null }
+        m.used("simular")
+        // Asked reads count as "Ler a planilha de novo".
+        m.refresh(Tab.Faturas)
+        until("counted") { counted.size == 2 }
+        assertEquals(
+            setOf("""{"event":"simular","app":"android"}""", """{"event":"ler","app":"android"}"""),
+            counted.toSet(),
+        )
+        // The test server has no /usage: the count is lost and the session stays.
+        assertEquals(Session.SignedIn, m.session.value)
     }
 
     @Test fun noAccountMeansTheLoginScreen() {

@@ -17,8 +17,9 @@ const response = (over: Partial<ProjectionResponse["projection"]> = {}) =>
         card: "Visa",
         budget: 3100_00,
         accumulated: 450_00,
+        left: 2650_00,
+        overBy: 0,
         daysLeft: 15,
-        perDay: 176_66,
         closing: "2026-11-03",
       },
       ...over,
@@ -64,7 +65,6 @@ describe("reminders", () => {
             budget: 3500_00,
             accumulated,
             daysLeft: 13,
-            perDay: 0,
             closing: "2026-10-31",
             due: "2026-11-30",
             left,
@@ -117,9 +117,9 @@ describe("reminders", () => {
     expect(morningMessage(response({ canSpend: null, upcoming: [] } as never))).toBeNull();
   });
 
-  it("morning: today's allowance on the usual card, opening Neko", () => {
+  it("morning: what still fits on the usual card's cycle, never an amount per day", () => {
     expect(morningMessage(response())).toEqual({
-      title: "Hoje cabem R$ 176,66 no Visa",
+      title: "Ainda cabem R$ 2.650,00 no Visa",
       body: "Até a fatura fechar em 3 nov. Faltam 15 dias.",
       url: "/",
       tag: "morning",
@@ -127,9 +127,41 @@ describe("reminders", () => {
   });
   it("morning: says when the cycle is already over plan", () => {
     const r = response();
-    const cs = { ...r.projection.canSpend, perDay: -20_00, accumulated: 3400_00 };
+    const cs = { ...r.projection.canSpend, accumulated: 3400_00, left: 0, overBy: 300_00 };
     expect(morningMessage(response({ canSpend: cs } as never)).title).toBe(
       "O Visa passou R$ 300,00 do plano do ciclo",
+    );
+  });
+  it("morning: with the Diário previsto on, what still fits in the month and how far above it", () => {
+    const month = (accumulated: number, paceExpected: number, overBy = 0) =>
+      morningMessage(
+        response({
+          canSpend: {
+            mode: "month",
+            card: "Visa",
+            budget: 3100_00,
+            accumulated,
+            left: overBy > 0 ? 0 : 3100_00 - accumulated,
+            daysLeft: 12,
+            closing: "2026-10-31",
+            paceExpected,
+            paceGap: paceExpected - accumulated,
+            daysBehind:
+              accumulated > paceExpected ? Math.ceil((accumulated - paceExpected) / 100_00) : 0,
+            overBy,
+          },
+        } as never),
+      );
+    expect(month(1900_00, 2000_00)).toMatchObject({
+      title: "Ainda cabem R$ 1.200,00 no mês",
+      body: "Até o fim do mês, faltam 12 dias.",
+    });
+    // Above the Diário: by how much, and the days without spending that bring it back.
+    expect(month(2180_00, 2000_00)?.body).toBe(
+      "Até o fim do mês, faltam 12 dias. O mês está R$ 180,00 acima do previsto até ontem. Uns 2 dias sem gastar e você volta ao previsto.",
+    );
+    expect(month(3200_00, 2000_00, 100_00)?.title).toBe(
+      "O mês passou R$ 100,00 do Diário previsto",
     );
   });
   it("evening: nudges to log the day, opening the sheet on today's row", () => {

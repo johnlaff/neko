@@ -10,7 +10,8 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { Fragment, lazy, Suspense, useEffect, useState } from "react";
-import { api } from "./api.ts";
+import type { UsageEvent } from "../shared/usage.ts";
+import { api, used } from "./api.ts";
 import { readAtLabel } from "./format.ts";
 import {
   IconCard,
@@ -55,6 +56,15 @@ const MIA_TOPIC: Record<string, MiaTopic> = {
   "/ajustes": "hoje",
 };
 
+/** Which screen a path counts as in Ajustes › Uso do Neko. */
+const SCREEN_USE: Record<string, UsageEvent> = {
+  "/": "hoje",
+  "/faturas": "faturas",
+  "/mes": "mes",
+  "/ajustes": "ajustes",
+  "/mia": "mia",
+};
+
 const TITLES: Record<string, string> = {
   "/": "Hoje",
   "/faturas": "Faturas",
@@ -96,6 +106,7 @@ const Masthead = () => {
   const [asked, setAsked] = useState(false);
   const reading = asked && q.isFetching;
   const readAgain = () => {
+    used("ler");
     setAsked(true);
     q.refetch().finally(() => setAsked(false));
   };
@@ -146,6 +157,15 @@ const Shell = () => {
   const path = useRouterState({ select: (s) => s.location.pathname });
   useEffect(prefetchScreens, []);
   useEffect(syncPush, []);
+  // Each screen shown counts once, and again when Neko comes back to the front, as on Android.
+  useEffect(() => {
+    const screen = SCREEN_USE[path];
+    if (!screen) return;
+    used(screen);
+    const back = () => document.visibilityState === "visible" && used(screen);
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
+  }, [path]);
   useEffect(() => {
     window.addEventListener("keydown", onShortcut);
     return () => window.removeEventListener("keydown", onShortcut);

@@ -600,7 +600,8 @@ export const Faturas = () => {
                           </span>
                           {/* Para lançar has the change for each one: nothing is written without a tap. */}
                           <Link className="text-link" to="/" hash="h-queue">
-                            Corrigir em Para lançar ›
+                            Corrigir em Para lançar{"\u00a0"}
+                            <span aria-hidden="true">›</span>
                           </Link>
                         </>
                       ))}

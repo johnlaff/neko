@@ -61,7 +61,6 @@ import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
 import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
-import dev.johnlaff.neko.data.MonthRecap
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.UpcomingDay
@@ -88,6 +87,8 @@ fun HojeScreen(
     launcher: Launcher? = null,
     /** Opens Lançar à mão, as the "Lançar" shortcut and the prints do. */
     launchOpen: Boolean = false,
+    /** Counts a tap for Ajustes › Uso do Neko: "lancar", "simular", "calculo". */
+    onUse: (String) -> Unit = {},
 ) {
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
@@ -96,9 +97,14 @@ fun HojeScreen(
     var undo by remember { mutableStateOf<String?>(null) }
     var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
-    LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
+    LaunchedEffect(simulateAsk) {
+        if (simulateAsk > 0) {
+            simulating = true
+            onUse("simular")
+        }
+    }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh, miaTopic = "hoje") { v ->
-        item { Hero(v) }
+        item { Hero(v, onUse) }
         val cs = v.canSpend.takeIf { simulate != null }
         // Writing on, Lançar opens the form here; off, it opens today's row in the sheet.
         val writes = v.writing && launcher != null
@@ -106,9 +112,14 @@ fun HojeScreen(
             item {
                 // Both buttons take the taller one's height when large text wraps a label.
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (writes) LancarButton(Modifier.weight(1f), launching) { launching = !launching }
-                    else v.todayUrl?.let { url -> LancarButton(url, Modifier.weight(1f)) }
-                    if (cs != null) SimulateButton(simulating, Modifier.weight(1f)) { simulating = !simulating }
+                    if (writes) LancarButton(Modifier.weight(1f), launching) {
+                        launching = !launching
+                        if (launching) onUse("lancar")
+                    } else v.todayUrl?.let { url -> LancarButton(url, Modifier.weight(1f)) { onUse("lancar") } }
+                    if (cs != null) SimulateButton(simulating, Modifier.weight(1f)) {
+                        simulating = !simulating
+                        if (simulating) onUse("simular")
+                    }
                 }
             }
         }
@@ -122,16 +133,17 @@ fun HojeScreen(
         // all is well), then what the bank found. What to know follows.
         if (v.issues.isNotEmpty() || hidPoints != null) item { Conference(v, review, hidPoints) { hidPoints = it } }
         if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
-        // A wide window's second column, as on the site: what to know.
+        // On payday, what to save comes next: pay yourself first. The Worker sends it on its day only.
+        v.saving?.let { s -> item { SaveCard(s) { onMonth(s.date.take(7)) } } }
+        // A wide window's second column, as on the site: what to know. Hoje keeps three fixed panels
+        // (the dial, Para lançar, the next 7 days); the rest shows only on the day it matters.
         column()
-        v.habit?.let { h -> item { Streak(h) } }
-        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
+        v.habit?.takeIf { it.milestone != null || it.record != null }?.let { h -> item { Streak(h) } }
+        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, v.writing, launcher, { undoText = KEPT_TEXT; undo = NOTICE }, onAjustes) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
-        val over = (v.canSpend?.perDay ?: 0) < 0
+        val over = v.canSpend?.pace == "over"
         val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
         if (insights.isNotEmpty()) item { Insights(insights, onAjustes, { onScreen("faturas") }, onMonth) }
-        v.saving?.let { s -> item { SaveCard(s, v.today) } }
-        v.recap?.let { r -> item { RecapPanel(r) { onScreen("mes") } } }
         item { Upcoming(v) }
     }
     UndoBar(
@@ -143,7 +155,7 @@ fun HojeScreen(
 }
 
 @Composable
-private fun Hero(v: TodayView) {
+private fun Hero(v: TodayView, onUse: (String) -> Unit) {
     val l = LocalLedger.current
     val cs = v.canSpend
     if (cs == null) {
@@ -160,20 +172,21 @@ private fun Hero(v: TodayView) {
     // With a ceiling for the cards, the dial is next month's bills on all of them.
     val cards = cs.mode == "cards"
     val inMonth = month || cards
+    // Behind the Diário, the line under the figure says by how much: the chip would repeat it.
+    val behind = month && !over && cs.daysBehind > 0
     var formula by remember { mutableStateOf(false) }
     Panel {
         // Over the plan, the figure already says so in red: the chip would repeat it.
         val monthTitle = Format.monthName(v.today.substring(5, 7).toInt())
         PanelHead(if (month) "Diário de $monthTitle" else if (cards) "Faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())}" else cs.card) {
-            // Behind the Diário, the line under the figure already says by how much.
             when {
-                cs.pace == "over" || (month && cs.daysBehind > 0) -> Unit
+                over || behind -> Unit
                 cards && cs.used == 100 -> Chip("No teto", ChipTone.Warn)
                 cards && cs.used == 75 -> Chip("75% do teto", ChipTone.Warn)
                 cards && cs.used == 50 -> Chip("Metade do teto", ChipTone.Plain)
                 cards -> Chip("Dentro do teto", ChipTone.Ok)
                 cs.pace == "on-pace" -> Chip("No ritmo", ChipTone.Ok)
-                else -> Chip(if (month) "Acima do previsto" else "Acima do ritmo", ChipTone.Warn)
+                else -> Chip("Acima do ritmo", ChipTone.Warn)
             }
         }
         // With large text the figure no longer fits inside the arc: it goes under it instead.
@@ -190,22 +203,23 @@ private fun Hero(v: TodayView) {
         }
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
             if (!stacked) gauge()
-            // Read as one sentence: "Hoje cabem, R$ 147,00, por dia". With a ceiling for the cards, what
-            // still fits in the month leads: a daily allowance spent in full each day leaves nothing over.
+            // Read as one sentence: "Ainda cabem, R$ 1.480,00, de R$ 3.500,00 de teto". What still fits,
+            // never split by the days left: the diário is an average, and a day above it does not lower
+            // the next ones.
             Column(Modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (stacked) gauge()
                 Text(
-                    if (cards) (if (over) "Passou do teto" else "Ainda cabem") else if (over) "Passou do plano" else "Hoje cabem",
+                    if (!over) "Ainda cabem" else if (cards) "Passou do teto" else if (month) "Passou do previsto" else "Passou do plano",
                     color = l.muted,
                     style = MaterialTheme.typography.labelMedium,
                 )
-                BigMoney(if (over) cs.overBy else if (cards) cs.left else cs.perDay, if (over) l.neg else l.text)
+                BigMoney(if (over) cs.overBy else cs.left, if (over) l.neg else l.text)
                 Text(
                     when {
                         over -> if (cards) "nas faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())}" else if (inMonth) "neste mês" else "neste ciclo"
                         cards -> "de ${money(cs.budget)} de teto"
-                        cs.daysLeft == 1 -> if (inMonth) "até o mês acabar, hoje" else "até a fatura fechar, hoje"
-                        else -> "por dia"
+                        month -> "de ${money(cs.budget)} no mês"
+                        else -> "de ${money(cs.budget)} no ciclo"
                     },
                     color = l.muted,
                     style = MaterialTheme.typography.labelMedium,
@@ -213,18 +227,25 @@ private fun Hero(v: TodayView) {
             }
         }
         // How far ahead of the Diário the month went, in days without spending.
-        if (month && cs.daysBehind > 0 && !over)
+        if (behind)
             Text(
-                "${money(-cs.paceGap)} acima do previsto. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.",
+                "${money(-cs.paceGap)} acima do previsto até ontem. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.",
                 Modifier.fillMaxWidth(),
                 color = l.warn,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
-        if (cs.daysLeft > 1 && !cards) Chip("${if (inMonth) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
+        // Under the figure, centered with it, as on the site.
+        if (cs.daysLeft > 1 && !cards)
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Chip("${if (inMonth) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
+            }
         // The toggle and what it opens sit together: closed, the panel spends no gap on it.
-        Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
-            TextAction(if (formula) "Esconder a conta" else "Como calculei", { formula = !formula }, open = formula)
+        Column {
+            TextAction("Como calculei", {
+                formula = !formula
+                if (formula) onUse("calculo")
+            }, open = formula)
             Reveal(formula) { Formula(cs, v) }
         }
         Hint("hoje", if (month) Learn.HOJE_MES else if (cards) Learn.HOJE_CARTOES else Learn.HOJE)
@@ -245,7 +266,7 @@ private fun Formula(cs: CanSpend, v: TodayView) {
     if (cs.mode == "month") {
         Text(
             "${money(cs.budget)} de Diário previsto no mês (${money(v.dailyForecast)} por dia) menos ${money(cs.accumulated)} " +
-                "gastos até ontem nos seus cartões e no Pix, como o banco mostra, dividido por ${days(cs.daysLeft)}.",
+                "gastos até ontem nos seus cartões e no Pix, como o banco mostra.",
             color = l.muted,
         )
         Text(
@@ -259,7 +280,7 @@ private fun Formula(cs: CanSpend, v: TodayView) {
         "de diário no ciclo (${money(v.dailyForecast)} por dia, ${Copy.dailySource(v.dailySource)})"
     else "de teto para o ciclo"
     Text(
-        "${money(cs.budget)} $budget menos ${money(cs.accumulated)} na fatura, dividido por ${days(cs.daysLeft)}.",
+        "${money(cs.budget)} $budget menos ${money(cs.accumulated)} na fatura.",
         color = l.muted,
     )
     Text(
@@ -270,9 +291,12 @@ private fun Formula(cs: CanSpend, v: TodayView) {
 }
 
 @Composable
-private fun LancarButton(url: String, modifier: Modifier = Modifier) {
+private fun LancarButton(url: String, modifier: Modifier = Modifier, onOpen: () -> Unit) {
     val context = LocalContext.current
-    LancarButton(modifier) { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+    LancarButton(modifier) {
+        onOpen()
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+    }
 }
 
 @Composable
@@ -310,7 +334,7 @@ private fun SimulateButton(open: Boolean, modifier: Modifier, onClick: () -> Uni
 }
 
 @Composable
-private fun Alert(
+internal fun Alert(
     title: String,
     detail: String,
     color: androidx.compose.ui.graphics.Color,
@@ -349,40 +373,45 @@ private fun Insights(
     onMonth: (String?) -> Unit,
 ) {
     val l = LocalLedger.current
-    // Two warnings in view, the rest behind one quiet line, most important first (as on the site).
+    // One warning in view, the rest behind one quiet line, most important first (as on the site).
     val known = insights.mapNotNull { i -> Copy.insight(i)?.let { i to it } }
     var more by rememberSaveable { mutableStateOf(false) }
     val rest = known.size - ShownAlerts
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        (if (more) known else known.take(ShownAlerts)).forEach { (i, line) ->
-            // Each warning opens where to look next, as on the site; a guessed closing day is fixed in Ajustes.
-            val open: () -> Unit = when (i.kind) {
-                "closing-estimated" -> onAjustes
-                "bill-above-average" -> onFaturas
-                "goes-negative" -> { { onMonth(i.start?.take(7)) } }
-                "no-spending-ahead", "month-negative", "income-committed" -> { { onMonth(if (i.year != null && i.month != null) "${i.year}-${i.month.toString().padStart(2, '0')}" else null) } }
-                else -> { { onMonth(null) } }
-            }
-            // A setup question, not a warning: color stays for real deviations, as on the site.
-            val tone = when {
-                line.tone == Copy.Tone.Bad -> l.neg
-                i.kind == "closing-estimated" -> l.muted
-                else -> l.warn
-            }
-            Alert(line.title, line.detail, tone, open)
+    val row = @Composable { (i, line): Pair<Insight, Copy.Line> ->
+        // Each warning opens where to look next, as on the site; a guessed closing day is fixed in Ajustes.
+        val open: () -> Unit = when (i.kind) {
+            "closing-estimated" -> onAjustes
+            "bill-above-average" -> onFaturas
+            "goes-negative" -> { { onMonth(i.start?.take(7)) } }
+            else -> { { onMonth(null) } }
         }
+        // A setup question, not a warning: color stays for real deviations, as on the site.
+        val tone = when {
+            line.tone == Copy.Tone.Bad -> l.neg
+            i.kind == "closing-estimated" -> l.muted
+            else -> l.warn
+        }
+        Alert(line.title, line.detail, tone, open)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        known.take(ShownAlerts).forEach { row(it) }
+        // The toggle, then what it opens under it, as on the site.
         if (rest > 0) {
             TextAction(
-                if (more) "Mostrar menos" else if (rest == 1) "Mais 1 aviso" else "Mais $rest avisos",
+                if (rest == 1) "Mais 1 aviso" else "Mais $rest avisos",
                 { more = !more },
+                open = more,
             )
+            Reveal(more) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { known.drop(ShownAlerts).forEach { row(it) } }
+            }
         }
     }
 }
 
-private const val ShownAlerts = 2
+private const val ShownAlerts = 1
 
-/** A month's wins in words: the recap on Hoje and a closed Mês. */
+/** A month's wins in words, on a closed Mês. */
 @Composable
 internal fun WinsBox(all: List<dev.johnlaff.neko.data.Win>, title: String) {
     val wins = all.mapNotNull(Copy::win)
@@ -430,46 +459,18 @@ private fun ShareButton(title: String, lines: List<String>, label: String) {
     ) { Text("Compartilhar", style = MaterialTheme.typography.labelLarge, maxLines = 1) }
 }
 
-/**
- * The month that just closed, as on the site: how it ended, what it kept, what it cost to live
- * and where most of it went. A plain panel: it informs, it does not warn.
- */
 @Composable
-internal fun RecapPanel(r: MonthRecap, onMonth: () -> Unit = {}) {
+private fun SaveCard(s: Saving, onMonth: () -> Unit) {
     val l = LocalLedger.current
+    // A panel of its own on the payday, as on the site: nothing is wrong on a day to save.
     Panel {
-        PanelHead("${Format.capitalize(Format.monthName(r.month))} fechou") {
-            TextAction("Ver o mês", onMonth, color = l.accent)
+        PanelHead("Dia de guardar")
+        Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("Na conta, dá para guardar ${money(s.amount)} hoje", style = MaterialTheme.typography.titleMedium)
+            Text("Depois de guardar, menor saldo até ${shortDate(s.until)}: ${money(s.leftAtLowest)}", color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
-        WinsBox(r.wins, "${Format.capitalize(Format.monthName(r.month))} de ${r.year}")
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            LedgerLine(
-                if (r.result < 0) "Faltou" else "Sobrou",
-                money(kotlin.math.abs(r.result)),
-                when {
-                    r.result > 0 -> l.pos
-                    r.result < 0 -> l.neg
-                    else -> l.text
-                },
-            )
-            if (r.saved > 0) {
-                LedgerLine("Guardado" + (r.savedShare?.let { " · $it% das entradas" } ?: ""), money(r.saved))
-            }
-            // Custo de vida and the largest line are one tap away, on Mês.
-        }
+        TextAction("Ver no mês ›", onMonth, color = l.accent)
     }
-}
-
-@Composable
-private fun SaveCard(s: Saving, today: String) {
-    val l = LocalLedger.current
-    val isToday = s.date == today
-    Alert(
-        if (isToday) "Na conta, dá para guardar ${money(s.amount)} hoje"
-        else "${relativeDay(s.date, today)}: dá para guardar ${money(s.amount)}",
-        "Depois de guardar, menor saldo até ${shortDate(s.until)}: ${money(s.leftAtLowest)}",
-        l.pos,
-    )
 }
 
 @Composable
