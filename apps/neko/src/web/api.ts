@@ -14,6 +14,7 @@ import type {
   ProjectionResponse,
   UserSettings,
 } from "../shared/types.ts";
+import type { UsageEvent, UsageSummary } from "../shared/usage.ts";
 
 export type {
   BanksResponse,
@@ -215,4 +216,19 @@ export const api = {
     }),
   saveBankCards: (cards: UserSettings["bankCards"]) =>
     request<{ ok: true }>("/banks/cards", { method: "PUT", body: JSON.stringify({ cards }) }),
+  usage: () => request<UsageSummary>("/usage"),
+};
+
+/**
+ * Counts one use of a screen or button (shared/usage.ts): sent and forgotten, so it never slows
+ * the screen nor shows an error. It survives the page closing right after.
+ */
+export const used = (event: UsageEvent) => {
+  fetch("/api/usage", {
+    method: "POST",
+    keepalive: true,
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ event, app: "web" }),
+  }).catch(() => {});
 };

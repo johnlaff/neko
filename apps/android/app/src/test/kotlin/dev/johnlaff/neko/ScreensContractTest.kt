@@ -5,6 +5,7 @@ import dev.johnlaff.neko.data.InstallmentSimulation
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.data.json
 import java.io.File
 import kotlinx.serialization.json.contentOrNull
@@ -127,5 +128,15 @@ class ScreensContractTest {
         assertEquals(15_000L, v.settings.dailyForecast)
         assertEquals(listOf("Cartão Verde"), v.settings.othersCards)
         assertEquals(2, v.cards.size)
+    }
+
+    @Test fun usage() {
+        val v = json.decodeFromString<UsageSummary>(text("usage.json"))
+        assertEquals(30, v.window)
+        assertEquals(2, v.days)
+        // Every screen and tap is listed, the ones never used with zero.
+        assertEquals(9, v.events.size)
+        assertEquals("Hoje", v.events.first().label)
+        assertEquals(0, v.events.single { it.event == "simular" }.count)
     }
 }

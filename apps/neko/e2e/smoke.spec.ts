@@ -20,6 +20,17 @@ const API: Record<string, unknown> = {
     writing: true,
     previstoSince: "2026-07-01",
   },
+  "/api/usage": {
+    window: 30,
+    days: 12,
+    android: 10,
+    web: 4,
+    events: [
+      { event: "hoje", label: "Hoje", count: 31 },
+      { event: "faturas", label: "Faturas", count: 6 },
+      { event: "simular", label: "Simular compra", count: 0 },
+    ],
+  },
   // Invented bank, the same one e2e/make-projection.ts puts in the projection.
   "/api/banks": {
     configured: true,
@@ -190,9 +201,13 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
 }) => {
   const errors = await open(page, "/");
   await expect(page.getByRole("heading", { name: "Diário de outubro" })).toBeVisible();
-  await expect(page.locator(".behind")).toContainText(
-    "Uns 4 dias sem gastar e você volta ao previsto",
+  // What still fits in the month, never split by the days left: the diário is an average.
+  await expect(page.locator(".dial-label")).toContainText("Ainda cabem");
+  await expect(page.locator(".dial-label")).toContainText("de R$ 2.945,00 previstos");
+  await expect(page.locator(".behind")).toHaveText(
+    "R$ 352,20 acima do previsto. Uns 4 dias sem gastar e você volta ao previsto.",
   );
+  await expect(page.locator(".dial-label")).not.toContainText("por dia");
   const queue = page.getByRole("region", { name: "Para lançar" });
   await queue.getByRole("button", { name: "Próximo" }).click();
   await queue.getByRole("button", { name: "Próximo" }).click();
@@ -230,7 +245,7 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
     "href",
     "/mes?m=2026-09",
   );
-  await expect(page.getByRole("button", { name: "Quanto cabe por dia?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Quanto ainda cabe?" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Quanto saiu no mês passado?" })).toHaveCount(0);
   await page.screenshot({ path: "test-results/mia.png" });
   // Leaving and coming back finds the conversation where it was.
@@ -312,6 +327,22 @@ test("Faturas marks a purchase as someone else's and shows what they owe", async
 test("Hoje warns of a month ahead that spends more than comes in", async ({ page }) => {
   const errors = await open(page, "/");
   await expect(page.getByText("Novembro gasta mais do que entra")).toBeVisible();
+  // One warning at a time: the others wait behind a quiet line.
+  await expect(page.getByText("Fatura acima do normal")).toBeHidden();
+  await expect(page.getByText("Mais 2 avisos")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("Hoje keeps to its three fixed panels on a day with nothing special", async ({ page }) => {
+  const errors = await open(page, "/");
+  await expect(page.getByRole("heading", { name: "Próximos 7 dias" })).toBeVisible();
+  // The run only on the day of a mark or a record; the closed month lives in Mês.
+  await expect(page.getByText(/Planilha em dia/)).toHaveCount(0);
+  await expect(page.getByText("Setembro fechou")).toHaveCount(0);
+  const marked = JSON.parse(projection);
+  marked.habit = { ...marked.habit, milestone: 14 };
+  await open(page, "/", JSON.stringify(marked));
+  await expect(page.getByText(/Planilha em dia/)).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -345,7 +376,7 @@ test("a tip shows one at a time and stays gone once dismissed", async ({ page })
 });
 
 test("the month's wins become a picture to share, with no amounts", async ({ page }) => {
-  const errors = await open(page, "/");
+  const errors = await open(page, "/mes?m=2026-09");
   const box = page.getByRole("list", { name: "Conquistas do mês" }).locator("..");
   const download = page.waitForEvent("download");
   await box.getByRole("button", { name: "Compartilhar" }).click();
@@ -482,5 +513,23 @@ test("on a desktop the tabs stand on the left and the panels in three columns", 
   // Para lançar stands in the column beside the dial, near the top; what to know goes to the third.
   expect(dial && queue && queue.x > dial.x + 300 && queue.y < dial.y + 300).toBe(true);
   expect(queue && next && next.x > queue.x + 300).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("Neko counts the screens it shows, and Ajustes tells what was used", async ({ page }) => {
+  const counted: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/usage") && r.method() === "POST")
+      counted.push(JSON.parse(r.postData() ?? "{}").event);
+  });
+  const errors = await open(page, "/");
+  await page.getByRole("link", { name: "Ajustes", exact: true }).click();
+  await expect.poll(() => counted).toEqual(["hoje", "ajustes"]);
+  const usage = page.getByRole("region", { name: "Uso do Neko" });
+  await usage.getByText("Aberto em 12 dos últimos 30 dias").click();
+  await expect(usage).toContainText("No app Android10 dias");
+  await expect(usage).toContainText("Hoje31 vezes");
+  await expect(usage).toContainText("Simular compraNunca");
+  await expect(usage).toContainText("Nenhum valor da planilha");
   expect(errors).toEqual([]);
 });

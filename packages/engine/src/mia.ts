@@ -206,22 +206,35 @@ export const runMiaTool = (p: Projection, name: string, input: unknown, book: Re
       return {
         hoje: p.today,
         saldo_hoje: saldo,
-        // With the Diário previsto on, "Hoje cabem" follows the month, cards and Pix together.
+        // What still fits, as Hoje shows it: never split by the days left (the diário is an
+        // average). With the Diário previsto on, it is the month's, cards and Pix together.
         ritmo_do_mes:
           cs?.mode === "month"
             ? {
-                cabe_por_dia: cs.perDay < 0 ? null : today(cs.perDay, "Cabe por dia", "total"),
+                ainda_cabem: today(cs.left, "Ainda cabem no mês", "total"),
                 gasto_no_mes_ate_ontem: today(cs.accumulated, "Gasto no mês até ontem", "total"),
                 previsto_ate_ontem: today(cs.paceExpected, "Diário previsto até ontem", "total"),
                 dias_sem_gastar_para_voltar_ao_ritmo: cs.daysBehind,
                 dias_ate_o_fim_do_mes: cs.daysLeft,
               }
             : null,
+        // With a ceiling for the cards: next month's bills on all the owner's cards against it.
+        teto_dos_cartoes:
+          cs?.mode === "cards"
+            ? {
+                ainda_cabem: today(cs.left, "Ainda cabem nas faturas", "total"),
+                teto: today(cs.budget, "Teto dos cartões no mês", "total"),
+                nas_faturas: today(cs.accumulated, "Já nas faturas do mês que vem", "fatura"),
+                passou_do_teto:
+                  cs.overBy > 0 ? today(cs.overBy, "Passou do teto", "diferenca") : null,
+                vence_ate: cs.due,
+              }
+            : null,
         cartao_principal:
           cs?.mode === "cycle"
             ? {
                 nome: cs.card,
-                cabe_por_dia: cs.perDay < 0 ? null : today(cs.perDay, "Cabe por dia", "total"),
+                ainda_cabem: today(cs.left, "Ainda cabem no ciclo", "total"),
                 passou_do_plano:
                   cs.overBy > 0 ? today(cs.overBy, "Passou do plano do ciclo", "diferenca") : null,
                 fatura_aberta: today(cs.accumulated, `Fatura aberta do ${cs.card}`, "fatura"),

@@ -57,6 +57,7 @@ import dev.johnlaff.neko.data.BanksView
 import dev.johnlaff.neko.data.CardConfig
 import dev.johnlaff.neko.data.CardDays
 import dev.johnlaff.neko.data.Device
+import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.data.UserSettings
 import dev.johnlaff.neko.ui.Format.fromCents
 import dev.johnlaff.neko.ui.Format.toCents
@@ -163,6 +164,7 @@ fun AjustesScreen(
     restoreReviewed: (suspend () -> Boolean)? = null,
     /** The Diário previsto's fill, and its Desfazer. */
     launcher: Launcher? = null,
+    usage: UsageSummary? = null,
 ) {
     var undo by remember { mutableStateOf<Pair<String, String>?>(null) }
     Box(Modifier.fillMaxSize()) {
@@ -238,6 +240,7 @@ fun AjustesScreen(
             }
         }
         devices.list?.takeIf { it.isNotEmpty() }?.let { item { Group("Aparelhos conectados") { Devices(devices) } } }
+        usage?.let { item { Group("Uso do Neko") { Usage(it) } } }
         item { Group("Como funciona") { HowItWorks(view.settings.reviewed.size, restoreReviewed) } }
         item {
             Panel {
@@ -275,7 +278,7 @@ private fun Reminders(r: RemindersSwitch) {
         "Lembretes",
         when {
             r.blocked -> "Permita as notificações do Neko no Android"
-            else -> "Às 8h, quanto cabe hoje. Às 21h, lançar o dia"
+            else -> "Às 8h, quanto ainda cabe. Às 21h, lançar o dia"
         },
         r.blocked,
         // The whole row is the switch: a bigger target, and TalkBack reads the label with the state.
@@ -617,6 +620,54 @@ private fun Devices(d: DevicesList) {
             )
         }
         if (d.failed) ChangeFailed()
+    }
+}
+
+private fun times(n: Int) = when (n) {
+    0 -> "Nunca"
+    1 -> "1 vez"
+    else -> "$n vezes"
+}
+
+/**
+ * What was opened in the last 30 days, counted on Neko's own server, so what to keep or cut is
+ * decided with data, as on the site. Folded: one line until asked.
+ */
+@Composable
+private fun Usage(s: UsageSummary) {
+    val l = LocalLedger.current
+    var open by rememberSaveable { mutableStateOf(false) }
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClickLabel = if (open) "fechar" else "abrir") { open = !open }
+                .semantics { stateDescription = if (open) "Aberto" else "Fechado" }
+                .heightIn(min = 48.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = l.faint,
+                modifier = Modifier.size(16.dp).rotate(if (open) 90f else 0f),
+            )
+            Text(if (s.days == 0) "Sem uso nos últimos ${s.window} dias" else "Aberto em ${s.days} dos últimos ${s.window} dias")
+        }
+        Reveal(open) {
+            Column(Modifier.padding(start = 24.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LedgerLine("No app Android", Format.days(s.android))
+                LedgerLine("No site", Format.days(s.web))
+                s.events.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
+                Text(
+                    "Só contagens de telas e botões, no servidor do Neko. Nenhum valor da planilha.",
+                    color = l.muted,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
     }
 }
 

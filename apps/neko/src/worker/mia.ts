@@ -101,7 +101,7 @@ export const TOOLS = [
   {
     name: "hoje",
     description:
-      "Saldo de hoje, quanto cabe por dia no cartão principal, a fatura aberta, o diário previsto e o que vence nos próximos 7 dias.",
+      "Saldo de hoje, quanto ainda cabe no mês (teto dos cartões, Diário previsto ou cartão principal), a fatura aberta, o diário previsto e o que vence nos próximos 7 dias.",
     input_schema: obj({}),
   },
   {

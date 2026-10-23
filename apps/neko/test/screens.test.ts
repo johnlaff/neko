@@ -142,9 +142,14 @@ describe("simulate view", () => {
   it("answers as the site's simulator does", () => {
     const cs = fixture.projection.canSpend;
     if (!cs) throw new Error("fixture has a usual card");
-    expect(simulateView(fixture, 600_00 as never, 3)).toEqual(
+    expect(simulateView(fixture, 600_00 as never, 3)).toMatchObject(
       simulateInstallments(cs, fixture.projection.months, 600_00 as never, 3),
     );
+  });
+
+  it("still sends the old amount per day, which Android 0.73 and older cannot read without", () => {
+    // (R$ 2.945,00 − R$ 732,20 − R$ 200,00 of the first parcel) over the 27 days left.
+    expect(simulateView(fixture, 600_00 as never, 3)?.cycle.perDay).toBe(7454);
   });
 
   it("has nothing to simulate without a usual card", () => {

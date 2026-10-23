@@ -79,23 +79,15 @@ fun widgetText(v: TodayView?): WidgetText {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
         cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else if (cards) "Passou do teto" else "Passou do plano", Format.money(cs.overBy), if (cards) bills else if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
-        // What still fits on next month's bills, not a daily allowance (as on Hoje).
-        cards -> WidgetText(
+        // What still fits, never a daily allowance: the diário is an average (as on Hoje).
+        else -> WidgetText(
             "Ainda cabem",
             Format.money(cs.left),
-            bills,
-            false,
-            bill,
-            billDetail,
-            days,
-        )
-        else -> WidgetText(
-            "Hoje cabem",
-            Format.money(cs.perDay),
             when {
-                cs.daysLeft > 1 -> "por dia · ${if (inMonth) "até" else "fecha"} ${Format.shortDate(cs.closing)}"
-                inMonth -> "até o mês acabar, hoje"
-                else -> "até a fatura fechar, hoje"
+                cards -> bills
+                month -> if (cs.daysLeft > 1) "no mês · até ${Format.shortDate(cs.closing)}" else "no mês, que acaba hoje"
+                cs.daysLeft > 1 -> "no ${cs.card} · fecha ${Format.shortDate(cs.closing)}"
+                else -> "no ${cs.card}, que fecha hoje"
             },
             false,
             bill,
@@ -107,11 +99,12 @@ fun widgetText(v: TodayView?): WidgetText {
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
 val PREVIEW = WidgetText(
-    "Hoje cabem", "R$ 148,00", "por dia · fecha 5 nov", false,
-    "R$ 2.310,00", "de R$ 4.500,00 do plano",
+    "Ainda cabem", "R$ 1.480,00", "nas faturas de novembro", false,
+    "R$ 2.020,00", "de R$ 3.500,00 do teto",
     listOf(WidgetDay("Amanhã", "−R$ 120,00", false), WidgetDay("Sexta, 10 out", "+R$ 5.600,00", true)),
     "Planilha em dia · 5 dias",
     listOf("edited", "edited", "rest", "edited", "edited", "today", "future"),
+    "Faturas",
 )
 
 private val SMALL = DpSize(110.dp, 50.dp)

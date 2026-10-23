@@ -32,6 +32,7 @@ import {
   type YearTotals,
   ZERO,
 } from "@neko/engine";
+import { legacyPerDay } from "./today.ts";
 import type { PrevistoView, ProjectionResponse, SubscriptionsView, UserSettings } from "./types.ts";
 
 /**
@@ -404,10 +405,15 @@ export const simulateView = (
   r: ProjectionResponse,
   amount: Cents,
   count: number,
-): InstallmentSimulation | null =>
-  r.projection.canSpend
-    ? simulateInstallments(r.projection.canSpend, r.projection.months, amount, count)
-    : null;
+): (InstallmentSimulation & { readonly cycle: { readonly perDay: Cents } }) | null => {
+  const cs = r.projection.canSpend;
+  if (!cs) return null;
+  const sim = simulateInstallments(cs, r.projection.months, amount, count);
+  return {
+    ...sim,
+    cycle: { ...sim.cycle, perDay: legacyPerDay(sim.cycle.remaining, cs.daysLeft) },
+  };
+};
 
 export interface AjustesView {
   readonly settings: UserSettings;

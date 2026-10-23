@@ -2252,7 +2252,8 @@ button.ghost.tip-ok {
   font-weight: 550;
 }
 /* Como funciona: a short list of ideas, each one tap away */
-.panel.list.learn details.formula {
+.panel.list.learn details.formula,
+.panel.list.usage details.formula {
   padding: 12px 0;
 }
 .learn-text {
@@ -2281,7 +2282,8 @@ button.setting.quiet:disabled {
   color: var(--muted);
   opacity: 1;
 }
-.panel.list.learn details.formula summary {
+.panel.list.learn details.formula summary,
+.panel.list.usage details.formula summary {
   color: var(--text);
   font-size: 0.9375rem;
 }

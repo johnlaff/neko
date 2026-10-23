@@ -2,12 +2,14 @@ import {
   addDays,
   type BankMovement,
   type CanSpend,
+  type Cents,
+  divFloor,
   groupUpcomingByDay,
   type Habit,
   type HealthIssue,
   type Insight,
-  type MonthRecap,
   type Saving,
+  sub,
   type UpcomingDay,
 } from "@neko/engine";
 import { type QueueItemView, type SaldoView, saldoView } from "./queue.ts";
@@ -16,8 +18,9 @@ import type { DailySource, IgnoredItem, PrevistoView, ProjectionResponse } from 
 
 /** Conferência looks back this far: older differences are history, not something to fix today. */
 export const HEALTH_DAYS = 60;
-/** Days before the payday the saving shows on Hoje: time to plan the transfer. */
-export const SAVE_LEAD = 3;
+/** The payday saving shows on Hoje on its day only; Mês marks the day all month. */
+export const saveToday = (saving: Saving | null | undefined, today: string): Saving | null =>
+  saving?.date === today ? saving : null;
 
 /** Stable name of a Conferência point, kept in settings once checked. */
 export const issueKey = (i: HealthIssue) => `${i.kind}|${i.date}|${i.ref.tab}!${i.ref.a1}`;
@@ -26,7 +29,14 @@ export const issueKey = (i: HealthIssue) => `${i.kind}|${i.date}|${i.ref.tab}!${
 export type Pace = "over" | "on-pace" | "ahead";
 
 export const paceOf = (cs: CanSpend): Pace =>
-  cs.perDay < 0 ? "over" : cs.paceGap >= 0 ? "on-pace" : "ahead";
+  cs.overBy > 0 ? "over" : cs.paceGap >= 0 ? "on-pace" : "ahead";
+
+/**
+ * The amount per day Neko no longer shows: Android 0.73 and older cannot read Hoje or the simulator
+ * without it. Drop it once those builds are gone.
+ */
+export const legacyPerDay = (left: Cents, daysLeft: number): Cents =>
+  divFloor(left, Math.max(1, daysLeft));
 
 export interface TodayIssue {
   readonly issue: HealthIssue;
@@ -55,13 +65,13 @@ export interface TodayView {
   readonly todayLogged: boolean;
   /** Opens the sheet on today's row; null when the sheet has no row for today. */
   readonly todayUrl: string | null;
-  readonly canSpend: (CanSpend & { readonly pace: Pace }) | null;
+  readonly canSpend: (CanSpend & { readonly pace: Pace; readonly perDay: Cents }) | null;
   readonly dailyForecast: number;
   readonly dailySource: DailySource;
   readonly upcoming: readonly UpcomingDay[];
   readonly upcomingCount: number;
   readonly insights: readonly Insight[];
-  /** The payday saving, only in the few days before it. */
+  /** The payday saving, on its day only. */
   readonly saving: Saving | null;
   /** Conferência points of the last 60 days not yet marked as checked, newest first. */
   readonly issues: readonly TodayIssue[];
@@ -70,8 +80,6 @@ export interface TodayView {
   readonly readAt: string;
   /** Days the sheet changed, as a streak; null from a Worker that predates it. */
   readonly habit: Habit | null;
-  /** The month that just closed, in the first week of the next. */
-  readonly recap: MonthRecap | null;
   /** Account movements the sheet does not have yet; null with no bank linked. */
   readonly bankMissing: readonly MissingMovement[] | null;
   /** Para lançar; null with no bank linked. */
@@ -96,29 +104,30 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
   const since = addDays(p.today, -HEALTH_DAYS);
   const inWindow = p.health.filter((i) => i.date >= since).reverse();
   const seen = new Set(reviewed);
-  const saving =
-    p.saving && p.saving.date >= p.today && p.saving.date <= addDays(p.today, SAVE_LEAD)
-      ? p.saving
-      : null;
   return {
     today: p.today,
     balanceToday: p.balanceToday,
     todayLogged: p.todayLogged,
     todayUrl: p.todayRef ? cellUrl(p.todayRef.tab, p.todayRef.a1) : null,
-    canSpend: p.canSpend ? { ...p.canSpend, pace: paceOf(p.canSpend) } : null,
+    canSpend: p.canSpend
+      ? {
+          ...p.canSpend,
+          pace: paceOf(p.canSpend),
+          perDay: legacyPerDay(sub(p.canSpend.budget, p.canSpend.accumulated), p.canSpend.daysLeft),
+        }
+      : null,
     dailyForecast: p.dailyForecast,
     dailySource: r.daily.source,
     upcoming: groupUpcomingByDay(p.upcoming),
     upcomingCount: p.upcoming.length,
     insights: p.insights ?? [],
-    saving,
+    saving: saveToday(p.saving, p.today),
     issues: inWindow
       .filter((i) => !seen.has(issueKey(i)))
       .map((issue) => ({ issue, url: cellUrl(issue.ref.tab, issue.ref.a1) })),
     issuesInWindow: inWindow.length,
     readAt: r.sheet.readAt,
     habit: r.habit ?? null,
-    recap: p.recap ?? null,
     bankMissing: r.bank ? r.bank.missing.map((m) => ({ ...m, line: noteLine(m) })) : null,
     queue: r.bank ? (r.bank.queue ?? []) : null,
     ignored: r.bank?.ignored ?? [],

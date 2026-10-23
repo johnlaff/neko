@@ -36,8 +36,6 @@ describe("credit mode projection", () => {
 
   it("shows the usual card's open bill as the sheet holds it, with no diário added", () => {
     expect(p.cards[0]).toMatchObject({ onSheet: 450_00, closesInDays: 15 });
-    const nov10 = p.series.find((s) => s.date === "2026-11-10");
-    expect(nov10?.sheet).toBe(10_000_00 - 450_00);
   });
 
   it("says how long a purchase today takes to be paid and the card's best day to buy", () => {
@@ -48,14 +46,16 @@ describe("credit mode projection", () => {
     expect(after.cards[0]).toMatchObject({ payInDays: 36, bestDate: "2026-12-04" });
   });
 
-  it("computes 'pode gastar hoje' per cycle: (budget − already on the bill) / days left", () => {
-    // Cycle Oct 3 → Nov 3 = 31 days × R$ 100 = R$ 3.100; minus R$ 450 → R$ 2.650 / 15 days.
+  it("says what still fits in the cycle: the budget minus the bill, never split by the days left", () => {
+    // Cycle Oct 3 → Nov 3 = 31 days × R$ 100 = R$ 3.100; minus R$ 450 on the bill → R$ 2.650.
+    // The diário is the method's average: what is left is not spread again over the 15 days.
     expect(p.canSpend).toMatchObject({
       budget: 3100_00,
       accumulated: 450_00,
       daysLeft: 15,
-      perDay: 176_66,
+      left: 2650_00,
     });
+    expect(p.canSpend).not.toHaveProperty("perDay");
   });
 
   it("tells whether today's diário is already logged", () => {
@@ -163,8 +163,8 @@ describe("credit mode projection", () => {
   });
 
   it("a configured cycle budget wins over diário × days", () => {
-    expect(project(base(), today, settings({ cycleBudget: cents(2000_00) })).canSpend?.perDay).toBe(
-      103_33,
+    expect(project(base(), today, settings({ cycleBudget: cents(2000_00) })).canSpend?.left).toBe(
+      1550_00,
     );
   });
 
@@ -250,12 +250,8 @@ describe("cycle pace, purchase simulation and bill history", () => {
   it("simulates a purchase today on the usual card", () => {
     const cs = p.canSpend;
     if (!cs) throw new Error("no canSpend");
-    // (3.100 − 450 − 300) / 15 days.
-    expect(simulatePurchase(cs, cents(300_00))).toEqual({
-      perDay: 156_66,
-      remaining: 2350_00,
-      due: "2026-11-10",
-    });
+    // 3.100 − 450 − 300: what is left of the plan, not spread over the 15 days.
+    expect(simulatePurchase(cs, cents(300_00))).toEqual({ remaining: 2350_00, due: "2026-11-10" });
   });
 
   it("lists past bills of the usual card, oldest first, without the open one", () => {

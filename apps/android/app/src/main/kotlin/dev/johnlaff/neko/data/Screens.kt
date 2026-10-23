@@ -330,6 +330,23 @@ data class Device(
     val current: Boolean = false,
 )
 
+/**
+ * GET /api/usage: how often each screen and tap was used in the last [window] days, counted on
+ * Neko's own server. Only counts: nothing of what the screens showed.
+ */
+@Serializable
+data class UsageSummary(
+    val window: Int,
+    /** Days with any use, on either app. */
+    val days: Int,
+    val android: Int,
+    val web: Int,
+    val events: List<UsageCount>,
+)
+
+@Serializable
+data class UsageCount(val event: String, val label: String, val count: Int)
+
 /** GET /api/simulate: a purchase today on the usual card, in parcels (engine/installments.ts). */
 @Serializable
 data class InstallmentSimulation(
@@ -340,7 +357,7 @@ data class InstallmentSimulation(
 )
 
 @Serializable
-data class SimulatedCycle(val perDay: Long, val remaining: Long, val due: String)
+data class SimulatedCycle(val remaining: Long, val due: String)
 
 @Serializable
 data class Parcel(val due: String, val amount: Long)

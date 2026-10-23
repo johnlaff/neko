@@ -17,7 +17,6 @@ const cs = {
   budget: cents(3_000_00),
   accumulated: cents(1_000_00),
   daysLeft: 10,
-  perDay: cents(200_00),
   due: localDate("2026-11-10"),
 } as CanSpend;
 
@@ -42,7 +41,7 @@ describe("installments", () => {
 
   it("puts only the first parcel on the open bill, one bill per month after it", () => {
     const s = simulateInstallments(cs, months, cents(1_200_00), 3);
-    expect(s.cycle).toEqual({ perDay: 160_00, remaining: 1_600_00, due: "2026-11-10" });
+    expect(s.cycle).toEqual({ remaining: 1_600_00, due: "2026-11-10" });
     expect(s.parcels).toEqual([
       { due: "2026-11-10", amount: 400_00 },
       { due: "2026-12-10", amount: 400_00 },

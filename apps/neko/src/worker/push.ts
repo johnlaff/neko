@@ -1,5 +1,5 @@
 import { buildPushPayload, type VapidKeys } from "@block65/webcrypto-web-push";
-import { addDays, formatBRL, sub, ZERO } from "@neko/engine";
+import { addDays, formatBRL, sub } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import { sheetCellUrl } from "../shared/sheet.ts";
 import type { ProjectionResponse } from "../shared/types.ts";
@@ -113,7 +113,10 @@ const dueDay = (p: ProjectionResponse["projection"]) =>
     .map((b) => ` ${b.title}: ${money(b.amount)}.`)
     .join("");
 
-/** 08:00: how much fits today on the usual card, or this month on all of them under a ceiling. */
+/**
+ * 08:00: what still fits, never an amount per day (the diário is an average): on the usual card's
+ * cycle, in the month against the Diário previsto, or on all the cards under a ceiling.
+ */
 export const morningMessage = (data: ProjectionResponse): Reminder | null => {
   const p = data.projection;
   const cs = p.canSpend;
@@ -136,7 +139,7 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
       cs.daysBehind > 0
         ? ` O mês está ${money(sub(cs.accumulated, cs.paceExpected))} acima do previsto. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.`
         : "";
-    return cs.perDay < 0
+    return cs.overBy > 0
       ? {
           title: `O mês passou ${money(cs.overBy)} do Diário previsto`,
           body: `${left}${rest}`,
@@ -144,7 +147,7 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
           tag: "morning",
         }
       : {
-          title: `Hoje cabem ${money(cs.perDay)}`,
+          title: `Ainda cabem ${money(cs.left)} no mês`,
           body: `${left}${behind}${rest}`,
           url: "/",
           tag: "morning",
@@ -168,13 +171,13 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
       : cs.used === 100
         ? { title: `As ${bills} chegaram ao teto`, body: body(used), url: "/", tag: "morning" }
         : {
-            title: `Ainda cabem ${money(cs.left ?? ZERO)} nas ${bills}`,
+            title: `Ainda cabem ${money(cs.left)} nas ${bills}`,
             body: body(used),
             url: "/",
             tag: "morning",
           };
   }
-  if (cs.perDay < 0)
+  if (cs.overBy > 0)
     return {
       title: `O ${cs.card} passou ${money(sub(cs.accumulated, cs.budget))} do plano do ciclo`,
       body: `${closingText(cs)}${dueDay(p)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
@@ -182,7 +185,7 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
       tag: "morning",
     };
   return {
-    title: `Hoje cabem ${money(cs.perDay)} no ${cs.card}`,
+    title: `Ainda cabem ${money(cs.left)} no ${cs.card}`,
     body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${dueDay(p)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
     url: "/",
     tag: "morning",

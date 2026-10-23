@@ -9,8 +9,8 @@
     "budget": 294500,
     "budgetSource": "diario",
     "accumulated": 73220,
+    "left": 221280,
     "daysLeft": 27,
-    "perDay": 8195,
     "closing": "2026-10-31",
     "due": "2026-10-12",
     "cycleDays": 31,
@@ -18,7 +18,8 @@
     "paceGap": -35220,
     "overBy": 0,
     "daysBehind": 4,
-    "pace": "ahead"
+    "pace": "ahead",
+    "perDay": 8195
   },
   "dailyForecast": 9500,
   "dailySource": "inferred",
@@ -132,25 +133,6 @@
     "next": 21,
     "since": "2026-09-22",
     "lastWeek": 6
-  },
-  "recap": {
-    "year": 2026,
-    "month": 9,
-    "result": 2764,
-    "saved": 80000,
-    "savedShare": 10,
-    "livingCost": 665876,
-    "costChange": 89064,
-    "top": {
-      "label": "Cartão Azul",
-      "amount": 361629
-    },
-    "wins": [
-      {
-        "kind": "blue",
-        "months": 3
-      }
-    ]
   },
   "bankMissing": [
     {

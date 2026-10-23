@@ -122,6 +122,32 @@ describe("mia tools: the engine computes, the model only points", () => {
     expect(runMiaTool(p, "apagar", {}, book)).toMatchObject({ erro: expect.any(String) });
   });
 
+  it("tells what still fits, never an amount per day", () => {
+    // Visa's cycle Oct 3 → Nov 3 = 31 days × R$ 50, nothing on the open bill yet.
+    const out = runMiaTool(p, "hoje", {}, refBook()) as {
+      cartao_principal: Record<string, { cents: number } | unknown>;
+    };
+    expect(out.cartao_principal.ainda_cabem).toMatchObject({ cents: 1_550_00 });
+    expect(out.cartao_principal).not.toHaveProperty("cabe_por_dia");
+  });
+
+  it("knows the cards' ceiling: what still fits on next month's bills", () => {
+    const capped = project(days, localDate("2026-10-08"), {
+      dailyForecast: cents(50_00),
+      usualCard: "Visa",
+      cycleBudget: cents(2_000_00),
+      cardsSpent: cents(1_200_00),
+      cards: [visa],
+      othersCards: [],
+    });
+    const out = runMiaTool(capped, "hoje", {}, refBook()) as Record<string, unknown>;
+    expect(out.teto_dos_cartoes).toMatchObject({
+      ainda_cabem: { cents: 800_00 },
+      teto: { cents: 2_000_00 },
+      nas_faturas: { cents: 1_200_00 },
+    });
+  });
+
   it("continues the numbering of earlier turns", () => {
     const meta = { tipo: "total", rotulo: "x", tela: "mes" } as const;
     const book = refBook({ v1: { ...meta, cents: 1 }, v2: { ...meta, cents: 2 } });
