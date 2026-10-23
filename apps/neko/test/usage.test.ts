@@ -19,13 +19,17 @@ describe("usage", () => {
     await recordUse(d, "2026-09-01", "mia", "android");
     const s = await usageSummary(d, "2026-10-23");
     expect(s).toMatchObject({ window: 30, days: 2, android: 2, web: 1 });
-    const count = (event: string) => s.events.find((e) => e.event === event)?.count;
+    const count = (event: string) =>
+      [...s.screens, ...s.taps].find((e) => e.event === event)?.count;
     expect(count("hoje")).toBe(3);
     expect(count("simular")).toBe(1);
     // What was never used is the most telling line: it is listed, with zero.
     expect(count("mia")).toBe(0);
-    expect(s.events.map((e) => e.event)).toEqual(Object.keys(USAGE));
-    expect(s.events[0]).toEqual({ event: "hoje", label: "Hoje", count: 3 });
+    // Screens apart from buttons, each in USAGE order.
+    expect(s.screens.map((e) => e.event)).toEqual(["hoje", "faturas", "mes", "ajustes", "mia"]);
+    expect(s.taps.map((e) => e.event)).toEqual(["lancar", "simular", "calculo", "ler"]);
+    expect([...s.screens, ...s.taps].map((e) => e.event)).toEqual(Object.keys(USAGE));
+    expect(s.screens[0]).toEqual({ event: "hoje", label: "Hoje", count: 3 });
   });
 
   it("says nothing was used before the first count", async () => {

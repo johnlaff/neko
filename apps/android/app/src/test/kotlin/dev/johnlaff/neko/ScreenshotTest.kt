@@ -59,14 +59,14 @@ class ScreenshotTest {
     @Test fun hojeLight() = shot("hoje-light", night = false) { HojeScreen(TodayState(view), {}, {}) }
 
     /** The day the run reaches 21: the week's marks and the one card that celebrates it. */
-    @Test fun hojeMarco() = shot("hoje-marco-dark", night = true) {
+    @Test fun hojeMarco() = shot("hoje-marco-dark", night = true, scrollTo = "Planilha em dia · 21 dias") {
         val h = view.habit!!
         val reached = h.copy(streak = 21, milestone = 21, editedToday = true, week = h.week.mapIndexed { i, d -> if (i == 1) d.copy(state = "edited") else d })
         HojeScreen(TodayState(view.copy(habit = reached)), {}, {})
     }
 
     /** The day the run passes its best before: the same card, a new best instead of a mark. */
-    @Test fun hojeRecorde() = shot("hoje-recorde-light", night = false) {
+    @Test fun hojeRecorde() = shot("hoje-recorde-light", night = false, scrollTo = "Planilha em dia · 11 dias") {
         val h = view.habit!!
         HojeScreen(TodayState(view.copy(habit = h.copy(streak = 11, best = 11, milestone = null, record = 10, editedToday = true))), {}, {})
     }
@@ -135,7 +135,12 @@ class ScreenshotTest {
     }
 
     @Test fun cicloHojeDark() = shot("ciclo-hoje-dark", night = true) {
-        val cycle = view.canSpend!!.copy(mode = "cycle", pace = "over", left = 0, overBy = 30_000)
+        // The open bill R$ 300 past its plan: the arc full, the figure in red.
+        val plan = view.canSpend!!.budget
+        val cycle = view.canSpend!!.copy(
+            mode = "cycle", pace = "over", accumulated = plan + 30_000, left = 0, overBy = 30_000,
+            paceGap = -(plan + 30_000 - view.canSpend!!.paceExpected), budgetSource = "configured",
+        )
         HojeScreen(TodayState(view.copy(canSpend = cycle, previsto = null)), {}, {})
     }
 

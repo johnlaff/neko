@@ -148,6 +148,23 @@ describe("mia tools: the engine computes, the model only points", () => {
     });
   });
 
+  it("says by how much the month went past the Diário previsto", () => {
+    // October: 31 days × R$ 50 = R$ 1.550 previstos, R$ 2.000 already spent.
+    const over = project(days, localDate("2026-10-08"), {
+      dailyForecast: cents(50_00),
+      usualCard: "Visa",
+      cycleBudget: null,
+      cards: [visa],
+      othersCards: [],
+      previsto: { value: cents(50_00), spent: cents(2_000_00) },
+    });
+    const out = runMiaTool(over, "hoje", {}, refBook()) as Record<string, unknown>;
+    expect(out.ritmo_do_mes).toMatchObject({
+      ainda_cabem: { cents: 0 },
+      passou_do_previsto: { cents: 450_00 },
+    });
+  });
+
   it("continues the numbering of earlier turns", () => {
     const meta = { tipo: "total", rotulo: "x", tela: "mes" } as const;
     const book = refBook({ v1: { ...meta, cents: 1 }, v2: { ...meta, cents: 2 } });

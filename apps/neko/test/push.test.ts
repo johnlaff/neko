@@ -158,7 +158,7 @@ describe("reminders", () => {
     });
     // Above the Diário: by how much, and the days without spending that bring it back.
     expect(month(2180_00, 2000_00)?.body).toBe(
-      "Até o fim do mês, faltam 12 dias. O mês está R$ 180,00 acima do previsto. Uns 2 dias sem gastar e você volta ao previsto.",
+      "Até o fim do mês, faltam 12 dias. O mês está R$ 180,00 acima do previsto até ontem. Uns 2 dias sem gastar e você volta ao previsto.",
     );
     expect(month(3200_00, 2000_00, 100_00)?.title).toBe(
       "O mês passou R$ 100,00 do Diário previsto",

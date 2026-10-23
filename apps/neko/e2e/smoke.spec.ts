@@ -25,11 +25,11 @@ const API: Record<string, unknown> = {
     days: 12,
     android: 10,
     web: 4,
-    events: [
+    screens: [
       { event: "hoje", label: "Hoje", count: 31 },
       { event: "faturas", label: "Faturas", count: 6 },
-      { event: "simular", label: "Simular compra", count: 0 },
     ],
+    taps: [{ event: "simular", label: "Simular compra", count: 0 }],
   },
   // Invented bank, the same one e2e/make-projection.ts puts in the projection.
   "/api/banks": {
@@ -205,7 +205,7 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
   await expect(page.locator(".dial-label")).toContainText("Ainda cabem");
   await expect(page.locator(".dial-label")).toContainText("de R$ 2.945,00 previstos");
   await expect(page.locator(".behind")).toHaveText(
-    "R$ 352,20 acima do previsto. Uns 4 dias sem gastar e você volta ao previsto.",
+    "R$ 352,20 acima do previsto até ontem. Uns 4 dias sem gastar e você volta ao previsto.",
   );
   await expect(page.locator(".dial-label")).not.toContainText("por dia");
   const queue = page.getByRole("region", { name: "Para lançar" });
@@ -527,9 +527,9 @@ test("Neko counts the screens it shows, and Ajustes tells what was used", async 
   await expect.poll(() => counted).toEqual(["hoje", "ajustes"]);
   const usage = page.getByRole("region", { name: "Uso do Neko" });
   await usage.getByText("Aberto em 12 dos últimos 30 dias").click();
-  await expect(usage).toContainText("No app Android10 dias");
-  await expect(usage).toContainText("Hoje31 vezes");
-  await expect(usage).toContainText("Simular compraNunca");
+  await expect(usage).toContainText("OndeNo app Android10 dias");
+  await expect(usage).toContainText("TelasHoje31 vezes");
+  await expect(usage).toContainText("BotõesSimular compraNunca");
   await expect(usage).toContainText("Nenhum valor da planilha");
   expect(errors).toEqual([]);
 });

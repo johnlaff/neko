@@ -33,12 +33,14 @@ object Fakes {
         days = 12,
         android = 10,
         web = 4,
-        events = listOf(
+        screens = listOf(
             UsageCount("hoje", "Hoje", 31),
             UsageCount("faturas", "Faturas", 6),
             UsageCount("mes", "Mês", 3),
             UsageCount("ajustes", "Ajustes", 2),
             UsageCount("mia", "Mia", 1),
+        ),
+        taps = listOf(
             UsageCount("lancar", "Lançar", 9),
             UsageCount("simular", "Simular compra", 0),
             UsageCount("calculo", "Como calculei", 1),

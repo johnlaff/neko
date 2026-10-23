@@ -6,7 +6,6 @@ import {
   type Insight,
   type Saving,
   type UpcomingDay,
-  ZERO,
 } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -130,7 +129,10 @@ const Insights = ({ items }: { items: readonly Insight[] }) => {
       <AlertList items={known.slice(0, SHOWN_ALERTS)} />
       {rest.length > 0 && (
         <details className="more-alerts">
-          <summary>{rest.length === 1 ? "Mais 1 aviso" : `Mais ${rest.length} avisos`}</summary>
+          <summary>
+            <IconChevron />
+            {rest.length === 1 ? "Mais 1 aviso" : `Mais ${rest.length} avisos`}
+          </summary>
           <AlertList items={rest} />
         </details>
       )}
@@ -400,7 +402,7 @@ const splitDays = (days: readonly UpcomingDay[]) => {
 };
 
 /** The run, on Hoje only the day it reaches a mark or passes its best (and the day after). */
-const markDay = (h: Habit | null | undefined): h is Habit =>
+const showsStreak = (h: Habit | null | undefined): h is Habit =>
   h != null && (h.milestone != null || h.record != null);
 
 /**
@@ -503,8 +505,8 @@ export const Hoje = () => (
                   {/* How far ahead of the Diário the month went, in days without spending. */}
                   {behind && (
                     <p className="behind">
-                      {money(-cs.paceGap)} acima do previsto. Uns {days(cs.daysBehind)} sem gastar e
-                      você volta ao previsto.
+                      {money(-cs.paceGap)} acima do previsto até ontem. Uns {days(cs.daysBehind)}{" "}
+                      sem gastar e você volta ao previsto.
                     </p>
                   )}
                   {cs.daysLeft > 1 && !cards && (
@@ -597,7 +599,7 @@ export const Hoje = () => (
               // well), then what the bank found. What to know follows.
               conference: issues.length > 0 && <Conference issues={issues} sheet={sheet} />,
               queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
-              streak: markDay(habit) && <Streak habit={habit} />,
+              streak: showsStreak(habit) && <Streak habit={habit} />,
               previsto: <PrevistoReview previsto={previsto} />,
               // Over the plan, the red figure already says the bill is high: no second card.
               insights: (

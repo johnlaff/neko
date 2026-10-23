@@ -199,8 +199,11 @@ data class CanSpend(
     val mode: String = "cycle",
     /** In month mode, how many days without spending bring the month back to the Diário. */
     val daysBehind: Int = 0,
-    /** What still fits: the budget minus what was spent, zero once past it. Never split by the days left. */
-    val left: Long = 0,
+    /**
+     * What still fits: the budget minus what was spent, zero once past it. Never split by the days
+     * left. Required: a Hoje cached by 0.73 or older lacks it and is dropped, never shown as zero.
+     */
+    val left: Long,
     /** In cards mode, the last mark of the ceiling reached: 0, 50, 75 or 100. */
     val used: Int = 0,
 )

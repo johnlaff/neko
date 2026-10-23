@@ -97,7 +97,12 @@ fun HojeScreen(
     var undo by remember { mutableStateOf<String?>(null) }
     var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
-    LaunchedEffect(simulateAsk) { if (simulateAsk > 0) simulating = true }
+    LaunchedEffect(simulateAsk) {
+        if (simulateAsk > 0) {
+            simulating = true
+            onUse("simular")
+        }
+    }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh, miaTopic = "hoje") { v ->
         item { Hero(v, onUse) }
         val cs = v.canSpend.takeIf { simulate != null }
@@ -224,7 +229,7 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
         // How far ahead of the Diário the month went, in days without spending.
         if (behind)
             Text(
-                "${money(-cs.paceGap)} acima do previsto. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.",
+                "${money(-cs.paceGap)} acima do previsto até ontem. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.",
                 Modifier.fillMaxWidth(),
                 color = l.warn,
                 style = MaterialTheme.typography.bodyMedium,
@@ -233,7 +238,7 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
         if (cs.daysLeft > 1 && !cards) Chip("${if (inMonth) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
         // The toggle and what it opens sit together: closed, the panel spends no gap on it.
         Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
-            TextAction(if (formula) "Esconder a conta" else "Como calculei", {
+            TextAction("Como calculei", {
                 formula = !formula
                 if (formula) onUse("calculo")
             }, open = formula)
@@ -388,8 +393,9 @@ private fun Insights(
         }
         if (rest > 0) {
             TextAction(
-                if (more) "Mostrar menos" else if (rest == 1) "Mais 1 aviso" else "Mais $rest avisos",
+                if (rest == 1) "Mais 1 aviso" else "Mais $rest avisos",
                 { more = !more },
+                open = more,
             )
         }
     }

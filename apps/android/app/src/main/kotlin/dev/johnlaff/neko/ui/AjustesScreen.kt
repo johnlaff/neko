@@ -657,9 +657,13 @@ private fun Usage(s: UsageSummary) {
         }
         Reveal(open) {
             Column(Modifier.padding(start = 24.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                UsageHead("Onde")
                 LedgerLine("No app Android", Format.days(s.android))
                 LedgerLine("No site", Format.days(s.web))
-                s.events.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
+                UsageHead("Telas")
+                s.screens.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
+                UsageHead("Botões")
+                s.taps.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
                 Text(
                     "Só contagens de telas e botões, no servidor do Neko. Nenhum valor da planilha.",
                     color = l.muted,
@@ -670,6 +674,15 @@ private fun Usage(s: UsageSummary) {
         }
     }
 }
+
+/** Uso do Neko's small heads: where, which screens, which buttons, as on the site. */
+@Composable
+private fun UsageHead(text: String) = Text(
+    text,
+    color = LocalLedger.current.faint,
+    style = MaterialTheme.typography.labelMedium,
+    modifier = Modifier.padding(top = 10.dp).semantics { heading() },
+)
 
 /** A change in Ajustes that did not go through, in the site's words. */
 @Composable

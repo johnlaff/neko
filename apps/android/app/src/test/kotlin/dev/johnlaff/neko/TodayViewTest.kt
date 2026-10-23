@@ -102,11 +102,18 @@ class TodayViewTest {
     }
 
     @Test fun widerWidgetsAddTheBillAndTheNextDays() {
-        val t = widgetText(view)
         val cs = view.canSpend!!
-        assertEquals(dev.johnlaff.neko.ui.Format.money(cs.accumulated), t.bill)
-        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} previstos", t.billDetail)
-        assertEquals("Gasto no mês", t.billLabel)
+        val onPace = widgetText(view.copy(canSpend = cs.copy(paceGap = 0, daysBehind = 0, pace = "on-pace")))
+        assertEquals(dev.johnlaff.neko.ui.Format.money(cs.accumulated), onPace.bill)
+        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} previstos", onPace.billDetail)
+        assertEquals("Gasto no mês", onPace.billLabel)
+        assertEquals(false, onPace.billWarn)
+        // Ahead of the Diário, the warning Hoje keeps takes the bill's place, in the same words.
+        val t = widgetText(view)
+        assertEquals("Acima do previsto", t.billLabel)
+        assertEquals(dev.johnlaff.neko.ui.Format.money(35_220), t.bill)
+        assertEquals("Uns 4 dias sem gastar", t.billDetail)
+        assertEquals(true, t.billWarn)
         assertEquals("Ainda cabem", t.caption)
         assertEquals(dev.johnlaff.neko.ui.Format.money(cs.left), t.figure)
         assertEquals("no mês · até 31 out", t.footer)

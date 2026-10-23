@@ -115,8 +115,11 @@ export const simulatePurchase = (cs: CanSpend, amount: Cents): Simulation => ({
   due: cs.due,
 });
 
-/** What still fits under a budget, zero once past it. */
-const leftOf = (budget: Cents, spent: Cents): Cents => (spent < budget ? sub(budget, spent) : ZERO);
+/** Where spending stands against a budget: what still fits, or by how much it went past. */
+const standing = (budget: Cents, spent: Cents) => ({
+  left: spent < budget ? sub(budget, spent) : ZERO,
+  overBy: spent > budget ? sub(spent, budget) : ZERO,
+});
 
 /** A closed bill of the usual card, as the sheet holds it. */
 export interface PastBill {
@@ -525,14 +528,13 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       budget,
       budgetSource: "diario",
       accumulated: previsto.spent,
-      left: leftOf(budget, previsto.spent),
+      ...standing(budget, previsto.spent),
       daysLeft,
       closing,
       due: usualView?.cycle.due ?? closing,
       cycleDays: monthDays,
       paceExpected,
       paceGap,
-      overBy: previsto.spent > budget ? sub(previsto.spent, budget) : ZERO,
       daysBehind: paceGap < 0 ? Math.ceil(-paceGap / previsto.value) : 0,
     };
   } else if (settings.cycleBudget !== null && settings.cardsSpent != null) {
@@ -552,14 +554,13 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       budget,
       budgetSource: "configured",
       accumulated: spent,
-      left: leftOf(budget, spent),
+      ...standing(budget, spent),
       daysLeft,
       closing,
       due: ymd(next.year, next.month, daysInMonth(next.year, next.month)),
       cycleDays: monthDays,
       paceExpected: spent,
       paceGap: ZERO,
-      overBy: spent > budget ? sub(spent, budget) : ZERO,
       daysBehind: 0,
       used: ceilingMark(spent, budget),
     };
@@ -574,14 +575,13 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       budget,
       budgetSource: settings.cycleBudget === null ? "diario" : "configured",
       accumulated: usualView.onSheet,
-      left: leftOf(budget, usualView.onSheet),
+      ...standing(budget, usualView.onSheet),
       daysLeft,
       closing: usualView.cycle.closing,
       due: usualView.cycle.due,
       cycleDays,
       paceExpected: divFloor(mul(budget, daysIn), cycleDays),
       paceGap: sub(divFloor(mul(budget, daysIn), cycleDays), usualView.onSheet),
-      overBy: usualView.onSheet > budget ? sub(usualView.onSheet, budget) : ZERO,
       daysBehind: 0,
     };
   }

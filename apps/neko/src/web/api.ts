@@ -224,11 +224,9 @@ export const api = {
  * the screen nor shows an error. It survives the page closing right after.
  */
 export const used = (event: UsageEvent) => {
-  fetch("/api/usage", {
+  request("/usage", {
     method: "POST",
     keepalive: true,
-    credentials: "same-origin",
-    headers: { "content-type": "application/json" },
     body: JSON.stringify({ event, app: "web" }),
   }).catch(() => {});
 };

@@ -286,11 +286,12 @@ export const PrevistoReview = ({ previsto: p }: { previsto: PrevistoView | undef
         <dt>Gasto por dia desde {shortDate(r.from)}</dt>
         <dd>{money(r.real)}</dd>
       </dl>
+      {/* Two even choices: Neko suggests no value, and Lançar keeps the one fill (as on Android). */}
       <div className="q-actions">
         {r.real !== p.value && (
           <button
             type="button"
-            className="small"
+            className="ghost small"
             aria-disabled={busy}
             onClick={() => busy || change.mutate(r.real)}
           >

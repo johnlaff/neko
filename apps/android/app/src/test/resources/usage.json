@@ -3,7 +3,7 @@
   "days": 2,
   "android": 1,
   "web": 1,
-  "events": [
+  "screens": [
     {
       "event": "hoje",
       "label": "Hoje",
@@ -28,7 +28,9 @@
       "event": "mia",
       "label": "Mia",
       "count": 0
-    },
+    }
+  ],
+  "taps": [
     {
       "event": "lancar",
       "label": "Lançar",

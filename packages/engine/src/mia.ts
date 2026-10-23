@@ -212,6 +212,8 @@ export const runMiaTool = (p: Projection, name: string, input: unknown, book: Re
           cs?.mode === "month"
             ? {
                 ainda_cabem: today(cs.left, "Ainda cabem no mês", "total"),
+                passou_do_previsto:
+                  cs.overBy > 0 ? today(cs.overBy, "Passou do Diário previsto", "diferenca") : null,
                 gasto_no_mes_ate_ontem: today(cs.accumulated, "Gasto no mês até ontem", "total"),
                 previsto_ate_ontem: today(cs.paceExpected, "Diário previsto até ontem", "total"),
                 dias_sem_gastar_para_voltar_ao_ritmo: cs.daysBehind,

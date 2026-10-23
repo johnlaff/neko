@@ -141,9 +141,14 @@ class MainActivity : ComponentActivity() {
                     if (session == Session.SignedIn) model.show(tab)
                 }
                 // Each screen shown counts once, and again when the app comes back to the front, as
-                // on the site: only how often, for Ajustes › Uso do Neko.
+                // on the site: only how often, for Ajustes › Uso do Neko. The tabs' names are the
+                // site's ("hoje", "faturas", "mes", "ajustes"); turning the phone counts nothing.
                 val screen = if (miaOpen) "mia" else tab.name.lowercase()
-                LaunchedEffect(screen, session) { if (session == Session.SignedIn) model.used(screen) }
+                var counted by rememberSaveable { mutableStateOf<String?>(null) }
+                LaunchedEffect(screen, session) {
+                    if (session == Session.SignedIn && screen != counted) model.used(screen)
+                    counted = screen.takeIf { session == Session.SignedIn }
+                }
                 var away by remember { mutableStateOf(false) }
                 LifecycleEventEffect(Lifecycle.Event.ON_STOP) { away = true }
                 LifecycleEventEffect(Lifecycle.Event.ON_START) {

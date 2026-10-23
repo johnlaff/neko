@@ -341,7 +341,9 @@ data class UsageSummary(
     val days: Int,
     val android: Int,
     val web: Int,
-    val events: List<UsageCount>,
+    /** Every screen, then every button, the ones never used with zero. */
+    val screens: List<UsageCount>,
+    val taps: List<UsageCount>,
 )
 
 @Serializable

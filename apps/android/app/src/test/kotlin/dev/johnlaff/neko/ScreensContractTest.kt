@@ -135,8 +135,9 @@ class ScreensContractTest {
         assertEquals(30, v.window)
         assertEquals(2, v.days)
         // Every screen and tap is listed, the ones never used with zero.
-        assertEquals(9, v.events.size)
-        assertEquals("Hoje", v.events.first().label)
-        assertEquals(0, v.events.single { it.event == "simular" }.count)
+        assertEquals(listOf("hoje", "faturas", "mes", "ajustes", "mia"), v.screens.map { it.event })
+        assertEquals(4, v.taps.size)
+        assertEquals("Hoje", v.screens.first().label)
+        assertEquals(0, v.taps.single { it.event == "simular" }.count)
     }
 }

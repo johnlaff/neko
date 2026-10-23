@@ -1,11 +1,20 @@
 import { addDays, type LocalDate } from "@neko/engine";
 import { z } from "zod";
-import { USAGE, type UsageApp, type UsageEvent, type UsageSummary } from "../shared/usage.ts";
+import {
+  USAGE,
+  USAGE_APPS,
+  USAGE_SCREENS,
+  USAGE_TAPS,
+  type UsageApp,
+  type UsageCount,
+  type UsageEvent,
+  type UsageSummary,
+} from "../shared/usage.ts";
 
 /** Only the known names travel: anything else is refused, so nothing else can be stored. */
 export const UsagePost = z.object({
   event: z.enum(Object.keys(USAGE) as [UsageEvent, ...UsageEvent[]]),
-  app: z.enum(["web", "android"]),
+  app: z.enum(USAGE_APPS),
 });
 
 const WINDOW = 30;
@@ -42,15 +51,18 @@ export const usageSummary = async (db: D1Database, today: LocalDate): Promise<Us
   ]);
   const count = new Map(events.results.map((r) => [r.event, Number(r.n)]));
   const days = (app: string) => Number(apps.results.find((r) => r.app === app)?.d ?? 0);
+  const counts = (group: Record<string, string>): UsageCount[] =>
+    (Object.entries(group) as [UsageEvent, string][]).map(([event, label]) => ({
+      event,
+      label,
+      count: count.get(event) ?? 0,
+    }));
   return {
     window: WINDOW,
     days: days("all"),
     android: days("android"),
     web: days("web"),
-    events: (Object.entries(USAGE) as [UsageEvent, string][]).map(([event, label]) => ({
-      event,
-      label,
-      count: count.get(event) ?? 0,
-    })),
+    screens: counts(USAGE_SCREENS),
+    taps: counts(USAGE_TAPS),
   };
 };

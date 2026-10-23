@@ -5,7 +5,8 @@
 const BUILD = "dev";
 const ASSETS = [];
 const SHELL = `neko-shell-${BUILD}`;
-const DATA = "neko-data-v1";
+// v2: the projection's canSpend says "left" instead of "perDay"; the old copy is dropped.
+const DATA = "neko-data-v2";
 const OFFLINE_API = ["/api/me", "/api/projection", "/api/history", "/api/settings"];
 
 self.addEventListener("install", (event) => {

@@ -102,7 +102,7 @@ internal fun PrevistoForm(
             p.suggestion?.let { s ->
                 Text("Pelo banco, um dia seu custa ${money(s.perDay)}.")
                 Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
-                    TextAction(if (formula) "Esconder a conta" else "Como calculei", { formula = !formula }, open = formula)
+                    TextAction("Como calculei", { formula = !formula }, open = formula)
                     Reveal(formula) {
                         Text(
                             "Desde ${shortDate(s.from)}: ${money(s.cards)} em compras nos seus cartões e ${money(s.pix)} em Pix e " +
@@ -188,9 +188,10 @@ internal fun PrevistoReview(p: PrevistoView?, launcher: Launcher?, onLaunched: (
             ReviewLine("Gasto por dia desde ${shortDate(r.from)}", money(r.real))
         }
         if (launcher != null) {
+            // Two even choices, as on the site: Neko suggests no value, and Lançar keeps the one fill.
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (r.real != p.value)
-                    Small(if (busy == "change") "Trocando…" else "Trocar para ${money(r.real)}", filled = true, enabled = busy == null) {
+                    Small(if (busy == "change") "Trocando…" else "Trocar para ${money(r.real)}", filled = false, enabled = busy == null) {
                         act("change") { onLaunched(it.previsto(r.real)) }
                     }
                 Small("Manter ${money(p.value)}", filled = false, enabled = busy == null) {

@@ -57,6 +57,8 @@ data class WidgetText(
     val week: List<String> = emptyList(),
     /** What `bill` is: the open bill, or with the Diário previsto on, the month's spending. */
     val billLabel: String = "Fatura",
+    /** `bill` is how far the month runs ahead of the Diário, drawn in the warning color. */
+    val billWarn: Boolean = false,
 )
 
 fun widgetText(v: TodayView?): WidgetText {
@@ -78,7 +80,7 @@ fun widgetText(v: TodayView?): WidgetText {
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
-        cs.pace == "over" -> WidgetText(if (month) "Acima do previsto" else if (cards) "Passou do teto" else "Passou do plano", Format.money(cs.overBy), if (cards) bills else if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
+        cs.pace == "over" -> WidgetText(if (cards) "Passou do teto" else "Passou do plano", Format.money(cs.overBy), if (cards) bills else if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
         // What still fits, never a daily allowance: the diário is an average (as on Hoje).
         else -> WidgetText(
             "Ainda cabem",
@@ -94,7 +96,12 @@ fun widgetText(v: TodayView?): WidgetText {
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else if (cards) "Faturas" else "Fatura")
+    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else if (cards) "Faturas" else "Fatura").let { t ->
+        // Ahead of the Diário previsto, the line Hoje keeps under its figure takes the bill's place.
+        if (cs != null && month && cs.pace != "over" && cs.daysBehind > 0)
+            t.copy(bill = Format.money(-cs.paceGap), billLabel = "Acima do previsto", billDetail = "Uns ${Format.days(cs.daysBehind)} sem gastar", billWarn = true)
+        else t
+    }
 }
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
@@ -154,7 +161,7 @@ class TodayWidget : GlanceAppWidget() {
                     Figure(t, roomy, GlanceModifier.defaultWeight())
                     Column(GlanceModifier.defaultWeight()) {
                         Text(t.billLabel, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
-                        Text(t.bill ?: "", style = TextStyle(color = pair { it.text }, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1)
+                        Text(t.bill ?: "", style = TextStyle(color = if (t.billWarn) pair { it.warn } else pair { it.text }, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1)
                         Text(t.billDetail ?: "", style = TextStyle(color = pair { it.faint }, fontSize = 11.sp), maxLines = 1)
                     }
                 }

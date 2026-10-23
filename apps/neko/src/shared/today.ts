@@ -33,7 +33,8 @@ export const paceOf = (cs: CanSpend): Pace =>
 
 /**
  * The amount per day Neko no longer shows: Android 0.73 and older cannot read Hoje or the simulator
- * without it. Drop it once those builds are gone.
+ * without it. The one money division outside the engine, for those builds only: drop it once
+ * they are gone.
  */
 export const legacyPerDay = (left: Cents, daysLeft: number): Cents =>
   divFloor(left, Math.max(1, daysLeft));

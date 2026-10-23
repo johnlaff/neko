@@ -1176,7 +1176,8 @@ fieldset.columns {
   .dock a,
   .button,
   button,
-  .formula summary svg {
+  .formula summary svg,
+  .more-alerts > summary svg {
     transition: none;
   }
 }
@@ -2031,7 +2032,8 @@ button.chip-button[aria-pressed="true"] {
 button.ghost.small {
   position: relative;
   min-height: 36px;
-  padding: 0 14px;
+  /* Room above and below when a long label wraps on a phone; one line stays 36px. */
+  padding: 6px 14px;
   font-size: 0.875rem;
 }
 /* Drawn at 36px, tapped at 44px */
@@ -2290,6 +2292,10 @@ button.setting.quiet:disabled {
 .panel.list.learn details.formula p {
   margin: 4px 0 0;
 }
+/* Uso do Neko: where, which screens, which buttons, each a short ledger under its own word */
+.panel.list.usage h3 {
+  margin: 18px 0 0;
+}
 
 /* Hoje's streak: this week as seven quiet marks, the run in words, the rule behind a tap */
 .streak {
@@ -2461,11 +2467,30 @@ a.icon.mia-head {
   font: italic 600 0.75rem / 1 var(--serif);
 }
 /* Hoje: two warnings in view, the rest behind one quiet line */
+.more-alerts {
+  --open-turn: -90deg;
+}
+/* The chevron trails the words, as in every other disclosure (and on Android) */
 .more-alerts > summary {
-  padding: 4px 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 2px;
   font-size: 0.875rem;
   color: var(--muted);
   cursor: pointer;
+  list-style: none;
+}
+.more-alerts > summary::-webkit-details-marker {
+  display: none;
+}
+.more-alerts > summary svg {
+  order: 1;
+  width: 16px;
+  height: 16px;
+  rotate: 90deg;
+  transition: rotate 180ms ease-out;
 }
 .more-alerts[open] > summary {
   margin-bottom: 8px;
@@ -3152,7 +3177,7 @@ main:has(.toast) .q-deck {
 }
 button.small:not(.ghost) {
   min-height: 36px;
-  padding: 0 14px;
+  padding: 6px 14px;
   font-size: 0.875rem;
 }
 .q-bank {
