@@ -42,12 +42,11 @@ import {
   configured,
   ensureWebhook,
   HOOK_HEADER,
-  itemIds,
+  hookSync,
   pluggy,
   refreshAll,
   sameSecret,
   syncAll,
-  syncItem,
   WebhookEvent,
 } from "./pluggy.ts";
 import {
@@ -235,11 +234,14 @@ app.post("/pluggy/webhook", async (c) => {
   // done, so the bank is read once. The 06:00 cron catches anything a lost webhook left behind.
   const itemId =
     event.success && event.data.event === "item/updated" ? event.data.itemId : undefined;
-  if (itemId && configured(c.env) && (await itemIds(c.env.DB)).includes(itemId))
+  // Pluggy only needs to hear that the event arrived; the database is touched after answering,
+  // so a D1 hiccup is retried in the background instead of failing the request.
+  if (itemId && configured(c.env))
     c.executionCtx.waitUntil(
-      syncItem(c.env.DB, pluggy(c.env, fetch), itemId, todayIn(new Date())).catch((error) =>
-        console.error("bank sync failed", itemId, error),
-      ),
+      hookSync(c.env.DB, pluggy(c.env, fetch), itemId, todayIn(new Date())).catch((error) => {
+        console.error("bank sync failed", itemId, error);
+        Sentry.captureException(error);
+      }),
     );
   return c.json({ ok: true });
 });

@@ -284,16 +284,55 @@ export const syncItem = async (
   }
 };
 
-export const itemIds = async (db: D1Database): Promise<string[]> =>
-  (
-    await db.prepare("SELECT item_id FROM bank_item ORDER BY item_id").all<{ item_id: string }>()
-  ).results.map((r) => r.item_id);
+/**
+ * D1 sometimes fails a query for a moment ("internal error", a dropped connection, a reset
+ * object); Cloudflare's advice is to try again. Anything else is a real error and fails at once.
+ */
+const TRANSIENT_D1 = /D1_ERROR.*(internal error|network connection lost|reset)/i;
+
+export const retryD1 = async <T>(
+  run: () => Promise<T>,
+  waits: number[] = [250, 1000, 3000],
+): Promise<T> => {
+  for (const wait of waits) {
+    try {
+      return await run();
+    } catch (error) {
+      if (!TRANSIENT_D1.test(error instanceof Error ? error.message : String(error))) throw error;
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+  }
+  return run();
+};
+
+export const itemIds = (db: D1Database): Promise<string[]> =>
+  retryD1(async () =>
+    (
+      await db.prepare("SELECT item_id FROM bank_item ORDER BY item_id").all<{ item_id: string }>()
+    ).results.map((r) => r.item_id),
+  );
+
+/**
+ * What the webhook starts after answering Pluggy: reads the bank if it is one of ours. A D1
+ * hiccup is retried here, so the refresh Pluggy announced is not lost until the 06:00 cron.
+ */
+export const hookSync = async (
+  db: D1Database,
+  api: Pluggy,
+  itemId: string,
+  today: LocalDate,
+  waits?: number[],
+): Promise<boolean> => {
+  if (!(await itemIds(db)).includes(itemId)) return false;
+  await retryD1(() => syncItem(db, api, itemId, today), waits);
+  return true;
+};
 
 /** Every linked bank, one after the other; one failing bank does not stop the rest. */
 export const syncAll = async (db: D1Database, api: Pluggy, today: LocalDate): Promise<number> => {
   let failed = 0;
   for (const id of await itemIds(db))
-    await syncItem(db, api, id, today).catch((error) => {
+    await retryD1(() => syncItem(db, api, id, today)).catch((error) => {
       failed++;
       console.error("bank sync failed", id, error);
     });
