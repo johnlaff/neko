@@ -137,13 +137,13 @@ fun HojeScreen(
         // (the dial, Para lançar, the next 7 days); the rest shows only on the day it matters.
         column()
         v.habit?.takeIf { it.milestone != null || it.record != null }?.let { h -> item { Streak(h) } }
-        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
+        if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, v.writing, launcher) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
         val over = v.canSpend?.pace == "over"
         val insights = v.insights.filter { !(over && it.kind == "bill-above-average") }
         if (insights.isNotEmpty()) item { Insights(insights, onAjustes, { onScreen("faturas") }, onMonth) }
         // The Worker sends the payday saving on its day only.
-        v.saving?.let { s -> item { SaveCard(s) } }
+        v.saving?.let { s -> item { SaveCard(s) { onMonth(s.date.take(7)) } } }
         item { Upcoming(v) }
     }
     UndoBar(
@@ -209,7 +209,7 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
             Column(Modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (stacked) gauge()
                 Text(
-                    if (!over) "Ainda cabem" else if (cards) "Passou do teto" else "Passou do plano",
+                    if (!over) "Ainda cabem" else if (cards) "Passou do teto" else if (month) "Passou do previsto" else "Passou do plano",
                     color = l.muted,
                     style = MaterialTheme.typography.labelMedium,
                 )
@@ -218,7 +218,7 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
                     when {
                         over -> if (cards) "nas faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())}" else if (inMonth) "neste mês" else "neste ciclo"
                         cards -> "de ${money(cs.budget)} de teto"
-                        month -> "de ${money(cs.budget)} previstos"
+                        month -> "de ${money(cs.budget)} no mês"
                         else -> "de ${money(cs.budget)} no ciclo"
                     },
                     color = l.muted,
@@ -235,9 +235,13 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
-        if (cs.daysLeft > 1 && !cards) Chip("${if (inMonth) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
+        // Under the figure, centered with it, as on the site.
+        if (cs.daysLeft > 1 && !cards)
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Chip("${if (inMonth) "Até" else "Fecha"} ${shortDate(cs.closing)} · ${days(cs.daysLeft)}", ChipTone.Plain)
+            }
         // The toggle and what it opens sit together: closed, the panel spends no gap on it.
-        Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
+        Column {
             TextAction("Como calculei", {
                 formula = !formula
                 if (formula) onUse("calculo")
@@ -330,7 +334,7 @@ private fun SimulateButton(open: Boolean, modifier: Modifier, onClick: () -> Uni
 }
 
 @Composable
-private fun Alert(
+internal fun Alert(
     title: String,
     detail: String,
     color: androidx.compose.ui.graphics.Color,
@@ -380,7 +384,6 @@ private fun Insights(
                 "closing-estimated" -> onAjustes
                 "bill-above-average" -> onFaturas
                 "goes-negative" -> { { onMonth(i.start?.take(7)) } }
-                "no-spending-ahead", "month-negative", "income-committed" -> { { onMonth(if (i.year != null && i.month != null) "${i.year}-${i.month.toString().padStart(2, '0')}" else null) } }
                 else -> { { onMonth(null) } }
             }
             // A setup question, not a warning: color stays for real deviations, as on the site.
@@ -452,13 +455,17 @@ private fun ShareButton(title: String, lines: List<String>, label: String) {
 }
 
 @Composable
-private fun SaveCard(s: Saving) {
+private fun SaveCard(s: Saving, onMonth: () -> Unit) {
     val l = LocalLedger.current
-    Alert(
-        "Na conta, dá para guardar ${money(s.amount)} hoje",
-        "Depois de guardar, menor saldo até ${shortDate(s.until)}: ${money(s.leftAtLowest)}",
-        l.pos,
-    )
+    // A panel of its own on the payday, as on the site: nothing is wrong on a day to save.
+    Panel {
+        PanelHead("Dia de guardar")
+        Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("Na conta, dá para guardar ${money(s.amount)} hoje", style = MaterialTheme.typography.titleMedium)
+            Text("Depois de guardar, menor saldo até ${shortDate(s.until)}: ${money(s.leftAtLowest)}", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        }
+        TextAction("Ver no mês ›", onMonth, color = l.accent)
+    }
 }
 
 @Composable

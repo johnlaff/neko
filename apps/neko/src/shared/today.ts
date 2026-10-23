@@ -22,6 +22,13 @@ export const HEALTH_DAYS = 60;
 export const saveToday = (saving: Saving | null | undefined, today: string): Saving | null =>
   saving?.date === today ? saving : null;
 
+/**
+ * A warning about a month ahead (it spends more than comes in, its income already has a use, it
+ * has no spending yet) lives in Mês, on today's month: Hoje keeps what matters now.
+ */
+export const aboutMonthAhead = (i: Insight): boolean =>
+  i.kind === "month-negative" || i.kind === "income-committed" || i.kind === "no-spending-ahead";
+
 /** Stable name of a Conferência point, kept in settings once checked. */
 export const issueKey = (i: HealthIssue) => `${i.kind}|${i.date}|${i.ref.tab}!${i.ref.a1}`;
 
@@ -121,7 +128,7 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     dailySource: r.daily.source,
     upcoming: groupUpcomingByDay(p.upcoming),
     upcomingCount: p.upcoming.length,
-    insights: p.insights ?? [],
+    insights: (p.insights ?? []).filter((i) => !aboutMonthAhead(i)),
     saving: saveToday(p.saving, p.today),
     issues: inWindow
       .filter((i) => !seen.has(issueKey(i)))

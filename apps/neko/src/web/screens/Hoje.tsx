@@ -10,7 +10,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { HEALTH_DAYS, issueKey, saveToday } from "../../shared/today.ts";
+import { aboutMonthAhead, HEALTH_DAYS, issueKey, saveToday } from "../../shared/today.ts";
+import { AlertList, insightView } from "../Alerts.tsx";
 import { api, type DailySource, type ProjectionResponse, used } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
@@ -43,77 +44,6 @@ import { PrevistoReview } from "../Previsto.tsx";
 import { Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
 
-/** Each warning in a few words, with the figure that shows it and where to look next. */
-const insightView = (i: Insight) => {
-  switch (i.kind) {
-    case "goes-negative":
-      return {
-        tone: "bad",
-        to: "/mes",
-        month: i.start.slice(0, 7),
-        title: i.already
-          ? "Saldo negativo agora"
-          : `Saldo negativo a partir de ${shortDate(i.start)}`,
-        detail:
-          i.already && i.until
-            ? `Positivo de novo em ${shortDate(i.until)}. No pior dia, faltam ${money(-i.deepest)}`
-            : `No pior dia, ${shortDate(i.deepestDate)}, faltam ${money(-i.deepest)}`,
-      } as const;
-    case "month-negative":
-      return {
-        tone: "warn",
-        to: "/mes",
-        month: `${i.year}-${String(i.month).padStart(2, "0")}`,
-        title: `${capitalize(monthName(i.month))} gasta mais do que entra`,
-        detail: `Saem ${money(i.amount)} a mais`,
-      } as const;
-    case "income-committed":
-      return {
-        tone: "warn",
-        to: "/mes",
-        month: `${i.year}-${String(i.month).padStart(2, "0")}`,
-        title: `${capitalize(monthName(i.month))}: ${i.share}% da renda já tem destino`,
-        detail:
-          i.amount > 0
-            ? `Sobram ${money(i.amount)} para o Diário`
-            : `Faltam ${money(-i.amount)} antes do Diário`,
-      } as const;
-    case "no-spending-ahead":
-      return {
-        tone: "warn",
-        to: "/mes",
-        month: `${i.year}-${String(i.month).padStart(2, "0")}`,
-        title: `${capitalize(monthName(i.month))} ainda sem gastos previstos`,
-        detail: "Sem diário nem fatura lançados, esse saldo ainda está alto",
-      } as const;
-    case "bill-above-average":
-      return {
-        tone: "warn",
-        to: "/faturas",
-        title: "Fatura acima do normal",
-        detail: `${i.card}: ${money(i.over)} acima da média`,
-      } as const;
-    case "fixed-up":
-      return {
-        tone: "warn",
-        to: "/mes",
-        title: `${capitalize(i.label)} subiu`,
-        detail: `${money(i.amount)} este mês, ${money(i.change)} a mais`,
-      } as const;
-    case "closing-estimated":
-      return {
-        // A setup question, not a warning: color stays for real deviations.
-        tone: "ask",
-        to: "/ajustes",
-        title: `Qual dia fecha o ${i.card}?`,
-        detail: `Estimado: fecha perto de ${shortDate(i.closing)}. Confirme em Ajustes`,
-      } as const;
-    default:
-      // A copy cached by an older version can carry a kind this one no longer knows.
-      return null;
-  }
-};
-
 /**
  * Only problems worth acting on, nothing when all is calm, and one at a time: the worst shows, the
  * rest wait behind one quiet line, so Hoje keeps to its three fixed panels.
@@ -140,49 +70,27 @@ const Insights = ({ items }: { items: readonly Insight[] }) => {
   );
 };
 
-const AlertList = ({ items }: { items: readonly Insight[] }) => (
-  <ul className="alerts" aria-label="Avisos">
-    {items.map((i) => {
-      const v = insightView(i);
-      if (!v) return null;
-      return (
-        <li key={i.kind}>
-          <Link to={v.to} search={"month" in v ? { m: v.month } : {}} className={`alert ${v.tone}`}>
-            <span className="alert-dot" aria-hidden="true" />
-            <span className="alert-text">
-              <strong>{v.title}</strong>
-              <span>{v.detail}</span>
-            </span>
-            <IconChevron />
-          </Link>
-        </li>
-      );
-    })}
-  </ul>
-);
-
 /**
  * The payday nudge as an active choice (pay yourself first), on the payday itself: the amount and
  * the proof that the account still holds. Neko never moves money, so it only says how much fits.
+ * A panel of its own, not a warning: nothing is wrong on a day to save.
  */
-const SaveCard = ({ save }: { save: Saving }) => {
-  return (
-    <ul className="alerts" aria-label="Guardar">
-      <li>
-        <Link to="/mes" search={{ m: save.date.slice(0, 7) }} className="alert good">
-          <span className="alert-dot" aria-hidden="true" />
-          <span className="alert-text">
-            <strong>Na conta, dá para guardar {money(save.amount)} hoje</strong>
-            <span>
-              Depois de guardar, menor saldo até {shortDate(save.until)}: {money(save.leftAtLowest)}
-            </span>
-          </span>
-          <IconChevron />
-        </Link>
-      </li>
-    </ul>
-  );
-};
+const SaveCard = ({ save }: { save: Saving }) => (
+  <section className="panel save" aria-labelledby="h-save">
+    <div className="panel-head">
+      <h2 id="h-save">Dia de guardar</h2>
+    </div>
+    <p className="save-text">
+      <strong>Na conta, dá para guardar {money(save.amount)} hoje</strong>
+      <span className="muted">
+        Depois de guardar, menor saldo até {shortDate(save.until)}: {money(save.leftAtLowest)}
+      </span>
+    </p>
+    <Link to="/mes" search={{ m: save.date.slice(0, 7) }} className="text-link">
+      Ver no mês ›
+    </Link>
+  </section>
+);
 
 const COLUMN = { entrada: "Entrada", saida: "Saída", diario: "Diário" } as const;
 
@@ -480,7 +388,13 @@ export const Hoje = () => (
                     and a day above it does not lower the next ones. */}
                     <p className="dial-label">
                       <span className="caption">
-                        {over ? (cards ? "Passou do teto" : "Passou do plano") : "Ainda cabem"}
+                        {over
+                          ? cards
+                            ? "Passou do teto"
+                            : month
+                              ? "Passou do previsto"
+                              : "Passou do plano"
+                          : "Ainda cabem"}
                       </span>
                       <BigMoney
                         cents={over ? cs.overBy : cs.left}
@@ -497,7 +411,7 @@ export const Hoje = () => (
                           : cards
                             ? `de ${money(cs.budget)} de teto`
                             : month
-                              ? `de ${money(cs.budget)} previstos`
+                              ? `de ${money(cs.budget)} no mês`
                               : `de ${money(cs.budget)} no ciclo`}
                       </span>
                     </p>
@@ -600,12 +514,12 @@ export const Hoje = () => (
               conference: issues.length > 0 && <Conference issues={issues} sheet={sheet} />,
               queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
               streak: showsStreak(habit) && <Streak habit={habit} />,
-              previsto: <PrevistoReview previsto={previsto} />,
+              previsto: <PrevistoReview previsto={previsto} writing={writing ?? false} />,
               // Over the plan, the red figure already says the bill is high: no second card.
               insights: (
                 <Insights
                   items={(p.insights ?? []).filter(
-                    (i) => !(over && i.kind === "bill-above-average"),
+                    (i) => !aboutMonthAhead(i) && !(over && i.kind === "bill-above-average"),
                   )}
                 />
               ),

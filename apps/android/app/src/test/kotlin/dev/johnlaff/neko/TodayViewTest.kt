@@ -99,13 +99,15 @@ class TodayViewTest {
         val t = widgetText(view.copy(canSpend = over))
         assertEquals("Passou do plano", t.caption)
         assertEquals(true, t.alarm)
+        // In the month, the plan is the Diário previsto: the same word as Hoje's.
+        assertEquals("Passou do previsto", widgetText(view.copy(canSpend = over.copy(mode = "month"))).caption)
     }
 
     @Test fun widerWidgetsAddTheBillAndTheNextDays() {
         val cs = view.canSpend!!
         val onPace = widgetText(view.copy(canSpend = cs.copy(paceGap = 0, daysBehind = 0, pace = "on-pace")))
         assertEquals(dev.johnlaff.neko.ui.Format.money(cs.accumulated), onPace.bill)
-        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} previstos", onPace.billDetail)
+        assertEquals("de ${dev.johnlaff.neko.ui.Format.money(cs.budget)} no mês", onPace.billDetail)
         assertEquals("Gasto no mês", onPace.billLabel)
         assertEquals(false, onPace.billWarn)
         // Ahead of the Diário, the warning Hoje keeps takes the bill's place, in the same words.

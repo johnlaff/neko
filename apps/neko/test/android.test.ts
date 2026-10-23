@@ -126,6 +126,11 @@ describe("today view", () => {
     expect(checked.issuesInWindow).toBe(2);
   });
 
+  it("leaves the warnings about a month ahead to Mês", () => {
+    const kinds = todayView(fixture, []).insights.map((i) => i.kind);
+    expect(kinds).toEqual(["bill-above-average", "closing-estimated"]);
+  });
+
   it("shows the payday saving on its day only", () => {
     expect(todayView(fixture, []).saving?.date).toBe("2026-10-05");
     const on = (date: string) =>

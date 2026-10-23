@@ -68,7 +68,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.core.net.toUri
@@ -638,25 +637,9 @@ private fun Usage(s: UsageSummary) {
     val l = LocalLedger.current
     var open by rememberSaveable { mutableStateOf(false) }
     Column {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClickLabel = if (open) "fechar" else "abrir") { open = !open }
-                .semantics { stateDescription = if (open) "Aberto" else "Fechado" }
-                .heightIn(min = 48.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = l.faint,
-                modifier = Modifier.size(16.dp).rotate(if (open) 90f else 0f),
-            )
-            Text(if (s.days == 0) "Sem uso nos últimos ${s.window} dias" else "Aberto em ${s.days} dos últimos ${s.window} dias")
-        }
+        Fold(if (s.days == 0) "Sem uso nos últimos ${s.window} dias" else "Aberto em ${s.days} dos últimos ${s.window} dias", open) { open = !open }
         Reveal(open) {
-            Column(Modifier.padding(start = 24.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 UsageHead("Onde")
                 LedgerLine("No app Android", Format.days(s.android))
                 LedgerLine("No site", Format.days(s.web))
@@ -672,6 +655,23 @@ private fun Usage(s: UsageSummary) {
                 )
             }
         }
+    }
+}
+
+/** A folded line in Ajustes: the words, then the chevron that turns up as it opens, as on the site. */
+@Composable
+private fun Fold(text: String, open: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = if (open) "fechar" else "abrir", onClick = onToggle)
+            .semantics { stateDescription = if (open) "Aberto" else "Fechado" }
+            .heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(text, Modifier.weight(1f, fill = false))
+        Disclosure(open, LocalLedger.current.faint)
     }
 }
 
@@ -973,25 +973,9 @@ private fun HowItWorks(reviewed: Int, restore: (suspend () -> Boolean)?) {
     Learn.IDEAS.forEach { idea ->
         var open by rememberSaveable(idea.title) { mutableStateOf(false) }
         Column {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable(onClickLabel = if (open) "fechar" else "abrir") { open = !open }
-                    .semantics { stateDescription = if (open) "Aberto" else "Fechado" }
-                    .heightIn(min = 48.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    painterResource(R.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = l.faint,
-                    modifier = Modifier.size(16.dp).rotate(if (open) 90f else 0f),
-                )
-                Text(idea.title)
-            }
+            Fold(idea.title, open) { open = !open }
             Reveal(open) {
-                Text(idea.body, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 24.dp, bottom = 8.dp))
+                Text(idea.body, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(bottom = 8.dp))
             }
         }
     }

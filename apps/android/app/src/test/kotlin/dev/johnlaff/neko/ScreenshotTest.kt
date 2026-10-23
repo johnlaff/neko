@@ -61,7 +61,7 @@ class ScreenshotTest {
     /** The day the run reaches 21: the week's marks and the one card that celebrates it. */
     @Test fun hojeMarco() = shot("hoje-marco-dark", night = true, scrollTo = "Planilha em dia · 21 dias") {
         val h = view.habit!!
-        val reached = h.copy(streak = 21, milestone = 21, editedToday = true, week = h.week.mapIndexed { i, d -> if (i == 1) d.copy(state = "edited") else d })
+        val reached = h.copy(streak = 21, milestone = 21, next = 66, editedToday = true, week = h.week.mapIndexed { i, d -> if (i == 1) d.copy(state = "edited") else d })
         HojeScreen(TodayState(view.copy(habit = reached)), {}, {})
     }
 

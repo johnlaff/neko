@@ -13,6 +13,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useRef, useState } from "react";
+import { aboutMonthAhead } from "../../shared/today.ts";
+import { AlertList } from "../Alerts.tsx";
 import { api } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
@@ -311,6 +313,8 @@ export const Mes = () => {
         const saved = m.saved ?? 0;
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         const wins = past ? monthWins(p.months, m.year, m.month) : [];
+        // Warnings about the months ahead, on today's month: Hoje keeps to what matters now.
+        const ahead = idx === nowIdx ? (p.insights ?? []).filter(aboutMonthAhead) : [];
         return (
           <>
             <div className="month-nav">
@@ -463,6 +467,7 @@ export const Mes = () => {
                     </details>
                   </section>
                 ),
+                ahead: ahead.length > 0 && <AlertList items={ahead} label="Meses à frente" />,
                 thermo: (m.days ?? []).length > 0 && (
                   <Thermo
                     key={key(m.year, m.month)}
@@ -489,10 +494,10 @@ export const Mes = () => {
               }}
               // Wide screens: each column takes the next panels in the phone's order.
               two={[
-                ["hero", "thermo"],
+                ["hero", "ahead", "thermo"],
                 ["outflows", "reserve"],
               ]}
-              three={[["hero"], ["thermo"], ["outflows", "reserve"]]}
+              three={[["hero", "ahead"], ["thermo"], ["outflows", "reserve"]]}
             />
           </>
         );

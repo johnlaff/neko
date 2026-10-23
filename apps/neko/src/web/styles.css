@@ -1875,11 +1875,22 @@ button.chip-button[aria-pressed="true"] {
 .alert.warn {
   --tone: var(--warn);
 }
-.alert.good {
-  --tone: var(--pos);
-}
 .alert.ask {
   --tone: var(--muted);
+}
+/* Dia de guardar: a panel on the payday only, not a warning; the amount, then the proof under it */
+.save-text {
+  display: grid;
+  gap: 2px;
+}
+.save-text > strong {
+  font-weight: 550;
+}
+.save-text > span {
+  font-size: 0.875rem;
+}
+.panel.save > .text-link {
+  margin: -10px 0;
 }
 /* Color only where it informs: one small dot carries the tone, as on Android. */
 .alert-dot {

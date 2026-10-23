@@ -113,6 +113,12 @@ describe("months view", () => {
     expect(v.months[at + 1]?.future).toBe(true);
   });
 
+  it("brings the warnings about the months ahead, which Hoje leaves out", () => {
+    expect(monthsView(fixture).ahead).toEqual([
+      { kind: "month-negative", year: 2026, month: 11, amount: 58028, share: 72 },
+    ]);
+  });
+
   it("leaves out the performance of months without lines", () => {
     const empty = {
       ...fixture,

@@ -10,6 +10,7 @@ import {
   diffDays,
   type Fixed,
   fixedOf,
+  type Insight,
   type InstallmentSimulation,
   type InvoiceCard,
   type LocalDate,
@@ -32,7 +33,7 @@ import {
   type YearTotals,
   ZERO,
 } from "@neko/engine";
-import { legacyPerDay } from "./today.ts";
+import { aboutMonthAhead, legacyPerDay } from "./today.ts";
 import type { PrevistoView, ProjectionResponse, SubscriptionsView, UserSettings } from "./types.ts";
 
 /**
@@ -349,6 +350,8 @@ export interface MonthsView {
   readonly reserve: Reserve | null;
   /** The Economia tab, one entry per year. */
   readonly years: readonly YearTotals[];
+  /** Warnings about the months ahead, shown on today's month; Hoje leaves them out. */
+  readonly ahead: readonly Insight[];
 }
 
 const monthKey = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
@@ -394,6 +397,7 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
     saving: p.saving,
     reserve: p.reserve ?? null,
     years: p.years ?? [],
+    ahead: (p.insights ?? []).filter(aboutMonthAhead),
   };
 };
 

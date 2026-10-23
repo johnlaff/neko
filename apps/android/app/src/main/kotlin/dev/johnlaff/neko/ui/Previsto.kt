@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -28,7 +31,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -101,7 +103,7 @@ internal fun PrevistoForm(
             }
             p.suggestion?.let { s ->
                 Text("Pelo banco, um dia seu custa ${money(s.perDay)}.")
-                Column(Modifier.semantics { stateDescription = if (formula) "Aberto" else "Fechado" }) {
+                Column {
                     TextAction("Como calculei", { formula = !formula }, open = formula)
                     Reveal(formula) {
                         Text(
@@ -158,10 +160,12 @@ internal fun PrevistoForm(
     }
 }
 
-/** Hoje, every 3 months: what a day really cost beside the value, and whether to change it. */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Hoje, every 3 months: what a day really cost beside the value, and whether to change it. Using
+ * the real cost writes the days ahead, so it needs writing on; keeping writes nothing (as on the site).
+ */
 @Composable
-internal fun PrevistoReview(p: PrevistoView?, launcher: Launcher?, onLaunched: (String) -> Unit = {}) {
+internal fun PrevistoReview(p: PrevistoView?, writing: Boolean, launcher: Launcher?, onLaunched: (String) -> Unit = {}) {
     val l = LocalLedger.current
     val r = p?.review
     if (p == null || !p.on || r == null) return
@@ -183,20 +187,19 @@ internal fun PrevistoReview(p: PrevistoView?, launcher: Launcher?, onLaunched: (
         PanelHead("Diário previsto") {
             Text("A cada 3 meses", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
+        Text("Hora de ver se o valor ainda serve.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             ReviewLine("Previsto por dia", money(p.value))
             ReviewLine("Gasto por dia desde ${shortDate(r.from)}", money(r.real))
         }
-        if (launcher != null) {
-            // Two even choices, as on the site: Neko suggests no value, and Lançar keeps the one fill.
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (r.real != p.value)
-                    Small(if (busy == "change") "Trocando…" else "Trocar para ${money(r.real)}", filled = false, enabled = busy == null) {
-                        act("change") { onLaunched(it.previsto(r.real)) }
-                    }
-                Small("Manter ${money(p.value)}", filled = false, enabled = busy == null) {
-                    act("keep") { it.keepPrevisto() }
+        // Two even choices sharing the row, as on the site: Neko suggests no value, and Lançar keeps the one fill.
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (writing && r.real != p.value)
+                Small(if (busy == "change") "Trocando…" else "Usar ${money(r.real)}", filled = false, enabled = busy == null, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    act("change") { onLaunched(it.previsto(r.real)) }
                 }
+            Small("Manter ${money(p.value)}", filled = false, enabled = busy == null, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                act("keep") { it.keepPrevisto() }
             }
         }
         error?.let { Failed(it) }

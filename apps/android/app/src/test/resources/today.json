@@ -64,13 +64,6 @@
   "upcomingCount": 4,
   "insights": [
     {
-      "kind": "month-negative",
-      "year": 2026,
-      "month": 11,
-      "amount": 58028,
-      "share": 72
-    },
-    {
       "kind": "bill-above-average",
       "card": "Cartão Azul",
       "over": 54801,

@@ -262,8 +262,17 @@ export const PrevistoSetting = ({
   );
 };
 
-/** Hoje, every 3 months: what a day really cost beside the value, and whether to change it. */
-export const PrevistoReview = ({ previsto: p }: { previsto: PrevistoView | undefined }) => {
+/**
+ * Hoje, every 3 months: what a day really cost beside the value, and whether to change it. Using
+ * the real cost writes the days ahead, so it needs writing on; keeping writes nothing.
+ */
+export const PrevistoReview = ({
+  previsto: p,
+  writing,
+}: {
+  previsto: PrevistoView | undefined;
+  writing: boolean;
+}) => {
   const queryClient = useQueryClient();
   const change = useSetPrevisto(() => undefined);
   const keep = useMutation({
@@ -280,6 +289,7 @@ export const PrevistoReview = ({ previsto: p }: { previsto: PrevistoView | undef
         <h2 id="h-previsto">Diário previsto</h2>
         <span className="meta">A cada 3 meses</span>
       </div>
+      <p className="muted">Hora de ver se o valor ainda serve.</p>
       <dl className="ledger">
         <dt>Previsto por dia</dt>
         <dd>{money(p.value)}</dd>
@@ -288,14 +298,14 @@ export const PrevistoReview = ({ previsto: p }: { previsto: PrevistoView | undef
       </dl>
       {/* Two even choices: Neko suggests no value, and Lançar keeps the one fill (as on Android). */}
       <div className="q-actions">
-        {r.real !== p.value && (
+        {writing && r.real !== p.value && (
           <button
             type="button"
             className="ghost small"
             aria-disabled={busy}
             onClick={() => busy || change.mutate(r.real)}
           >
-            {change.isPending ? "Trocando…" : `Trocar para ${money(r.real)}`}
+            {change.isPending ? "Trocando…" : `Usar ${money(r.real)}`}
           </button>
         )}
         <button

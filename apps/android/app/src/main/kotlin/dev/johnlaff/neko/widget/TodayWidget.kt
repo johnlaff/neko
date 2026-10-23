@@ -76,11 +76,11 @@ fun widgetText(v: TodayView?): WidgetText {
     val cards = cs?.mode == "cards"
     val bills = cs?.let { "nas faturas de ${Format.monthName(it.due.substring(5, 7).toInt())}" } ?: ""
     val inMonth = month || cards
-    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "previstos" else if (cards) "do teto" else "do plano"}" }
+    val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "no mês" else if (cards) "do teto" else "do plano"}" }
     return when {
         v == null -> WidgetText("Neko", "Entrar", "Toque para abrir", false)
         cs == null -> WidgetText("Hoje", "Sem cartão", "Nenhuma fatura na planilha", false, days = days)
-        cs.pace == "over" -> WidgetText(if (cards) "Passou do teto" else "Passou do plano", Format.money(cs.overBy), if (cards) bills else if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
+        cs.pace == "over" -> WidgetText(if (cards) "Passou do teto" else if (month) "Passou do previsto" else "Passou do plano", Format.money(cs.overBy), if (cards) bills else if (inMonth) "neste mês" else cs.card, true, bill, billDetail, days)
         // What still fits, never a daily allowance: the diário is an average (as on Hoje).
         else -> WidgetText(
             "Ainda cabem",
@@ -207,7 +207,9 @@ class TodayWidget : GlanceAppWidget() {
     @Composable
     private fun Figure(t: WidgetText, roomy: Boolean, modifier: GlanceModifier = GlanceModifier) {
         Column(modifier) {
-            Text(t.caption, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp))
+            // Ahead of the Diário, the caption takes the warning color, as Hoje's arc does: the small
+            // widget has no room for the line that says by how much.
+            Text(t.caption, style = TextStyle(color = if (t.billWarn) pair { it.warn } else pair { it.muted }, fontSize = 12.sp))
             Text(
                 t.figure,
                 style = TextStyle(

@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.Installment
 import dev.johnlaff.neko.data.HistoryView
+import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.data.MonthItem
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.Outflow
@@ -97,10 +98,25 @@ fun MesScreen(
             )
         }
         item { Hero(m, v.months.filter { it.year == m.year }, history.takeIf { m.key == v.current }) { picked = it } }
+        // Warnings about the months ahead, on today's month: Hoje keeps to what matters now (as on the site).
+        if (m.key == v.current && v.ahead.isNotEmpty()) item { Ahead(v.ahead) { picked = it } }
         if (m.days.isNotEmpty()) item { Thermo(m, v.today, v.saving) }
         column()
         if (m.outflows.isNotEmpty()) item { Outflows(m) }
         v.reserve?.let { r -> item { ReservePanel(r, v.years.firstOrNull { it.year == m.year }) } }
+    }
+}
+
+/** Each warning about a month ahead opens that month, as the site's do. */
+@Composable
+private fun Ahead(ahead: List<Insight>, onMonth: (String) -> Unit) {
+    val l = LocalLedger.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ahead.forEach { i ->
+            val line = Copy.insight(i) ?: return@forEach
+            val key = if (i.year != null && i.month != null) "${i.year}-${i.month.toString().padStart(2, '0')}" else null
+            Alert(line.title, line.detail, if (line.tone == Copy.Tone.Bad) l.neg else l.warn, key?.let { k -> { onMonth(k) } })
+        }
     }
 }
 
