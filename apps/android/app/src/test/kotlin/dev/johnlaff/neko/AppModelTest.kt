@@ -92,8 +92,12 @@ class AppModelTest {
 
     private fun model(neko: Neko = neko()) = AppModel(neko, clock = { now }) { todayChanges += it }
 
+    /**
+     * Waits for [check]. The first test of a run pays the JVM's cold start while CI also runs lint
+     * and R8, so 5 s was sometimes too little (asked only /me); a passing test never waits this long.
+     */
     private fun until(what: String, check: () -> Boolean) = runBlocking {
-        runCatching { withTimeout(5_000) { while (!check()) delay(10) } }
+        runCatching { withTimeout(20_000) { while (!check()) delay(10) } }
             .onFailure { throw AssertionError("never happened: $what (asked: $asked)") }
     }
 
