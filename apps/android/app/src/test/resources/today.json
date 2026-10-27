@@ -10,13 +10,13 @@
     "budgetSource": "diario",
     "accumulated": 73220,
     "left": 221280,
+    "overBy": 0,
     "daysLeft": 27,
     "closing": "2026-10-31",
     "due": "2026-10-12",
     "cycleDays": 31,
     "paceExpected": 38000,
     "paceGap": -35220,
-    "overBy": 0,
     "daysBehind": 4,
     "pace": "ahead",
     "perDay": 8195
@@ -91,6 +91,8 @@
     "streak": 12,
     "best": 12,
     "editedToday": false,
+    "atRisk": false,
+    "mended": false,
     "week": [
       {
         "date": "2026-10-04",

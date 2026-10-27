@@ -36,7 +36,22 @@ object Learn {
     const val MES = "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista."
 
     /** Hoje's streak, word for word with the site (web/learn.ts HABIT). */
-    const val HABIT_RULE = "Conta os dias em que a planilha mudou. Uma folga por semana não quebra a sequência."
+    const val HABIT_RULE = "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte."
+
+    /** Yesterday went without a change: today's edit is what keeps the run. */
+    const val HABIT_AT_RISK = "Lance hoje para continuar"
+
+    /** Today's edit mended yesterday. */
+    const val HABIT_MENDED = "Ontem recuperado"
+
+    /** Each day's mark, as TalkBack says it; the legend shows the first three. */
+    val HABIT_DAYS = mapOf(
+        "edited" to "lançado",
+        "rest" to "recuperado",
+        "missed" to "sem lançar",
+        "today" to "hoje, em aberto",
+        "future" to "ainda não chegou",
+    )
     private val MILESTONES = mapOf(
         7 to "Uma semana inteira com a planilha em dia.",
         21 to "Três semanas: lançar já faz parte do seu dia.",
@@ -48,11 +63,32 @@ object Learn {
 
     fun milestone(m: Int) = MILESTONES[m] ?: "$m dias de planilha em dia."
 
-    fun streakLabel(streak: Int) = when (streak) {
+    /** The run in words; while yesterday waits to be mended the sheet is not "em dia", only the run. */
+    fun streakLabel(streak: Int, atRisk: Boolean = false) = when (streak) {
         0 -> "Comece hoje"
-        1 -> "Planilha em dia · 1 dia"
-        else -> "Planilha em dia · $streak dias"
+        else -> "${if (atRisk) "Sequência de" else "Planilha em dia ·"} $streak ${if (streak == 1) "dia" else "dias"}"
     }
+
+    /** Mês's totals, the method's, word for word with the site (web/learn.ts TOTALS). */
+    const val SAVED = "Guardado"
+
+    /** The month still has Reserva lines ahead of today. */
+    const val TO_SAVE = "A guardar"
+
+    /** "20% a 30%" never breaks across lines. */
+    const val SAVE_GOAL = "Meta de 20%\u00A0a\u00A030% das entradas"
+    const val DAILY = "Diário médio"
+    const val DAILY_CAPTION = "Diário e faturas do mês, por dia"
+    const val COST = "Custo de vida"
+    const val COST_NOTE =
+        "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método cobre de 6 a 12 meses desse custo."
+
+    /** The low end of the method's 20–30% kept (engine KEPT_GOAL): the share turns green from it. */
+    const val KEPT_GOAL = 20
+
+    /** Under Ver extrato, why a month that kept money can show the balance going down. */
+    fun resultNote(down: Boolean) =
+        "O saldo ${if (down) "desceu" else "subiu"} é a diferença entre o começo e o fim do mês, e o que foi guardado também sai da conta."
 
     /** Mês's reserve panel, word for word with the site (web/learn.ts RESERVE). */
     const val RESERVE_TITLE = "Reserva de emergência"

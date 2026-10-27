@@ -62,6 +62,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -819,9 +821,23 @@ private fun Modifier.bleed(by: androidx.compose.ui.unit.Dp) = layout { m, c ->
  * as items are answered, and the edges under the card say more are waiting.
  */
 @Composable
-fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) {
+fun ParaLancar(
+    v: TodayView,
+    launcher: Launcher?,
+    /** Scroll Hoje to this panel once (the widget's "N para lançar"), then say so with `onBrought`. */
+    bring: Boolean = false,
+    onBrought: () -> Unit = {},
+    onLaunched: (String) -> Unit,
+) {
     val l = LocalLedger.current
     val items = v.queue ?: return
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(bring) {
+        if (bring) {
+            requester.bringIntoView()
+            onBrought()
+        }
+    }
     val saldo = v.saldo
     // Gone until the next read of Hoje, which leaves out what was done and brings back what was undone.
     var gone by remember(items) { mutableStateOf(emptySet<String>()) }
@@ -837,7 +853,7 @@ fun ParaLancar(v: TodayView, launcher: Launcher?, onLaunched: (String) -> Unit) 
         back = to < index
         at = to
     }
-    Box(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+    Box(Modifier.fillMaxWidth().padding(bottom = 12.dp).bringIntoViewRequester(requester)) {
         // The edges of the cards waiting, under the one in front.
         val shape = RoundedCornerShape(12.dp)
         listOf(2 to 22.dp, 1 to 10.dp).forEach { (n, inset) ->

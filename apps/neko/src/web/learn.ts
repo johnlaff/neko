@@ -1,3 +1,5 @@
+import type { DailySource } from "../shared/types.ts";
+
 /**
  * What Neko teaches, in its own words: one tip per screen the first time it has data, and the
  * full list in Ajustes › Como funciona. The Android app (ui/Learn.kt) says the same, word for word.
@@ -45,7 +47,19 @@ export const IDEAS: readonly { readonly title: string; readonly body: string }[]
 
 /** Hoje's streak, in the same words on the site and the app (ui/Learn.kt). */
 export const HABIT = {
-  rule: "Conta os dias em que a planilha mudou. Uma folga por semana não quebra a sequência.",
+  rule: "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte.",
+  /** Yesterday went without a change: today's edit is what keeps the run. */
+  atRisk: "Lance hoje para continuar",
+  /** Today's edit mended yesterday. */
+  mended: "Ontem recuperado",
+  /** Each day's mark, as the screen reader says it; the legend shows the first three. */
+  days: {
+    edited: "lançado",
+    rest: "recuperado",
+    missed: "sem lançar",
+    today: "hoje, em aberto",
+    future: "ainda não chegou",
+  },
   milestones: {
     7: "Uma semana inteira com a planilha em dia.",
     21: "Três semanas: lançar já faz parte do seu dia.",
@@ -56,8 +70,40 @@ export const HABIT = {
   } as Record<number, string>,
 } as const;
 
-export const streakLabel = (streak: number) =>
-  streak === 0 ? "Comece hoje" : `Planilha em dia · ${streak} ${streak === 1 ? "dia" : "dias"}`;
+/** The run in words; while yesterday waits to be mended the sheet is not "em dia", only the run. */
+export const streakLabel = (streak: number, atRisk = false) =>
+  streak === 0
+    ? "Comece hoje"
+    : `${atRisk ? "Sequência de" : "Planilha em dia ·"} ${streak} ${streak === 1 ? "dia" : "dias"}`;
+
+/**
+ * Mês's totals, the method's (app do Breno, aula 4): what was kept against the 20% to 30% goal
+ * and what a day really cost. Same words on the site and the app (ui/Learn.kt).
+ */
+export const TOTALS = {
+  saved: "Guardado",
+  /** The month still has Reserva lines ahead of today. */
+  toSave: "A guardar",
+  // "20% a 30%" never breaks across lines.
+  goal: "Meta de 20%\u00a0a\u00a030% das entradas",
+  daily: "Diário médio",
+  dailyCaption: "Diário e faturas do mês, por dia",
+  cost: "Custo de vida",
+  costNote:
+    "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método cobre de 6 a 12 meses desse custo.",
+} as const;
+
+/** Under Ver extrato, why a month that kept money can show the balance going down. */
+export const resultNote = (down: boolean) =>
+  `O saldo ${down ? "desceu" : "subiu"} é a diferença entre o começo e o fim do mês, e o que foi guardado também sai da conta.`;
+
+/** Where the diário in use comes from, after its value. */
+export const dailySourceText = (source: DailySource) =>
+  source === "settings"
+    ? "seu ajuste"
+    : source === "sheet-note"
+      ? "da nota na planilha"
+      : "média dos últimos 3 meses";
 
 /** Mês's reserve panel, in the same words on the site and the app (ui/Learn.kt). */
 export const RESERVE = {

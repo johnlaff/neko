@@ -143,6 +143,8 @@ const monthTool = (p: Projection, m: MonthView, book: RefBook): Out => {
           tela: "mes",
           mes: key,
         });
+  out.diario_medio_por_dia =
+    m.dailyAverage === null ? null : total("Diário médio por dia", m.dailyAverage);
   out.saldo_inicial = book.money(m.startBalance, {
     tipo: "saldo",
     rotulo: `Saldo no início de ${key}`,

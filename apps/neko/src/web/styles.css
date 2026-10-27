@@ -1153,6 +1153,14 @@ fieldset.columns {
   font-weight: 500;
   letter-spacing: -0.02em;
 }
+/* Mês's totals: the label over what it counts, the figure on the right */
+.figure-line.total-line {
+  align-items: center;
+}
+.figure-line.total-line > span > small {
+  display: block;
+  font-size: 0.8125rem;
+}
 
 /* A short legend mark, e.g. the dashed average line on Faturas */
 .key {
@@ -2394,9 +2402,11 @@ button.setting.quiet:disabled {
   background: var(--text);
   border-color: var(--text);
 }
+/* Mended: it counts, so it reads closer to Lançado than to Sem lançar. */
 .week .rest .mark,
 .week-legend .rest .mark {
   border-style: dashed;
+  border-color: var(--muted);
 }
 .week .today .mark {
   border-color: var(--accent);

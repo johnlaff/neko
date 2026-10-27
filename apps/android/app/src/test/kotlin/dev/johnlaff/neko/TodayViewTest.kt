@@ -83,6 +83,10 @@ class TodayViewTest {
         val t = widgetText(view)
         assertEquals("Planilha em dia · 12 dias", t.streak)
         assertEquals(7, t.week.size)
+        // What waits in Para lançar is the invitation; with nothing waiting, the streak speaks.
+        assertEquals("${view.queue!!.size} para lançar", t.toLaunch)
+        assertEquals(null, widgetText(view.copy(queue = emptyList())).toLaunch)
+        assertEquals(null, widgetText(view.copy(queue = null)).toLaunch)
         val tile = dev.johnlaff.neko.tile.tileText(view)
         assertEquals("Planilha em dia · 12 dias", tile.subtitle)
         assertEquals(true, tile.active)
