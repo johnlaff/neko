@@ -1,5 +1,6 @@
-import type { Habit, HabitDayState } from "@neko/engine";
+import type { Habit } from "@neko/engine";
 import { useState } from "react";
+import { capitalize } from "./format.ts";
 import { dismissHint, hintSeen } from "./Hint.tsx";
 import { IconChevron } from "./icons.tsx";
 import { HABIT, streakLabel } from "./learn.ts";
@@ -7,19 +8,10 @@ import { HABIT, streakLabel } from "./learn.ts";
 const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"] as const;
 const WEEKDAY_NAMES = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
-const STATE_LABEL: Record<HabitDayState, string> = {
-  edited: "lançado",
-  rest: "folga",
-  missed: "sem lançar",
-  today: "hoje, em aberto",
-  future: "ainda não chegou",
-};
-
-const LEGEND = [
-  ["edited", "Lançado"],
-  ["rest", "Folga"],
-  ["missed", "Sem lançar"],
-] as const;
+/** The marks explained once, in the marks themselves, so the row needs no memory. */
+const LEGEND = (["edited", "rest", "missed"] as const).map(
+  (state) => [state, capitalize(HABIT.days[state])] as const,
+);
 
 /**
  * The habit the method asks for, in one quiet line under Lançar: this week as seven marks and
@@ -43,12 +35,12 @@ export const Streak = ({ habit }: { habit: Habit }) => {
             <li
               key={d.date}
               className={d.state}
-              title={`${WEEKDAY_NAMES[i]}: ${STATE_LABEL[d.state]}`}
+              title={`${WEEKDAY_NAMES[i]}: ${HABIT.days[d.state]}`}
             >
               <span className="mark" aria-hidden="true" />
               <span aria-hidden="true">{WEEKDAYS[i]}</span>
               <span className="sr-only">
-                {WEEKDAY_NAMES[i]}: {STATE_LABEL[d.state]}
+                {WEEKDAY_NAMES[i]}: {HABIT.days[d.state]}
               </span>
             </li>
           ))}
@@ -60,14 +52,16 @@ export const Streak = ({ habit }: { habit: Habit }) => {
             <span>{milestoneText(habit.milestone)}</span>
           ) : habit.record != null ? (
             <span>Novo recorde</span>
+          ) : habit.editedToday ? (
+            <span>Hoje já lançado</span>
           ) : (
-            habit.editedToday && <span>Hoje já lançado</span>
+            // Missing on projections cached before it existed.
+            habit.atRisk && <span>{HABIT.atRisk}</span>
           )}
         </span>
         <IconChevron />
       </summary>
       <p>{HABIT.rule}</p>
-      {/* The marks explained once, in the marks themselves, so the row needs no memory. */}
       <ul className="week-legend" aria-hidden="true">
         {LEGEND.map(([state, label]) => (
           <li key={state} className={state}>

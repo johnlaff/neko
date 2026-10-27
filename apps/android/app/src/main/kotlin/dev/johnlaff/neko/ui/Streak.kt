@@ -51,15 +51,9 @@ private val LETTERS = listOf("D", "S", "T", "Q", "Q", "S", "S")
 private val NAMES = listOf("domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado")
 
 /** The marks explained once, in the marks themselves, so the row needs no memory. */
-private val LEGEND = listOf("edited" to "Lançado", "rest" to "Folga", "missed" to "Sem lançar")
+private val LEGEND = listOf("edited", "rest", "missed").map { it to Format.capitalize(Learn.HABIT_DAYS.getValue(it)) }
 
-private fun stateLabel(state: String) = when (state) {
-    "edited" -> "lançado"
-    "rest" -> "folga"
-    "today" -> "hoje, em aberto"
-    "future" -> "ainda não chegou"
-    else -> "sem lançar"
-}
+private fun stateLabel(state: String) = Learn.HABIT_DAYS[state] ?: Learn.HABIT_DAYS.getValue("missed")
 
 /**
  * The habit the method asks for, in one quiet line under Lançar, as on the site (web/Streak.tsx):
@@ -92,6 +86,7 @@ fun Streak(h: Habit) {
                     h.milestone != null -> Text(Learn.milestone(h.milestone), color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.record != null -> Text("Novo recorde", color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.editedToday -> Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                    h.atRisk -> Text(Learn.HABIT_AT_RISK, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                 }
             }
             Icon(
@@ -160,7 +155,7 @@ private fun Week(week: List<HabitDay>) {
     }
 }
 
-/** One day: filled when the sheet changed, dashed on a rest day, ringed for today. */
+/** One day: filled when the sheet changed, dashed on a missed day the next one mended, ringed for today. */
 @Composable
 private fun Mark(state: String, delay: Int, pop: Boolean = true) {
     val l = LocalLedger.current

@@ -247,14 +247,19 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                 )
             }
         }
-        if (m.saved > 0) {
-            // The label wraps and the amount never does, as in the extrato.
+        // The method's totals, as on the site: the share kept against its goal on a month that
+        // came or has something planned to keep, and what a day really cost on one that came.
+        m.savedShare?.takeIf { !m.future || m.saved > 0 }?.let { share ->
             LedgerLine(
-                "Guardado" + (m.savedShare?.let { " · $it% das entradas" } ?: ""),
-                money(m.saved),
+                Learn.SAVED,
+                "$share%",
+                if (share >= Learn.KEPT_GOAL) l.pos else l.text,
                 valueStyle = MaterialTheme.typography.titleMedium,
+                caption = "${if (m.saved > 0) money(m.saved) else Learn.NOTHING_SAVED} · ${Learn.SAVE_GOAL}",
             )
         }
+        val daily = m.dailyAverage?.takeIf { m.result != null }
+        daily?.let { LedgerLine(Learn.DAILY, money(it), valueStyle = MaterialTheme.typography.titleMedium) }
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         WinsBox(m.wins, "${capitalize(monthName(m.month))} de ${m.year}")
         TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger }, open = ledger)
@@ -268,22 +273,13 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                 LedgerLine(ends, money(m.endSheet), if (m.endSheet < 0) l.neg else l.text, total = true)
             }
             m.result?.let { r ->
-                Text(
-                    "O saldo ${if (r < 0) "desceu" else "subiu"} é a diferença entre o começo e o fim do mês. " +
-                        "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com o saldo descendo.",
-                    color = l.muted,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text(Learn.resultNote(r < 0), color = l.muted, style = MaterialTheme.typography.bodyMedium)
             }
             if (m.saved > 0) {
-                LedgerLine("Custo de vida", money(m.livingCost), total = true)
-                Text(
-                    "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método " +
-                        "cobre de 6 a 12 meses desse custo. Para guardar, o método sugere de 20% a 30% das entradas.",
-                    color = l.muted,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                LedgerLine(Learn.COST, money(m.livingCost), total = true)
+                Text(Learn.COST_NOTE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
             }
+            if (daily != null) Text(Learn.DAILY_NOTE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -312,20 +308,28 @@ internal fun LedgerLine(
     total: Boolean = false,
     /** The amount's own style, when it stands out from its label (Guardado on the hero). */
     valueStyle: androidx.compose.ui.text.TextStyle? = null,
+    /** A smaller line under the label: what the figure counts (Guardado's amount and goal). */
+    caption: String? = null,
 ) {
     val l = LocalLedger.current
     val style = if (total) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
+    val name = @Composable { modifier: Modifier ->
+        Column(modifier) {
+            Text(label, color = if (total) l.text else l.muted, style = style)
+            caption?.let { Text(it, color = l.muted, style = MaterialTheme.typography.labelMedium) }
+        }
+    }
     // The label wraps and the value never does: with large text a long label used to squeeze the
     // amount to one character per line. Past 1.5× the two stack instead.
     if (LocalDensity.current.fontScale > 1.5f) {
         // Label and amount are read as one line by TalkBack.
         Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-            Text(label, color = if (total) l.text else l.muted, style = style)
+            name(Modifier)
             Text(value, color = color, style = valueStyle ?: style, softWrap = false)
         }
     } else {
         Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, color = if (total) l.text else l.muted, style = style, modifier = Modifier.weight(1f))
+            name(Modifier.weight(1f))
             Text(value, color = color, style = valueStyle ?: style, softWrap = false)
         }
     }

@@ -11,8 +11,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HEALTH_DAYS, inMes, issueKey, saveToday } from "../../shared/today.ts";
-import { AlertList, insightView } from "../Alerts.tsx";
-import { api, type DailySource, type ProjectionResponse, used } from "../api.ts";
+import { AlertList, insightView, issueText } from "../Alerts.tsx";
+import { api, type ProjectionResponse, used } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { RowAvatar } from "../CardAvatar.tsx";
@@ -38,7 +38,7 @@ import {
   IconReceipt,
 } from "../icons.tsx";
 import { LaunchToast, ManualLaunch, ParaLancar } from "../Launch.tsx";
-import { CARDS_COME_FROM, HINTS } from "../learn.ts";
+import { CARDS_COME_FROM, dailySourceText, HINTS } from "../learn.ts";
 import { Simulator } from "../Pace.tsx";
 import { PrevistoReview } from "../Previsto.tsx";
 import { Streak } from "../Streak.tsx";
@@ -94,40 +94,6 @@ const SaveCard = ({ save }: { save: Saving }) => (
     </Link>
   </section>
 );
-
-const COLUMN = { entrada: "Entrada", saida: "Saída", diario: "Diário" } as const;
-
-/** What is off, in a few words, and the figures that show it. */
-const issueText = (i: HealthIssue): { title: string; detail: string } => {
-  switch (i.kind) {
-    case "missing-date":
-      return { title: "Data vazia", detail: "A linha não tem data na planilha" };
-    case "note-mismatch":
-      return {
-        title: `${COLUMN[i.column]} não bate com a nota`,
-        detail: `Nota ${money(i.notes)} · Célula ${money(i.cell)}`,
-      };
-    case "balance-mismatch":
-      return {
-        title: "Saldo não bate",
-        detail: `Planilha ${money(i.sheet)} · Pela soma ${money(i.computed)}`,
-      };
-    case "missing-bill":
-      return {
-        title: `Fatura ${i.card} não lançada`,
-        detail: "Venceu e não tem linha na nota de Saída",
-      };
-    case "unparsed-note":
-      return { title: `${COLUMN[i.column]}: nota não entendida`, detail: `"${i.lines[0] ?? ""}"` };
-  }
-};
-
-const dailySourceText = (source: DailySource) =>
-  source === "settings"
-    ? "seu ajuste"
-    : source === "sheet-note"
-      ? "da nota na planilha"
-      : "média dos últimos 3 meses";
 
 const IssueList = ({
   items,
@@ -312,9 +278,12 @@ const splitDays = (days: readonly UpcomingDay[]) => {
   return [days.slice(0, cut), days.slice(cut)] as const;
 };
 
-/** The run, on Hoje only the day it reaches a mark or passes its best (and the day after). */
+/**
+ * The run, on Hoje only the day it reaches a mark or passes its best (and the day after), or the
+ * day an edit is what keeps it: a run that can still be mended keeps people going.
+ */
 const showsStreak = (h: Habit | null | undefined): h is Habit =>
-  h != null && (h.milestone != null || h.record != null);
+  h != null && (h.milestone != null || h.record != null || h.atRisk === true);
 
 /**
  * Hoje answers the daily check-in with three fixed panels: what still fits, Para lançar and the

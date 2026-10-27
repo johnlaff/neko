@@ -57,6 +57,8 @@ data class WidgetText(
     /** "Planilha em dia · 12 dias" and this week as seven marks, for the tall widget; null without a streak. */
     val streak: String? = null,
     val week: List<String> = emptyList(),
+    /** "3 para lançar": the bank's items waiting in Para lançar, the daily check-in's invitation; null when none wait. */
+    val toLaunch: String? = null,
     /** What `bill` is: the open bill, or with the Diário previsto on, the month's spending. */
     val billLabel: String = "Fatura",
     /** `bill` is how far the month runs ahead of the Diário, drawn in the warning color. */
@@ -72,6 +74,7 @@ fun widgetText(v: TodayView?): WidgetText {
     val h = v?.habit
     val streak = h?.let { dev.johnlaff.neko.ui.Learn.streakLabel(it.streak) }
     val week = h?.week.orEmpty().map { it.state }
+    val waiting = v?.queue.orEmpty().size
     // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
     val month = cs?.mode == "month"
     // With a ceiling for the cards, it is next month's bills on all of them against it.
@@ -98,7 +101,7 @@ fun widgetText(v: TodayView?): WidgetText {
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week, billLabel = if (month) "Gasto no mês" else if (cards) "Faturas" else "Fatura").let { t ->
+    }.copy(streak = streak, week = week, toLaunch = if (waiting > 0) "$waiting para lançar" else null, billLabel = if (month) "Gasto no mês" else if (cards) "Faturas" else "Fatura").let { t ->
         // Ahead of the Diário previsto, the line Hoje keeps under its figure takes the bill's place.
         if (cs != null && month && cs.pace != "over" && cs.daysBehind > 0)
             t.copy(bill = Format.money(-cs.paceGap), billLabel = "Acima do previsto", billDetail = "Uns ${Format.days(cs.daysBehind)} sem gastar", billWarn = true)
@@ -113,6 +116,7 @@ val PREVIEW = WidgetText(
     listOf(WidgetDay("Amanhã", "−R$ 120,00", false), WidgetDay("Sexta, 10 out", "+R$ 5.600,00", true)),
     "Planilha em dia · 5 dias",
     listOf("edited", "edited", "rest", "edited", "edited", "today", "future"),
+    "3 para lançar",
     "Faturas",
 )
 
@@ -122,7 +126,8 @@ private val TALL = DpSize(250.dp, 180.dp)
 
 /**
  * Three shapes, as the home screen sizes it: the figure alone; the figure with the bill beside it;
- * and, taller, the next days below. Each answers at a glance, without opening the app.
+ * and, taller, the next days below, then the week's marks with what waits in Para lançar. Each
+ * answers at a glance, without opening the app.
  */
 class TodayWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Responsive(setOf(SMALL, WIDE, TALL))
@@ -198,7 +203,11 @@ class TodayWidget : GlanceAppWidget() {
                             modifier = GlanceModifier.padding(end = 3.dp),
                         )
                     }
-                    if (t.streak != null) {
+                    // Items waiting take the streak's place: they are what keeps it going today.
+                    if (t.toLaunch != null) {
+                        Spacer(GlanceModifier.width(8.dp))
+                        Text(t.toLaunch, style = TextStyle(color = pair { it.text }, fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1)
+                    } else if (t.streak != null) {
                         Spacer(GlanceModifier.width(8.dp))
                         Text(t.streak, style = TextStyle(color = pair { it.muted }, fontSize = 12.sp), maxLines = 1)
                     }

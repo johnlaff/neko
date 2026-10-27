@@ -16,13 +16,13 @@
       "budgetSource": "diario",
       "accumulated": 73220,
       "left": 221280,
+      "overBy": 0,
       "daysLeft": 27,
       "closing": "2026-10-31",
       "due": "2026-10-12",
       "cycleDays": 31,
       "paceExpected": 38000,
       "paceGap": -35220,
-      "overBy": 0,
       "daysBehind": 4
     },
     "cards": [
@@ -485,7 +485,8 @@
         "entradaToDate": 807314,
         "livingCost": 560364,
         "ownIncome": 807314,
-        "committed": 556096
+        "committed": 556096,
+        "dailyAverage": 9788
       },
       {
         "year": 2025,
@@ -875,7 +876,8 @@
         "entradaToDate": 788153,
         "livingCost": 621505,
         "ownIncome": 788153,
-        "committed": 601243
+        "committed": 601243,
+        "dailyAverage": 12934
       },
       {
         "year": 2025,
@@ -1318,7 +1320,8 @@
         "entradaToDate": 816746,
         "livingCost": 651721,
         "ownIncome": 816746,
-        "committed": 646451
+        "committed": 646451,
+        "dailyAverage": 12723
       },
       {
         "year": 2025,
@@ -1754,7 +1757,8 @@
         "entradaToDate": 818665,
         "livingCost": 678597,
         "ownIncome": 818665,
-        "committed": 656696
+        "committed": 656696,
+        "dailyAverage": 14212
       },
       {
         "year": 2025,
@@ -2197,7 +2201,8 @@
         "entradaToDate": 803048,
         "livingCost": 653734,
         "ownIncome": 803048,
-        "committed": 661442
+        "committed": 661442,
+        "dailyAverage": 12830
       },
       {
         "year": 2025,
@@ -2633,7 +2638,8 @@
         "entradaToDate": 817923,
         "livingCost": 634713,
         "ownIncome": 817923,
-        "committed": 620061
+        "committed": 620061,
+        "dailyAverage": 12628
       },
       {
         "year": 2025,
@@ -3076,7 +3082,8 @@
         "entradaToDate": 781023,
         "livingCost": 683900,
         "ownIncome": 781023,
-        "committed": 690225
+        "committed": 690225,
+        "dailyAverage": 13709
       },
       {
         "year": 2025,
@@ -3519,7 +3526,8 @@
         "entradaToDate": 813687,
         "livingCost": 624730,
         "ownIncome": 813687,
-        "committed": 638109
+        "committed": 638109,
+        "dailyAverage": 11998
       },
       {
         "year": 2025,
@@ -3955,7 +3963,8 @@
         "entradaToDate": 789122,
         "livingCost": 627406,
         "ownIncome": 789122,
-        "committed": 625766
+        "committed": 625766,
+        "dailyAverage": 12346
       },
       {
         "year": 2025,
@@ -4398,7 +4407,8 @@
         "entradaToDate": 799008,
         "livingCost": 619201,
         "ownIncome": 799008,
-        "committed": 601612
+        "committed": 601612,
+        "dailyAverage": 11652
       },
       {
         "year": 2025,
@@ -4834,7 +4844,8 @@
         "entradaToDate": 791214,
         "livingCost": 671020,
         "ownIncome": 791214,
-        "committed": 658665
+        "committed": 658665,
+        "dailyAverage": 13883
       },
       {
         "year": 2025,
@@ -5277,7 +5288,8 @@
         "entradaToDate": 785356,
         "livingCost": 642456,
         "ownIncome": 785356,
-        "committed": 657757
+        "committed": 657757,
+        "dailyAverage": 12491
       },
       {
         "year": 2026,
@@ -5720,7 +5732,8 @@
         "entradaToDate": 807692,
         "livingCost": 580827,
         "ownIncome": 807692,
-        "committed": 584552
+        "committed": 584552,
+        "dailyAverage": 10551
       },
       {
         "year": 2026,
@@ -6136,7 +6149,8 @@
         "entradaToDate": 818481,
         "livingCost": 614988,
         "ownIncome": 818481,
-        "committed": 613618
+        "committed": 613618,
+        "dailyAverage": 12681
       },
       {
         "year": 2026,
@@ -6579,7 +6593,8 @@
         "entradaToDate": 780513,
         "livingCost": 554016,
         "ownIncome": 780513,
-        "committed": 549094
+        "committed": 549094,
+        "dailyAverage": 9654
       },
       {
         "year": 2026,
@@ -7015,7 +7030,8 @@
         "entradaToDate": 802127,
         "livingCost": 614571,
         "ownIncome": 802127,
-        "committed": 613601
+        "committed": 613601,
+        "dailyAverage": 11996
       },
       {
         "year": 2026,
@@ -7458,7 +7474,8 @@
         "entradaToDate": 807809,
         "livingCost": 579048,
         "ownIncome": 807809,
-        "committed": 581637
+        "committed": 581637,
+        "dailyAverage": 10360
       },
       {
         "year": 2026,
@@ -7894,7 +7911,8 @@
         "entradaToDate": 780593,
         "livingCost": 659513,
         "ownIncome": 780593,
-        "committed": 661600
+        "committed": 661600,
+        "dailyAverage": 13481
       },
       {
         "year": 2026,
@@ -8337,7 +8355,8 @@
         "entradaToDate": 785347,
         "livingCost": 611890,
         "ownIncome": 785347,
-        "committed": 607867
+        "committed": 607867,
+        "dailyAverage": 11542
       },
       {
         "year": 2026,
@@ -8780,7 +8799,8 @@
         "entradaToDate": 785265,
         "livingCost": 576812,
         "ownIncome": 785265,
-        "committed": 566222
+        "committed": 566222,
+        "dailyAverage": 10345
       },
       {
         "year": 2026,
@@ -9216,7 +9236,8 @@
         "entradaToDate": 817736,
         "livingCost": 665876,
         "ownIncome": 817736,
-        "committed": 686766
+        "committed": 686766,
+        "dailyAverage": 13661
       },
       {
         "year": 2026,
@@ -9770,7 +9791,8 @@
         "entradaToDate": 560000,
         "livingCost": 884551,
         "ownIncome": 795340,
-        "committed": 665683
+        "committed": 665683,
+        "dailyAverage": 12742
       },
       {
         "year": 2026,
@@ -10323,7 +10345,8 @@
         "entradaToDate": 0,
         "livingCost": 825535,
         "ownIncome": 803726,
-        "committed": 576754
+        "committed": 576754,
+        "dailyAverage": null
       },
       {
         "year": 2026,
@@ -10889,7 +10912,8 @@
         "entradaToDate": 0,
         "livingCost": 920953,
         "ownIncome": 795363,
-        "committed": 689191
+        "committed": 689191,
+        "dailyAverage": null
       }
     ],
     "upcoming": [
@@ -11402,6 +11426,7 @@
     "streak": 12,
     "best": 12,
     "editedToday": false,
+    "atRisk": false,
     "week": [
       {
         "date": "2026-10-04",

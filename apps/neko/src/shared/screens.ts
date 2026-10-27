@@ -334,6 +334,8 @@ export interface MonthItem {
   readonly savedShare: number | null;
   /** Saída plus diário minus what was saved. */
   readonly livingCost: number;
+  /** The diário médio real: what a day cost, card bills included; null on a month ahead. */
+  readonly dailyAverage: number | null;
   /** What a closed month achieved, as its recap showed it; empty for the others. */
   readonly wins: readonly Win[];
 }
@@ -385,6 +387,8 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
       saved: m.saved,
       savedShare: m.savedShare,
       livingCost: m.livingCost,
+      // Missing on projections cached before it existed.
+      dailyAverage: m.dailyAverage ?? null,
       wins: key < nowKey ? monthWins(p.months, m.year, m.month) : [],
     };
   });

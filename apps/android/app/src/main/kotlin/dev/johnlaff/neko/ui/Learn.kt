@@ -36,7 +36,19 @@ object Learn {
     const val MES = "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista."
 
     /** Hoje's streak, word for word with the site (web/learn.ts HABIT). */
-    const val HABIT_RULE = "Conta os dias em que a planilha mudou. Uma folga por semana não quebra a sequência."
+    const val HABIT_RULE = "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte."
+
+    /** Yesterday went without a change: today's edit is what keeps the run. */
+    const val HABIT_AT_RISK = "Lance hoje e a sequência continua"
+
+    /** Each day's mark, as TalkBack says it; the legend shows the first three. */
+    val HABIT_DAYS = mapOf(
+        "edited" to "lançado",
+        "rest" to "recuperado",
+        "missed" to "sem lançar",
+        "today" to "hoje, em aberto",
+        "future" to "ainda não chegou",
+    )
     private val MILESTONES = mapOf(
         7 to "Uma semana inteira com a planilha em dia.",
         21 to "Três semanas: lançar já faz parte do seu dia.",
@@ -53,6 +65,25 @@ object Learn {
         1 -> "Planilha em dia · 1 dia"
         else -> "Planilha em dia · $streak dias"
     }
+
+    /** Mês's totals, the method's, word for word with the site (web/learn.ts TOTALS). */
+    const val SAVED = "Guardado"
+    const val NOTHING_SAVED = "Nada guardado"
+    const val SAVE_GOAL = "Meta de 20% a 30%"
+    const val DAILY = "Diário médio"
+    const val COST = "Custo de vida"
+    const val COST_NOTE =
+        "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método cobre de 6 a 12 meses desse custo."
+    const val DAILY_NOTE =
+        "Diário médio é o que um dia custou de verdade: o diário e as faturas dos seus cartões que vencem no mês, divididos pelos dias."
+
+    /** The low end of the method's 20–30% kept (engine KEPT_GOAL): the share turns green from it. */
+    const val KEPT_GOAL = 20
+
+    /** Under Ver extrato, why a month that kept money can show the balance going down. */
+    fun resultNote(down: Boolean) =
+        "O saldo ${if (down) "desceu" else "subiu"} é a diferença entre o começo e o fim do mês. " +
+            "Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com o saldo descendo."
 
     /** Mês's reserve panel, word for word with the site (web/learn.ts RESERVE). */
     const val RESERVE_TITLE = "Reserva de emergência"
