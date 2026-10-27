@@ -237,6 +237,8 @@ data class MonthItem(
     val savedShare: Int? = null,
     /** Saída plus diário minus what was saved. */
     val livingCost: Long = 0,
+    /** The diário médio real: what a day cost, card bills included; null on a month ahead. */
+    val dailyAverage: Long? = null,
     /** What a closed month achieved, as its recap showed it; empty for the others. */
     val wins: List<Win> = emptyList(),
 )

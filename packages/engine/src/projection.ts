@@ -167,6 +167,14 @@ export interface MonthView {
   readonly livingCost: Cents;
   /** Entrada without the money that only pays something back (a reimbursed bill, a repasse). */
   readonly ownIncome: Cents;
+  /**
+   * The method's diário médio real (app do Breno, aula 4): what a day really cost. The diário
+   * spent so far over the days gone, plus your card bills due in the month over all its days:
+   * for whoever pays by card the bills are the diário (the same reading as the inferred diário),
+   * and a bill is a whole month of purchases. Previsto lines are not spending. Null on a month
+   * still ahead.
+   */
+  readonly dailyAverage: Cents | null;
   /** Saída already on the sheet without what is paid back or kept: the income it already takes. */
   readonly committed: Cents;
 }
@@ -599,6 +607,8 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
 
   const cardNames = settings.cards.map((c) => c.name);
   const months: MonthView[] = [];
+  // Per month, for the diário médio: real diário up to today and your card bills.
+  const spent: { diario: Cents; cards: Cents }[] = [];
   for (const row of ledger) {
     const { year, month } = parts(row.date);
     let m = months.at(-1);
@@ -631,8 +641,10 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
         livingCost: ZERO,
         ownIncome: ZERO,
         committed: ZERO,
+        dailyAverage: null,
       };
       months.push(m);
+      spent.push({ diario: ZERO, cards: ZERO });
     }
     const entrada = add(m.entrada, row.entrada.amount);
     const saida = add(m.saida, row.saida.amount);
@@ -651,6 +663,12 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       sub(c.amount, add(ZERO, ...c.items.filter(skip).map((i) => i.amount)));
     const paidBack = (i: NoteItem) => through.has(i) || reimbursed.has(i) || isSavingItem(i);
     const balance = sheetBalance(row.date);
+    const so = spent[spent.length - 1];
+    if (so) {
+      if (past) so.diario = add(so.diario, realDiario(row.diario));
+      for (const i of row.saida.items)
+        if (isCardItem(i) && !notMine.has(i)) so.cards = add(so.cards, i.amount);
+    }
     const moves: DayMove[] = [
       ...cellMoves(row.entrada, () => "income"),
       ...cellMoves(row.saida, (i) => (isCardItem(i) ? "card" : "bill")),
@@ -692,6 +710,19 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       committed: add(m.committed, without(row.saida, paidBack)),
     };
   }
+
+  const now = parts(today);
+  months.forEach((m, i) => {
+    const s = spent[i];
+    const key = m.year * 12 + m.month;
+    const at = now.year * 12 + now.month;
+    if (!s || key > at) return;
+    const days = daysInMonth(m.year, m.month);
+    months[i] = {
+      ...m,
+      dailyAverage: cents(Math.round(s.diario / (key === at ? now.day : days) + s.cards / days)),
+    };
+  });
 
   const upcoming: UpcomingItem[] = [];
   for (let i = 0; i < UPCOMING_DAYS; i++) {

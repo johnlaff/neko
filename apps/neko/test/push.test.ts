@@ -117,6 +117,56 @@ describe("reminders", () => {
     expect(morningMessage(response({ canSpend: null, upcoming: [] } as never))).toBeNull();
   });
 
+  it("morning: after the day's bills, how much the account misses to pay them, if anything", () => {
+    const bill = (date: string, description: string, amount: number) => ({
+      date,
+      description,
+      amount,
+      kind: "card",
+    });
+    // The sheet's balance at the end of 4 and 6 Oct (the bills already out of it).
+    const days = (four: number, six: number) => [
+      {
+        year: 2026,
+        month: 10,
+        days: [
+          { day: 4, balance: four },
+          { day: 6, balance: six },
+        ],
+      },
+    ];
+    const body = (four: number, six: number, insights: object[] = []) =>
+      morningMessage(
+        response({
+          months: days(four, six),
+          insights,
+          upcoming: [
+            bill("2026-10-04", "Roxo", 154_00),
+            bill("2026-10-04", "Azul", 99_00),
+            bill("2026-10-06", "Verde", 3230_00),
+          ],
+        } as never),
+      )?.body ?? "";
+    expect(body(1200_00, -2030_00)).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias. Hoje vence a fatura do Roxo: R$ 154,00. Hoje vence a fatura do Azul: R$ 99,00. A fatura do Verde vence em 6 out: R$ 3.230,00. Para pagar, faltam R$ 2.030,00 na conta.",
+    );
+    // The red day is that bill's due day: the bill's line already says it.
+    const red = {
+      kind: "goes-negative",
+      start: "2026-10-06",
+      deepest: -2030_00,
+      deepestDate: "2026-10-06",
+    };
+    expect(body(1200_00, -2030_00, [red])).not.toMatch(/O saldo fica negativo/);
+    expect(body(1200_00, -2030_00, [{ ...red, start: "2026-10-05" }])).toMatch(
+      / O saldo fica negativo em 5 out\.$/,
+    );
+    // Without the bill, nothing about the balance: the bill makes the reason to look.
+    expect(morningMessage(response({ months: days(1200_00, -2030_00) } as never))?.body).toBe(
+      "Até a fatura fechar em 3 nov. Faltam 15 dias.",
+    );
+  });
+
   it("morning: what still fits on the usual card's cycle, never an amount per day", () => {
     expect(morningMessage(response())).toEqual({
       title: "Ainda cabem R$ 2.650,00 no Visa",
@@ -171,6 +221,18 @@ describe("reminders", () => {
       url: "https://docs.google.com/spreadsheets/d/sheet/edit#gid=42&range=BB15",
       tag: "evening",
     });
+  });
+  it("evening: when only today can mend yesterday, says the run goes on with today's edit", () => {
+    const evening = (habit: object) =>
+      eveningMessage({ ...response(), habit: { editedToday: false, week: [], ...habit } } as never)
+        ?.body;
+    expect(evening({ streak: 12, atRisk: false })).toBe(
+      "Abre a planilha direto no dia 4 out. Você está há 12 dias em dia.",
+    );
+    expect(evening({ streak: 12, atRisk: true })).toBe(
+      "Abre a planilha direto no dia 4 out. Ontem ficou sem lançar. Lançando hoje, a sequência de 12 dias continua.",
+    );
+    expect(evening({ streak: 1, atRisk: true })).toMatch(/a sequência de 1 dia continua\.$/);
   });
   it("morning: adds the first red day ahead, and only that kind of warning", () => {
     const red = {

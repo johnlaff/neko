@@ -3,6 +3,7 @@ import {
   type Fixed,
   fixedOf,
   type Insight,
+  KEPT_GOAL,
   type MonthView,
   monthWins,
   type Outflow,
@@ -24,7 +25,7 @@ import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
 import { IconCard, IconChevron, IconChevronLeft, IconReceipt, IconRepeat } from "../icons.tsx";
-import { costLabel, coveredLabel, RESERVE } from "../learn.ts";
+import { costLabel, coveredLabel, RESERVE, resultNote, TOTALS } from "../learn.ts";
 import { Thermo } from "../Thermo.tsx";
 import { WithProjection } from "../useProjection.tsx";
 import { Wins } from "../Wins.tsx";
@@ -312,6 +313,11 @@ export const Mes = () => {
         const result = moved(m) ? (m.result ?? null) : null;
         // Saída under a "Reserva:" header; missing on caches from before it existed.
         const saved = m.saved ?? 0;
+        // The method's totals: the share kept against its goal on a month that came or has
+        // something planned to keep, and what a day really cost on one that came.
+        const share =
+          (m.savedShare ?? null) !== null && (idx <= nowIdx || saved > 0) ? m.savedShare : null;
+        const daily = moved(m) ? (m.dailyAverage ?? null) : null;
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         const wins = past ? monthWins(p.months, m.year, m.month) : [];
         // The warnings Hoje leaves to Mês: all of them on today's month, each also on its own.
@@ -413,13 +419,21 @@ export const Mes = () => {
                         </strong>
                       </p>
                     )}
-                    {saved > 0 && (
-                      <p className="figure-line">
+                    {share != null && (
+                      <p className="figure-line total-line">
                         <span className="muted">
-                          Guardado
-                          {m.savedShare !== null && ` · ${m.savedShare}% das entradas`}
+                          {TOTALS.saved}
+                          <small>
+                            {saved > 0 ? money(saved) : TOTALS.nothingSaved} · {TOTALS.goal}
+                          </small>
                         </span>
-                        <strong>{money(saved)}</strong>
+                        <strong className={share >= KEPT_GOAL ? "pos" : undefined}>{share}%</strong>
+                      </p>
+                    )}
+                    {daily !== null && (
+                      <p className="figure-line">
+                        <span className="muted">{TOTALS.daily}</span>
+                        <strong>{money(daily)}</strong>
                       </p>
                     )}
                     <Wins wins={wins} year={m.year} month={m.month} className="month-wins" />
@@ -447,26 +461,17 @@ export const Mes = () => {
                           {money(m.endSheet)}
                         </dd>
                       </dl>
-                      {result !== null && (
-                        <p>
-                          O saldo {result < 0 ? "desceu" : "subiu"} é a diferença entre o começo e o
-                          fim do mês. Dinheiro guardado também sai da conta, então um mês em que
-                          você economizou pode aparecer com o saldo descendo.
-                        </p>
-                      )}
+                      {result !== null && <p>{resultNote(result < 0)}</p>}
                       {saved > 0 && (
                         <>
                           <dl className="ledger">
-                            <dt className="total">Custo de vida</dt>
+                            <dt className="total">{TOTALS.cost}</dt>
                             <dd className="total">{money(m.livingCost)}</dd>
                           </dl>
-                          <p>
-                            Custo de vida é o que saiu sem contar o que foi guardado. A reserva de
-                            emergência do método cobre de 6 a 12 meses desse custo. Para guardar, o
-                            método sugere de 20% a 30% das entradas.
-                          </p>
+                          <p>{TOTALS.costNote}</p>
                         </>
                       )}
+                      {daily !== null && <p>{TOTALS.dailyNote}</p>}
                     </details>
                   </section>
                 ),

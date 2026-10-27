@@ -473,6 +473,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 560364,
+      "dailyAverage": 9788,
       "wins": [
         {
           "kind": "blue",
@@ -958,6 +959,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 621505,
+      "dailyAverage": 12934,
       "wins": [
         {
           "kind": "blue",
@@ -1551,6 +1553,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 651721,
+      "dailyAverage": 12723,
       "wins": [
         {
           "kind": "blue",
@@ -2172,6 +2175,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 678597,
+      "dailyAverage": 14212,
       "wins": [
         {
           "kind": "blue",
@@ -2835,6 +2839,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 653734,
+      "dailyAverage": 12830,
       "wins": [
         {
           "kind": "blue",
@@ -3529,6 +3534,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 634713,
+      "dailyAverage": 12628,
       "wins": [
         {
           "kind": "blue",
@@ -4230,6 +4236,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 683900,
+      "dailyAverage": 13709,
       "wins": []
     },
     {
@@ -4923,6 +4930,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 624730,
+      "dailyAverage": 11998,
       "wins": [
         {
           "kind": "blue",
@@ -5617,6 +5625,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 627406,
+      "dailyAverage": 12346,
       "wins": [
         {
           "kind": "blue",
@@ -6319,6 +6328,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 619201,
+      "dailyAverage": 11652,
       "wins": [
         {
           "kind": "blue",
@@ -7013,6 +7023,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 671020,
+      "dailyAverage": 13883,
       "wins": [
         {
           "kind": "blue",
@@ -7711,6 +7722,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 642456,
+      "dailyAverage": 12491,
       "wins": [
         {
           "kind": "blue",
@@ -8412,6 +8424,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 580827,
+      "dailyAverage": 10551,
       "wins": [
         {
           "kind": "blue",
@@ -9086,6 +9099,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 614988,
+      "dailyAverage": 12681,
       "wins": [
         {
           "kind": "blue",
@@ -9784,6 +9798,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 554016,
+      "dailyAverage": 9654,
       "wins": [
         {
           "kind": "blue",
@@ -10478,6 +10493,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 614571,
+      "dailyAverage": 11996,
       "wins": [
         {
           "kind": "blue",
@@ -11176,6 +11192,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 579048,
+      "dailyAverage": 10360,
       "wins": [
         {
           "kind": "blue",
@@ -11870,6 +11887,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 659513,
+      "dailyAverage": 13481,
       "wins": []
     },
     {
@@ -12563,6 +12581,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 611890,
+      "dailyAverage": 11542,
       "wins": [
         {
           "kind": "blue",
@@ -13264,6 +13283,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 576812,
+      "dailyAverage": 10345,
       "wins": [
         {
           "kind": "blue",
@@ -13958,6 +13978,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 665876,
+      "dailyAverage": 13661,
       "wins": [
         {
           "kind": "blue",
@@ -14767,6 +14788,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 884551,
+      "dailyAverage": 12742,
       "wins": []
     },
     {
@@ -15570,6 +15592,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 825535,
+      "dailyAverage": null,
       "wins": []
     },
     {
@@ -16386,6 +16409,7 @@
       "saved": 80000,
       "savedShare": 10,
       "livingCost": 920953,
+      "dailyAverage": null,
       "wins": []
     }
   ],

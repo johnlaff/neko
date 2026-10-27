@@ -113,6 +113,27 @@ describe("credit mode projection", () => {
     expect(fifth.years).toEqual([{ year: 2026, entrada: 5000_00, saved: 0, savedShare: 0 }]);
   });
 
+  it("gives each month's real diário médio: the diário and your card bills, per day", () => {
+    // Oct: R$ 310 of diário on the 5th, R$ 62 of it a Previsto line; the Visa bill of R$ 620 due
+    // on the 10th, and the partner's card, which is not yours. Nov: only a planned diário.
+    const l = ledger("2026-10-01", 92, 10_000_00, {
+      "2026-10-05": {
+        diario: cell(310_00, [item(248_00, "Mercado", null), item(62_00, "Previsto", null)]),
+      },
+      "2026-10-10": { saida: cell(1020_00, [item(620_00, "Visa"), item(400_00, "Azul")]) },
+      "2026-11-20": { diario: cell(90_00) },
+    });
+    const at = (d: string) =>
+      project(l, localDate(d), settings({ othersCards: ["Azul"] })).months.map(
+        (m) => m.dailyAverage,
+      );
+    // Closed, October is 248 + 620 over its 31 days; on the 20th the diário so far counts over
+    // the 20 days gone, the month's bills over the whole month. A month ahead has none yet.
+    expect(at("2026-11-02")[0]).toBe(28_00);
+    expect(at("2026-10-20")).toEqual([12_40 + 20_00, null, null]);
+    expect(at("2026-11-02")[1]).toBe(0);
+  });
+
   it("leaves what is paid back and a card someone else pays out of the cost of living", () => {
     // Nov: R$ 5.000 of salary. A car installment someone pays back the same day (R$ 1.000 in and
     // out), the partner's card paid back by her (R$ 800), and the partner's other card that she

@@ -2,9 +2,10 @@ import { addDays, diffDays, type LocalDate, todayIn } from "./date.ts";
 
 /**
  * The habit the method asks for: open the sheet and log the day. A day counts when the sheet
- * changed on it. Streaks follow the forgiving pattern that keeps a habit without punishing it:
- * one missed day per week (Sunday to Saturday) is a rest day and keeps the run going, and today
- * never breaks it while it is still open.
+ * changed on it. A run forgives what a habit forgives: a lone missed day is mended when the next
+ * day is logged (being able to repair a streak keeps people going, Silverman and Barasch, 2023;
+ * a missed day does not undo a habit, Lally et al., 2010). Only two days in a row without a
+ * change break it, and today never does while it is still open.
  */
 
 /** 66 days is the median time for a habit to settle (Lally et al., 2010). */
@@ -12,6 +13,7 @@ export const HABIT_MILESTONES = [7, 21, 66, 100, 200, 365] as const;
 /** The shortest earlier best worth celebrating when a new run passes it. */
 export const RECORD_MIN = 7;
 
+/** `rest`: a lone missed day the next day mended (the name predates the rule, apps read it). */
 export type HabitDayState = "edited" | "rest" | "missed" | "today" | "future";
 
 export interface HabitDay {
@@ -20,11 +22,13 @@ export interface HabitDay {
 }
 
 export interface Habit {
-  /** Days the sheet changed in the current run; rest days keep it but do not add to it. */
+  /** Days the sheet changed in the current run; mended days keep it but do not add to it. */
   readonly streak: number;
   /** Longest run so far. */
   readonly best: number;
   readonly editedToday: boolean;
+  /** Yesterday went without a change: only an edit today keeps the run. */
+  readonly atRisk: boolean;
   /** This week, Sunday to Saturday. */
   readonly week: readonly HabitDay[];
   /** The milestone the run reached on its last edit, while that edit is today or yesterday. */
@@ -61,7 +65,6 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
   let lastEdit: LocalDate | null = null;
   let bestBefore = 0;
   if (since !== null) {
-    const misses = new Map<LocalDate, number>();
     for (let d = since; d <= today; d = addDays(d, 1)) {
       if (edited.has(d)) {
         run++;
@@ -72,14 +75,16 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
       } else if (d === today) {
         state.set(d, "today");
       } else {
-        const week = weekStart(d);
-        const n = (misses.get(week) ?? 0) + 1;
-        misses.set(week, n);
-        if (n === 1) state.set(d, "rest");
+        const next = addDays(d, 1);
+        const lone = edited.has(addDays(d, -1));
+        if (lone && edited.has(next)) state.set(d, "rest");
         else {
-          run = 0;
-          bestBefore = best;
           state.set(d, "missed");
+          // Yesterday alone can still be mended today: the run waits for today to end.
+          if (!(lone && next === today)) {
+            run = 0;
+            bestBefore = best;
+          }
         }
       }
     }
@@ -101,6 +106,7 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
     streak: run,
     best,
     editedToday: edited.has(today),
+    atRisk: run > 0 && !edited.has(today) && !edited.has(addDays(today, -1)),
     week,
     milestone:
       recent && (HABIT_MILESTONES as readonly number[]).includes(runAtLastEdit)

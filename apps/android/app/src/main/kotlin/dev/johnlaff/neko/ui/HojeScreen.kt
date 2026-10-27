@@ -138,7 +138,7 @@ fun HojeScreen(
         // A wide window's second column, as on the site: what to know. Hoje keeps three fixed panels
         // (the dial, Para lançar, the next 7 days); the rest shows only on the day it matters.
         column()
-        v.habit?.takeIf { it.milestone != null || it.record != null }?.let { h -> item { Streak(h) } }
+        v.habit?.takeIf { it.milestone != null || it.record != null || it.atRisk }?.let { h -> item { Streak(h) } }
         if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, v.writing, launcher, { undoText = KEPT_TEXT; undo = NOTICE }, onAjustes) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
         val over = v.canSpend?.pace == "over"

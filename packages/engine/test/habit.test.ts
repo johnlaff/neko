@@ -59,28 +59,57 @@ describe("habit", () => {
     expect(h.week[4]?.state).toBe("today");
   });
 
-  it("forgives one missed day per week as a rest day", () => {
+  it("forgives a missed day the next day mended", () => {
     const h = habit(days("2026-10-04", "2026-10-06", "2026-10-07"), today);
     expect(h.streak).toBe(3);
     expect(h.week[1]?.state).toBe("rest");
   });
 
-  it("breaks the run on the second missed day of the same week", () => {
-    const h = habit(days("2026-10-04", "2026-10-06", "2026-10-08"), d("2026-10-08"));
-    // Mon 5 is the rest day, Wed 7 breaks the run: only today counts.
-    expect(h.streak).toBe(1);
-    expect(h.best).toBe(2);
+  it("forgives every lone missed day, even twice in a week", () => {
+    // Mon 5 and Wed 7 were each mended the next day: the run goes on, counting logged days.
+    const h = habit(days("2026-10-04", "2026-10-06", "2026-10-08"), today);
+    expect(h.streak).toBe(3);
     expect(h.week.map((w) => w.state).slice(0, 5)).toEqual([
       "edited",
       "rest",
       "edited",
-      "missed",
+      "rest",
       "edited",
     ]);
   });
 
-  it("gives each week its own rest day", () => {
-    // Sat 3 (week of Sep 27) and Mon 5 (week of Oct 4) are both forgiven.
+  it("breaks the run on two missed days in a row", () => {
+    const h = habit(
+      days("2026-10-02", "2026-10-03", "2026-10-04", "2026-10-07", "2026-10-08"),
+      today,
+    );
+    expect(h.streak).toBe(2);
+    expect(h.best).toBe(3);
+    expect(h.week.map((w) => w.state).slice(0, 5)).toEqual([
+      "edited",
+      "missed",
+      "missed",
+      "edited",
+      "edited",
+    ]);
+  });
+
+  it("keeps the run while today can still mend yesterday, and says it is at risk", () => {
+    const open = habit(range("2026-10-04", "2026-10-06"), today);
+    expect(open.streak).toBe(3);
+    expect(open.atRisk).toBe(true);
+    // Not mended yet: yesterday reads as missed until today's edit.
+    expect(open.week.map((w) => w.state).slice(3, 5)).toEqual(["missed", "today"]);
+    const mended = habit([...range("2026-10-04", "2026-10-06"), today], today);
+    expect(mended.streak).toBe(4);
+    expect(mended.atRisk).toBe(false);
+    expect(mended.week[3]?.state).toBe("rest");
+    // Yesterday logged: today is open as any day, nothing at risk.
+    expect(habit(range("2026-10-04", "2026-10-07"), today).atRisk).toBe(false);
+  });
+
+  it("mends a day across the turn of the week", () => {
+    // Sat 3 and Mon 5 were each mended the next day.
     const edited = [
       ...range("2026-09-28", "2026-10-02"),
       ...days("2026-10-04"),
@@ -105,7 +134,7 @@ describe("habit", () => {
   });
 
   it("marks the day the run passes the best before it, and the day after", () => {
-    // Ten days, two misses in one week (Fri 11, Sat 12) break it, then a new run from the 13th.
+    // Ten days, two misses in a row (Fri 11, Sat 12) break it, then a new run from the 13th.
     const edited = [...range("2026-09-01", "2026-09-10"), ...range("2026-09-13", "2026-09-23")];
     expect(habit(edited, d("2026-09-23")).record).toBe(10);
     expect(habit(edited, d("2026-09-24")).record).toBe(10);
@@ -138,9 +167,11 @@ describe("habit", () => {
     expect(h.streak).toBe(2);
   });
 
-  it("drops the run once the last edit is older than the forgiven gap", () => {
-    // Last edit Fri 2; Sat 3 is that week's rest; Sun 4 … Wed 7 missed.
-    expect(habit(range("2026-09-28", "2026-10-02"), today).streak).toBe(0);
+  it("drops the run once two days went by without an edit", () => {
+    // Last edit Fri 2; Sat 3 … Wed 7 missed.
+    const h = habit(range("2026-09-28", "2026-10-02"), today);
+    expect(h.streak).toBe(0);
+    expect(h.atRisk).toBe(false);
   });
 });
 
