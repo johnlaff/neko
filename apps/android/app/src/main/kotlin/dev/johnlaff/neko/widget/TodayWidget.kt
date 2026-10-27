@@ -192,7 +192,9 @@ class TodayWidget : GlanceAppWidget() {
                 Spacer(GlanceModifier.defaultWeight())
                 // With items waiting, this line opens Hoje on Para lançar; the rest opens Hoje.
                 val toQueue = Intent(LocalContext.current, MainActivity::class.java).setAction(PARA_LANCAR)
-                val row = GlanceModifier.fillMaxWidth().let { if (t.toLaunch != null) it.clickable(androidx.glance.appwidget.action.actionStartActivity(toQueue)) else it }
+                // Taller than its text, so a thumb finds it.
+                val row = GlanceModifier.fillMaxWidth().padding(vertical = 8.dp)
+                    .let { if (t.toLaunch != null) it.clickable(androidx.glance.appwidget.action.actionStartActivity(toQueue)) else it }
                 Row(row, verticalAlignment = Alignment.CenterVertically) {
                     // TalkBack reads the week so far as one sentence, not seven circles.
                     val logged = t.week.count { it == "edited" }

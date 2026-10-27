@@ -73,7 +73,8 @@ class MainActivity : ComponentActivity() {
     private var request by mutableStateOf<Launch?>(null)
     /** Bumped by each "Simular" shortcut, so a second tap opens the simulator again. */
     private var simulateAsk by mutableIntStateOf(0)
-    private var queueAsk by mutableIntStateOf(0)
+    /** The widget's "N para lançar" was tapped and Hoje has not shown Para lançar yet. */
+    private var queuePending by mutableStateOf(false)
     /** A month a warning on Hoje asked Mês to open; taken once. */
     private var monthAsk by mutableStateOf<MonthAsk?>(null)
 
@@ -83,6 +84,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         if (savedInstanceState == null) handle(intent)
+        // A rotation while Hoje is still loading keeps the widget's tap.
+        else queuePending = savedInstanceState.getBoolean(QUEUE_PENDING)
         lockOn = AppLock.enabled(this)
         AppLock.guardWindow(this, lockOn)
         setContent {
@@ -128,7 +131,7 @@ class MainActivity : ComponentActivity() {
                     fromMia = false
                     go(r.tab)
                     if (r.simulate) simulateAsk++
-                    if (r.queue) queueAsk++
+                    if (r.queue) queuePending = true
                     request = null
                 }
                 // Signing out from Ajustes and back in lands on Hoje, which is read on sign-in.
@@ -223,7 +226,8 @@ class MainActivity : ComponentActivity() {
                                         HojeScreen(
                                             today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
                                             simulateAsk = simulateAsk,
-                                            queueAsk = queueAsk,
+                                            bringQueue = queuePending,
+                                            onQueueShown = { queuePending = false },
                                             review = model::review,
                                             launcher = model.launcher,
                                             onScreen = toScreen,
@@ -271,6 +275,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(QUEUE_PENDING, queuePending)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -343,3 +352,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+private const val QUEUE_PENDING = "queuePending"
