@@ -41,7 +41,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,8 +79,9 @@ fun HojeScreen(
     simulatorOpen: Boolean = false,
     /** Grows each time the "Simular" shortcut is used: opens the simulator again. */
     simulateAsk: Int = 0,
-    /** Grows each time the widget's "N para lançar" is tapped: brings Para lançar into view. */
-    queueAsk: Int = 0,
+    /** The widget's "N para lançar" was tapped: bring Para lançar into view, then `onQueueShown`. */
+    bringQueue: Boolean = false,
+    onQueueShown: () -> Unit = {},
     /** Opens another screen: "hoje", "faturas" or "mes". */
     onScreen: (String) -> Unit = {},
     /** Opens Mês on a month ("2025-10"), or on the current one for null, as the site's alerts do. */
@@ -94,8 +94,6 @@ fun HojeScreen(
     onUse: (String) -> Unit = {},
 ) {
     var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
-    // The last widget tap already answered, so coming back to Hoje does not scroll again.
-    var queueShown by rememberSaveable { mutableIntStateOf(0) }
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
     // What Conferência's last tap hid: kept here, so the panel stays to bring them back.
     var hidPoints by rememberSaveable { mutableStateOf<List<String>?>(null) }
@@ -137,7 +135,7 @@ fun HojeScreen(
         // What asks for a tap comes right after Lançar, as on the site: the sheet's points (none when
         // all is well), then what the bank found. What to know follows.
         if (v.issues.isNotEmpty() || hidPoints != null) item { Conference(v, review, hidPoints) { hidPoints = it } }
-        if (v.queue != null) item { ParaLancar(v, launcher, queueAsk > queueShown, { queueShown = queueAsk }) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
+        if (v.queue != null) item { ParaLancar(v, launcher, bringQueue, onQueueShown) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
         // On payday, what to save comes next: pay yourself first. The Worker sends it on its day only.
         v.saving?.let { s -> item { SaveCard(s) { onMonth(s.date.take(7)) } } }
         // A wide window's second column, as on the site: what to know. Hoje keeps three fixed panels
