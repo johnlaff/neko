@@ -92,6 +92,7 @@
     "best": 12,
     "editedToday": false,
     "atRisk": false,
+    "mended": false,
     "week": [
       {
         "date": "2026-10-04",

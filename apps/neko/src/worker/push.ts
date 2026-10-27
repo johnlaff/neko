@@ -214,16 +214,15 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
   };
 };
 
+/** The run as a fact, not a threat. */
+const streakLine = (streak: number) => (streak >= 2 ? ` Você está há ${streak} dias em dia.` : "");
+
 /**
- * The run as a fact, not a threat. When yesterday went without a change, tonight's edit is what
- * mends it, and the line says so: a run that can be repaired keeps people going.
+ * When yesterday went without a change, tonight's edit is what mends it, and the nudge leads with
+ * that: a run that can be repaired keeps people going.
  */
-const streakLine = (habit: ProjectionResponse["habit"]) =>
-  habit?.atRisk
-    ? ` Ontem ficou sem lançar. Lançando hoje, a sequência de ${habit.streak} ${habit.streak === 1 ? "dia" : "dias"} continua.`
-    : (habit?.streak ?? 0) >= 2
-      ? ` Você está há ${habit?.streak} dias em dia.`
-      : "";
+const mendLine = (streak: number) =>
+  `Ontem ficou sem lançar. Lance hoje e a sequência de ${streak} ${streak === 1 ? "dia" : "dias"} continua.`;
 
 /**
  * 21:00: the habit nudge, silent once anything was done to the sheet today (a launch from Neko
@@ -239,7 +238,9 @@ export const eveningMessage = ({
     ? null
     : {
         title: "Lançou os gastos de hoje?",
-        body: `${writing ? "Abre o Neko para lançar o dia" : `Abre a planilha direto no dia ${shortDate(p.today)}`}.${streakLine(habit)}`,
+        body: habit?.atRisk
+          ? mendLine(habit.streak)
+          : `${writing ? "Abre o Neko para lançar o dia" : `Abre a planilha direto no dia ${shortDate(p.today)}`}.${streakLine(habit?.streak ?? 0)}`,
         url:
           !writing && p.todayRef
             ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)

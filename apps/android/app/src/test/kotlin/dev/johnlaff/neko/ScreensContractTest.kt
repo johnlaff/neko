@@ -48,6 +48,8 @@ class ScreensContractTest {
         assertTrue(now.saved > 0)
         assertTrue(now.livingCost in 1..(now.saida + now.diario - now.saved))
         assertTrue(now.savedShare != null)
+        // The fixture's deposit is on the 20th: the month still has it to keep.
+        assertTrue(now.savedToDate < now.saved)
         // The emergency reserve and the Economia tab, from the same months.
         val r = v.reserve!!
         assertEquals(r.cost * 6, r.min)

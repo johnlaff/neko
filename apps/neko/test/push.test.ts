@@ -222,7 +222,7 @@ describe("reminders", () => {
       tag: "evening",
     });
   });
-  it("evening: when only today can mend yesterday, says the run goes on with today's edit", () => {
+  it("evening: when only today can mend yesterday, leads with the run going on with today's edit", () => {
     const evening = (habit: object) =>
       eveningMessage({ ...response(), habit: { editedToday: false, week: [], ...habit } } as never)
         ?.body;
@@ -230,7 +230,7 @@ describe("reminders", () => {
       "Abre a planilha direto no dia 4 out. Você está há 12 dias em dia.",
     );
     expect(evening({ streak: 12, atRisk: true })).toBe(
-      "Abre a planilha direto no dia 4 out. Ontem ficou sem lançar. Lançando hoje, a sequência de 12 dias continua.",
+      "Ontem ficou sem lançar. Lance hoje e a sequência de 12 dias continua.",
     );
     expect(evening({ streak: 1, atRisk: true })).toMatch(/a sequência de 1 dia continua\.$/);
   });

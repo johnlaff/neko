@@ -49,7 +49,9 @@ export const IDEAS: readonly { readonly title: string; readonly body: string }[]
 export const HABIT = {
   rule: "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte.",
   /** Yesterday went without a change: today's edit is what keeps the run. */
-  atRisk: "Lance hoje e a sequência continua",
+  atRisk: "Lance hoje para continuar",
+  /** Today's edit mended yesterday. */
+  mended: "Ontem recuperado",
   /** Each day's mark, as the screen reader says it; the legend shows the first three. */
   days: {
     edited: "lançado",
@@ -68,8 +70,11 @@ export const HABIT = {
   } as Record<number, string>,
 } as const;
 
-export const streakLabel = (streak: number) =>
-  streak === 0 ? "Comece hoje" : `Planilha em dia · ${streak} ${streak === 1 ? "dia" : "dias"}`;
+/** The run in words; while yesterday waits to be mended the sheet is not "em dia", only the run. */
+export const streakLabel = (streak: number, atRisk = false) =>
+  streak === 0
+    ? "Comece hoje"
+    : `${atRisk ? "Sequência de" : "Planilha em dia ·"} ${streak} ${streak === 1 ? "dia" : "dias"}`;
 
 /**
  * Mês's totals, the method's (app do Breno, aula 4): what was kept against the 20% to 30% goal
@@ -77,19 +82,20 @@ export const streakLabel = (streak: number) =>
  */
 export const TOTALS = {
   saved: "Guardado",
-  nothingSaved: "Nada guardado",
-  goal: "Meta de 20% a 30%",
+  /** The month still has Reserva lines ahead of today. */
+  toSave: "A guardar",
+  // "20% a 30%" never breaks across lines.
+  goal: "Meta de 20%\u00a0a\u00a030% das entradas",
   daily: "Diário médio",
+  dailyCaption: "Diário e faturas do mês, por dia",
   cost: "Custo de vida",
   costNote:
     "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método cobre de 6 a 12 meses desse custo.",
-  dailyNote:
-    "Diário médio é o que um dia custou de verdade: o diário e as faturas dos seus cartões que vencem no mês, divididos pelos dias.",
 } as const;
 
 /** Under Ver extrato, why a month that kept money can show the balance going down. */
 export const resultNote = (down: boolean) =>
-  `O saldo ${down ? "desceu" : "subiu"} é a diferença entre o começo e o fim do mês. Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com o saldo descendo.`;
+  `O saldo ${down ? "desceu" : "subiu"} é o fim do mês menos o começo, e o que foi guardado também sai da conta.`;
 
 /** Where the diário in use comes from, after its value. */
 export const dailySourceText = (source: DailySource) =>

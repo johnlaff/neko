@@ -80,11 +80,12 @@ fun Streak(h: Habit) {
             Week(h.week)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(Learn.streakLabel(h.streak), style = MaterialTheme.typography.titleMedium)
+                Text(Learn.streakLabel(h.streak, h.atRisk), style = MaterialTheme.typography.titleMedium)
                 // A mark or a new best run is a word on this line, not a card of its own (as on the site).
                 when {
                     h.milestone != null -> Text(Learn.milestone(h.milestone), color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.record != null -> Text("Novo recorde", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                    h.mended -> Text(Learn.HABIT_MENDED, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.editedToday -> Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.atRisk -> Text(Learn.HABIT_AT_RISK, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                 }
@@ -98,7 +99,8 @@ fun Streak(h: Habit) {
         }
         h.milestone?.let { MilestoneHaptic(it) }
         Reveal(open) {
-            Text(Learn.HABIT_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            // A breath under the run's line, as on the site, so the rule reads as its own paragraph.
+            Text(Learn.HABIT_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp))
             Legend()
             val extra = listOfNotNull(
                 h.lastWeek?.let { "Semana passada: $it de 7 dias lançados." },

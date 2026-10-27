@@ -37,7 +37,8 @@
     ],
     "habit": {
       "rule": "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte.",
-      "atRisk": "Lance hoje e a sequência continua",
+      "atRisk": "Lance hoje para continuar",
+      "mended": "Ontem recuperado",
       "days": {
         "edited": "lançado",
         "rest": "recuperado",
@@ -61,12 +62,12 @@
     },
     "totals": {
       "saved": "Guardado",
-      "nothingSaved": "Nada guardado",
-      "goal": "Meta de 20% a 30%",
+      "toSave": "A guardar",
+      "goal": "Meta de 20% a 30% das entradas",
       "daily": "Diário médio",
+      "dailyCaption": "Diário e faturas do mês, por dia",
       "cost": "Custo de vida",
-      "costNote": "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método cobre de 6 a 12 meses desse custo.",
-      "dailyNote": "Diário médio é o que um dia custou de verdade: o diário e as faturas dos seus cartões que vencem no mês, divididos pelos dias."
+      "costNote": "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método cobre de 6 a 12 meses desse custo."
     }
   },
   "format": {
@@ -206,15 +207,23 @@
     "streak": [
       [
         0,
+        false,
         "Comece hoje"
       ],
       [
         1,
+        false,
         "Planilha em dia · 1 dia"
       ],
       [
         12,
+        false,
         "Planilha em dia · 12 dias"
+      ],
+      [
+        12,
+        true,
+        "Sequência de 12 dias"
       ]
     ],
     "milestone": [
@@ -262,11 +271,11 @@
     "result": [
       [
         true,
-        "O saldo desceu é a diferença entre o começo e o fim do mês. Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com o saldo descendo."
+        "O saldo desceu é o fim do mês menos o começo, e o que foi guardado também sai da conta."
       ],
       [
         false,
-        "O saldo subiu é a diferença entre o começo e o fim do mês. Dinheiro guardado também sai da conta, então um mês em que você economizou pode aparecer com o saldo descendo."
+        "O saldo subiu é o fim do mês menos o começo, e o que foi guardado também sai da conta."
       ]
     ],
     "dailySource": [

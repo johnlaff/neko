@@ -29,6 +29,8 @@ export interface Habit {
   readonly editedToday: boolean;
   /** Yesterday went without a change: only an edit today keeps the run. */
   readonly atRisk: boolean;
+  /** Today's edit mended yesterday: the day the repair is worth saying. */
+  readonly mended: boolean;
   /** This week, Sunday to Saturday. */
   readonly week: readonly HabitDay[];
   /** The milestone the run reached on its last edit, while that edit is today or yesterday. */
@@ -107,6 +109,7 @@ export const habit = (edits: readonly LocalDate[], today: LocalDate): Habit => {
     best,
     editedToday: edited.has(today),
     atRisk: run > 0 && !edited.has(today) && !edited.has(addDays(today, -1)),
+    mended: state.get(addDays(today, -1)) === "rest",
     week,
     milestone:
       recent && (HABIT_MILESTONES as readonly number[]).includes(runAtLastEdit)

@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
@@ -233,33 +234,47 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
             Box(Modifier.size(10.dp).border(1.5.dp, l.faint, CircleShape))
             Text("Previsão da planilha", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
+        // The month's totals share one line shape: label on the left (with what it counts under
+        // it), the figure on the right, stacked with large text and read as one by TalkBack.
         m.result?.let { r ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Saldo ${if (r < 0) "desceu" else "subiu"} no mês", color = l.muted)
-                Text(
-                    money(kotlin.math.abs(r)),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = when {
-                        r > 0 -> l.pos
-                        r < 0 -> l.neg
-                        else -> l.text
-                    },
-                )
-            }
+            LedgerLine(
+                "Saldo ${if (r < 0) "desceu" else "subiu"} no mês",
+                money(kotlin.math.abs(r)),
+                when {
+                    r > 0 -> l.pos
+                    r < 0 -> l.neg
+                    else -> l.text
+                },
+                valueStyle = MaterialTheme.typography.titleMedium,
+            )
         }
         // The method's totals, as on the site: the share kept against its goal on a month that
         // came or has something planned to keep, and what a day really cost on one that came.
         m.savedShare?.takeIf { !m.future || m.saved > 0 }?.let { share ->
+            // Reserva lines still ahead of today are to keep, not kept yet.
+            val label = if (!m.past && m.savedToDate < m.saved) Learn.TO_SAVE else Learn.SAVED
+            val amount = if (m.saved > 0) "${money(m.saved)}. " else ""
             LedgerLine(
-                Learn.SAVED,
+                label,
                 "$share%",
-                if (share >= Learn.KEPT_GOAL) l.pos else l.text,
+                // Jade for a goal met, not for one only planned.
+                if (share >= Learn.KEPT_GOAL && label == Learn.SAVED) l.pos else l.text,
                 valueStyle = MaterialTheme.typography.titleMedium,
-                caption = "${if (m.saved > 0) money(m.saved) else Learn.NOTHING_SAVED} · ${Learn.SAVE_GOAL}",
+                caption = if (m.saved > 0) "${money(m.saved)} · ${Learn.SAVE_GOAL}" else Learn.SAVE_GOAL,
+                // The share first, then what it counts, as the site's screen reader says it.
+                description = "$label: $share%. $amount${Learn.SAVE_GOAL}.",
             )
         }
         val daily = m.dailyAverage?.takeIf { m.result != null }
-        daily?.let { LedgerLine(Learn.DAILY, money(it), valueStyle = MaterialTheme.typography.titleMedium) }
+        daily?.let {
+            LedgerLine(
+                Learn.DAILY,
+                money(it),
+                valueStyle = MaterialTheme.typography.titleMedium,
+                caption = Learn.DAILY_CAPTION,
+                description = "${Learn.DAILY}: ${money(it)}. ${Learn.DAILY_CAPTION}.",
+            )
+        }
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         WinsBox(m.wins, "${capitalize(monthName(m.month))} de ${m.year}")
         TextAction(if (ledger) "Esconder extrato" else "Ver extrato", { ledger = !ledger }, open = ledger)
@@ -279,7 +294,6 @@ private fun Hero(m: MonthItem, year: List<MonthItem>, history: HistoryView?, onP
                 LedgerLine(Learn.COST, money(m.livingCost), total = true)
                 Text(Learn.COST_NOTE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
             }
-            if (daily != null) Text(Learn.DAILY_NOTE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -310,9 +324,14 @@ internal fun LedgerLine(
     valueStyle: androidx.compose.ui.text.TextStyle? = null,
     /** A smaller line under the label: what the figure counts (Guardado's amount and goal). */
     caption: String? = null,
+    /** What TalkBack says instead of label, caption and value in order. */
+    description: String? = null,
 ) {
     val l = LocalLedger.current
     val style = if (total) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
+    // Label and amount are read as one line by TalkBack, or as the description when there is one.
+    val spoken = if (description != null) Modifier.clearAndSetSemantics { contentDescription = description }
+    else Modifier.semantics(mergeDescendants = true) {}
     val name = @Composable { modifier: Modifier ->
         Column(modifier) {
             Text(label, color = if (total) l.text else l.muted, style = style)
@@ -322,13 +341,12 @@ internal fun LedgerLine(
     // The label wraps and the value never does: with large text a long label used to squeeze the
     // amount to one character per line. Past 1.5× the two stack instead.
     if (LocalDensity.current.fontScale > 1.5f) {
-        // Label and amount are read as one line by TalkBack.
-        Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+        Column(Modifier.fillMaxWidth().then(spoken)) {
             name(Modifier)
             Text(value, color = color, style = valueStyle ?: style, softWrap = false)
         }
     } else {
-        Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().then(spoken), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             name(Modifier.weight(1f))
             Text(value, color = color, style = valueStyle ?: style, softWrap = false)
         }
