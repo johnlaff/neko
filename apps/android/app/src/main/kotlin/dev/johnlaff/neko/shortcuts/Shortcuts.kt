@@ -9,11 +9,15 @@ import androidx.core.net.toUri
 import dev.johnlaff.neko.R
 import dev.johnlaff.neko.ui.Tab
 
-/** Where a launcher shortcut (res/xml/shortcuts.xml) takes the app. */
-data class Launch(val tab: Tab, val simulate: Boolean = false)
+/** Where a launcher shortcut (res/xml/shortcuts.xml) or the widget takes the app. */
+data class Launch(val tab: Tab, val simulate: Boolean = false, val queue: Boolean = false)
+
+/** The widget's "N para lançar": Hoje, with Para lançar in view. */
+const val PARA_LANCAR = "dev.johnlaff.neko.PARA_LANCAR"
 
 fun launchFor(action: String?): Launch? = when (action) {
     "dev.johnlaff.neko.SIMULAR" -> Launch(Tab.Hoje, simulate = true)
+    PARA_LANCAR -> Launch(Tab.Hoje, queue = true)
     "dev.johnlaff.neko.FATURAS" -> Launch(Tab.Faturas)
     "dev.johnlaff.neko.MES" -> Launch(Tab.Mes)
     else -> null

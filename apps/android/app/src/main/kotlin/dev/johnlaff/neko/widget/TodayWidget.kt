@@ -1,12 +1,14 @@
 package dev.johnlaff.neko.widget
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalContext
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -36,6 +38,7 @@ import androidx.glance.text.TextStyle
 import dev.johnlaff.neko.MainActivity
 import dev.johnlaff.neko.NekoApp
 import dev.johnlaff.neko.data.TodayView
+import dev.johnlaff.neko.shortcuts.PARA_LANCAR
 import dev.johnlaff.neko.ui.DarkLedger
 import dev.johnlaff.neko.ui.Format
 import dev.johnlaff.neko.ui.LightLedger
@@ -187,7 +190,10 @@ class TodayWidget : GlanceAppWidget() {
             }
             if (tall) {
                 Spacer(GlanceModifier.defaultWeight())
-                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                // With items waiting, this line opens Hoje on Para lançar; the rest opens Hoje.
+                val toQueue = Intent(LocalContext.current, MainActivity::class.java).setAction(PARA_LANCAR)
+                val row = GlanceModifier.fillMaxWidth().let { if (t.toLaunch != null) it.clickable(androidx.glance.appwidget.action.actionStartActivity(toQueue)) else it }
+                Row(row, verticalAlignment = Alignment.CenterVertically) {
                     // TalkBack reads the week so far as one sentence, not seven circles.
                     val logged = t.week.count { it == "edited" }
                     val sofar = t.week.count { it != "future" }

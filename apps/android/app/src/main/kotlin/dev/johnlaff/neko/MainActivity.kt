@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
     private var request by mutableStateOf<Launch?>(null)
     /** Bumped by each "Simular" shortcut, so a second tap opens the simulator again. */
     private var simulateAsk by mutableIntStateOf(0)
+    private var queueAsk by mutableIntStateOf(0)
     /** A month a warning on Hoje asked Mês to open; taken once. */
     private var monthAsk by mutableStateOf<MonthAsk?>(null)
 
@@ -127,6 +128,7 @@ class MainActivity : ComponentActivity() {
                     fromMia = false
                     go(r.tab)
                     if (r.simulate) simulateAsk++
+                    if (r.queue) queueAsk++
                     request = null
                 }
                 // Signing out from Ajustes and back in lands on Hoje, which is read on sign-in.
@@ -221,6 +223,7 @@ class MainActivity : ComponentActivity() {
                                         HojeScreen(
                                             today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
                                             simulateAsk = simulateAsk,
+                                            queueAsk = queueAsk,
                                             review = model::review,
                                             launcher = model.launcher,
                                             onScreen = toScreen,

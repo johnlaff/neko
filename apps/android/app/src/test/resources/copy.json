@@ -271,11 +271,11 @@
     "result": [
       [
         true,
-        "O saldo desceu é o fim do mês menos o começo, e o que foi guardado também sai da conta."
+        "O saldo desceu é a diferença entre o começo e o fim do mês, e o que foi guardado também sai da conta."
       ],
       [
         false,
-        "O saldo subiu é o fim do mês menos o começo, e o que foi guardado também sai da conta."
+        "O saldo subiu é a diferença entre o começo e o fim do mês, e o que foi guardado também sai da conta."
       ]
     ],
     "dailySource": [

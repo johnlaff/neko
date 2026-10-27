@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +27,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -37,13 +35,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
-import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.Habit
 import dev.johnlaff.neko.data.HabitDay
 
@@ -90,12 +86,8 @@ fun Streak(h: Habit) {
                     h.atRisk -> Text(Learn.HABIT_AT_RISK, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            Icon(
-                painterResource(R.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = l.faint,
-                modifier = Modifier.size(16.dp).rotate(if (open) 90f else 0f),
-            )
+            // Down to open, up to close, as every other disclosure here and on the site.
+            Disclosure(open, l.faint)
         }
         h.milestone?.let { MilestoneHaptic(it) }
         Reveal(open) {

@@ -88,7 +88,7 @@ object Learn {
 
     /** Under Ver extrato, why a month that kept money can show the balance going down. */
     fun resultNote(down: Boolean) =
-        "O saldo ${if (down) "desceu" else "subiu"} é o fim do mês menos o começo, e o que foi guardado também sai da conta."
+        "O saldo ${if (down) "desceu" else "subiu"} é a diferença entre o começo e o fim do mês, e o que foi guardado também sai da conta."
 
     /** Mês's reserve panel, word for word with the site (web/learn.ts RESERVE). */
     const val RESERVE_TITLE = "Reserva de emergência"

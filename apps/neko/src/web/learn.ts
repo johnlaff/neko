@@ -95,7 +95,7 @@ export const TOTALS = {
 
 /** Under Ver extrato, why a month that kept money can show the balance going down. */
 export const resultNote = (down: boolean) =>
-  `O saldo ${down ? "desceu" : "subiu"} é o fim do mês menos o começo, e o que foi guardado também sai da conta.`;
+  `O saldo ${down ? "desceu" : "subiu"} é a diferença entre o começo e o fim do mês, e o que foi guardado também sai da conta.`;
 
 /** Where the diário in use comes from, after its value. */
 export const dailySourceText = (source: DailySource) =>
