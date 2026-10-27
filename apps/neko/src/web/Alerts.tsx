@@ -1,4 +1,4 @@
-import type { Insight } from "@neko/engine";
+import type { HealthIssue, Insight } from "@neko/engine";
 import { Link } from "@tanstack/react-router";
 import { capitalize, money, monthName, shortDate } from "./format.ts";
 import { IconChevron } from "./icons.tsx";
@@ -71,6 +71,33 @@ export const insightView = (i: Insight) => {
     default:
       // A copy cached by an older version can carry a kind this one no longer knows.
       return null;
+  }
+};
+
+const COLUMN = { entrada: "Entrada", saida: "Saída", diario: "Diário" } as const;
+
+/** A Conferência point: what is off, in a few words, and the figures that show it. */
+export const issueText = (i: HealthIssue): { title: string; detail: string } => {
+  switch (i.kind) {
+    case "missing-date":
+      return { title: "Data vazia", detail: "A linha não tem data na planilha" };
+    case "note-mismatch":
+      return {
+        title: `${COLUMN[i.column]} não bate com a nota`,
+        detail: `Nota ${money(i.notes)} · Célula ${money(i.cell)}`,
+      };
+    case "balance-mismatch":
+      return {
+        title: "Saldo não bate",
+        detail: `Planilha ${money(i.sheet)} · Pela soma ${money(i.computed)}`,
+      };
+    case "missing-bill":
+      return {
+        title: `Fatura ${i.card} não lançada`,
+        detail: "Venceu e não tem linha na nota de Saída",
+      };
+    case "unparsed-note":
+      return { title: `${COLUMN[i.column]}: nota não entendida`, detail: `"${i.lines[0] ?? ""}"` };
   }
 };
 

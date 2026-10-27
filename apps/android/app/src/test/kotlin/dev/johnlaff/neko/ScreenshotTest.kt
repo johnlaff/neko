@@ -65,6 +65,13 @@ class ScreenshotTest {
         HojeScreen(TodayState(view.copy(habit = reached)), {}, {})
     }
 
+    /** Yesterday went without a change: the run waits for today's edit, and Hoje says so. */
+    @Test fun hojeEmRisco() = shot("hoje-em-risco-light", night = false, scrollTo = "Sequência de 12 dias") {
+        val h = view.habit!!
+        val waiting = h.copy(atRisk = true, milestone = null, record = null, week = h.week.mapIndexed { i, d -> if (i == 0) d.copy(state = "missed") else d })
+        HojeScreen(TodayState(view.copy(habit = waiting)), {}, {})
+    }
+
     /** The day the run passes its best before: the same card, a new best instead of a mark. */
     @Test fun hojeRecorde() = shot("hoje-recorde-light", night = false, scrollTo = "Planilha em dia · 11 dias") {
         val h = view.habit!!

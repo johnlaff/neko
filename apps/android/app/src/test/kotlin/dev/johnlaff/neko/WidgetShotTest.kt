@@ -62,5 +62,8 @@ class WidgetShotTest {
 
     @Test fun tall() = draw("tall-dark", DpSize(300.dp, 190.dp), true, widgetText(view))
 
+    /** Nothing waiting in Para lançar: the streak's words come back beside the marks. */
+    @Test fun tallNothingToLaunch() = draw("tall-light-empty", DpSize(300.dp, 190.dp), false, widgetText(view.copy(queue = emptyList())))
+
     @Test fun preview() = draw("preview-light", DpSize(300.dp, 190.dp), false, PREVIEW)
 }

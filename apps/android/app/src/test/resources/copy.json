@@ -1,0 +1,519 @@
+{
+  "learn": {
+    "hints": {
+      "hoje": "O arco enche com a fatura aberta. O ponto é o ritmo de hoje.",
+      "hojeMes": "O arco enche com o gasto do mês. O ponto é o previsto até ontem.",
+      "hojeCartoes": "O arco é o quanto as faturas do mês que vem já ocupam do teto.",
+      "faturas": "Compra no cartão entra na planilha só uma vez: na fatura, no vencimento.",
+      "mes": "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista."
+    },
+    "intro": "Todas as dicas do app, num lugar só.",
+    "cardsComeFrom": "Os cartões vêm das notas de Saída, abaixo da linha CARTÕES.",
+    "ideas": [
+      {
+        "title": "De onde vêm os números",
+        "body": "Tudo vem da sua planilha. O Neko lê e faz as contas, e só escreve nela quando você toca em Lançar."
+      },
+      {
+        "title": "Saída ou diário",
+        "body": "Conta com data e valor certos vai em Saída. O gasto do dia a dia é diário. No cartão, a compra entra só na fatura, no dia do vencimento."
+      },
+      {
+        "title": "Os dias à frente",
+        "body": "Deixe previsto o gasto de cada dia futuro e troque pelo real quando o dia passar. Sem isso, o saldo de lá parece maior."
+      },
+      {
+        "title": "O dia mais baixo",
+        "body": "Olhe o menor saldo daqui para frente. Se ficar abaixo de zero, você já sabe quando e quanto vai faltar."
+      },
+      {
+        "title": "Guardar primeiro",
+        "body": "No dia em que o dinheiro entra, separe o que der. O saldo cai, e tudo bem: mire guardar de 20% a 30% das entradas."
+      },
+      {
+        "title": "Reserva",
+        "body": "Antes de investir, junte de 6 a 12 meses do seu custo de vida."
+      }
+    ],
+    "habit": {
+      "rule": "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte.",
+      "atRisk": "Lance hoje para continuar",
+      "mended": "Ontem recuperado",
+      "days": {
+        "edited": "lançado",
+        "rest": "recuperado",
+        "missed": "sem lançar",
+        "today": "hoje, em aberto",
+        "future": "ainda não chegou"
+      },
+      "milestones": {
+        "7": "Uma semana inteira com a planilha em dia.",
+        "21": "Três semanas: lançar já faz parte do seu dia.",
+        "66": "66 dias é o tempo médio para um hábito se firmar.",
+        "100": "Cem dias de planilha em dia.",
+        "200": "Duzentos dias: o método virou rotina.",
+        "365": "Um ano inteiro de planilha em dia."
+      }
+    },
+    "reserve": {
+      "title": "Reserva de emergência",
+      "rule": "O método pede de 6 a 12 meses do custo de vida, guardados onde dá para sacar na hora.",
+      "empty": "Só contam como guardado as linhas de Saída sob o título Reserva nas notas."
+    },
+    "totals": {
+      "saved": "Guardado",
+      "toSave": "A guardar",
+      "goal": "Meta de 20% a 30% das entradas",
+      "daily": "Diário médio",
+      "dailyCaption": "Diário e faturas do mês, por dia",
+      "cost": "Custo de vida",
+      "costNote": "Custo de vida é o que saiu sem contar o que foi guardado. A reserva de emergência do método cobre de 6 a 12 meses desse custo."
+    }
+  },
+  "format": {
+    "money": [
+      [
+        0,
+        "R$ 0,00"
+      ],
+      [
+        123456,
+        "R$ 1.234,56"
+      ],
+      [
+        100000005,
+        "R$ 1.000.000,05"
+      ],
+      [
+        -750,
+        "−R$ 7,50"
+      ]
+    ],
+    "signed": [
+      [
+        1000,
+        "+",
+        "+R$ 10,00"
+      ],
+      [
+        -1000,
+        "−",
+        "−R$ 10,00"
+      ],
+      [
+        0,
+        "+",
+        "R$ 0,00"
+      ]
+    ],
+    "shortDate": [
+      [
+        "2026-10-13",
+        "13 out"
+      ],
+      [
+        "2027-01-01",
+        "1 jan"
+      ]
+    ],
+    "relativeDay": [
+      [
+        "2026-10-05",
+        "2026-10-05",
+        "Hoje"
+      ],
+      [
+        "2026-10-06",
+        "2026-10-05",
+        "Amanhã"
+      ],
+      [
+        "2026-10-09",
+        "2026-10-05",
+        "Sexta, 9 out"
+      ],
+      [
+        "2026-10-11",
+        "2026-10-05",
+        "Domingo, 11 out"
+      ]
+    ],
+    "days": [
+      [
+        1,
+        "1 dia"
+      ],
+      [
+        3,
+        "3 dias"
+      ]
+    ],
+    "closesIn": [
+      [
+        1,
+        "Fecha hoje"
+      ],
+      [
+        2,
+        "Fecha amanhã"
+      ],
+      [
+        4,
+        "Fecha em 3 dias"
+      ]
+    ],
+    "bankText": [
+      [
+        "PIX FEIRA DO BAIRRO",
+        "Pix Feira do Bairro"
+      ],
+      [
+        "PIX RECEBIDO ANA",
+        "Pix Recebido Ana"
+      ],
+      [
+        "PAG*LOJA 123 SÃO PAULO",
+        "Pag*loja 123 São Paulo"
+      ],
+      [
+        "Uber *Trip",
+        "Uber *Trip"
+      ]
+    ],
+    "merchantName": [
+      [
+        "DL      *UberRides",
+        "UberRides"
+      ],
+      [
+        "MP*MERCADOLIVRE",
+        "MERCADOLIVRE"
+      ],
+      [
+        "PAYPAL *NETFLIX",
+        "NETFLIX"
+      ],
+      [
+        "UBER  *TRIP",
+        "UBER *TRIP"
+      ],
+      [
+        "DL *",
+        "DL *"
+      ]
+    ]
+  },
+  "labels": {
+    "streak": [
+      [
+        0,
+        false,
+        "Comece hoje"
+      ],
+      [
+        1,
+        false,
+        "Planilha em dia · 1 dia"
+      ],
+      [
+        12,
+        false,
+        "Planilha em dia · 12 dias"
+      ],
+      [
+        12,
+        true,
+        "Sequência de 12 dias"
+      ]
+    ],
+    "milestone": [
+      [
+        7,
+        "Uma semana inteira com a planilha em dia."
+      ],
+      [
+        66,
+        "66 dias é o tempo médio para um hábito se firmar."
+      ],
+      [
+        500,
+        "500 dias de planilha em dia."
+      ]
+    ],
+    "covered": [
+      [
+        6,
+        "0,6 mês"
+      ],
+      [
+        10,
+        "1 mês"
+      ],
+      [
+        16,
+        "1,6 mês"
+      ],
+      [
+        20,
+        "2 meses"
+      ]
+    ],
+    "cost": [
+      [
+        1,
+        "Custo de vida do último mês"
+      ],
+      [
+        3,
+        "Custo de vida, média de 3 meses"
+      ]
+    ],
+    "result": [
+      [
+        true,
+        "O saldo desceu é a diferença entre o começo e o fim do mês, e o que foi guardado também sai da conta."
+      ],
+      [
+        false,
+        "O saldo subiu é a diferença entre o começo e o fim do mês, e o que foi guardado também sai da conta."
+      ]
+    ],
+    "dailySource": [
+      [
+        "settings",
+        "seu ajuste"
+      ],
+      [
+        "sheet-note",
+        "da nota na planilha"
+      ],
+      [
+        "inferred",
+        "média dos últimos 3 meses"
+      ]
+    ]
+  },
+  "insights": [
+    {
+      "insight": {
+        "kind": "goes-negative",
+        "already": false,
+        "start": "2026-11-12",
+        "deepest": -123456,
+        "deepestDate": "2026-11-20"
+      },
+      "title": "Saldo negativo a partir de 12 nov",
+      "detail": "No pior dia, 20 nov, faltam R$ 1.234,56"
+    },
+    {
+      "insight": {
+        "kind": "goes-negative",
+        "already": true,
+        "start": "2026-10-04",
+        "until": "2026-10-30",
+        "deepest": -5000,
+        "deepestDate": "2026-10-10"
+      },
+      "title": "Saldo negativo agora",
+      "detail": "Positivo de novo em 30 out. No pior dia, faltam R$ 50,00"
+    },
+    {
+      "insight": {
+        "kind": "month-negative",
+        "year": 2026,
+        "month": 11,
+        "amount": 82000
+      },
+      "title": "Novembro gasta mais do que entra",
+      "detail": "Saem R$ 820,00 a mais"
+    },
+    {
+      "insight": {
+        "kind": "income-committed",
+        "year": 2026,
+        "month": 12,
+        "share": 92,
+        "amount": 40000
+      },
+      "title": "Dezembro: 92% da renda já tem destino",
+      "detail": "Sobram R$ 400,00 para o Diário"
+    },
+    {
+      "insight": {
+        "kind": "income-committed",
+        "year": 2026,
+        "month": 12,
+        "share": 104,
+        "amount": -31000
+      },
+      "title": "Dezembro: 104% da renda já tem destino",
+      "detail": "Faltam R$ 310,00 antes do Diário"
+    },
+    {
+      "insight": {
+        "kind": "no-spending-ahead",
+        "year": 2027,
+        "month": 1
+      },
+      "title": "Janeiro ainda sem gastos previstos",
+      "detail": "Sem diário nem fatura lançados, esse saldo ainda está alto"
+    },
+    {
+      "insight": {
+        "kind": "bill-above-average",
+        "card": "Cartão Azul",
+        "over": 31040
+      },
+      "title": "Fatura acima do normal",
+      "detail": "Cartão Azul: R$ 310,40 acima da média"
+    },
+    {
+      "insight": {
+        "kind": "fixed-up",
+        "label": "luz",
+        "amount": 23000,
+        "change": 4110
+      },
+      "title": "Luz subiu",
+      "detail": "R$ 230,00 este mês, R$ 41,10 a mais"
+    },
+    {
+      "insight": {
+        "kind": "closing-estimated",
+        "card": "Cartão Verde",
+        "closing": "2026-11-03"
+      },
+      "title": "Qual dia fecha o Cartão Verde?",
+      "detail": "Estimado: fecha perto de 3 nov. Confirme em Ajustes"
+    }
+  ],
+  "issues": [
+    {
+      "issue": {
+        "kind": "missing-date",
+        "date": "2026-10-02",
+        "ref": {
+          "tab": "2026",
+          "a1": "BB15"
+        }
+      },
+      "title": "Data vazia",
+      "detail": "A linha não tem data na planilha"
+    },
+    {
+      "issue": {
+        "kind": "note-mismatch",
+        "date": "2026-10-03",
+        "ref": {
+          "tab": "2026",
+          "a1": "BB15"
+        },
+        "column": "saida",
+        "notes": 12000,
+        "cell": 12500
+      },
+      "title": "Saída não bate com a nota",
+      "detail": "Nota R$ 120,00 · Célula R$ 125,00"
+    },
+    {
+      "issue": {
+        "kind": "balance-mismatch",
+        "date": "2026-10-04",
+        "ref": {
+          "tab": "2026",
+          "a1": "BB15"
+        },
+        "sheet": 90000,
+        "computed": 90550
+      },
+      "title": "Saldo não bate",
+      "detail": "Planilha R$ 900,00 · Pela soma R$ 905,50"
+    },
+    {
+      "issue": {
+        "kind": "missing-bill",
+        "date": "2026-10-05",
+        "ref": {
+          "tab": "2026",
+          "a1": "BB15"
+        },
+        "card": "Cartão Azul"
+      },
+      "title": "Fatura Cartão Azul não lançada",
+      "detail": "Venceu e não tem linha na nota de Saída"
+    },
+    {
+      "issue": {
+        "kind": "unparsed-note",
+        "date": "2026-10-06",
+        "ref": {
+          "tab": "2026",
+          "a1": "BB15"
+        },
+        "column": "diario",
+        "lines": [
+          "padaria 12"
+        ]
+      },
+      "title": "Diário: nota não entendida",
+      "detail": "\"padaria 12\""
+    }
+  ],
+  "wins": [
+    {
+      "win": {
+        "kind": "blue",
+        "months": 1
+      },
+      "text": "Mês no azul",
+      "share": "Mês no azul"
+    },
+    {
+      "win": {
+        "kind": "blue",
+        "months": 3
+      },
+      "text": "3 meses seguidos no azul",
+      "share": "3 meses seguidos no azul"
+    },
+    {
+      "win": {
+        "kind": "kept",
+        "share": 25
+      },
+      "text": "Bateu a meta de guardar 20% das entradas",
+      "share": "Bateu a meta de guardar 20% das entradas"
+    },
+    {
+      "win": {
+        "kind": "cards-down"
+      },
+      "text": "Faturas do cartão menores que as do mês anterior",
+      "share": "Faturas do cartão menores que as do mês anterior"
+    },
+    {
+      "win": {
+        "kind": "record",
+        "share": 32
+      },
+      "text": "Recorde: guardou 32% das entradas, o maior até aqui",
+      "share": "Recorde: o mês que mais guardou até aqui"
+    },
+    {
+      "win": {
+        "kind": "reserve",
+        "months": 1
+      },
+      "text": "A reserva já cobre 1 mês de custo de vida",
+      "share": "A reserva já cobre 1 mês de custo de vida"
+    },
+    {
+      "win": {
+        "kind": "reserve",
+        "months": 4
+      },
+      "text": "A reserva já cobre 4 meses de custo de vida",
+      "share": "A reserva já cobre 4 meses de custo de vida"
+    }
+  ]
+}

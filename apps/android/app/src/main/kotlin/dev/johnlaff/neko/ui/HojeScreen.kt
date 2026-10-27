@@ -79,6 +79,9 @@ fun HojeScreen(
     simulatorOpen: Boolean = false,
     /** Grows each time the "Simular" shortcut is used: opens the simulator again. */
     simulateAsk: Int = 0,
+    /** The widget's "N para lançar" was tapped: bring Para lançar into view, then `onQueueShown`. */
+    bringQueue: Boolean = false,
+    onQueueShown: () -> Unit = {},
     /** Opens another screen: "hoje", "faturas" or "mes". */
     onScreen: (String) -> Unit = {},
     /** Opens Mês on a month ("2025-10"), or on the current one for null, as the site's alerts do. */
@@ -97,6 +100,9 @@ fun HojeScreen(
     var undo by remember { mutableStateOf<String?>(null) }
     var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
+    // A stale widget count can open Hoje with nothing waiting: the ask ends there, not on a later read.
+    val nothingWaiting = !state.loading && state.view?.let { it.queue == null } == true
+    LaunchedEffect(bringQueue, nothingWaiting) { if (bringQueue && nothingWaiting) onQueueShown() }
     LaunchedEffect(simulateAsk) {
         if (simulateAsk > 0) {
             simulating = true
@@ -132,13 +138,13 @@ fun HojeScreen(
         // What asks for a tap comes right after Lançar, as on the site: the sheet's points (none when
         // all is well), then what the bank found. What to know follows.
         if (v.issues.isNotEmpty() || hidPoints != null) item { Conference(v, review, hidPoints) { hidPoints = it } }
-        if (v.queue != null) item { ParaLancar(v, launcher) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
+        if (v.queue != null) item { ParaLancar(v, launcher, bringQueue, onQueueShown) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
         // On payday, what to save comes next: pay yourself first. The Worker sends it on its day only.
         v.saving?.let { s -> item { SaveCard(s) { onMonth(s.date.take(7)) } } }
         // A wide window's second column, as on the site: what to know. Hoje keeps three fixed panels
         // (the dial, Para lançar, the next 7 days); the rest shows only on the day it matters.
         column()
-        v.habit?.takeIf { it.milestone != null || it.record != null }?.let { h -> item { Streak(h) } }
+        v.habit?.takeIf { it.milestone != null || it.record != null || it.atRisk || it.mended }?.let { h -> item { Streak(h) } }
         if (v.previsto?.review != null && v.previsto.on) item { PrevistoReview(v.previsto, v.writing, launcher, { undoText = KEPT_TEXT; undo = NOTICE }, onAjustes) { undoText = "Diário previsto: ${money(v.previsto?.review?.real ?: 0L)} por dia"; undo = it } }
         // Over the plan, the red figure already says the bill is high: no second card (as on the site).
         val over = v.canSpend?.pace == "over"

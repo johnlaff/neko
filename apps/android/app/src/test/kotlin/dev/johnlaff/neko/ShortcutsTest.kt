@@ -12,6 +12,8 @@ class ShortcutsTest {
         assertEquals(Launch(Tab.Hoje, simulate = true), launchFor("dev.johnlaff.neko.SIMULAR"))
         assertEquals(Launch(Tab.Faturas), launchFor("dev.johnlaff.neko.FATURAS"))
         assertEquals(Launch(Tab.Mes), launchFor("dev.johnlaff.neko.MES"))
+        // The widget's "N para lançar".
+        assertEquals(Launch(Tab.Hoje, queue = true), launchFor(dev.johnlaff.neko.shortcuts.PARA_LANCAR))
     }
 
     @Test fun theLauncherIconOpensWhereTheAppWas() {

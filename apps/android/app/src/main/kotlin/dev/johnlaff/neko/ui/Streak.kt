@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +27,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -37,13 +35,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
-import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.Habit
 import dev.johnlaff.neko.data.HabitDay
 
@@ -51,15 +47,9 @@ private val LETTERS = listOf("D", "S", "T", "Q", "Q", "S", "S")
 private val NAMES = listOf("domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado")
 
 /** The marks explained once, in the marks themselves, so the row needs no memory. */
-private val LEGEND = listOf("edited" to "Lançado", "rest" to "Folga", "missed" to "Sem lançar")
+private val LEGEND = listOf("edited", "rest", "missed").map { it to Format.capitalize(Learn.HABIT_DAYS.getValue(it)) }
 
-private fun stateLabel(state: String) = when (state) {
-    "edited" -> "lançado"
-    "rest" -> "folga"
-    "today" -> "hoje, em aberto"
-    "future" -> "ainda não chegou"
-    else -> "sem lançar"
-}
+private fun stateLabel(state: String) = Learn.HABIT_DAYS[state] ?: Learn.HABIT_DAYS.getValue("missed")
 
 /**
  * The habit the method asks for, in one quiet line under Lançar, as on the site (web/Streak.tsx):
@@ -86,24 +76,23 @@ fun Streak(h: Habit) {
             Week(h.week)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(Learn.streakLabel(h.streak), style = MaterialTheme.typography.titleMedium)
+                Text(Learn.streakLabel(h.streak, h.atRisk), style = MaterialTheme.typography.titleMedium)
                 // A mark or a new best run is a word on this line, not a card of its own (as on the site).
                 when {
                     h.milestone != null -> Text(Learn.milestone(h.milestone), color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.record != null -> Text("Novo recorde", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                    h.mended -> Text(Learn.HABIT_MENDED, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.editedToday -> Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                    h.atRisk -> Text(Learn.HABIT_AT_RISK, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            Icon(
-                painterResource(R.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = l.faint,
-                modifier = Modifier.size(16.dp).rotate(if (open) 90f else 0f),
-            )
+            // Down to open, up to close, as every other disclosure here and on the site.
+            Disclosure(open, l.faint)
         }
         h.milestone?.let { MilestoneHaptic(it) }
         Reveal(open) {
-            Text(Learn.HABIT_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            // A breath under the run's line, as on the site, so the rule reads as its own paragraph.
+            Text(Learn.HABIT_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp))
             Legend()
             val extra = listOfNotNull(
                 h.lastWeek?.let { "Semana passada: $it de 7 dias lançados." },
@@ -160,7 +149,7 @@ private fun Week(week: List<HabitDay>) {
     }
 }
 
-/** One day: filled when the sheet changed, dashed on a rest day, ringed for today. */
+/** One day: filled when the sheet changed, dashed on a missed day the next one mended, ringed for today. */
 @Composable
 private fun Mark(state: String, delay: Int, pop: Boolean = true) {
     val l = LocalLedger.current

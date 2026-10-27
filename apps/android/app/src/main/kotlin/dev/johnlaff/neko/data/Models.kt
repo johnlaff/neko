@@ -156,12 +156,16 @@ data class MissingMovement(
 @Serializable
 data class Win(val kind: String, val months: Int? = null, val share: Int? = null)
 
-/** Days the sheet changed, as a streak (engine habit.ts); one missed day a week is a rest day. */
+/** Days the sheet changed, as a streak (engine habit.ts); a lone missed day the next day mends keeps it. */
 @Serializable
 data class Habit(
     val streak: Int,
     val best: Int,
     val editedToday: Boolean,
+    /** Yesterday went without a change: only an edit today keeps the run. */
+    val atRisk: Boolean = false,
+    /** Today's edit mended yesterday: the day the repair is worth saying. */
+    val mended: Boolean = false,
     /** Sunday to Saturday of this week. */
     val week: List<HabitDay>,
     val milestone: Int? = null,
