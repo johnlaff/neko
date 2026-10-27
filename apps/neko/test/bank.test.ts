@@ -91,6 +91,30 @@ describe("bank rows to the engine", () => {
     expect(lines.at(-1)).toMatchObject({ amount: 900, billMonth: "2026-11" });
   });
 
+  it("keeps a line from before the listed bill closed on that bill, though the bank has not tied it yet", () => {
+    // The bank just closed the bill due Nov 12 on Oct 29 and still lists its lines unattached.
+    const listed = {
+      ...rows,
+      txns: [
+        txn({ account_id: "cartao", date: "2026-10-20", amount: 870 }),
+        txn({ account_id: "cartao", date: "2026-10-29", amount: 400 }),
+      ],
+      bills: [
+        {
+          id: "b2",
+          account_id: "cartao",
+          due_date: "2026-11-12",
+          close_date: "2026-10-29",
+          total: 870,
+        },
+      ],
+    };
+    expect(bankInput(listed, map, cards).lines.map((l) => [l.amount, l.billMonth])).toEqual([
+      [870, "2026-11"],
+      [400, "2026-12"],
+    ]);
+  });
+
   it("drops card lines with no sheet name or no bill to land on", () => {
     expect(bankInput(rows, [], cards).lines).toEqual([]);
     expect(bankInput({ ...rows, txns: rows.txns.slice(2, 4) }, map, []).lines).toEqual([]);
