@@ -61,6 +61,8 @@ export interface BankBillRow {
   readonly id: string;
   readonly account_id: string;
   readonly due_date: string;
+  /** The day the bank closed it; older rows may not have it. */
+  readonly close_date?: string | null;
   readonly total: number;
 }
 
@@ -108,16 +110,19 @@ export const bankInput = (
   const config = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const cardAccounts = new Set(rows.accounts.filter((a) => a.type === "CREDIT").map((a) => a.id));
   const billMonth = new Map(rows.bills.map((b) => [b.id, b.due_date.slice(0, 7)]));
-  // The latest bill the bank listed, per account: a line it left off is on a later one.
-  const lastListed = new Map<string, string>();
+  // The latest bill the bank listed, per account: a line it left off is on a later one, unless it
+  // is from before that bill closed (the bank lists a bill before it ties its lines to it).
+  const lastListed = new Map<string, { month: string; close: string | null }>();
   for (const b of rows.bills) {
     const month = b.due_date.slice(0, 7);
-    if (month > (lastListed.get(b.account_id) ?? "")) lastListed.set(b.account_id, month);
+    if (month > (lastListed.get(b.account_id)?.month ?? ""))
+      lastListed.set(b.account_id, { month, close: b.close_date ?? null });
   }
-  const after = (account: string, month: string) => {
+  const after = (account: string, month: string, date: string) => {
     const last = lastListed.get(account);
-    if (!last || month > last) return month;
-    const [y = 0, m = 1] = last.split("-").map(Number);
+    if (!last || month > last.month) return month;
+    if (last.close && date < last.close) return month;
+    const [y = 0, m = 1] = last.month.split("-").map(Number);
     return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
   };
   const lines: BankCardLine[] = [];
@@ -127,7 +132,12 @@ export const bankInput = (
       const card = cardName(map, t.account_id, t.card_number);
       const days = card ? config.get(normalizeName(card)) : undefined;
       const cycle =
-        days && after(t.account_id, cycleContaining(days, localDate(t.date)).due.slice(0, 7));
+        days &&
+        after(
+          t.account_id,
+          cycleContaining(days, localDate(t.date)).due.slice(0, 7),
+          localDate(t.date),
+        );
       const month = (t.bill_id ? billMonth.get(t.bill_id) : undefined) ?? cycle;
       if (!card || !month) continue;
       lines.push({
@@ -288,7 +298,9 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
           "SELECT COALESCE(provider_id, id) AS id, status, account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",
         )
         .all<BankTxnRow>(),
-      db.prepare("SELECT id, account_id, due_date, total FROM bank_bill").all<BankBillRow>(),
+      db
+        .prepare("SELECT id, account_id, due_date, close_date, total FROM bank_bill")
+        .all<BankBillRow>(),
       loadDecided(db),
     ]);
     return {
