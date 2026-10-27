@@ -100,6 +100,9 @@ fun HojeScreen(
     var undo by remember { mutableStateOf<String?>(null) }
     var undoText by remember { mutableStateOf("Lançado na planilha") }
     Box(Modifier.fillMaxSize()) {
+    // A stale widget count can open Hoje with nothing waiting: the ask ends there, not on a later read.
+    val nothingWaiting = !state.loading && state.view?.let { it.queue == null } == true
+    LaunchedEffect(bringQueue, nothingWaiting) { if (bringQueue && nothingWaiting) onQueueShown() }
     LaunchedEffect(simulateAsk) {
         if (simulateAsk > 0) {
             simulating = true
