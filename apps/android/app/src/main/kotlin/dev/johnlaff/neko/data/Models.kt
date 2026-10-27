@@ -164,6 +164,8 @@ data class Habit(
     val editedToday: Boolean,
     /** Yesterday went without a change: only an edit today keeps the run. */
     val atRisk: Boolean = false,
+    /** Today's edit mended yesterday: the day the repair is worth saying. */
+    val mended: Boolean = false,
     /** Sunday to Saturday of this week. */
     val week: List<HabitDay>,
     val milestone: Int? = null,

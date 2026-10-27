@@ -2402,9 +2402,11 @@ button.setting.quiet:disabled {
   background: var(--text);
   border-color: var(--text);
 }
+/* Mended: it counts, so it reads closer to Lançado than to Sem lançar. */
 .week .rest .mark,
 .week-legend .rest .mark {
   border-style: dashed;
+  border-color: var(--muted);
 }
 .week .today .mark {
   border-color: var(--accent);

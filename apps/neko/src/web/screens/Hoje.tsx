@@ -279,11 +279,12 @@ const splitDays = (days: readonly UpcomingDay[]) => {
 };
 
 /**
- * The run, on Hoje only the day it reaches a mark or passes its best (and the day after), or the
- * day an edit is what keeps it: a run that can still be mended keeps people going.
+ * The run, on Hoje only the day it reaches a mark or passes its best (and the day after), the
+ * day an edit is what keeps it, and the day that edit mended it: a run that can still be mended
+ * keeps people going.
  */
 const showsStreak = (h: Habit | null | undefined): h is Habit =>
-  h != null && (h.milestone != null || h.record != null || h.atRisk === true);
+  h != null && (h.milestone != null || h.record != null || h.atRisk === true || h.mended === true);
 
 /**
  * Hoje answers the daily check-in with three fixed panels: what still fits, Para lançar and the

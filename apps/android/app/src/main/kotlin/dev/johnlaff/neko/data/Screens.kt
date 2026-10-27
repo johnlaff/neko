@@ -235,6 +235,8 @@ data class MonthItem(
     /** Saída under a "Reserva:" header, and its whole-percent share of entradas. */
     val saved: Long = 0,
     val savedShare: Int? = null,
+    /** The part of `saved` dated up to today: less than it while Reserva lines are still ahead. */
+    val savedToDate: Long = 0,
     /** Saída plus diário minus what was saved. */
     val livingCost: Long = 0,
     /** The diário médio real: what a day cost, card bills included; null on a month ahead. */

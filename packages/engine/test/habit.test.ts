@@ -100,12 +100,20 @@ describe("habit", () => {
     expect(open.atRisk).toBe(true);
     // Not mended yet: yesterday reads as missed until today's edit.
     expect(open.week.map((w) => w.state).slice(3, 5)).toEqual(["missed", "today"]);
+    expect(open.mended).toBe(false);
     const mended = habit([...range("2026-10-04", "2026-10-06"), today], today);
     expect(mended.streak).toBe(4);
     expect(mended.atRisk).toBe(false);
+    expect(mended.mended).toBe(true);
     expect(mended.week[3]?.state).toBe("rest");
-    // Yesterday logged: today is open as any day, nothing at risk.
-    expect(habit(range("2026-10-04", "2026-10-07"), today).atRisk).toBe(false);
+    // The repair is news on its day only.
+    expect(habit([...range("2026-10-04", "2026-10-06"), today], d("2026-10-09")).mended).toBe(
+      false,
+    );
+    // Yesterday logged: today is open as any day, nothing at risk and nothing mended.
+    const usual = habit(range("2026-10-04", "2026-10-07"), today);
+    expect(usual.atRisk).toBe(false);
+    expect(usual.mended).toBe(false);
   });
 
   it("mends a day across the turn of the week", () => {

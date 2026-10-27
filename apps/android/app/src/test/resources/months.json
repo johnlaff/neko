@@ -472,6 +472,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 560364,
       "dailyAverage": 9788,
       "wins": [
@@ -958,6 +959,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 621505,
       "dailyAverage": 12934,
       "wins": [
@@ -1552,6 +1554,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 651721,
       "dailyAverage": 12723,
       "wins": [
@@ -2174,6 +2177,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 678597,
       "dailyAverage": 14212,
       "wins": [
@@ -2838,6 +2842,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 653734,
       "dailyAverage": 12830,
       "wins": [
@@ -3533,6 +3538,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 634713,
       "dailyAverage": 12628,
       "wins": [
@@ -4235,6 +4241,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 683900,
       "dailyAverage": 13709,
       "wins": []
@@ -4929,6 +4936,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 624730,
       "dailyAverage": 11998,
       "wins": [
@@ -5624,6 +5632,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 627406,
       "dailyAverage": 12346,
       "wins": [
@@ -6327,6 +6336,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 619201,
       "dailyAverage": 11652,
       "wins": [
@@ -7022,6 +7032,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 671020,
       "dailyAverage": 13883,
       "wins": [
@@ -7721,6 +7732,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 642456,
       "dailyAverage": 12491,
       "wins": [
@@ -8423,6 +8435,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 580827,
       "dailyAverage": 10551,
       "wins": [
@@ -9098,6 +9111,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 614988,
       "dailyAverage": 12681,
       "wins": [
@@ -9797,6 +9811,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 554016,
       "dailyAverage": 9654,
       "wins": [
@@ -10492,6 +10507,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 614571,
       "dailyAverage": 11996,
       "wins": [
@@ -11191,6 +11207,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 579048,
       "dailyAverage": 10360,
       "wins": [
@@ -11886,6 +11903,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 659513,
       "dailyAverage": 13481,
       "wins": []
@@ -12580,6 +12598,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 611890,
       "dailyAverage": 11542,
       "wins": [
@@ -13282,6 +13301,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 576812,
       "dailyAverage": 10345,
       "wins": [
@@ -13977,6 +13997,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 80000,
       "livingCost": 665876,
       "dailyAverage": 13661,
       "wins": [
@@ -14787,6 +14808,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 0,
       "livingCost": 884551,
       "dailyAverage": 12742,
       "wins": []
@@ -15591,6 +15613,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 0,
       "livingCost": 825535,
       "dailyAverage": null,
       "wins": []
@@ -16408,6 +16431,7 @@
       ],
       "saved": 80000,
       "savedShare": 10,
+      "savedToDate": 0,
       "livingCost": 920953,
       "dailyAverage": null,
       "wins": []

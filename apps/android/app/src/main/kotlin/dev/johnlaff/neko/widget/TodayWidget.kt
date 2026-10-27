@@ -72,7 +72,7 @@ fun widgetText(v: TodayView?): WidgetText {
     }
     val bill = cs?.let { Format.money(it.accumulated) }
     val h = v?.habit
-    val streak = h?.let { dev.johnlaff.neko.ui.Learn.streakLabel(it.streak) }
+    val streak = h?.let { dev.johnlaff.neko.ui.Learn.streakLabel(it.streak, it.atRisk) }
     val week = h?.week.orEmpty().map { it.state }
     val waiting = v?.queue.orEmpty().size
     // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
@@ -188,20 +188,32 @@ class TodayWidget : GlanceAppWidget() {
             if (tall) {
                 Spacer(GlanceModifier.defaultWeight())
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    t.week.forEach { s ->
-                        // Filled when the sheet changed, hollow otherwise, ringed in jade for today.
-                        Text(
-                            if (s == "edited") "●" else "○",
-                            style = TextStyle(
-                                color = when (s) {
-                                    "edited" -> pair { it.text }
-                                    "today" -> pair { it.accent }
-                                    else -> pair { it.faint }
+                    // TalkBack reads the week so far as one sentence, not seven circles.
+                    val logged = t.week.count { it == "edited" }
+                    val sofar = t.week.count { it != "future" }
+                    Row(GlanceModifier.semantics { contentDescription = "Esta semana: $logged de $sofar dias lançados" }) {
+                        t.week.forEach { s ->
+                            // Filled when the sheet changed, a smaller dot when the next day mended it
+                            // (it counts), hollow otherwise, ringed in jade for today. Roboto has all
+                            // three, so none falls back to another font.
+                            Text(
+                                when (s) {
+                                    "edited" -> "●"
+                                    "rest" -> "•"
+                                    else -> "○"
                                 },
-                                fontSize = 11.sp,
-                            ),
-                            modifier = GlanceModifier.padding(end = 3.dp),
-                        )
+                                style = TextStyle(
+                                    color = when (s) {
+                                        "edited" -> pair { it.text }
+                                        "today" -> pair { it.accent }
+                                        "rest" -> pair { it.muted }
+                                        else -> pair { it.faint }
+                                    },
+                                    fontSize = 11.sp,
+                                ),
+                                modifier = GlanceModifier.padding(end = 3.dp),
+                            )
+                        }
                     }
                     // Items waiting take the streak's place: they are what keeps it going today.
                     if (t.toLaunch != null) {

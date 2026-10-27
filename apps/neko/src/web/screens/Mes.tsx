@@ -318,6 +318,8 @@ export const Mes = () => {
         const share =
           (m.savedShare ?? null) !== null && (idx <= nowIdx || saved > 0) ? m.savedShare : null;
         const daily = moved(m) ? (m.dailyAverage ?? null) : null;
+        // Reserva lines still ahead of today are to keep, not kept yet.
+        const savedLabel = !past && (m.savedToDate ?? saved) < saved ? TOTALS.toSave : TOTALS.saved;
         // A closed month keeps the wins its recap celebrated, for whoever looks back at it.
         const wins = past ? monthWins(p.months, m.year, m.month) : [];
         // The warnings Hoje leaves to Mês: all of them on today's month, each also on its own.
@@ -421,19 +423,37 @@ export const Mes = () => {
                     )}
                     {share != null && (
                       <p className="figure-line total-line">
-                        <span className="muted">
-                          {TOTALS.saved}
+                        {/* Read share first, then what it counts. */}
+                        <span className="sr-only">
+                          {savedLabel}: {share}%. {saved > 0 && `${money(saved)}. `}
+                          {TOTALS.goal}.
+                        </span>
+                        <span className="muted" aria-hidden="true">
+                          {savedLabel}{" "}
                           <small>
-                            {saved > 0 ? money(saved) : TOTALS.nothingSaved} · {TOTALS.goal}
+                            {saved > 0 ? `${money(saved)} · ${TOTALS.goal}` : TOTALS.goal}
                           </small>
                         </span>
-                        <strong className={share >= KEPT_GOAL ? "pos" : undefined}>{share}%</strong>
+                        {/* Jade for a goal met, not for one only planned. */}
+                        <strong
+                          className={
+                            share >= KEPT_GOAL && savedLabel === TOTALS.saved ? "pos" : undefined
+                          }
+                          aria-hidden="true"
+                        >
+                          {share}%
+                        </strong>
                       </p>
                     )}
                     {daily !== null && (
-                      <p className="figure-line">
-                        <span className="muted">{TOTALS.daily}</span>
-                        <strong>{money(daily)}</strong>
+                      <p className="figure-line total-line">
+                        <span className="sr-only">
+                          {TOTALS.daily}: {money(daily)}. {TOTALS.dailyCaption}.
+                        </span>
+                        <span className="muted" aria-hidden="true">
+                          {TOTALS.daily} <small>{TOTALS.dailyCaption}</small>
+                        </span>
+                        <strong aria-hidden="true">{money(daily)}</strong>
                       </p>
                     )}
                     <Wins wins={wins} year={m.year} month={m.month} className="month-wins" />
@@ -471,7 +491,6 @@ export const Mes = () => {
                           <p>{TOTALS.costNote}</p>
                         </>
                       )}
-                      {daily !== null && <p>{TOTALS.dailyNote}</p>}
                     </details>
                   </section>
                 ),

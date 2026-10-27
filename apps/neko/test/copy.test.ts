@@ -122,7 +122,12 @@ const contract = () => ({
     ].map((t) => [t, merchantName(t)]),
   },
   labels: {
-    streak: [0, 1, 12].map((n) => [n, streakLabel(n)]),
+    streak: [
+      [0, false],
+      [1, false],
+      [12, false],
+      [12, true],
+    ].map(([n, atRisk]) => [n, atRisk, streakLabel(n as number, atRisk as boolean)]),
     milestone: [7, 66, 500].map((m) => [m, milestoneText(m)]),
     covered: [6, 10, 16, 20].map((t) => [t, coveredLabel(t)]),
     cost: [1, 3].map((m) => [m, costLabel(m)]),
@@ -148,6 +153,7 @@ describe("copy contract", () => {
       c.learn.intro,
       c.learn.habit.rule,
       c.learn.habit.atRisk,
+      c.learn.habit.mended,
       ...Object.values(c.learn.totals),
       ...c.insights.flatMap((i) => [i.title ?? "", i.detail ?? ""]),
       ...c.issues.flatMap((i) => [i.title, i.detail]),

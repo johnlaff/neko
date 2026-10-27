@@ -332,6 +332,8 @@ export interface MonthItem {
   /** Saída under a `Reserva:` header, its share of entradas (whole %, null without income). */
   readonly saved: number;
   readonly savedShare: number | null;
+  /** The part of `saved` dated up to today: less than it while Reserva lines are still ahead. */
+  readonly savedToDate: number;
   /** Saída plus diário minus what was saved. */
   readonly livingCost: number;
   /** The diário médio real: what a day cost, card bills included; null on a month ahead. */
@@ -386,6 +388,7 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
       days: m.days,
       saved: m.saved,
       savedShare: m.savedShare,
+      savedToDate: m.savedToDate,
       livingCost: m.livingCost,
       // Missing on projections cached before it existed.
       dailyAverage: m.dailyAverage ?? null,

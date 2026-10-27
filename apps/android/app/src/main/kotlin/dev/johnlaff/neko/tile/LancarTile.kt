@@ -21,7 +21,7 @@ data class TileText(val subtitle: String?, val active: Boolean)
 
 fun tileText(v: TodayView?): TileText {
     val h = v?.habit ?: return TileText(null, true)
-    return TileText(if (h.editedToday) "Hoje já lançado" else Learn.streakLabel(h.streak), !h.editedToday)
+    return TileText(if (h.editedToday) "Hoje já lançado" else Learn.streakLabel(h.streak, h.atRisk), !h.editedToday)
 }
 
 /**

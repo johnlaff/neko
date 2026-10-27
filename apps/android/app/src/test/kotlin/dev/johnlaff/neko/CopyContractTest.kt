@@ -50,6 +50,7 @@ class CopyContractTest {
         val habit = l.obj("habit")
         assertEquals(habit.str("rule"), Learn.HABIT_RULE)
         assertEquals(habit.str("atRisk"), Learn.HABIT_AT_RISK)
+        assertEquals(habit.str("mended"), Learn.HABIT_MENDED)
         assertEquals(habit.obj("days").mapValues { it.value.s }, Learn.HABIT_DAYS)
         habit.obj("milestones").forEach { (m, text) -> assertEquals(text.s, Learn.milestone(m.toInt())) }
 
@@ -60,12 +61,12 @@ class CopyContractTest {
 
         val totals = l.obj("totals")
         assertEquals(totals.str("saved"), Learn.SAVED)
-        assertEquals(totals.str("nothingSaved"), Learn.NOTHING_SAVED)
+        assertEquals(totals.str("toSave"), Learn.TO_SAVE)
         assertEquals(totals.str("goal"), Learn.SAVE_GOAL)
         assertEquals(totals.str("daily"), Learn.DAILY)
+        assertEquals(totals.str("dailyCaption"), Learn.DAILY_CAPTION)
         assertEquals(totals.str("cost"), Learn.COST)
         assertEquals(totals.str("costNote"), Learn.COST_NOTE)
-        assertEquals(totals.str("dailyNote"), Learn.DAILY_NOTE)
     }
 
     @Test fun format() {
@@ -84,7 +85,9 @@ class CopyContractTest {
 
     @Test fun labels() {
         val l = c.obj("labels")
-        l.cases("streak").forEach { (n, want) -> assertEquals(want.s, Learn.streakLabel(n.jsonPrimitive.int)) }
+        l.cases("streak").forEach { (n, atRisk, want) ->
+            assertEquals(want.s, Learn.streakLabel(n.jsonPrimitive.int, atRisk.jsonPrimitive.boolean))
+        }
         l.cases("milestone").forEach { (m, want) -> assertEquals(want.s, Learn.milestone(m.jsonPrimitive.int)) }
         l.cases("covered").forEach { (t, want) -> assertEquals(want.s, Learn.coveredLabel(t.jsonPrimitive.int)) }
         l.cases("cost").forEach { (m, want) -> assertEquals(want.s, Learn.costLabel(m.jsonPrimitive.int)) }
