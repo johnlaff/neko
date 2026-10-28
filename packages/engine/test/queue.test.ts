@@ -109,6 +109,43 @@ describe("Para lançar: account movements", () => {
     ).toEqual([]);
   });
 
+  it("corrects a raise on the salary alone when the bank debits the deductions apart", () => {
+    // The class paid on salary day is no deduction: the raise is 1.200, not 1.200 plus the class.
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-29": {
+        entrada: cell(600000, [item(600000, "Salário", null)]),
+        saida: cell(53200, [
+          item(30000, "Previdência", "investimento"),
+          item(23200, "Aulas", "contas"),
+        ]),
+      },
+    });
+    // The pension as planned, then grown with the salary.
+    for (const pension of [-30000, -36000]) {
+      const items = queue({
+        ledger: days,
+        today: d("2026-10-30"),
+        movements: [mov("2026-10-29", 720000, "SALARIO"), mov("2026-10-29", pension, "PREV")],
+      });
+      const salary = items.find((i) => i.kind === "entrada");
+      expect(salary?.options.map((o) => o.draft)).toEqual([
+        {
+          type: "fix",
+          line: {
+            date: "2026-10-29",
+            column: "entrada",
+            section: null,
+            description: "Salário",
+            amount: 600000,
+          },
+          amount: 720000,
+          date: "2026-10-29",
+          description: "Salário",
+        },
+      ]);
+    }
+  });
+
   it("corrects a planned salary that came different, offering the deduction instead", () => {
     const days = ledger("2026-10-01", 92, 0, {
       "2026-10-29": {
