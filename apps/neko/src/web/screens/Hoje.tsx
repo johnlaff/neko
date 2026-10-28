@@ -304,7 +304,7 @@ export const Hoje = () => (
       const over = cs !== null && cs.overBy > 0;
       // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
       const month = cs?.mode === "month";
-      // With a ceiling for the cards, the dial is next month's bills on all of them.
+      // With the month's ceiling, the dial is next month's bills on all his cards and this month's Pix.
       const cards = cs?.mode === "cards";
       const inMonth = month || cards;
       // Behind the Diário, the line under the figure says by how much: the chip would repeat it.
@@ -324,7 +324,7 @@ export const Hoje = () => (
                       {month
                         ? `Diário de ${monthTitle}`
                         : cards
-                          ? `Faturas de ${billsTitle}`
+                          ? `Teto de ${monthTitle}`
                           : cs.card}
                     </h2>
                     {/* Over the plan, the figure already says so in red: the chip would repeat it. */}
@@ -377,7 +377,7 @@ export const Hoje = () => (
                       <span className="caption">
                         {over
                           ? cards
-                            ? `nas faturas de ${billsTitle}`
+                            ? "em cartões e Pix"
                             : inMonth
                               ? "neste mês"
                               : "neste ciclo"
@@ -396,6 +396,13 @@ export const Hoje = () => (
                       sem gastar e você volta ao previsto.
                     </p>
                   )}
+                  {/* The two parts of the month's spending, so the figure is never a mystery. */}
+                  {cards && (
+                    <div className="chips">
+                      <span className="chip plain">Cartões {money(cs.bills ?? 0)}</span>
+                      <span className="chip plain">Pix {money(cs.pix ?? 0)}</span>
+                    </div>
+                  )}
                   {cs.daysLeft > 1 && !cards && (
                     <div className="chips">
                       <span className="chip plain">
@@ -413,9 +420,11 @@ export const Hoje = () => (
                     </summary>
                     {cards ? (
                       <p>
-                        {money(cs.budget)} de teto para as faturas de {billsTitle} dos seus cartões
-                        menos {money(cs.accumulated)} que o banco já mostra nelas: compras, parcelas
-                        e assinaturas. O cartão e as compras de outra pessoa ficam de fora.
+                        {money(cs.budget)} de teto no mês menos {money(cs.bills ?? 0)} que o banco
+                        já mostra nas faturas de {billsTitle} dos seus cartões (compras, parcelas e
+                        assinaturas) e {money(cs.pix ?? 0)} de Pix e débito de {monthTitle} que a
+                        planilha não planejou. O cartão e as compras de outra pessoa, as contas da
+                        planilha e o que vai para a reserva ficam de fora.
                       </p>
                     ) : month ? (
                       <>

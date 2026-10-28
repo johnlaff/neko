@@ -80,9 +80,9 @@ fun widgetText(v: TodayView?): WidgetText {
     val waiting = v?.queue.orEmpty().size
     // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
     val month = cs?.mode == "month"
-    // With a ceiling for the cards, it is next month's bills on all of them against it.
+    // With the month's ceiling, it is next month's bills on all his cards and this month's Pix.
     val cards = cs?.mode == "cards"
-    val bills = cs?.let { "nas faturas de ${Format.monthName(it.due.substring(5, 7).toInt())}" } ?: ""
+    val bills = "em cartões e Pix"
     val inMonth = month || cards
     val billDetail = cs?.let { "de ${Format.money(it.budget)} ${if (month) "no mês" else if (cards) "do teto" else "do plano"}" }
     return when {
@@ -104,7 +104,7 @@ fun widgetText(v: TodayView?): WidgetText {
             billDetail,
             days,
         )
-    }.copy(streak = streak, week = week, toLaunch = if (waiting > 0) "$waiting para lançar" else null, billLabel = if (month) "Gasto no mês" else if (cards) "Faturas" else "Fatura").let { t ->
+    }.copy(streak = streak, week = week, toLaunch = if (waiting > 0) "$waiting para lançar" else null, billLabel = if (month) "Gasto no mês" else if (cards) "Cartões e Pix" else "Fatura").let { t ->
         // Ahead of the Diário previsto, the line Hoje keeps under its figure takes the bill's place.
         if (cs != null && month && cs.pace != "over" && cs.daysBehind > 0)
             t.copy(bill = Format.money(-cs.paceGap), billLabel = "Acima do previsto", billDetail = "Uns ${Format.days(cs.daysBehind)} sem gastar", billWarn = true)
@@ -114,7 +114,7 @@ fun widgetText(v: TodayView?): WidgetText {
 
 /** Invented numbers for the picker, never the owner's: anyone can browse widgets on the phone. */
 val PREVIEW = WidgetText(
-    "Ainda cabem", "R$ 1.480,00", "nas faturas de novembro", false,
+    "Ainda cabem", "R$ 1.480,00", "em cartões e Pix", false,
     "R$ 2.020,00", "de R$ 3.500,00 do teto",
     listOf(WidgetDay("Amanhã", "−R$ 120,00", false), WidgetDay("Sexta, 10 out", "+R$ 5.600,00", true)),
     "Planilha em dia · 5 dias",

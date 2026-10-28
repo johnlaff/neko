@@ -343,7 +343,7 @@ const Owed = ({ m, people }: { m: InvoiceMonthView; people: readonly string[] })
         <OwedLine key={o.person} o={o} people={people} />
       ))}
     </ul>
-    <p className="hint">Fica fora do teto das faturas. Quando pagarem, lance como Entrada.</p>
+    <p className="hint">Fica fora do teto do mês. Quando pagarem, lance como Entrada.</p>
   </section>
 );
 
