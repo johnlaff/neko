@@ -291,16 +291,22 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     const bank = bankOf(m);
 
     if (m.amount > 0) {
-      // A planned income: the salary arrives net of the deductions planned on its day.
-      const deductions = (date: LocalDate) =>
-        free.filter((f) => f.l.date === date && f.l.column === "saida");
+      // A planned income: the salary arrives net of the deductions planned on its day, or whole
+      // when the bank debits them apart (a class paid that day is no deduction): the closer one.
+      const planned = (f: (typeof free)[number]) => {
+        const cuts = free.filter((d) => d.l.date === f.l.date && d.l.column === "saida");
+        const net = f.l.amount + cuts.reduce((a, d) => a + d.l.amount, 0);
+        return Math.abs(m.amount - net) <= Math.abs(m.amount - f.l.amount)
+          ? { cuts, net }
+          : { cuts: [], net: f.l.amount };
+      };
       const found = free
         .filter(
           (f) =>
             !f.used &&
             f.l.column === "entrada" &&
             Math.abs(diffDays(f.l.date, m.date)) <= 7 &&
-            near(f.l.amount - deductions(f.l.date).reduce((a, d) => a - d.l.amount, 0), m.amount),
+            near(planned(f).net, m.amount),
         )
         .sort(
           (a, b) => Math.abs(diffDays(a.l.date, m.date)) - Math.abs(diffDays(b.l.date, m.date)),
@@ -308,9 +314,8 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
       const pick = found[0];
       if (pick) {
         pick.used = true;
-        const cuts = deductions(pick.l.date);
+        const { cuts, net } = planned(pick);
         for (const c of cuts) c.used = true;
-        const net = pick.l.amount + cuts.reduce((a, d) => a + d.l.amount, 0);
         const diff = m.amount - net;
         // Exactly the salary minus its deductions: nothing to launch.
         if (diff === 0 && pick.l.date === m.date) continue;
