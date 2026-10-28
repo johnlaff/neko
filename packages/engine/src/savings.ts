@@ -38,7 +38,7 @@ const PAYDAY_WINDOW = 35;
 const MIN_HORIZON = 30;
 
 /**
- * What the ceiling (Ajustes › Teto dos cartões) still lets the bills ahead take. For someone who
+ * What the ceiling (Ajustes › Teto do mês) still lets the bills and Pix ahead take. For someone who
  * spends on cards the method's diário is the bills, and the ceiling is the owner's own plan for
  * them: from next month on, every month whose own bills on the sheet are under it will still take
  * the rest, so each balance from that month's first day on is that much lower than the sheet says.

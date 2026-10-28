@@ -31,7 +31,7 @@ import androidx.core.content.edit
 object Learn {
     const val HOJE = "O arco enche com a fatura aberta. O ponto é o ritmo de hoje."
     const val HOJE_MES = "O arco enche com o gasto do mês. O ponto é o previsto até ontem."
-    const val HOJE_CARTOES = "O arco é o quanto as faturas do mês que vem já ocupam do teto."
+    const val HOJE_CARTOES = "O arco é o quanto os cartões e o Pix do mês já ocupam do teto."
     const val FATURAS = "Compra no cartão entra na planilha só uma vez: na fatura, no vencimento."
     const val MES = "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista."
 
