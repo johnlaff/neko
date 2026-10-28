@@ -185,6 +185,29 @@ describe("Para lançar: account movements", () => {
     ]);
   });
 
+  it("does not take a planned bill for a payment the sheet already names as something else", () => {
+    // The same person gets a ride paid each month; a bill of near value is planned that week.
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-02": { saida: cell(8000, [item(8000, "Carona", null)]) },
+      "2026-11-02": { saida: cell(6528, [item(6528, "Fatura Telefone", "contas")]) },
+      "2026-10-04": { saida: cell(7328, [item(7328, "Telefone", "contas")]) },
+    });
+    const items = queue({
+      ledger: days,
+      today: d("2026-10-28"),
+      movements: [
+        mov("2026-10-02", -8000, "Pix enviado Fulano de Tal"),
+        mov("2026-10-04", -7328, "Pagamento com Pix OPERADORA TELEFONE S.A."),
+        mov("2026-10-27", -8000, "Pix enviado Fulano de Tal"),
+        mov("2026-10-28", -7300, "Pagamento com Pix OPERADORA TELEFONE S.A."),
+      ],
+    });
+    expect(items.map((i) => [i.date, i.kind, i.options[0]?.draft])).toMatchObject([
+      ["2026-10-27", "diario", { type: "new", description: "Carona" }],
+      ["2026-10-28", "conta", { type: "fix", description: "Fatura Telefone" }],
+    ]);
+  });
+
   it("asks which line when two planned ones fit the same", () => {
     const days = ledger("2026-10-01", 92, 0, {
       "2026-10-10": {

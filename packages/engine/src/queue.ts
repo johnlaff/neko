@@ -179,6 +179,18 @@ const isCardSection = (s: string | null) =>
 const near = (a: number, b: number) =>
   Math.abs(a - b) <= NEAR_SHARE * Math.max(Math.abs(a), Math.abs(b));
 
+/** Whether two names share a word of three letters or more: "Vivo" and "Fatura Vivo" do. */
+const sharesWord = (a: string, b: string) => {
+  const words = new Set(
+    originKey(a)
+      .split(" ")
+      .filter((w) => w.length >= 3),
+  );
+  return originKey(b)
+    .split(" ")
+    .some((w) => w.length >= 3 && words.has(w));
+};
+
 const ref = (l: SheetLine): LineRef => ({
   date: l.date,
   column: l.column,
@@ -358,13 +370,16 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
       });
       continue;
     }
-    // A planned bill or payment, near in value and day: the planned line is corrected.
+    // A planned bill or payment, near in value and day: the planned line is corrected. Not one
+    // whose name has nothing in common with what the sheet already calls this origin.
+    const known = names.get(originKey(m.description));
     const found = free
       .filter(
         (f) =>
           !f.used &&
           f.l.column === "saida" &&
           f.l.section !== "reserva" &&
+          (known === undefined || sharesWord(known, f.l.description)) &&
           Math.abs(diffDays(f.l.date, m.date)) <= 7 &&
           near(f.l.amount, m.amount),
       )
