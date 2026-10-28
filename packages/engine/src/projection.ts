@@ -17,7 +17,7 @@ import type { CellRef, Ledger, NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, divFloor, mul, sub, ZERO } from "./money.ts";
 import { type MonthRecap, monthRecap } from "./recap.ts";
 import { type Reserve, reserve, type YearTotals, yearTotals } from "./reserve.ts";
-import { type Saving, saveable } from "./savings.ts";
+import { ceilingHeld, type Saving, saveable } from "./savings.ts";
 import { type DayMove, type ThermoDay, thermometer } from "./thermometer.ts";
 
 export interface Settings {
@@ -787,6 +787,20 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
 
   const unplanned = firstUnplannedMonth(months, today);
   const plannedUntil = unplanned && ymd(unplanned.year, unplanned.month, 1);
+  const held =
+    settings.cycleBudget === null
+      ? () => ZERO
+      : ceilingHeld(
+          months.map((m) => ({
+            month: `${m.year}-${String(m.month).padStart(2, "0")}`,
+            amount: add(
+              ZERO,
+              ...m.outflows.filter((o) => o.kind === "card" && !o.others).map((o) => o.amount),
+            ),
+          })),
+          today,
+          settings.cycleBudget,
+        );
 
   const view: Omit<Projection, "insights"> = {
     today,
@@ -816,13 +830,14 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     health: [...sheetHealth(ledger), ...missingBills(ledger, settings.cards, today)].sort((a, b) =>
       a.date.localeCompare(b.date),
     ),
-    // Past a month with no spending on the sheet the balances are too rosy to save from.
+    // Past a month with no spending on the sheet the balances are too rosy to save from, and the
+    // bills ahead still take what the ceiling lets them.
     saving: saveable(
       ledger
         .filter((row) => row.date >= today && (plannedUntil === null || row.date < plannedUntil))
         .map((row) => ({
           date: row.date,
-          balance: sheetBalance(row.date),
+          balance: sub(sheetBalance(row.date), held(row.date)),
           income: row.entrada.amount,
         })),
     ),
