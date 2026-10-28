@@ -7,7 +7,7 @@ import type { DailySource } from "../shared/types.ts";
 export const HINTS = {
   hoje: "O arco enche com a fatura aberta. O ponto é o ritmo de hoje.",
   hojeMes: "O arco enche com o gasto do mês. O ponto é o previsto até ontem.",
-  hojeCartoes: "O arco é o quanto as faturas do mês que vem já ocupam do teto.",
+  hojeCartoes: "O arco é o quanto os cartões e o Pix do mês já ocupam do teto.",
   faturas: "Compra no cartão entra na planilha só uma vez: na fatura, no vencimento.",
   mes: "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista.",
 } as const;

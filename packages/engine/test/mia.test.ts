@@ -131,20 +131,22 @@ describe("mia tools: the engine computes, the model only points", () => {
     expect(out.cartao_principal).not.toHaveProperty("cabe_por_dia");
   });
 
-  it("knows the cards' ceiling: what still fits on next month's bills", () => {
+  it("knows the month's ceiling: what still fits for next month's bills and this month's Pix", () => {
     const capped = project(days, localDate("2026-10-08"), {
       dailyForecast: cents(50_00),
       usualCard: "Visa",
       cycleBudget: cents(2_000_00),
       cardsSpent: cents(1_200_00),
+      pixSpent: cents(300_00),
       cards: [visa],
       othersCards: [],
     });
     const out = runMiaTool(capped, "hoje", {}, refBook()) as Record<string, unknown>;
-    expect(out.teto_dos_cartoes).toMatchObject({
-      ainda_cabem: { cents: 800_00 },
+    expect(out.teto_do_mes).toMatchObject({
+      ainda_cabem: { cents: 500_00 },
       teto: { cents: 2_000_00 },
       nas_faturas: { cents: 1_200_00 },
+      pix_do_mes: { cents: 300_00 },
     });
   });
 

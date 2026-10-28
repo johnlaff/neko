@@ -151,6 +151,15 @@ class ScreenshotTest {
         HojeScreen(TodayState(view.copy(canSpend = cycle, previsto = null)), {}, {})
     }
 
+    @Test fun tetoHojeLight() = shot("teto-hoje-light", night = false) {
+        // The month's ceiling: next month's bills and this month's Pix under it.
+        val teto = view.canSpend!!.copy(
+            mode = "cards", pace = "on-pace", budget = 250_000, budgetSource = "configured",
+            accumulated = 60_000, bills = 45_000, pix = 15_000, left = 190_000, overBy = 0, used = 0, due = "2026-11-30",
+        )
+        HojeScreen(TodayState(view.copy(canSpend = teto, previsto = null)), {}, {})
+    }
+
     @Test fun proximosDark() = shot("proximos-dark", night = true, scrollTo = "Próximos 7 dias") {
         HojeScreen(TodayState(view), {}, {})
     }

@@ -55,7 +55,7 @@ describe("reminders", () => {
     expect(withHabit({ milestone: null, record: null, editedToday: false })).not.toMatch(/Ontem/);
   });
 
-  it("morning: with a ceiling for the bills, what still fits on next month's and the mark already used", () => {
+  it("morning: with the month's ceiling, what still fits for cards and Pix and the mark already used", () => {
     const cards = (accumulated: number, used: number, left: number, overBy = 0) =>
       morningMessage(
         response({
@@ -75,15 +75,13 @@ describe("reminders", () => {
         } as never),
       );
     expect(cards(1000_00, 0, 2500_00)).toMatchObject({
-      title: "Ainda cabem R$ 2.500,00 nas faturas de novembro",
+      title: "Ainda cabem R$ 2.500,00 no teto do mês",
       body: "Teto de R$ 3.500,00.",
     });
     expect(cards(2700_00, 75, 800_00)?.body).toBe("Você já usou 75% do teto de R$ 3.500,00.");
     expect(cards(1800_00, 50, 1700_00)?.body).toMatch(/Você já usou metade do teto/);
-    expect(cards(3500_00, 100, 0)?.title).toBe("As faturas de novembro chegaram ao teto");
-    expect(cards(3600_00, 100, 0, 100_00)?.title).toBe(
-      "As faturas de novembro passaram R$ 100,00 do teto",
-    );
+    expect(cards(3500_00, 100, 0)?.title).toBe("Cartões e Pix chegaram ao teto");
+    expect(cards(3600_00, 100, 0, 100_00)?.title).toBe("Cartões e Pix passaram R$ 100,00 do teto");
   });
 
   it("morning: a card bill due today or in two days earns a line, the only warning before a late fee", () => {

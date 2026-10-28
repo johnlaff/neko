@@ -428,9 +428,7 @@ test("keys switch screens and months, but a calendar arrow stays in the calendar
   await expect(page).toHaveURL(/\/ajustes$/);
 });
 
-test("with a ceiling for the bills, Hoje shows what still fits on next month's", async ({
-  page,
-}) => {
+test("with the month's ceiling, Hoje shows what still fits for cards and Pix", async ({ page }) => {
   const data = JSON.parse(projection);
   data.previsto.on = false;
   data.projection.canSpend = {
@@ -439,8 +437,10 @@ test("with a ceiling for the bills, Hoje shows what still fits on next month's",
     card: "",
     budget: 250_000,
     budgetSource: "configured",
-    // Next month's bills already hold R$ 600 of a R$ 2.500 ceiling, as the engine puts it.
+    // Next month's bills and this month's Pix already hold R$ 600 of a R$ 2.500 ceiling.
     accumulated: 60_000,
+    bills: 45_000,
+    pix: 15_000,
     daysLeft: 27,
     perDay: 7_037,
     closing: "2026-10-31",
@@ -454,11 +454,13 @@ test("with a ceiling for the bills, Hoje shows what still fits on next month's",
     used: 0,
   };
   const errors = await open(page, "/", JSON.stringify(data));
-  await expect(page.getByRole("heading", { name: "Faturas de novembro" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Teto de outubro" })).toBeVisible();
   await expect(page.getByText("Ainda cabem")).toBeVisible();
   await expect(page.getByText("Dentro do teto")).toBeVisible();
+  await expect(page.getByText("Cartões R$ 450,00")).toBeVisible();
+  await expect(page.getByText("Pix R$ 150,00")).toBeVisible();
   await page.getByText("Como calculei").click();
-  await expect(page.getByText(/2\.500,00 de teto para as faturas de novembro/)).toBeVisible();
+  await expect(page.getByText(/2\.500,00 de teto no mês menos R\$\s450,00/)).toBeVisible();
   await page.screenshot({ path: "test-results/teto-cartoes.png", fullPage: true });
   expect(errors).toEqual([]);
 });
