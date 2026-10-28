@@ -100,7 +100,7 @@ const samePurchase = (a: BankCardLine, b: BankCardLine): boolean => {
  * A parcel already known on the same bill reads as the same one; on another bill it is another
  * purchase with the same text.
  */
-const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
+export const withFutureParcels = (lines: readonly BankCardLine[]): BankCardLine[] => {
   const out = [...lines];
   // The latest parcel first: the first one carries the bank's rounding, the later ones don't.
   const latestFirst = [...lines].sort((a, b) => (b.installment ?? 0) - (a.installment ?? 0));

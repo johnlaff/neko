@@ -14,6 +14,7 @@ import {
   type InstallmentSimulation,
   type InvoiceCard,
   type LocalDate,
+  markOf,
   monthWins,
   normalizeName,
   type Outflow,
@@ -22,7 +23,6 @@ import {
   outflowTrend,
   owedOnBills,
   ownerKey,
-  ownerOf,
   type Reserve,
   type Saving,
   simulateInstallments,
@@ -153,15 +153,19 @@ export interface InvoicesView {
 }
 
 /** A bank card line for the screen: no card name (the row has it), no bill month (the month has it). */
-const lineView = (l: BillCheck["lines"][number], owners: readonly OwnerMark[]): BankLineView => ({
-  description: l.description,
-  amount: l.amount,
-  date: l.date ?? null,
-  installment: l.installment,
-  installments: l.installments,
-  key: ownerKey(l),
-  person: ownerOf(l, owners),
-});
+const lineView = (l: BillCheck["lines"][number], owners: readonly OwnerMark[]): BankLineView => {
+  // A later parcel answers to the mark made on its plan, so a change from here edits that mark.
+  const mark = markOf(l, owners);
+  return {
+    description: l.description,
+    amount: l.amount,
+    date: l.date ?? null,
+    installment: l.installment,
+    installments: l.installments,
+    key: mark?.key ?? ownerKey(l),
+    person: mark?.person ?? null,
+  };
+};
 
 export const invoicesView = (r: ProjectionResponse): InvoicesView => {
   const p = r.projection;
@@ -286,7 +290,10 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
           items: o.items.map((i) => ({
             ...i,
             date: i.date ?? null,
-            key: ownerKey({ ...i, billMonth: m.month }) ?? "",
+            key:
+              markOf({ ...i, billMonth: m.month }, owners)?.key ??
+              ownerKey({ ...i, billMonth: m.month }) ??
+              "",
             due: mine.find((c) => normalizeName(c.card) === normalizeName(i.card))?.due ?? null,
           })),
         })),

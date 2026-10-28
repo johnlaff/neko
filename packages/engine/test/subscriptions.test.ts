@@ -147,4 +147,33 @@ describe("cardsBillSpend", () => {
     ];
     expect(cardsBillSpend(lines, "2026-11", ["Cartão Verde"])).toBe(353_90);
   });
+
+  it("counts the parcels the bank lists only when the bill closes", () => {
+    // Parcel 4/12 is on October's bill; 5/12 is owed on November's before the bank lists it.
+    const lines = [
+      line("2026-07-03", "LOJA DE MOVEIS", 88_02, {
+        installment: 4,
+        installments: 12,
+        billMonth: "2026-10",
+      }),
+      line("2026-10-06", "PADARIA", 30_00, { billMonth: "2026-11" }),
+    ];
+    expect(cardsBillSpend(lines, "2026-11", [])).toBe(118_02);
+  });
+
+  it("does not count a parcel twice once the bank lists it", () => {
+    const lines = [
+      line("2026-07-03", "LOJA DE MOVEIS", 88_02, {
+        installment: 4,
+        installments: 12,
+        billMonth: "2026-10",
+      }),
+      line("2026-07-03", "LOJA DE MOVEIS", 88_02, {
+        installment: 5,
+        installments: 12,
+        billMonth: "2026-11",
+      }),
+    ];
+    expect(cardsBillSpend(lines, "2026-11", [])).toBe(88_02);
+  });
 });

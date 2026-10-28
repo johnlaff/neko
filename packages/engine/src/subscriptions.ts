@@ -1,4 +1,4 @@
-import { type BankCardLine, isCardPayment } from "./bank.ts";
+import { type BankCardLine, isCardPayment, withFutureParcels } from "./bank.ts";
 import { normalizeName } from "./cards.ts";
 import { diffDays, type LocalDate } from "./date.ts";
 import { add, type Cents, cents, ZERO } from "./money.ts";
@@ -101,8 +101,9 @@ export const subscriptions = (
 
 /**
  * What the bank already puts on the owner's bills due in a month (specs/006-sobrar), for the
- * ceiling: purchases, parcels and subscriptions alike, as the bills will show them. Card payments,
- * someone else's cards and the purchases marked as someone else's (`marks`) stay out.
+ * ceiling: purchases, parcels and subscriptions alike, as the bills will show them, with the parcels
+ * of earlier purchases the bank lists only at closing. Card payments, someone else's cards and the
+ * purchases marked as someone else's (`marks`) stay out.
  */
 export const cardsBillSpend = (
   lines: readonly BankCardLine[],
@@ -112,7 +113,7 @@ export const cardsBillSpend = (
 ): Cents => {
   const others = new Set(othersCards.map(normalizeName));
   let total = 0;
-  for (const l of lines) {
+  for (const l of withFutureParcels(lines)) {
     if (
       l.billMonth !== billMonth ||
       others.has(normalizeName(l.card)) ||

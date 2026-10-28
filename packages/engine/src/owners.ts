@@ -35,12 +35,31 @@ export const ownerKey = (l: BankCardLine): string | null => {
   return l.date ? `${head}|${l.date}` : null;
 };
 
-/** Who the line belongs to, as the owner marked it; null for the owner's own. */
-export const ownerOf = (l: BankCardLine, marks: readonly OwnerMark[]): string | null => {
-  if (marks.length === 0) return null;
-  const key = ownerKey(l);
-  return (key && marks.find((m) => m.key === key)?.person) || null;
+/**
+ * The mark a line falls under; null for the owner's own. The bank puts a plan's rounding on its
+ * first parcel (238,77, then 238,71), so a parcel also follows a mark of its plan within a cent per
+ * parcel, as the bills tell two parcels of one purchase apart.
+ */
+export const markOf = (l: BankCardLine, marks: readonly OwnerMark[]): OwnerMark | null => {
+  const key = marks.length === 0 ? null : ownerKey(l);
+  if (!key) return null;
+  const exact = marks.find((m) => m.key === key);
+  const count = l.installments ?? 1;
+  if (exact || count <= 1) return exact ?? null;
+  const [card, store, , times] = key.split("|");
+  return (
+    marks.find((m) => {
+      const [c, s, amount, x] = m.key.split("|");
+      return (
+        c === card && s === store && x === times && Math.abs(Number(amount) - l.amount) <= count
+      );
+    }) ?? null
+  );
 };
+
+/** Who the line belongs to, as the owner marked it; null for the owner's own. */
+export const ownerOf = (l: BankCardLine, marks: readonly OwnerMark[]): string | null =>
+  markOf(l, marks)?.person ?? null;
 
 /** One of someone else's purchases on a bill: where it is and what is still to come of it. */
 export interface OwedItem {
