@@ -222,13 +222,15 @@ export const runMiaTool = (p: Projection, name: string, input: unknown, book: Re
                 dias_ate_o_fim_do_mes: cs.daysLeft,
               }
             : null,
-        // With a ceiling for the cards: next month's bills on all the owner's cards against it.
-        teto_dos_cartoes:
+        // With the month's ceiling: next month's bills on all the owner's cards and this month's
+        // Pix the sheet did not plan, against it.
+        teto_do_mes:
           cs?.mode === "cards"
             ? {
-                ainda_cabem: today(cs.left, "Ainda cabem nas faturas", "total"),
-                teto: today(cs.budget, "Teto dos cartões no mês", "total"),
-                nas_faturas: today(cs.accumulated, "Já nas faturas do mês que vem", "fatura"),
+                ainda_cabem: today(cs.left, "Ainda cabem no teto do mês", "total"),
+                teto: today(cs.budget, "Teto do mês, cartões e Pix", "total"),
+                nas_faturas: today(cs.bills ?? ZERO, "Já nas faturas do mês que vem", "fatura"),
+                pix_do_mes: today(cs.pix ?? ZERO, "Pix do mês fora da planilha", "total"),
                 passou_do_teto:
                   cs.overBy > 0 ? today(cs.overBy, "Passou do teto", "diferenca") : null,
                 vence_ate: cs.due,

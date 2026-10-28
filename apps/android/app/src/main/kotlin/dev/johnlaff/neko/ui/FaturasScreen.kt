@@ -338,7 +338,7 @@ private fun OwedPanel(m: InvoiceMonth, owners: Owners) {
             Text("Faturas de ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
         m.owed.forEach { o -> key(o.person) { OwedLine(o, owners) } }
-        Text("Fica fora do teto das faturas. Quando pagarem, lance como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        Text("Fica fora do teto do mês. Quando pagarem, lance como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
     }
 }
 

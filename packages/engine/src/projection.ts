@@ -26,9 +26,9 @@ export interface Settings {
   /** Card whose cycle sets the pace in "Ainda cabem". Null: the card with the largest bills. */
   readonly usualCard: string | null;
   /**
-   * The ceiling for the owner's bills due next month (all his cards, not someone else's). With the
-   * bank (`cardsSpent`) Hoje shows what still fits on those bills; without it, the usual card's
-   * cycle. Null: diário × days in the cycle.
+   * The month's ceiling: the owner's bills due next month (all his cards, not someone else's) and
+   * this month's Pix the sheet did not plan. With the bank (`cardsSpent`, `pixSpent`) Hoje shows
+   * what still fits; without it, the usual card's cycle. Null: diário × days in the cycle.
    */
   readonly cycleBudget: Cents | null;
   /**
@@ -36,6 +36,8 @@ export interface Settings {
    * subscriptions (`cardsBillSpend`). Null without a bank.
    */
   readonly cardsSpent?: Cents | null;
+  /** Pix, debit and cash this month that nothing in the sheet planned (`variableSpend`). */
+  readonly pixSpent?: Cents | null;
   readonly cards: readonly CardConfig[];
   /** Cards someone else pays (e.g. a partner's card): left out of your spending pace. */
   readonly othersCards: readonly string[];
@@ -97,6 +99,9 @@ export interface CanSpend {
   readonly daysBehind: number;
   /** `cards`: the last mark of the ceiling the month reached, for the 50/75/100% warnings. */
   readonly used?: 0 | 50 | 75 | 100;
+  /** `cards`: `accumulated` in its two parts, next month's bills and this month's Pix. */
+  readonly bills?: Cents;
+  readonly pix?: Cents;
 }
 
 /** The last of 50%, 75% and 100% of the ceiling that the spending reached; 0 below half. */
@@ -546,13 +551,14 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       daysBehind: paceGap < 0 ? Math.ceil(-paceGap / previsto.value) : 0,
     };
   } else if (settings.cycleBudget !== null && settings.cardsSpent != null) {
-    // Next month's bills on all the owner's cards: what the bank already put on them against the
-    // ceiling. Parcels and subscriptions sit on a bill from the start, so there is no even pace:
-    // the dot stands where the bills are.
+    // Next month's bills on all the owner's cards and this month's unplanned Pix: what the bank
+    // already shows against the ceiling. Parcels and subscriptions sit on a bill from the start, so
+    // there is no even pace: the dot stands where the spending is.
     const { year, month, day } = parts(today);
     const monthDays = daysInMonth(year, month);
     const budget = settings.cycleBudget;
-    const spent = settings.cardsSpent;
+    const pix = settings.pixSpent ?? ZERO;
+    const spent = add(settings.cardsSpent, pix);
     const daysLeft = monthDays - day + 1;
     const closing = ymd(year, month, monthDays);
     const next = parts(addDays(closing, 1));
@@ -571,6 +577,8 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       paceGap: ZERO,
       daysBehind: 0,
       used: ceilingMark(spent, budget),
+      bills: settings.cardsSpent,
+      pix,
     };
   } else if (usualView) {
     const cycleDays = diffDays(usualView.cycle.start, usualView.cycle.closing);

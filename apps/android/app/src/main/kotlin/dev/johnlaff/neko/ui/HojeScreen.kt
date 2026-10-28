@@ -175,7 +175,7 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
     val over = cs.pace == "over"
     // With the Diário previsto on, the dial is the month's: cards and Pix against the Diário.
     val month = cs.mode == "month"
-    // With a ceiling for the cards, the dial is next month's bills on all of them.
+    // With the month's ceiling, the dial is next month's bills on all his cards and this month's Pix.
     val cards = cs.mode == "cards"
     val inMonth = month || cards
     // Behind the Diário, the line under the figure says by how much: the chip would repeat it.
@@ -184,7 +184,7 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
     Panel {
         // Over the plan, the figure already says so in red: the chip would repeat it.
         val monthTitle = Format.monthName(v.today.substring(5, 7).toInt())
-        PanelHead(if (month) "Diário de $monthTitle" else if (cards) "Faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())}" else cs.card) {
+        PanelHead(if (month) "Diário de $monthTitle" else if (cards) "Teto de $monthTitle" else cs.card) {
             when {
                 over || behind -> Unit
                 cards && cs.used == 100 -> Chip("No teto", ChipTone.Warn)
@@ -222,7 +222,7 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
                 BigMoney(if (over) cs.overBy else cs.left, if (over) l.neg else l.text)
                 Text(
                     when {
-                        over -> if (cards) "nas faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())}" else if (inMonth) "neste mês" else "neste ciclo"
+                        over -> if (cards) "em cartões e Pix" else if (inMonth) "neste mês" else "neste ciclo"
                         cards -> "de ${money(cs.budget)} de teto"
                         month -> "de ${money(cs.budget)} no mês"
                         else -> "de ${money(cs.budget)} no ciclo"
@@ -241,6 +241,12 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
+        // The two parts of the month's spending, so the figure is never a mystery.
+        if (cards)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
+                Chip("Cartões ${money(cs.bills)}", ChipTone.Plain)
+                Chip("Pix ${money(cs.pix)}", ChipTone.Plain)
+            }
         // Under the figure, centered with it, as on the site.
         if (cs.daysLeft > 1 && !cards)
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -262,9 +268,12 @@ private fun Hero(v: TodayView, onUse: (String) -> Unit) {
 private fun Formula(cs: CanSpend, v: TodayView) {
     val l = LocalLedger.current
     if (cs.mode == "cards") {
+        val bills = Format.monthName(cs.due.substring(5, 7).toInt())
+        val month = Format.monthName(v.today.substring(5, 7).toInt())
         Text(
-            "${money(cs.budget)} de teto para as faturas de ${Format.monthName(cs.due.substring(5, 7).toInt())} dos seus cartões " +
-                "menos ${money(cs.accumulated)} que o banco já mostra nelas: compras, parcelas e assinaturas. O cartão e as compras de outra pessoa ficam de fora.",
+            "${money(cs.budget)} de teto no mês menos ${money(cs.bills)} que o banco já mostra nas faturas de $bills dos seus cartões " +
+                "(compras, parcelas e assinaturas) e ${money(cs.pix)} de Pix e débito de $month que a planilha não planejou. " +
+                "O cartão e as compras de outra pessoa, as contas da planilha e o que vai para a reserva ficam de fora.",
             color = l.muted,
         )
         return
