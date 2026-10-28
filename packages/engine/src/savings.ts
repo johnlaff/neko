@@ -1,5 +1,5 @@
-import type { LocalDate } from "./date.ts";
-import { type Cents, cents, sub } from "./money.ts";
+import { addDays, daysInMonth, type LocalDate, parts, ymd } from "./date.ts";
+import { add, type Cents, cents, sub, ZERO } from "./money.ts";
 
 /**
  * "Quanto dá para guardar": the method's advice when the horizon is green (aulas/03 …
@@ -36,6 +36,25 @@ const MIN_AMOUNT = 100_00;
 const PAYDAY_WINDOW = 35;
 /** Without at least this many days after the payday, the lowest point is a guess. */
 const MIN_HORIZON = 30;
+
+/**
+ * What the ceiling (Ajustes › Teto dos cartões) still lets the bills ahead take. For someone who
+ * spends on cards the method's diário is the bills, and the ceiling is the owner's own plan for
+ * them: from next month on, every month whose own bills on the sheet are under it will still take
+ * the rest, so each balance from that month's first day on is that much lower than the sheet says.
+ */
+export const ceilingHeld = (
+  ownBills: readonly { readonly month: string; readonly amount: Cents }[],
+  today: LocalDate,
+  budget: Cents,
+): ((date: LocalDate) => Cents) => {
+  const { year, month } = parts(today);
+  const next = addDays(ymd(year, month, daysInMonth(year, month)), 1).slice(0, 7);
+  const gaps = ownBills
+    .filter((b) => b.month >= next && b.amount < budget)
+    .map((b) => ({ month: b.month, gap: sub(budget, b.amount) }));
+  return (date) => add(ZERO, ...gaps.filter((g) => g.month <= date.slice(0, 7)).map((g) => g.gap));
+};
 
 export const saveable = (days: readonly SaveDay[]): Saving | null => {
   let at = -1;
