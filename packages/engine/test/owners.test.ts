@@ -4,6 +4,7 @@ import {
   cardsBillSpend,
   cents,
   localDate,
+  markOf,
   owedOnBills,
   ownerKey,
   ownerOf,
@@ -88,5 +89,48 @@ describe("owedOnBills", () => {
   it("leaves what is someone else's out of the ceiling", () => {
     expect(cardsBillSpend(lines, "2026-11", [], marks)).toBe(30_00);
     expect(cardsBillSpend(lines, "2026-11", [])).toBe(260_00);
+  });
+});
+
+describe("markOf", () => {
+  // The first parcel carries the bank's rounding: 150,07, then 150,01 on every later bill.
+  const first = line("2026-09-25", "ESTUDIO 3D 01/12", 150_07, {
+    installment: 1,
+    installments: 12,
+    billMonth: "2026-11",
+  });
+  const later = line("2026-09-25", "ESTUDIO 3D 02/12", 150_01, {
+    installment: 2,
+    installments: 12,
+    billMonth: "2026-12",
+  });
+  const lia = [{ key: ownerKey(first) ?? "", person: "Lia" }];
+
+  it("follows a plan marked on its first parcel to the later ones", () => {
+    expect(markOf(later, lia)).toEqual(lia[0]);
+    expect(ownerOf(later, lia)).toBe("Lia");
+    expect(cardsBillSpend([first, later], "2026-12", [], lia)).toBe(0);
+  });
+
+  it("keeps another plan of the same store apart", () => {
+    const other = line("2026-09-25", "ESTUDIO 3D 02/12", 99_90, {
+      installment: 2,
+      installments: 12,
+      billMonth: "2026-12",
+    });
+    const sixTimes = line("2026-09-25", "ESTUDIO 3D 02/06", 150_01, {
+      installment: 2,
+      installments: 6,
+      billMonth: "2026-12",
+    });
+    expect(markOf(other, lia)).toBeNull();
+    expect(markOf(sixTimes, lia)).toBeNull();
+  });
+
+  it("matches a single charge only by its own key", () => {
+    const coffee = line("2026-10-02", "PADARIA", 30_00);
+    const marks = [{ key: ownerKey(coffee) ?? "", person: "Lia" }];
+    expect(markOf(line("2026-10-02", "PADARIA", 30_01), marks)).toBeNull();
+    expect(markOf(coffee, marks)).toEqual(marks[0]);
   });
 });
