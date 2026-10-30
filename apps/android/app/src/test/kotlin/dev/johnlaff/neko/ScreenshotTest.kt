@@ -190,6 +190,17 @@ class ScreenshotTest {
         HojeScreen(TodayState(view.copy(queue = emptyList())), {}, {}, launcher = Fakes.launcher)
     }
 
+    // A class the sheet planned and the bank has not paid yet: nothing to launch, the line named.
+    @Test fun saldoEsperandoLight() = shot("saldo-esperando-light", night = false, scrollTo = "Para lançar") {
+        val saldo = view.saldo!!.let {
+            it.copy(
+                bank = it.sheet + 23_200, diff = 23_200, draft = null,
+                waiting = listOf(dev.johnlaff.neko.data.SaldoWaiting("2026-10-04", "saida", "Aulas de inglês", 23_200)),
+            )
+        }
+        HojeScreen(TodayState(view.copy(queue = emptyList(), saldo = saldo)), {}, {}, launcher = Fakes.launcher)
+    }
+
     @Test fun lancarDark() = shot("lancar-dark", night = true) {
         HojeScreen(TodayState(view.copy(entryCards = listOf("Cartão Azul"))), {}, {}, launcher = Fakes.launcher, launchOpen = true)
     }

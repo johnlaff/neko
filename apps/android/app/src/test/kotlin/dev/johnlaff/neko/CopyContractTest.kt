@@ -2,12 +2,14 @@ package dev.johnlaff.neko
 
 import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
+import dev.johnlaff.neko.data.SaldoWaiting
 import dev.johnlaff.neko.data.Win
 import dev.johnlaff.neko.data.json
 import dev.johnlaff.neko.ui.Copy
 import dev.johnlaff.neko.ui.Format
 import dev.johnlaff.neko.ui.Learn
 import java.io.File
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -78,6 +80,9 @@ class CopyContractTest {
         f.cases("shortDate").forEach { (d, want) -> assertEquals(want.s, Format.shortDate(d.s)) }
         f.cases("relativeDay").forEach { (d, today, want) -> assertEquals(want.s, Format.relativeDay(d.s, today.s)) }
         f.cases("days").forEach { (n, want) -> assertEquals(want.s, Format.days(n.jsonPrimitive.int)) }
+        f.cases("waiting").forEach { (w, want) ->
+            assertEquals(want.s, Format.waitingText(json.decodeFromJsonElement(ListSerializer(SaldoWaiting.serializer()), w)))
+        }
         f.cases("closesIn").forEach { (n, want) -> assertEquals(want.s, Format.closesIn(n.jsonPrimitive.int)) }
         f.cases("bankText").forEach { (t, want) -> assertEquals(want.s, Format.bankText(t.s)) }
         f.cases("merchantName").forEach { (t, want) -> assertEquals(want.s, Format.merchantName(t.s)) }

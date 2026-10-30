@@ -118,12 +118,20 @@ export const bankInput = (
     if (month > (lastListed.get(b.account_id)?.month ?? ""))
       lastListed.set(b.account_id, { month, close: b.close_date ?? null });
   }
+  // And when each listed bill closed: a line left off it from that day on is on the next one,
+  // even once the bank lists a later bill (the closing day's purchases go to the next bill).
+  const closes = new Map(rows.bills.map((b) => [`${b.account_id}|${b.due_date.slice(0, 7)}`, b]));
+  const next = (month: string) => {
+    const [y = 0, m = 1] = month.split("-").map(Number);
+    return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  };
   const after = (account: string, month: string, date: string) => {
+    const close = closes.get(`${account}|${month}`)?.close_date;
+    if (close && date >= close) return next(month);
     const last = lastListed.get(account);
     if (!last || month > last.month) return month;
     if (last.close && date < last.close) return month;
-    const [y = 0, m = 1] = last.month.split("-").map(Number);
-    return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+    return next(last.month);
   };
   const lines: BankCardLine[] = [];
   const movements: BankMovement[] = [];
@@ -235,6 +243,7 @@ export const bankView = (
             movements.filter((m) => m.account === a.id),
           ),
         })),
+      movements,
     ),
     // Faturas shows five months back: their bills keep what the bank had on them.
     checks: billChecks(ledger, cards, lines, today, closed, addDays(today, -160)),
