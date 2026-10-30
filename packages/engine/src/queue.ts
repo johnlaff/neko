@@ -4,6 +4,7 @@ import {
   billChecks,
   type ClosedBill,
   linesBehind,
+  MATCH_DAYS,
   matchMovements,
   originKey,
   type SheetLine,
@@ -623,6 +624,15 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   );
 };
 
+/** A planned Entrada or Saída the sheet already counts and the bank has not moved yet. */
+export interface SaldoWaiting {
+  readonly date: LocalDate;
+  readonly column: "entrada" | "saida";
+  readonly description: string;
+  /** As in the sheet, positive. */
+  readonly amount: Cents;
+}
+
 /** Yesterday's Saldo in the sheet against the money in the owner's accounts at the bank. */
 export interface SaldoCheck {
   readonly date: LocalDate;
@@ -632,7 +642,53 @@ export interface SaldoCheck {
   readonly diff: Cents;
   /** Banks not read today, whose balance may be old. */
   readonly stale: readonly string[];
+  /** The lines that are the whole difference, when it is only the bank being late; else none. */
+  readonly waiting: readonly SaldoWaiting[];
 }
+
+/** How many planned lines are tried together to make up the difference. */
+const WAITING_MAX = 10;
+
+/**
+ * Planned lines of the last MATCH_DAYS days up to `date` that no movement stands for yet, whose
+ * sum is the difference: a class planned on payday and paid by Pix days later leaves the money
+ * in the bank meanwhile. The fewest lines that make it up win.
+ */
+const waitingLines = (
+  ledger: Ledger,
+  movements: readonly BankMovement[],
+  today: LocalDate,
+  date: LocalDate,
+  diff: Cents,
+): SaldoWaiting[] => {
+  if (diff === 0) return [];
+  const lines = matchMovements(ledger, movements, today)
+    .free.filter(
+      (l) =>
+        l.column !== "diario" &&
+        !isCardSection(l.section) &&
+        l.section !== "reserva" &&
+        diffDays(l.date, date) >= 0 &&
+        diffDays(l.date, date) < MATCH_DAYS,
+    )
+    .slice(-WAITING_MAX);
+  const bits = (n: number) => n.toString(2).replaceAll("0", "").length;
+  const masks = Array.from({ length: 2 ** lines.length - 1 }, (_, i) => i + 1).sort(
+    (a, b) => bits(a) - bits(b) || a - b,
+  );
+  for (const mask of masks) {
+    const pick = lines.filter((_, i) => mask & (1 << i));
+    // A Saída the bank has not paid yet leaves more in the bank than the sheet says.
+    if (pick.reduce((s, l) => s - l.amount, 0) === diff)
+      return pick.map((l) => ({
+        date: l.date,
+        column: l.column === "entrada" ? "entrada" : "saida",
+        description: l.description,
+        amount: cents(Math.abs(l.amount)),
+      }));
+  }
+  return [];
+};
 
 export const saldoCheck = (
   ledger: Ledger,
@@ -644,16 +700,19 @@ export const saldoCheck = (
     /** What the account moved today: in the balance, not yet in yesterday's Saldo. */
     readonly today?: Cents;
   }[],
+  movements: readonly BankMovement[] = [],
 ): SaldoCheck | null => {
   const date = addDays(today, -1);
   const sheet = ledger.find((r) => r.date === date)?.saldo;
   if (sheet === null || sheet === undefined || balances.length === 0) return null;
   const bank = add(ZERO, ...balances.map((b) => sub(b.balance, b.today ?? ZERO)));
+  const diff = sub(bank, sheet);
   return {
     date,
     sheet,
     bank,
-    diff: sub(bank, sheet),
+    diff,
     stale: [...new Set(balances.filter((b) => b.readOn !== today).map((b) => b.label))],
+    waiting: waitingLines(ledger, movements, today, date, diff),
   };
 };

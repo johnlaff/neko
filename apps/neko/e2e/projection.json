@@ -11811,7 +11811,8 @@
       "sheet": 1784247,
       "bank": 2353747,
       "diff": 569500,
-      "stale": []
+      "stale": [],
+      "waiting": []
     },
     "checks": [
       {

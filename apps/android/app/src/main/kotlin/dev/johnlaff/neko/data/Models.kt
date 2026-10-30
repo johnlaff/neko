@@ -128,7 +128,10 @@ data class QueueItem(
 @Serializable
 data class BillPurchases(val due: String, val exact: Boolean, val lines: List<BankLine>, val total: Long = 0)
 
-/** `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. */
+/**
+ * `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. `waiting`: the planned
+ * lines that are the whole difference, when the bank only has not moved them yet (no draft then).
+ */
 @Serializable
 data class SaldoView(
     val date: String,
@@ -136,8 +139,13 @@ data class SaldoView(
     val bank: Long,
     val diff: Long,
     val stale: List<String> = emptyList(),
+    val waiting: List<SaldoWaiting> = emptyList(),
     val draft: JsonObject? = null,
 )
+
+/** A planned Entrada or Saída the sheet already counts and the bank has not moved yet (engine queue.ts). */
+@Serializable
+data class SaldoWaiting(val date: String, val column: String, val description: String, val amount: Long)
 
 /** What a launch or an undo did (worker/writer.ts CommitResult). */
 @Serializable

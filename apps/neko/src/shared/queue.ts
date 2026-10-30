@@ -302,23 +302,29 @@ export const queueView = (
 
 /** "Saldo bate", and the entry that would close the difference. */
 export interface SaldoView extends SaldoCheck {
-  /** Launches the difference on that day, as Entrada or Saída; the owner names it. */
+  /**
+   * Launches the difference on that day, as Entrada or Saída; the owner names it. None when the
+   * difference is only planned lines the bank has not moved yet: launching it would count them twice.
+   */
   readonly draft: Draft | null;
 }
 
-export const saldoView = (s: SaldoCheck | null | undefined): SaldoView | null =>
-  s
-    ? {
-        ...s,
-        draft:
-          s.diff === 0
-            ? null
-            : {
-                type: "new",
-                kind: s.diff > 0 ? "entrada" : "saida",
-                amount: cents(Math.abs(s.diff)),
-                date: s.date,
-                description: "Diferença do banco",
-              },
-      }
-    : null;
+export const saldoView = (s: SaldoCheck | null | undefined): SaldoView | null => {
+  if (!s) return null;
+  // A projection kept from before the bank's late lines were named has none.
+  const waiting = s.waiting ?? [];
+  return {
+    ...s,
+    waiting,
+    draft:
+      s.diff === 0 || waiting.length > 0
+        ? null
+        : {
+            type: "new",
+            kind: s.diff > 0 ? "entrada" : "saida",
+            amount: cents(Math.abs(s.diff)),
+            date: s.date,
+            description: "Diferença do banco",
+          },
+  };
+};
