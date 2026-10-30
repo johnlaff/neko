@@ -712,6 +712,7 @@ describe("saldo bate", () => {
       bank: 100000,
       diff: 0,
       stale: ["Banco B"],
+      waiting: [],
     });
     expect(saldoCheck(days, today, [at(today, 101836)])?.diff).toBe(1836);
     expect(saldoCheck(days, today, [])).toBeNull();
@@ -720,5 +721,54 @@ describe("saldo bate", () => {
   it("leaves out what moved today, which yesterday's Saldo cannot have yet", () => {
     // The account paid its yield this morning: the balance has it, yesterday's Saldo does not.
     expect(saldoCheck(days, today, [{ ...at(today, 100439), today: cents(439) }])?.diff).toBe(0);
+  });
+
+  // The class is planned on payday, the 17th, and paid by Pix a few days later.
+  const planned = ledger("2026-10-01", 30, 100000, {
+    "2026-10-17": { saida: cell(23200, [item(23200, "Aulas Inglês", "contas")]) },
+    "2026-10-18": { entrada: cell(30000, [item(30000, "Despesas de Casa", null)]) },
+  });
+
+  it("names the planned lines of the last days the bank has not moved yet, when they are the gap", () => {
+    // The sheet took the class out on the 17th; the money is still in the account.
+    const s = saldoCheck(
+      planned,
+      today,
+      [at(today, 130000)],
+      [mov("2026-10-18", 30000, "PIX RECEBIDO GIO")],
+    );
+    expect(s?.diff).toBe(23200);
+    expect(s?.waiting).toEqual([
+      { date: "2026-10-17", column: "saida", description: "Aulas Inglês", amount: 23200 },
+    ]);
+    // Neither came in nor went out yet: both, a Saída and an Entrada.
+    expect(
+      saldoCheck(planned, today, [at(today, 100000)], [])?.waiting.map((w) => w.description),
+    ).toEqual(["Aulas Inglês", "Despesas de Casa"]);
+  });
+
+  it("names nothing when the bank already moved the line or the lines do not make the gap", () => {
+    const paid = [
+      mov("2026-10-18", 30000, "PIX RECEBIDO GIO"),
+      mov("2026-10-17", -23200, "PIX ENVIADO PROFESSOR"),
+    ];
+    // Both moved: a gap of R$ 5 is something else.
+    expect(saldoCheck(planned, today, [at(today, 107300)], paid)).toMatchObject({
+      diff: 500,
+      waiting: [],
+    });
+    // Nothing moved, and R$ 100 is neither line.
+    expect(saldoCheck(planned, today, [at(today, 116800)], [])?.waiting).toEqual([]);
+    expect(saldoCheck(days, today, [at(today, 100000)], [])?.waiting).toEqual([]);
+  });
+
+  it("leaves a line older than a week alone: by then the plan did not happen", () => {
+    const old = ledger("2026-10-01", 30, 100000, {
+      "2026-10-05": { saida: cell(23200, [item(23200, "Aulas Inglês", "contas")]) },
+    });
+    expect(saldoCheck(old, today, [at(today, 100000)], [])).toMatchObject({
+      diff: 23200,
+      waiting: [],
+    });
   });
 });

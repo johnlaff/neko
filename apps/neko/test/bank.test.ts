@@ -91,6 +91,29 @@ describe("bank rows to the engine", () => {
     expect(lines.at(-1)).toMatchObject({ amount: 900, billMonth: "2026-11" });
   });
 
+  it("keeps a closing-day line off that bill after the bank lists the next one", () => {
+    // Bill due Oct 12 closed on Sep 29 without it; the bill due Nov 12 is listed now too.
+    const late = txn({ account_id: "cartao", date: "2026-09-29", amount: 900 });
+    const bills = [
+      {
+        id: "b1",
+        account_id: "cartao",
+        due_date: "2026-10-12",
+        close_date: "2026-09-29",
+        total: 98000,
+      },
+      {
+        id: "b2",
+        account_id: "cartao",
+        due_date: "2026-11-12",
+        close_date: "2026-10-29",
+        total: 900,
+      },
+    ];
+    const { lines } = bankInput({ ...rows, txns: [late], bills }, map, cards);
+    expect(lines.map((l) => [l.amount, l.billMonth])).toEqual([[900, "2026-11"]]);
+  });
+
   it("keeps a line from before the listed bill closed on that bill, though the bank has not tied it yet", () => {
     // The bank just closed the bill due Nov 12 on Oct 29 and still lists its lines unattached.
     const listed = {
@@ -228,6 +251,7 @@ describe("Para lançar from the bank rows", () => {
       bank: 103010,
       diff: 3010,
       stale: [],
+      waiting: [],
     });
   });
 });

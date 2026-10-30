@@ -148,6 +148,87 @@
         "3 dias"
       ]
     ],
+    "waiting": [
+      [
+        [
+          {
+            "date": "2026-10-29",
+            "column": "saida",
+            "description": "Aulas Inglês",
+            "amount": 23200
+          }
+        ],
+        "Aulas Inglês (R$ 232,00, 29 out) ainda não saiu do banco."
+      ],
+      [
+        [
+          {
+            "date": "2026-11-10",
+            "column": "entrada",
+            "description": "Despesas de Casa",
+            "amount": 30000
+          }
+        ],
+        "Despesas de Casa (R$ 300,00, 10 nov) ainda não entrou no banco."
+      ],
+      [
+        [
+          {
+            "date": "2026-11-02",
+            "column": "saida",
+            "description": "Fatura Vivo",
+            "amount": 7328
+          },
+          {
+            "date": "2026-11-03",
+            "column": "saida",
+            "description": "Uniube",
+            "amount": 31212
+          },
+          {
+            "date": "2026-11-04",
+            "column": "saida",
+            "description": "Academia",
+            "amount": 9990
+          }
+        ],
+        "Fatura Vivo (R$ 73,28, 2 nov), Uniube (R$ 312,12, 3 nov) e Academia (R$ 99,90, 4 nov) ainda não saíram do banco."
+      ],
+      [
+        [
+          {
+            "date": "2026-11-10",
+            "column": "entrada",
+            "description": "Despesas de Casa",
+            "amount": 30000
+          },
+          {
+            "date": "2026-11-11",
+            "column": "entrada",
+            "description": "Reembolso",
+            "amount": 4500
+          }
+        ],
+        "Despesas de Casa (R$ 300,00, 10 nov) e Reembolso (R$ 45,00, 11 nov) ainda não entraram no banco."
+      ],
+      [
+        [
+          {
+            "date": "2026-11-10",
+            "column": "entrada",
+            "description": "Despesas de Casa",
+            "amount": 30000
+          },
+          {
+            "date": "2026-11-10",
+            "column": "saida",
+            "description": "Aluguel",
+            "amount": 148424
+          }
+        ],
+        "Despesas de Casa (R$ 300,00, 10 nov) e Aluguel (R$ 1.484,24, 10 nov) ainda não passaram pelo banco."
+      ]
+    ],
     "closesIn": [
       [
         1,

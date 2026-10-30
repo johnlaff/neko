@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { HealthIssue, Insight, Win } from "@neko/engine";
+import type { HealthIssue, Insight, SaldoWaiting, Win } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import { winShareText, winText } from "../src/shared/wins.ts";
 import { insightView, issueText } from "../src/web/Alerts.tsx";
@@ -13,6 +13,7 @@ import {
   relativeDay,
   shortDate,
   signed,
+  waitingText,
 } from "../src/web/format.ts";
 import {
   CARDS_COME_FROM,
@@ -106,6 +107,24 @@ const contract = () => ({
       ["2026-10-11", "2026-10-05"],
     ].map(([d, t]) => [d, t, relativeDay(d as string, t as string)]),
     days: [1, 3].map((n) => [n, days(n)]),
+    // The Saldo's planned lines the bank has not moved yet: one, a few, both directions.
+    waiting: [
+      [{ date: "2026-10-29", column: "saida", description: "Aulas Inglês", amount: 232_00 }],
+      [{ date: "2026-11-10", column: "entrada", description: "Despesas de Casa", amount: 300_00 }],
+      [
+        { date: "2026-11-02", column: "saida", description: "Fatura Vivo", amount: 73_28 },
+        { date: "2026-11-03", column: "saida", description: "Uniube", amount: 312_12 },
+        { date: "2026-11-04", column: "saida", description: "Academia", amount: 99_90 },
+      ],
+      [
+        { date: "2026-11-10", column: "entrada", description: "Despesas de Casa", amount: 300_00 },
+        { date: "2026-11-11", column: "entrada", description: "Reembolso", amount: 45_00 },
+      ],
+      [
+        { date: "2026-11-10", column: "entrada", description: "Despesas de Casa", amount: 300_00 },
+        { date: "2026-11-10", column: "saida", description: "Aluguel", amount: 1_484_24 },
+      ],
+    ].map((w) => [w, waitingText(w as SaldoWaiting[])]),
     closesIn: [1, 2, 4].map((n) => [n, closesIn(n)]),
     bankText: [
       "PIX FEIRA DO BAIRRO",
