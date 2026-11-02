@@ -628,6 +628,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
 export interface SaldoWaiting {
   readonly date: LocalDate;
   readonly column: "entrada" | "saida";
+  /** As in the sheet; a card's bill reads "Fatura" and the card. */
   readonly description: string;
   /** As in the sheet, positive. */
   readonly amount: Cents;
@@ -652,7 +653,8 @@ const WAITING_MAX = 10;
 /**
  * Planned lines of the last MATCH_DAYS days up to `date` that no movement stands for yet, whose
  * sum is the difference: a class planned on payday and paid by Pix days later leaves the money
- * in the bank meanwhile. The fewest lines that make it up win.
+ * in the bank meanwhile, and so does a card bill due on a weekend or holiday. The fewest lines
+ * that make it up win.
  */
 const waitingLines = (
   ledger: Ledger,
@@ -662,11 +664,25 @@ const waitingLines = (
   diff: Cents,
 ): SaldoWaiting[] => {
   if (diff === 0) return [];
+  // Bill payments never pair with a sheet line, so a card's bill stays free once paid too: it is
+  // paid when a debit within MATCH_DAYS is its amount, or all that day's bills in one go.
+  const billPaid = (l: SheetLine) => {
+    const day = ledger.find((r) => r.date === l.date)?.saida.items ?? [];
+    const allBills = cents(
+      -add(ZERO, ...day.filter((i) => isCardSection(i.section)).map((i) => i.amount)),
+    );
+    return movements.some(
+      (m) =>
+        m.amount < 0 &&
+        Math.abs(diffDays(l.date, m.date)) <= MATCH_DAYS &&
+        (m.amount === l.amount || m.amount === allBills),
+    );
+  };
   const lines = matchMovements(ledger, movements, today)
     .free.filter(
       (l) =>
         l.column !== "diario" &&
-        !isCardSection(l.section) &&
+        !(isCardSection(l.section) && billPaid(l)) &&
         l.section !== "reserva" &&
         diffDays(l.date, date) >= 0 &&
         diffDays(l.date, date) < MATCH_DAYS,
@@ -683,7 +699,10 @@ const waitingLines = (
       return pick.map((l) => ({
         date: l.date,
         column: l.column === "entrada" ? "entrada" : "saida",
-        description: l.description,
+        description:
+          isCardSection(l.section) && !/^fatura\b/i.test(l.description)
+            ? `Fatura ${l.description}`
+            : l.description,
         amount: cents(Math.abs(l.amount)),
       }));
   }

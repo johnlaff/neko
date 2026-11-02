@@ -762,6 +762,45 @@ describe("saldo bate", () => {
     expect(saldoCheck(days, today, [at(today, 100000)], [])?.waiting).toEqual([]);
   });
 
+  // The bills are due on a Sunday and Monday is a holiday: the bank only pays them on Tuesday.
+  const billsDue = ledger("2026-10-01", 30, 200000, {
+    "2026-10-17": { saida: cell(23200, [item(23200, "Aulas Inglês", "contas")]) },
+    "2026-10-19": {
+      saida: cell(80000, [item(50000, "Visa", "cartoes"), item(30000, "Banco Gio", "cartoes")]),
+    },
+  });
+
+  it("names a card bill the bank has not paid yet, as that card's bill", () => {
+    const s = saldoCheck(billsDue, today, [at(today, 200000)], []);
+    expect(s?.diff).toBe(103200);
+    expect(s?.waiting).toEqual([
+      { date: "2026-10-17", column: "saida", description: "Aulas Inglês", amount: 23200 },
+      { date: "2026-10-19", column: "saida", description: "Fatura Visa", amount: 50000 },
+      { date: "2026-10-19", column: "saida", description: "Fatura Banco Gio", amount: 30000 },
+    ]);
+    // One bill paid ahead with its own debit: only the other one is still waiting.
+    expect(
+      saldoCheck(
+        billsDue,
+        today,
+        [at(today, 150000)],
+        [mov("2026-10-16", -50000, "PAGAMENTO FATURA VISA")],
+      )?.waiting.map((w) => w.description),
+    ).toEqual(["Aulas Inglês", "Fatura Banco Gio"]);
+  });
+
+  it("does not take a bill the bank already paid, even in one debit for two cards, as the gap", () => {
+    const paid = [
+      mov("2026-10-17", -23200, "PIX ENVIADO PROFESSOR"),
+      mov("2026-10-19", -80000, "GASTOS CARTAO DE CREDITO"),
+    ];
+    // R$ 500 more in the bank is the Visa bill's amount, but that bill is paid: something else.
+    expect(saldoCheck(billsDue, today, [at(today, 146800)], paid)).toMatchObject({
+      diff: 50000,
+      waiting: [],
+    });
+  });
+
   it("leaves a line older than a week alone: by then the plan did not happen", () => {
     const old = ledger("2026-10-01", 30, 100000, {
       "2026-10-05": { saida: cell(23200, [item(23200, "Aulas Inglês", "contas")]) },
