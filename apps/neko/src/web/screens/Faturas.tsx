@@ -1,4 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  type MutationState,
+  useMutation,
+  useMutationState,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -548,15 +553,20 @@ const Subscriptions = ({ subs }: { subs: SubscriptionsView }) => {
   );
 };
 
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
 /** What a read of the bill PDF came to, in a sentence. */
 const statementText = (a: StatementAnswer): string => {
-  if (a.read)
+  if (a.read) {
+    const bill = `Fatura que vence em ${shortDate(a.due)} lida`;
     return a.added.length === 0
-      ? `Fatura de ${shortDate(a.due)} lida: o Open Finance já tinha todas as linhas.`
-      : `Fatura de ${shortDate(a.due)} lida. O PDF trouxe ${a.added.length === 1 ? "1 linha" : `${a.added.length} linhas`} que o Open Finance não mandou:`;
+      ? `${bill}: ${plural(a.lines, "linha", "linhas")} em ${plural(a.cards, "cartão", "cartões")}, e o Open Finance já tinha todas.`
+      : `${bill}. Entraram nela ${plural(a.added.length, "linha", "linhas")} que o Open Finance não mandou:`;
+  }
   if (a.reason === "mismatch") {
     const card = a.problems?.find((p) => p.card)?.card;
-    return `As somas do PDF não fecharam${card ? ` no cartão final ${card}` : ""}. Nada foi guardado.`;
+    // A no-break space keeps "final" with its digits.
+    return `As somas do PDF não fecharam${card ? ` no cartão final\u00a0${card}` : ""}, então nada foi guardado. Envie de novo para outra leitura.`;
   }
   if (a.reason === "account")
     return "Não achei esses cartões nos bancos ligados. Confira os cartões em Ajustes › Bancos.";
@@ -573,6 +583,8 @@ const asBase64 = (file: File) =>
     reader.readAsDataURL(file);
   });
 
+const STATEMENT = ["statement"];
+
 /**
  * The bank's own bill, as a PDF: its lines fill in what Open Finance left out (a credit, the
  * second of two equal purchases). Optional: the bill e-mailed to the Neko address is read alone.
@@ -580,21 +592,32 @@ const asBase64 = (file: File) =>
 const StatementUpload = () => {
   const queryClient = useQueryClient();
   const read = useMutation({
+    mutationKey: STATEMENT,
     mutationFn: async (file: File) => api.readStatement(await asBase64(file)),
     onSuccess: async (a) => {
       if (a.read) await queryClient.invalidateQueries({ queryKey: ["projection"] });
     },
   });
-  const answer = read.data;
+  // The read outlives the screen: leaving Faturas and coming back finds it, still going or done.
+  const last = useMutationState({
+    filters: { mutationKey: STATEMENT },
+    select: (m) => m.state as MutationState<StatementAnswer>,
+  }).at(-1);
+  const pending = last?.status === "pending";
+  const answer = last?.status === "success" ? last.data : undefined;
   return (
     <div className="statement">
       <label className="text-link">
-        {read.isPending ? "Lendo a fatura, leva até 2 minutos…" : "Ler a fatura do banco (PDF)"}
+        Ler a fatura do banco (PDF)
         <input
           type="file"
           accept="application/pdf"
           className="sr-only"
-          disabled={read.isPending}
+          // Not `disabled`: that would drop the focus while the read goes on.
+          aria-disabled={pending}
+          onClick={(e) => {
+            if (pending) e.preventDefault();
+          }}
           onChange={(e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
@@ -603,20 +626,25 @@ const StatementUpload = () => {
         />
       </label>
       <div aria-live="polite">
+        {pending && <p className="hint">Lendo a fatura. Leva uns 2 minutos…</p>}
         {answer && <p className={answer.read ? "hint" : "warn"}>{statementText(answer)}</p>}
         {answer?.read && answer.added.length > 0 && (
-          <ul className="rows">
-            {answer.added.map((l, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: two equal lines are two lines here.
-              <li key={`${l.card}-${l.description}-${i}`}>
-                <span className="name">{merchantName(l.description)}</span>
-                <span className="value">{money(l.amount)}</span>
-                <span className="meta">{l.card}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="bank-lines">
+            <ul>
+              {answer.added.map((l, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: two equal lines are two lines here.
+                <li key={`${l.card}-${l.description}-${i}`}>
+                  <span className="text">
+                    {bankText(merchantName(l.description))}
+                    <small>{l.card}</small>
+                  </span>
+                  <span>{money(l.amount)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
-        {read.isError && <p className="warn">{reasonOf(read.error)}</p>}
+        {last?.status === "error" && <p className="warn">{reasonOf(last.error)}</p>}
       </div>
     </div>
   );

@@ -31,7 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.BankLine
@@ -72,8 +74,10 @@ fun FaturasScreen(
     onOwner: (key: String, person: String?) -> Unit = { _, _ -> },
     /** The last mark of whose a purchase is did not save. */
     ownerFailed: Boolean = false,
-    /** Reads the bank's bill PDF (base64); null keeps the option out. */
-    onStatement: (suspend (String) -> StatementAnswer)? = null,
+    /** The bank's bill PDF read, kept by the model so it outlives the screen; null keeps the option out. */
+    statement: StatementRead? = null,
+    /** Reads the bank's bill PDF (base64). */
+    onStatement: (String) -> Unit = {},
 ) {
     var picked by rememberSaveable { mutableStateOf<String?>(null) }
     ScreenFrame("Faturas", state, { it.readAt }, onRefresh, miaTopic = "faturas") { v ->
@@ -90,8 +94,8 @@ fun FaturasScreen(
         }
         item { MonthsPanel(v, month, onHoje) { picked = it } }
         column()
-        val statement = onStatement.takeIf { v.bank != null }
-        item { CardsPanel(month, v.today, Owners(v.people, onOwner, ownerFailed), statement) { picked = it } }
+        val pdf = statement.takeIf { v.bank != null }
+        item { CardsPanel(month, v.today, Owners(v.people, onOwner, ownerFailed), pdf, onStatement) { picked = it } }
         if (month.owed.isNotEmpty()) item { OwedPanel(month, Owners(v.people, onOwner, ownerFailed)) }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
         v.subscriptions?.let { item { SubscriptionsPanel(it, onCancel) } }
@@ -186,7 +190,8 @@ private fun CardsPanel(
     m: InvoiceMonth,
     today: String,
     owners: Owners,
-    statement: (suspend (String) -> StatementAnswer)?,
+    statement: StatementRead?,
+    onStatement: (String) -> Unit,
     onPick: (String) -> Unit,
 ) {
     val l = LocalLedger.current
@@ -197,19 +202,35 @@ private fun CardsPanel(
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
         // By card only: it stays open while its chart picks another month.
         m.cards.forEach { key(it.card) { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, owners, onPick) } }
-        statement?.let { StatementUpload(it) }
+        statement?.let { StatementUpload(it, onStatement) }
     }
 }
 
+private fun plural(n: Int, one: String, many: String) = "$n ${if (n == 1) one else many}"
+
 /** What a read of the bill PDF came to, in a sentence (the site's `statementText`). */
-internal fun statementText(a: StatementAnswer): String = when {
-    a.read && a.added.isEmpty() -> "Fatura de ${shortDate(a.due ?: "")} lida: o Open Finance já tinha todas as linhas."
-    a.read -> "Fatura de ${shortDate(a.due ?: "")} lida. O PDF trouxe ${if (a.added.size == 1) "1 linha" else "${a.added.size} linhas"} que o Open Finance não mandou:"
-    a.reason == "mismatch" -> "As somas do PDF não fecharam" +
-        (a.problems.firstNotNullOfOrNull { it.card }?.let { " no cartão final $it" } ?: "") + ". Nada foi guardado."
-    a.reason == "account" -> "Não achei esses cartões nos bancos ligados. Confira os cartões em Ajustes › Bancos."
-    a.reason == "paused" -> "O limite de IA do mês acabou. Volta em ${shortDate(a.pausedUntil ?: "")}."
-    else -> "Não consegui ler esse PDF. Se ele pede senha, salve uma cópia sem senha e envie de novo."
+internal fun statementText(a: StatementAnswer): String {
+    val bill = "Fatura que vence em ${shortDate(a.due ?: "")} lida"
+    return when {
+        a.read && a.added.isEmpty() ->
+            "$bill: ${plural(a.lines, "linha", "linhas")} em ${plural(a.cards, "cartão", "cartões")}, e o Open Finance já tinha todas."
+        a.read -> "$bill. Entraram nela ${plural(a.added.size, "linha", "linhas")} que o Open Finance não mandou:"
+        // A no-break space keeps "final" with its digits.
+        a.reason == "mismatch" -> "As somas do PDF não fecharam" +
+            (a.problems.firstNotNullOfOrNull { it.card }?.let { " no cartão final\u00a0$it" } ?: "") +
+            ", então nada foi guardado. Envie de novo para outra leitura."
+        a.reason == "account" -> "Não achei esses cartões nos bancos ligados. Confira os cartões em Ajustes › Bancos."
+        a.reason == "paused" -> "O limite de IA do mês acabou. Volta em ${shortDate(a.pausedUntil ?: "")}."
+        else -> "Não consegui ler esse PDF. Se ele pede senha, salve uma cópia sem senha e envie de novo."
+    }
+}
+
+/** Faturas › "Ler a fatura do banco": the read on its way or its answer, kept while the app lives. */
+class StatementRead(answer: StatementAnswer? = null) {
+    var reading by mutableStateOf(false)
+    var answer by mutableStateOf(answer)
+    /** Why the last read did not come back, as `reasonOf` says it. */
+    var failed by mutableStateOf<String?>(null)
 }
 
 /**
@@ -217,53 +238,44 @@ internal fun statementText(a: StatementAnswer): String = when {
  * second of two equal purchases). Optional: the bill e-mailed to the Neko address is read alone.
  */
 @Composable
-private fun StatementUpload(read: suspend (String) -> StatementAnswer) {
+private fun StatementUpload(s: StatementRead, onRead: (String) -> Unit) {
     val l = LocalLedger.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var reading by remember { mutableStateOf(false) }
-    var answer by remember { mutableStateOf<StatementAnswer?>(null) }
-    var failed by remember { mutableStateOf(false) }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        reading = true
-        failed = false
-        answer = null
         scope.launch {
-            try {
-                val bytes = withContext(Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                } ?: throw java.io.IOException("empty")
-                answer = read(Base64.encodeToString(bytes, Base64.NO_WRAP))
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                failed = true
-            } finally {
-                reading = false
-            }
+            val bytes = runCatching {
+                withContext(Dispatchers.IO) { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }
+            }.getOrNull()
+            if (bytes == null) s.failed = "Não consegui abrir esse arquivo. Tente de novo."
+            else onRead(Base64.encodeToString(bytes, Base64.NO_WRAP))
         }
     }
     Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         TextAction(
-            if (reading) "Lendo a fatura, leva até 2 minutos…" else "Ler a fatura do banco (PDF)",
+            "Ler a fatura do banco (PDF)",
             { pick.launch(arrayOf("application/pdf")) },
-            color = l.accent,
-            enabled = !reading,
+            color = if (s.reading) l.muted else l.accent,
+            enabled = !s.reading,
         )
-        answer?.let { a ->
-            Text(statementText(a), color = if (a.read) l.muted else l.warn, style = MaterialTheme.typography.bodySmall)
-            a.added.forEach { x ->
-                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(Modifier.weight(1f)) {
-                        Text(merchantName(x.description), style = MaterialTheme.typography.bodyMedium)
-                        Text(x.card, color = l.faint, style = MaterialTheme.typography.labelMedium)
+        Column(Modifier.semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (s.reading) Text("Lendo a fatura. Leva uns 2 minutos…", color = l.muted, style = MaterialTheme.typography.bodySmall)
+            s.answer?.let { a ->
+                Text(statementText(a), color = if (a.read) l.muted else l.warn, style = MaterialTheme.typography.bodySmall)
+                // The same rows as a bill's bank lines.
+                a.added.forEach { x ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text(bankLineName(BankLine(x.description, x.amount)), style = MaterialTheme.typography.bodyMedium)
+                            Text(x.card, color = l.faint, style = MaterialTheme.typography.labelMedium)
+                        }
+                        Text(money(x.amount), style = MaterialTheme.typography.bodyMedium)
                     }
-                    Text(money(x.amount), style = MaterialTheme.typography.bodyMedium)
                 }
             }
+            s.failed?.let { Text(it, color = l.warn, style = MaterialTheme.typography.bodySmall) }
         }
-        if (failed) Text("A conexão caiu. Tente de novo.", color = l.warn, style = MaterialTheme.typography.bodySmall)
     }
 }
 

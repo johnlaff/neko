@@ -19,6 +19,8 @@ import dev.johnlaff.neko.data.json
 import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.data.StatementAnswer
+import dev.johnlaff.neko.data.StatementLine
 import dev.johnlaff.neko.ui.AjustesScreen
 import dev.johnlaff.neko.ui.RemindersSwitch
 import dev.johnlaff.neko.ui.LockScreen
@@ -29,6 +31,7 @@ import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.MiaChat
 import dev.johnlaff.neko.ui.MiaScreen
 import dev.johnlaff.neko.ui.SaveState
+import dev.johnlaff.neko.ui.StatementRead
 import dev.johnlaff.neko.ui.Simulator
 import dev.johnlaff.neko.ui.ScreenState
 import dev.johnlaff.neko.ui.LoginScreen
@@ -89,11 +92,15 @@ class ScreenshotTest {
     private fun banked(file: String) =
         File("src/test/resources/$file").readText().replace("Cartão Azul", "Nubank").replace("Cartão Verde", "Itaú")
 
-    // With the bank's bill PDF option under the cards.
+    // With the bank's bill PDF option under the cards, after a read that brought two lines.
     @Test fun logosFaturasLight() = shot("logos-faturas-light", night = false, scrollTo = "Cartões") {
+        val read = StatementAnswer(
+            read = true, due = "2026-10-12", cards = 2, lines = 23,
+            added = listOf(StatementLine("Nubank", "AJUSTE A CREDITO", -15990), StatementLine("Itaú", "PET SHOP CENTRO", 7566)),
+        )
         FaturasScreen(
             ScreenState(json.decodeFromString(InvoicesView.serializer(), banked("invoices.json"))), {}, {},
-            onStatement = { error("not read in a shot") },
+            statement = StatementRead(read),
         )
     }
 

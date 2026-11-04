@@ -325,11 +325,27 @@ class AppModel(
         }
     }
 
-    /** Faturas › "Ler a fatura do banco": a kept read shows on the bills at once. */
-    suspend fun readStatement(pdf: String): StatementAnswer {
-        val answer = neko.api.readStatement(pdf)
-        if (answer.read) read(Tab.Faturas, shown = false, after = true)
-        return answer
+    /** Faturas › "Ler a fatura do banco", kept here: leaving the screen during the read loses nothing. */
+    val statement = StatementRead()
+
+    /** Reads the bank's bill PDF (base64); a kept read shows on the bills at once. */
+    fun readStatement(pdf: String) {
+        if (statement.reading) return
+        statement.reading = true
+        statement.answer = null
+        statement.failed = null
+        viewModelScope.launch {
+            try {
+                val answer = neko.api.readStatement(pdf)
+                statement.answer = answer
+                if (answer.read) read(Tab.Faturas, shown = false, after = true)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                statement.failed = reasonOf(e)
+            } finally {
+                statement.reading = false
+            }
+        }
     }
 
     /** Hoje's "Perguntar à Mia"; the Worker runs the tools and checks the answer. */
