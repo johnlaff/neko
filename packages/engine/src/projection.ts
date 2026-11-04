@@ -713,7 +713,15 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       ),
       ownIncome: add(
         m.ownIncome,
-        without(row.entrada, (i) => through.has(i) || paybacks.has(i) || isSavingItem(i)),
+        without(
+          row.entrada,
+          (i) =>
+            through.has(i) ||
+            paybacks.has(i) ||
+            // What someone sends for the card they use, ahead or on the due day, in any amount.
+            others.has(normalizeName(i.description)) ||
+            isSavingItem(i),
+        ),
       ),
       committed: add(m.committed, without(row.saida, paidBack)),
     };

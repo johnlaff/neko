@@ -374,7 +374,7 @@ export interface Matching {
  * Who a Pix or TED went to or came from, as the bank writes it after "Pix enviado" or "Pix
  * recebido"; null for anything else, or for a name too short to tell people apart.
  */
-const party = (description: string): string | null => {
+export const party = (description: string): string | null => {
   const m = normalizeName(description).match(
     /^(?:pix|ted|transferencia)\s+(?:enviad[oa]|recebid[oa])\s+(?:-\s*(?:des|rem):?\s+)?([a-z ]+)/,
   );
