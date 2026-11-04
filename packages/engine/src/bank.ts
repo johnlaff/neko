@@ -26,6 +26,8 @@ export interface BankCardLine {
   readonly installments: number | null;
   /** The day of the charge, as the bank dates it; absent in data read before it was kept. */
   readonly date?: LocalDate;
+  /** Only on the bank's own bill: the feed left it out (statement.ts). */
+  readonly fromStatement?: boolean;
 }
 
 /** One future bill: what the bank already has on it and what the sheet expects. */
