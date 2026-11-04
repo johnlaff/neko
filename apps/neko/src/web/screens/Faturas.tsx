@@ -605,15 +605,13 @@ const StatementUpload = () => {
       <div aria-live="polite">
         {answer && <p className={answer.read ? "hint" : "warn"}>{statementText(answer)}</p>}
         {answer?.read && answer.added.length > 0 && (
-          <ul className="rows statement-added">
+          <ul className="rows">
             {answer.added.map((l, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: two equal lines are two lines here.
               <li key={`${l.card}-${l.description}-${i}`}>
-                <span className="text">
-                  {merchantName(l.description)}
-                  <small>{l.card}</small>
-                </span>
-                <span className="amount">{money(l.amount)}</span>
+                <span className="name">{merchantName(l.description)}</span>
+                <span className="value">{money(l.amount)}</span>
+                <span className="meta">{l.card}</span>
               </li>
             ))}
           </ul>
