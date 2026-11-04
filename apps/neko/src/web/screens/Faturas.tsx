@@ -9,8 +9,8 @@ import {
   invoicesView,
   type OwedView,
 } from "../../shared/screens.ts";
-import type { SubscriptionsView } from "../../shared/types.ts";
-import { api } from "../api.ts";
+import type { StatementAnswer, SubscriptionsView } from "../../shared/types.ts";
+import { api, reasonOf } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
@@ -79,7 +79,7 @@ const OwnerPick = ({
   people,
   onDone,
 }: {
-  line: BankLineView & { key: string };
+  line: Pick<BankLineView, "installments" | "person"> & { key: string };
   people: readonly string[];
   onDone: () => void;
 }) => {
@@ -187,7 +187,11 @@ const BankLines = ({
             <>
               <span className="text">
                 {bankLineName(l)}
-                <small>{l.person ? `De ${l.person}${when ? ` · ${when}` : ""}` : when}</small>
+                <small>
+                  {[l.person && `De ${l.person}`, when, l.fromStatement && "da fatura em PDF"]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </small>
               </span>
               <span className="amount">{money(l.amount)}</span>
             </>
@@ -270,15 +274,7 @@ const OwedItemLine = ({
       </button>
       {picking && (
         <OwnerPick
-          line={{
-            description: i.description,
-            amount: i.amount,
-            date: i.date,
-            installment: i.installment,
-            installments: i.installments,
-            key: i.key,
-            person,
-          }}
+          line={{ installments: i.installments, key: i.key, person }}
           people={people}
           onDone={() => setPicking(false)}
         />
@@ -552,6 +548,82 @@ const Subscriptions = ({ subs }: { subs: SubscriptionsView }) => {
   );
 };
 
+/** What a read of the bill PDF came to, in a sentence. */
+const statementText = (a: StatementAnswer): string => {
+  if (a.read)
+    return a.added.length === 0
+      ? `Fatura de ${shortDate(a.due)} lida: o Open Finance já tinha todas as linhas.`
+      : `Fatura de ${shortDate(a.due)} lida. O PDF trouxe ${a.added.length === 1 ? "1 linha" : `${a.added.length} linhas`} que o Open Finance não mandou:`;
+  if (a.reason === "mismatch") {
+    const card = a.problems?.find((p) => p.card)?.card;
+    return `As somas do PDF não fecharam${card ? ` no cartão final ${card}` : ""}. Nada foi guardado.`;
+  }
+  if (a.reason === "account")
+    return "Não achei esses cartões nos bancos ligados. Confira os cartões em Ajustes › Bancos.";
+  if (a.reason === "paused")
+    return `O limite de IA do mês acabou. Volta em ${shortDate(a.pausedUntil ?? "")}.`;
+  return "Não consegui ler esse PDF. Se ele pede senha, salve uma cópia sem senha e envie de novo.";
+};
+
+const asBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+/**
+ * The bank's own bill, as a PDF: its lines fill in what Open Finance left out (a credit, the
+ * second of two equal purchases). Optional: the bill e-mailed to the Neko address is read alone.
+ */
+const StatementUpload = () => {
+  const queryClient = useQueryClient();
+  const read = useMutation({
+    mutationFn: async (file: File) => api.readStatement(await asBase64(file)),
+    onSuccess: async (a) => {
+      if (a.read) await queryClient.invalidateQueries({ queryKey: ["projection"] });
+    },
+  });
+  const answer = read.data;
+  return (
+    <div className="statement">
+      <label className="text-link">
+        {read.isPending ? "Lendo a fatura, leva até 2 minutos…" : "Ler a fatura do banco (PDF)"}
+        <input
+          type="file"
+          accept="application/pdf"
+          className="sr-only"
+          disabled={read.isPending}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) read.mutate(file);
+          }}
+        />
+      </label>
+      <div aria-live="polite">
+        {answer && <p className={answer.read ? "hint" : "warn"}>{statementText(answer)}</p>}
+        {answer?.read && answer.added.length > 0 && (
+          <ul className="rows statement-added">
+            {answer.added.map((l, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: two equal lines are two lines here.
+              <li key={`${l.card}-${l.description}-${i}`}>
+                <span className="text">
+                  {merchantName(l.description)}
+                  <small>{l.card}</small>
+                </span>
+                <span className="amount">{money(l.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {read.isError && <p className="warn">{reasonOf(read.error)}</p>}
+      </div>
+    </div>
+  );
+};
+
 export const Faturas = () => {
   const [picked, setPicked] = useState<string | null>(null);
   return (
@@ -668,6 +740,7 @@ export const Faturas = () => {
                       ))}
                     </ul>
                   )}
+                  {v.bank && <StatementUpload />}
                 </section>
               ),
               owed: m.owed.length > 0 && <Owed m={m} people={v.people} />,

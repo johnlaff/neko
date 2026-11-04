@@ -1,5 +1,8 @@
 package dev.johnlaff.neko.ui
 
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,10 +25,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -35,6 +40,7 @@ import dev.johnlaff.neko.data.InvoiceMonth
 import dev.johnlaff.neko.data.InvoiceRow
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.Owed
+import dev.johnlaff.neko.data.StatementAnswer
 import dev.johnlaff.neko.data.Subscriptions
 import dev.johnlaff.neko.ui.Format.bankText
 import dev.johnlaff.neko.ui.Format.capitalize
@@ -45,6 +51,9 @@ import dev.johnlaff.neko.ui.Format.monthName
 import dev.johnlaff.neko.ui.Format.shortDate
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The site's Faturas (web/screens/Faturas.tsx): every card's bills by month, the chosen month's
@@ -63,6 +72,8 @@ fun FaturasScreen(
     onOwner: (key: String, person: String?) -> Unit = { _, _ -> },
     /** The last mark of whose a purchase is did not save. */
     ownerFailed: Boolean = false,
+    /** Reads the bank's bill PDF (base64); null keeps the option out. */
+    onStatement: (suspend (String) -> StatementAnswer)? = null,
 ) {
     var picked by rememberSaveable { mutableStateOf<String?>(null) }
     ScreenFrame("Faturas", state, { it.readAt }, onRefresh, miaTopic = "faturas") { v ->
@@ -79,7 +90,8 @@ fun FaturasScreen(
         }
         item { MonthsPanel(v, month, onHoje) { picked = it } }
         column()
-        item { CardsPanel(month, v.today, Owners(v.people, onOwner, ownerFailed)) { picked = it } }
+        val statement = onStatement.takeIf { v.bank != null }
+        item { CardsPanel(month, v.today, Owners(v.people, onOwner, ownerFailed), statement) { picked = it } }
         if (month.owed.isNotEmpty()) item { OwedPanel(month, Owners(v.people, onOwner, ownerFailed)) }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
         v.subscriptions?.let { item { SubscriptionsPanel(it, onCancel) } }
@@ -170,7 +182,13 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onHoje: () -> Unit, on
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CardsPanel(m: InvoiceMonth, today: String, owners: Owners, onPick: (String) -> Unit) {
+private fun CardsPanel(
+    m: InvoiceMonth,
+    today: String,
+    owners: Owners,
+    statement: (suspend (String) -> StatementAnswer)?,
+    onPick: (String) -> Unit,
+) {
     val l = LocalLedger.current
     Panel {
         PanelHead("Cartões") {
@@ -179,6 +197,73 @@ private fun CardsPanel(m: InvoiceMonth, today: String, owners: Owners, onPick: (
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
         // By card only: it stays open while its chart picks another month.
         m.cards.forEach { key(it.card) { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, owners, onPick) } }
+        statement?.let { StatementUpload(it) }
+    }
+}
+
+/** What a read of the bill PDF came to, in a sentence (the site's `statementText`). */
+internal fun statementText(a: StatementAnswer): String = when {
+    a.read && a.added.isEmpty() -> "Fatura de ${shortDate(a.due ?: "")} lida: o Open Finance já tinha todas as linhas."
+    a.read -> "Fatura de ${shortDate(a.due ?: "")} lida. O PDF trouxe ${if (a.added.size == 1) "1 linha" else "${a.added.size} linhas"} que o Open Finance não mandou:"
+    a.reason == "mismatch" -> "As somas do PDF não fecharam" +
+        (a.problems.firstNotNullOfOrNull { it.card }?.let { " no cartão final $it" } ?: "") + ". Nada foi guardado."
+    a.reason == "account" -> "Não achei esses cartões nos bancos ligados. Confira os cartões em Ajustes › Bancos."
+    a.reason == "paused" -> "O limite de IA do mês acabou. Volta em ${shortDate(a.pausedUntil ?: "")}."
+    else -> "Não consegui ler esse PDF. Se ele pede senha, salve uma cópia sem senha e envie de novo."
+}
+
+/**
+ * The bank's own bill, as a PDF: its lines fill in what Open Finance left out (a credit, the
+ * second of two equal purchases). Optional: the bill e-mailed to the Neko address is read alone.
+ */
+@Composable
+private fun StatementUpload(read: suspend (String) -> StatementAnswer) {
+    val l = LocalLedger.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var reading by remember { mutableStateOf(false) }
+    var answer by remember { mutableStateOf<StatementAnswer?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        reading = true
+        failed = false
+        answer = null
+        scope.launch {
+            try {
+                val bytes = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                } ?: throw java.io.IOException("empty")
+                answer = read(Base64.encodeToString(bytes, Base64.NO_WRAP))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failed = true
+            } finally {
+                reading = false
+            }
+        }
+    }
+    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextAction(
+            if (reading) "Lendo a fatura, leva até 2 minutos…" else "Ler a fatura do banco (PDF)",
+            { pick.launch(arrayOf("application/pdf")) },
+            color = l.accent,
+            enabled = !reading,
+        )
+        answer?.let { a ->
+            Text(statementText(a), color = if (a.read) l.muted else l.warn, style = MaterialTheme.typography.bodySmall)
+            a.added.forEach { x ->
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(merchantName(x.description), style = MaterialTheme.typography.bodyMedium)
+                        Text(x.card, color = l.faint, style = MaterialTheme.typography.labelMedium)
+                    }
+                    Text(money(x.amount), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+        if (failed) Text("A conexão caiu. Tente de novo.", color = l.warn, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -263,7 +348,8 @@ private fun BankLines(title: String, lines: List<BankLine>, owners: Owners, hint
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             // Someone else's: "De Bia", the amount quieter, never struck through
                             // (the money still leaves your account to pay the bill).
-                            val meta = x.person?.let { "De $it" + (when_?.let { w -> " · $w" } ?: "") } ?: when_
+                            val meta = listOfNotNull(x.person?.let { "De $it" }, when_, "da fatura em PDF".takeIf { x.fromStatement })
+                                .joinToString(" · ").ifEmpty { null }
                             meta?.let { Text(it, color = if (x.person != null) l.muted else l.faint, style = MaterialTheme.typography.labelMedium) }
                         }
                     }

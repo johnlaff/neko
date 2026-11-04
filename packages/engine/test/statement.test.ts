@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type BankCardLine,
   billChecks,
+  billLineDate,
   type CardConfig,
   cents,
   checkStatement,
@@ -164,7 +165,6 @@ describe("bill statement: what the bank's own bill has and the feed left out", (
 describe("reading a bill: every card's lines must add up to the total it prints", () => {
   const read: StatementRead = {
     due: localDate("2026-12-12"),
-    closed: false,
     total: cents(688783),
     cards: [
       {
@@ -234,7 +234,6 @@ describe("reading a bill: every card's lines must add up to the total it prints"
         ],
       },
     ],
-    scheduled: [],
   };
 
   it("accepts a bill whose cards add up", () => {
@@ -252,5 +251,21 @@ describe("reading a bill: every card's lines must add up to the total it prints"
     expect(checkStatement({ ...read, total: cents(688784) })).toEqual([
       { card: null, printed: 688784, read: 688783 },
     ]);
+  });
+});
+
+describe("a bill line's year", () => {
+  const due = localDate("2026-12-12");
+  it("is the one that puts the line on or before the due day", () => {
+    expect(billLineDate(due, 11, 1)).toBe("2026-11-01");
+    expect(billLineDate(due, 12, 12)).toBe("2026-12-12");
+    // A parcel of a purchase from a year ago.
+    expect(billLineDate(due, 12, 15)).toBe("2025-12-15");
+    expect(billLineDate(localDate("2029-03-10"), 2, 29)).toBe("2028-02-29");
+  });
+
+  it("refuses a day the calendar does not have", () => {
+    expect(() => billLineDate(due, 2, 30)).toThrow(RangeError);
+    expect(() => billLineDate(due, 13, 1)).toThrow(RangeError);
   });
 });

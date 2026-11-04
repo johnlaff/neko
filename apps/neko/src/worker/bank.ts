@@ -14,10 +14,12 @@ import {
   localDate,
   movedToday,
   normalizeName,
+  type Statement,
   saldoCheck,
   subscriptions,
   todayIn,
   unmatchedMovements,
+  withStatements,
 } from "@neko/engine";
 import { queueView } from "../shared/queue.ts";
 import type { BankView, UserSettings } from "../shared/types.ts";
@@ -67,6 +69,18 @@ export interface BankBillRow {
   readonly total: number;
 }
 
+/** A line of the bank's own bill, read from its PDF (statement.ts). */
+export interface StatementLineRow {
+  readonly account_id: string;
+  readonly bill_month: string;
+  readonly card_number: string;
+  readonly date: string;
+  readonly description: string;
+  readonly amount: number;
+  readonly installment: number | null;
+  readonly installments: number | null;
+}
+
 export interface BankRows {
   readonly items: number;
   readonly syncedAt: string | null;
@@ -78,6 +92,8 @@ export interface BankRows {
   readonly accounts: readonly BankAccountRow[];
   readonly txns: readonly BankTxnRow[];
   readonly bills: readonly BankBillRow[];
+  /** The bills read from the bank's PDFs, line by line; none before migration 0011. */
+  readonly statements?: readonly StatementLineRow[];
 }
 
 const last4 = (s: string | null) => (s ? s.replace(/\D/g, "").slice(-4) : null);
@@ -186,7 +202,25 @@ export const bankInput = (
         ]
       : [];
   });
-  return { lines, movements, closed };
+  // The bank's own bills fill in the lines the feed left out (statement.ts in the engine).
+  const statements = new Map<string, Statement & { lines: BankCardLine[] }>();
+  for (const r of rows.statements ?? []) {
+    const card = cardName(map, r.account_id, r.card_number);
+    if (!card) continue;
+    const key = `${r.account_id}|${r.bill_month}`;
+    const s = statements.get(key) ?? { billMonth: r.bill_month, lines: [] };
+    s.lines.push({
+      card,
+      amount: cents(r.amount),
+      billMonth: r.bill_month,
+      description: r.description,
+      installment: r.installment,
+      installments: r.installments,
+      date: localDate(r.date),
+    });
+    statements.set(key, s);
+  }
+  return { lines: withStatements(lines, [...statements.values()]), movements, closed };
 };
 
 /** How far back a bank movement missing from the sheet is still shown. */
@@ -310,7 +344,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
-    const [itemRows, accounts, txns, bills, decisions] = await Promise.all([
+    const [itemRows, accounts, txns, bills, decisions, statements] = await Promise.all([
       db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
       db
         .prepare(
@@ -326,6 +360,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
         .prepare("SELECT id, account_id, due_date, close_date, total FROM bank_bill")
         .all<BankBillRow>(),
       loadDecided(db),
+      loadStatements(db),
     ]);
     return {
       items: items.n,
@@ -336,6 +371,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       accounts: accounts.results,
       txns: txns.results,
       bills: bills.results,
+      statements,
     };
   } catch (error) {
     console.error("bank tables unreadable", error);
@@ -361,6 +397,22 @@ const ignoredBills = (
     const card = cards.find((c) => normalizeName(c.name) === name);
     return card && due >= today ? [{ key, date: due, title: `Fatura ${card.name}` }] : [];
   });
+};
+
+/** The bills read from PDFs; none before migration 0011 is applied. */
+const loadStatements = async (db: D1Database): Promise<StatementLineRow[]> => {
+  try {
+    return (
+      await db
+        .prepare(
+          "SELECT account_id, bill_month, card_number, date, description, amount, installment, installments FROM statement_line ORDER BY account_id, bill_month, seq",
+        )
+        .all<StatementLineRow>()
+    ).results;
+  } catch (error) {
+    console.error("statements unreadable", error);
+    return [];
+  }
 };
 
 /** Para lançar keys launched or ignored; none before migration 0009 is applied. */

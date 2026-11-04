@@ -5,8 +5,6 @@ CREATE TABLE statement (
   account_id TEXT NOT NULL,
   -- Due month, YYYY-MM.
   bill_month TEXT NOT NULL,
-  -- 1 when the bank had closed it, 0 while it was still open.
-  closed INTEGER NOT NULL,
   -- The whole bill as printed, in cents.
   total INTEGER NOT NULL,
   read_at TEXT NOT NULL,
