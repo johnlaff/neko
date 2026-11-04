@@ -222,6 +222,90 @@ describe("Para lançar: account movements", () => {
     ]);
   });
 
+  it("moves a planned line the bank moved days before, with the same value, while its day is ahead", () => {
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-24": { entrada: cell(30000, [item(30000, "Casa", null)]) },
+      "2026-10-25": { saida: cell(15050, [item(15050, "Luz", "contas")]) },
+    });
+    const items = queue({
+      ledger: days,
+      movements: [
+        mov("2026-10-18", 30000, "PIX RECEBIDO MARIA EXEMPLO"),
+        mov("2026-10-19", -15050, "DEBITO CONTA LUZ"),
+      ],
+    });
+    expect(items.map((i) => [i.kind, i.date, i.options])).toEqual([
+      [
+        "entrada",
+        "2026-10-18",
+        [
+          {
+            label: "",
+            draft: {
+              type: "fix",
+              line: {
+                date: "2026-10-24",
+                column: "entrada",
+                section: null,
+                description: "Casa",
+                amount: 30000,
+              },
+              amount: 30000,
+              date: "2026-10-18",
+              description: "Casa",
+            },
+          },
+        ],
+      ],
+      [
+        "conta",
+        "2026-10-19",
+        [
+          {
+            label: "",
+            draft: {
+              type: "fix",
+              line: {
+                date: "2026-10-25",
+                column: "saida",
+                section: "contas",
+                description: "Luz",
+                amount: 15050,
+              },
+              amount: 15050,
+              date: "2026-10-19",
+              description: "Luz",
+            },
+          },
+        ],
+      ],
+    ]);
+  });
+
+  it("leaves a same-value line alone when paid on its day, late, once its day passed, or a card's", () => {
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-12": { entrada: cell(30000, [item(30000, "Casa", null)]) },
+      "2026-10-16": { saida: cell(15050, [item(15050, "Luz", "contas")]) },
+      "2026-10-19": { saida: cell(7000, [item(7000, "Fone", "contas")]) },
+      "2026-10-22": {
+        entrada: cell(40000, [item(40000, "Banco Gio", null)]),
+        saida: cell(40000, [item(40000, "Banco Gio", "cartoes")]),
+      },
+    });
+    expect(
+      queue({
+        ledger: days,
+        movements: [
+          mov("2026-10-10", 30000, "PIX RECEBIDO MARIA EXEMPLO"),
+          mov("2026-10-17", -15050, "DEBITO CONTA LUZ"),
+          mov("2026-10-19", -7000, "DEBITO FONE"),
+          mov("2026-10-18", 40000, "PIX RECEBIDO GIO EXEMPLO"),
+          mov("2026-10-18", -40000, "PIX QR CODE BANCO GIO"),
+        ],
+      }),
+    ).toEqual([]);
+  });
+
   it("does not take a planned bill for a payment the sheet already names as something else", () => {
     // The same person gets a ride paid each month; a bill of near value is planned that week.
     const days = ledger("2026-10-01", 92, 0, {

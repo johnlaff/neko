@@ -285,10 +285,49 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   const bankOf = (...ms: BankMovement[]) =>
     ms.map((m) => ({ date: m.date, amount: m.amount, description: m.description }));
   const inWindow = (m: BankMovement) => m.date >= input.since;
+  const movKey = (m: BankMovement) =>
+    `mov:${m.id ?? `${m.account}|${m.date}|${m.amount}|${m.description}`}`;
+
+  // Moved by the bank days before the planned day, with the same value: the Saldo is off until
+  // that day, so the planned line moves to the bank's day while that day is still ahead. Not a
+  // card's bill or its payback, whose lines stay on the due day.
+  const others = new Set(input.othersCards.map(normalizeName));
+  for (const { movement: m, line } of matching.pairs) {
+    if (
+      !inWindow(m) ||
+      savings(m.account) ||
+      m.date >= line.date ||
+      line.date < today ||
+      !days.has(m.date) ||
+      line.column === "diario" ||
+      line.section === "reserva" ||
+      isCardSection(line.section) ||
+      (line.column === "entrada" && others.has(normalizeName(line.description)))
+    )
+      continue;
+    push({
+      key: movKey(m),
+      kind: line.column === "entrada" ? "entrada" : "conta",
+      date: m.date,
+      bank: bankOf(m),
+      options: [
+        {
+          label: "",
+          draft: {
+            type: "fix",
+            line: ref(line),
+            amount: cents(Math.abs(m.amount)),
+            date: m.date,
+            description: line.description,
+          },
+        },
+      ],
+    });
+  }
 
   for (const m of matching.unmatched) {
     if (!inWindow(m) || savings(m.account)) continue;
-    const key = `mov:${m.id ?? `${m.account}|${m.date}|${m.amount}|${m.description}`}`;
+    const key = movKey(m);
     const bank = bankOf(m);
 
     if (m.amount > 0) {
@@ -502,7 +541,6 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   }
 
   // Card bills: the line follows the bank's total, up always, down once the bill closed.
-  const others = new Set(input.othersCards.map(normalizeName));
   // Someone else's card is paid back by an Entrada of the same name on the due day: one line.
   const payback = (card: string, due: LocalDate) => {
     if (!others.has(normalizeName(card))) return undefined;
