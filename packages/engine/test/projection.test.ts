@@ -163,6 +163,22 @@ describe("credit mode projection", () => {
     expect(nov).toMatchObject({ livingCost: 3500_00, committed: 3800_00, ownIncome: 5000_00 });
   });
 
+  it("money someone sends for the card they use is not income, sent ahead or on the due day", () => {
+    // Her card's bill of R$ 900 is paid back R$ 400 ahead and R$ 500 on the due day.
+    const l = ledger("2026-10-01", 92, 10_000_00, {
+      "2026-11-03": { entrada: cell(400_00, [item(400_00, "Azul", null)]) },
+      "2026-11-05": { entrada: cell(5000_00, [item(5000_00, "Salário", null)]) },
+      "2026-11-12": {
+        entrada: cell(500_00, [item(500_00, "Azul", null)]),
+        saida: cell(900_00, [item(900_00, "Azul")]),
+      },
+    });
+    const nov = project(l, today, settings({ cards: [visa], othersCards: ["Azul"] })).months.find(
+      (m) => m.month === 11,
+    );
+    expect(nov).toMatchObject({ ownIncome: 5000_00 });
+  });
+
   it("a resgate, an Entrada under Reserva:, takes back from what was kept", () => {
     // R$ 500 kept on the 6th, R$ 200 drawn back on the 20th: the month kept R$ 300, and the
     // money drawn back is not a cost of living.

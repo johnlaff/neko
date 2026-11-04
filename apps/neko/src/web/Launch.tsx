@@ -319,7 +319,7 @@ const HOW: readonly { kind: EntryKind; label: string }[] = [
 
 const PARCELS = [1, 2, 3, 6, 10, 12];
 
-type Editable = Extract<Draft, { type: "new" } | { type: "fix" }>;
+type Editable = Extract<Draft, { type: "new" } | { type: "fix" } | { type: "advance" }>;
 
 const reais = (c: number) => (c / 100).toFixed(2).replace(".", ",");
 
@@ -389,7 +389,7 @@ export const EntryForm = ({
   const build = (): Draft | null => {
     if (!ok || amount === null) return null;
     const common = { amount: amount as Cents, date: date as LocalDate, description: name.trim() };
-    if (draft?.type === "fix") return { ...draft, ...common };
+    if (draft?.type === "fix" || draft?.type === "advance") return { ...draft, ...common };
     if (card) return { type: "new", kind: "cartao", card, installments: count, ...common };
     return { type: "new", kind: (draft?.kind ?? how) as EntryKind, ...common };
   };

@@ -677,6 +677,100 @@ describe("Para lançar: card bills", () => {
   });
 });
 
+describe("Para lançar: someone paying a card back bit by bit", () => {
+  // Her card's November bill is paid back on its due day; she sends money as she gets paid.
+  const plan = (over = {}) =>
+    ledger("2026-10-01", 130, 0, {
+      "2026-11-12": {
+        saida: cell(200000, [item(200000, "Banco Gio")]),
+        entrada: cell(200000, [item(200000, "Banco Gio", null)]),
+      },
+      ...over,
+    });
+  const payback = {
+    date: "2026-11-12",
+    column: "entrada",
+    section: null,
+    description: "Banco Gio",
+    amount: 200000,
+  };
+  const fromGio = (date: string, amount: number) =>
+    mov(date, amount, `PIX RECEBIDO - REM: Gio Exemplo Souza ${date.slice(8)}/10 - DOCTO: 1`);
+  const cardLine = (amount: number) => ({
+    card: "Banco Gio",
+    amount: cents(amount),
+    billMonth: "2026-11",
+    description: "LOJA",
+    installment: null,
+    installments: null,
+  });
+
+  it("takes her Pix as part of the next payback: an Entrada named after the card, and the payback goes down", () => {
+    const [i] = queue({ ledger: plan(), movements: [fromGio("2026-10-18", 60000)] });
+    expect(i).toMatchObject({ kind: "entrada", date: "2026-10-18" });
+    expect(i?.options).toEqual([
+      {
+        label: "Reembolso adiantado",
+        draft: {
+          type: "advance",
+          amount: 60000,
+          date: "2026-10-18",
+          description: "Banco Gio",
+          payback,
+        },
+      },
+      {
+        label: "Entrada nova",
+        draft: {
+          type: "new",
+          kind: "entrada",
+          amount: 60000,
+          date: "2026-10-18",
+          description: "PIX RECEBIDO - REM: Gio Exemplo Souza 18",
+        },
+      },
+    ]);
+  });
+
+  it("offers it first to whoever paid that card back before, whatever the name", () => {
+    const days = plan({ "2026-10-05": { entrada: cell(10000, [item(10000, "Banco Gio", null)]) } });
+    const ana = (date: string, amount: number) =>
+      mov(date, amount, `PIX RECEBIDO - REM: Ana Exemplo Souza ${date.slice(8)}/10 - DOCTO: 1`);
+    const [i] = queue({
+      ledger: days,
+      movements: [ana("2026-10-05", 10000), ana("2026-10-18", 20000)],
+    });
+    expect(i?.options.map((o) => [o.label, o.draft?.type])).toEqual([
+      ["Reembolso adiantado", "advance"],
+      ["Entrada nova", "new"],
+    ]);
+  });
+
+  it("leaves someone else's Pix, or one bigger than the payback ahead, as a plain Entrada", () => {
+    const other = mov("2026-10-18", 60000, "PIX RECEBIDO - REM: Maria Exemplo Silva 18/10");
+    for (const m of [other, fromGio("2026-10-18", 250000)]) {
+      const [i] = queue({ ledger: plan(), movements: [m] });
+      expect(i?.options.map((o) => o.draft?.type)).toEqual(["new"]);
+    }
+  });
+
+  it("counts what came ahead: the payback is the bill minus it, also when the bill grows", () => {
+    const paid = plan({
+      "2026-10-18": { entrada: cell(60000, [item(60000, "Banco Gio", null)]) },
+      "2026-11-12": {
+        saida: cell(200000, [item(200000, "Banco Gio")]),
+        entrada: cell(140000, [item(140000, "Banco Gio", null)]),
+      },
+    });
+    expect(queue({ ledger: paid, lines: [cardLine(200000)] })).toEqual([]);
+    const [grew] = queue({ ledger: paid, lines: [cardLine(210000)] });
+    expect(grew?.options[0]?.draft).toMatchObject({
+      bills: [{ was: 200000, amount: 210000 }],
+      also: [{ line: { amount: 140000 }, amount: 150000 }],
+    });
+  });
+});
+
 describe("placeDraft", () => {
   const line = {
     date: d("2026-10-29"),
@@ -778,6 +872,47 @@ describe("placeDraft", () => {
       },
     ]);
   });
+  it("puts money that came ahead on its day and takes it off the payback, never below zero", () => {
+    const payback = {
+      date: d("2026-11-12"),
+      column: "entrada" as const,
+      section: null,
+      description: "Banco Gio",
+      amount: cents(200000),
+    };
+    const ahead = (amount: number) =>
+      placeDraft(
+        {
+          type: "advance",
+          amount: cents(amount),
+          date: d("2026-10-18"),
+          description: "Banco Gio",
+          payback,
+        },
+        [visa, gio],
+      );
+    expect(ahead(60000)).toEqual([
+      {
+        date: "2026-10-18",
+        column: "entrada",
+        section: null,
+        description: "Banco Gio",
+        target: "line",
+        amount: 60000,
+      },
+      {
+        date: "2026-11-12",
+        column: "entrada",
+        section: null,
+        description: "Banco Gio",
+        target: "line",
+        was: 200000,
+        amount: 140000,
+      },
+    ]);
+    expect(ahead(250000)[1]).toMatchObject({ was: 200000, amount: 0 });
+  });
+
   it("sets each card bill and its reimbursement", () => {
     const ps = placeDraft(
       {
