@@ -219,6 +219,8 @@ const noteOf = (item: QueueItem): string => {
         ? "A fatura fechou com outro valor no banco."
         : "O banco já tem compras que a planilha não tem.";
     case "entrada":
+      if (draft?.type === "advance")
+        return "Parte do reembolso da fatura chegou antes do dia: o reembolso planejado baixa junto.";
       return draft?.type === "fix"
         ? "Entrou um valor diferente do previsto."
         : // The box under it says "Linha nova na planilha" and the line says Entrada: nothing to add.
