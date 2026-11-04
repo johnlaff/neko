@@ -108,6 +108,11 @@ com valores diferentes, valor negativo.
    - A linha de cada cartão vai ao total do banco em cada fatura futura, num item por cartão, com as
      parcelas até a última. Sobe sempre; baixa só com a fatura fechada ou por arredondamento (até
      R$ 0,10). No cartão de outra pessoa, o dono diz se o reembolso planejado acompanha.
+   - Reembolso pago aos poucos: um Pix antes do vencimento, de quem já pagou o cartão de volta (ou
+     de nome parecido com o do cartão), vem como "Reembolso adiantado": Entrada com o nome do
+     cartão no dia do Pix, e o reembolso planejado da fatura seguinte baixa o mesmo tanto. A
+     conferência do reembolso desconta o que chegou desde o vencimento anterior, e nada disso conta
+     como renda do dono.
    - Dinheiro para uma conta sua: pergunta uma vez se ela é de guardar. Para ela, Saída em
      `Reserva:`; de volta dela, Entrada em `Reserva:`. O que acontece dentro dela não vira item.
      Um Pix lançado como guardado faz a próxima vez da mesma origem vir como guardado.
