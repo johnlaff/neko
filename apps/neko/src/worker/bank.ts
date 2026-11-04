@@ -8,6 +8,7 @@ import {
   type ClosedBill,
   cents,
   cycleContaining,
+  ignoredGaps,
   type Ledger,
   type LocalDate,
   localDate,
@@ -169,11 +170,20 @@ export const bankInput = (
       });
   }
   // A closed bill's total is final, though the bank may leave a line or two out of the list. With
-  // holder and additional cards on one account, it is the total of all of them (billChecks).
+  // holder and additional cards on one account, it is the total of all of them (billChecks), and
+  // the card mapped to the account as a whole is the holder's.
   const closed: ClosedBill[] = rows.bills.flatMap((b) => {
     const names = [...new Set(map.filter((m) => m.accountId === b.account_id).map((m) => m.card))];
+    const holder = map.find((m) => m.accountId === b.account_id && m.cardNumber === null)?.card;
     return names.length > 0
-      ? [{ cards: names, billMonth: b.due_date.slice(0, 7), total: cents(b.total) }]
+      ? [
+          {
+            cards: names,
+            billMonth: b.due_date.slice(0, 7),
+            total: cents(b.total),
+            ...(holder ? { holder } : {}),
+          },
+        ]
       : [];
   });
   return { lines, movements, closed };
@@ -201,6 +211,7 @@ export const bankView = (
     use: settings.accountUse[a.id] ?? null,
   }));
   const ignored = new Set(rows.ignored ?? []);
+  const gaps = ignoredGaps(ignored);
   const built = buildQueue({
     ledger,
     cards,
@@ -214,6 +225,7 @@ export const bankView = (
     savedOrigins: new Set(settings.savedOrigins),
     // Ignored items are built too, then set aside below, so they can be brought back.
     decided: new Set((rows.decided ?? []).filter((k) => !ignored.has(k))),
+    ignored,
     forecast: settings.previstoSince !== null ? cents(settings.dailyForecast ?? 0) : null,
   });
   const queue = built.filter((i) => !ignored.has(i.key));
@@ -221,13 +233,16 @@ export const bankView = (
   return {
     syncedAt: rows.syncedAt,
     queue: queueView(queue, ledger, cards),
-    ignored: built
-      .filter((i) => ignored.has(i.key))
-      .map((i) => ({
-        key: i.key,
-        date: i.date,
-        title: queueView([i], ledger, cards)[0]?.title ?? "",
-      })),
+    ignored: [
+      ...built
+        .filter((i) => ignored.has(i.key))
+        .map((i) => ({
+          key: i.key,
+          date: i.date,
+          title: queueView([i], ledger, cards)[0]?.title ?? "",
+        })),
+      ...ignoredBills(ignored, built, cards, today),
+    ],
     saldo: saldoCheck(
       ledger,
       today,
@@ -246,7 +261,7 @@ export const bankView = (
       movements,
     ),
     // Faturas shows five months back: their bills keep what the bank had on them.
-    checks: billChecks(ledger, cards, lines, today, closed, addDays(today, -160)),
+    checks: billChecks(ledger, cards, lines, today, closed, addDays(today, -160), gaps),
     // A holder and an additional card share one account, and so one limit.
     limits: rows.accounts.flatMap((a) =>
       a.type === "CREDIT" && a.credit_limit != null && a.available_limit != null
@@ -326,6 +341,26 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
     console.error("bank tables unreadable", error);
     return null;
   }
+};
+
+/**
+ * An ignored card bill leaves Para lançar for good while the bank adds nothing to it, so it is not
+ * built again: listed from its key, while its bill is still to come, so it can be brought back.
+ */
+const ignoredBills = (
+  ignored: ReadonlySet<string>,
+  built: readonly { readonly key: string }[],
+  cards: readonly CardConfig[],
+  today: LocalDate,
+) => {
+  const keys = new Set(built.map((i) => i.key));
+  return [...ignored].flatMap((key) => {
+    if (keys.has(key)) return [];
+    const [at] = ignoredGaps([key]).keys();
+    const [name = "", due = ""] = at?.split("|") ?? [];
+    const card = cards.find((c) => normalizeName(c.name) === name);
+    return card && due >= today ? [{ key, date: due, title: `Fatura ${card.name}` }] : [];
+  });
 };
 
 /** Para lançar keys launched or ignored; none before migration 0009 is applied. */

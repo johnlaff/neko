@@ -74,12 +74,15 @@ describe("bank rows to the engine", () => {
     ]);
   });
 
-  it("gives each listed bill's total with the cards of its account", () => {
+  it("gives each listed bill's total with the cards of its account, the holder's the one for the account as a whole", () => {
     expect(bankInput(rows, map, cards).closed).toEqual([
-      { cards: ["Visa", "Visa Gio"], billMonth: "2026-10", total: 98000 },
+      { cards: ["Visa", "Visa Gio"], billMonth: "2026-10", total: 98000, holder: "Visa" },
     ]);
     expect(bankInput(rows, map.slice(0, 1), cards).closed).toEqual([
-      { cards: ["Visa"], billMonth: "2026-10", total: 98000 },
+      { cards: ["Visa"], billMonth: "2026-10", total: 98000, holder: "Visa" },
+    ]);
+    expect(bankInput(rows, map.slice(1), cards).closed).toEqual([
+      { cards: ["Visa Gio"], billMonth: "2026-10", total: 98000 },
     ]);
   });
 
@@ -186,6 +189,35 @@ describe("settings", () => {
 });
 
 describe("Para lançar from the bank rows", () => {
+  it("keeps an ignored open bill out while the bank adds nothing, and lists it to bring back", async () => {
+    const { ledger } = await import("../../../packages/engine/test/builders.ts");
+    const days = ledger("2026-10-01", 92, 100000);
+    const settings = UserSettings.parse({ bankCards: map });
+    const open = {
+      ...rows,
+      txns: [txn({ account_id: "cartao", amount: 12000, bill_month: "2026-11" })],
+      bills: [],
+    };
+    const view = (keys: string[]) =>
+      bankView(
+        { ...open, decided: keys, ignored: keys },
+        days,
+        cards,
+        settings,
+        localDate("2026-10-08"),
+      );
+    const key = "card:visa:2026-11-12=0>12000";
+    expect(view([])?.queue?.map((i) => i.key)).toEqual([key]);
+    const after = view([key]);
+    expect(after?.queue).toEqual([]);
+    expect(after?.ignored).toEqual([{ key, date: "2026-11-12", title: "Fatura Visa" }]);
+    expect(after?.checks.find((c) => c.due === "2026-11-12")).toMatchObject({
+      bank: 12000,
+      gap: 0,
+      disagrees: false,
+    });
+  });
+
   it("leaves a pending movement waiting and words each item in the sheet's terms", async () => {
     const { ledger } = await import("../../../packages/engine/test/builders.ts");
     const days = ledger("2026-10-01", 92, 100000);
@@ -236,6 +268,22 @@ describe("Para lançar from the bank rows", () => {
             before: null,
             after: 1990,
             diff: null,
+            cell: null,
+          },
+        ],
+      ],
+      // The closed bill shared by both cards lists no lines: the holder's card answers for it.
+      [
+        "card:visa:2026-10-12=0>98000",
+        "cartao",
+        "Fatura Visa",
+        [
+          {
+            label: "12/10 · Saída · Visa",
+            change: "edit",
+            before: 0,
+            after: 98000,
+            diff: 98000,
             cell: null,
           },
         ],

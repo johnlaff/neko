@@ -4,6 +4,7 @@ import {
   buildQueue,
   type CardConfig,
   cents,
+  ignoredGaps,
   type LocalDate,
   localDate,
   originKey,
@@ -652,7 +653,7 @@ describe("Para lançar: card bills", () => {
       queue({
         ledger: drift,
         lines: [line("Banco Gio", 15000, "2026-12")],
-        decided: new Set(["card:banco gio:2026-12-12=15000"]),
+        decided: new Set(["card:banco gio:2026-12-12=15000>15000"]),
       }),
     ).toHaveLength(1);
     expect(fixed?.options).toHaveLength(1);
@@ -674,6 +675,59 @@ describe("Para lançar: card bills", () => {
         },
       ],
     });
+  });
+});
+
+describe("Para lançar: a card bill the owner ignored", () => {
+  // Sheet: Visa 410,00 on Nov 10. The bank shows 450,00: 40,00 of it the owner says is not real
+  // (a credit the feed left out), so he ignores the item.
+  const days = ledger("2026-10-01", 130, 0, {
+    "2026-11-10": { saida: cell(41000, [item(41000, "Visa")]) },
+  });
+  const line = (amount: number, over = {}) => ({
+    card: "Visa",
+    amount: cents(amount),
+    billMonth: "2026-11",
+    description: "LOJA",
+    installment: null,
+    installments: null,
+    ...over,
+  });
+  const before = [line(45000, { date: d("2026-10-05") })];
+  const [first] = queue({ ledger: days, lines: before });
+  const ignored = new Set([first?.key ?? ""]);
+
+  it("keeps the sheet's number while the bank has nothing new", () => {
+    expect(first?.key).toBe("card:visa:2026-11-10=41000>45000");
+    expect(queue({ ledger: days, lines: before, ignored })).toEqual([]);
+    expect(ignoredGaps(ignored)).toEqual(new Map([["visa|2026-11-10", 4000]]));
+  });
+
+  it("adds only what the bank got since, and shows just those purchases", () => {
+    const now = [...before, line(1500, { date: d("2026-10-18"), description: "PADARIA" })];
+    const [i] = queue({ ledger: days, lines: now, ignored });
+    expect(i?.options[0]?.draft).toMatchObject({ bills: [{ was: 41000, amount: 42500 }] });
+    expect(i?.purchases).toEqual([
+      {
+        due: "2026-11-10",
+        exact: true,
+        total: 1500,
+        lines: [expect.objectContaining({ description: "PADARIA" })],
+      },
+    ]);
+    // Launched, the sheet has it: nothing left. Ignored again, the 15,00 stays out too.
+    const launched = ledger("2026-10-01", 130, 0, {
+      "2026-11-10": { saida: cell(42500, [item(42500, "Visa")]) },
+    });
+    expect(queue({ ledger: launched, lines: now, ignored })).toEqual([]);
+    const twice = new Set([...ignored, i?.key ?? ""]);
+    expect(queue({ ledger: days, lines: now, ignored: twice })).toEqual([]);
+  });
+
+  it("follows the bank's total once the bill closes", () => {
+    const closed = [{ cards: ["Visa"], billMonth: "2026-11", total: cents(41500) }];
+    const [i] = queue({ ledger: days, lines: before, closed, ignored });
+    expect(i?.options[0]?.draft).toMatchObject({ bills: [{ was: 41000, amount: 41500 }] });
   });
 });
 
