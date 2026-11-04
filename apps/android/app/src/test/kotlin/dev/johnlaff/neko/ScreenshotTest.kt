@@ -89,8 +89,12 @@ class ScreenshotTest {
     private fun banked(file: String) =
         File("src/test/resources/$file").readText().replace("Cartão Azul", "Nubank").replace("Cartão Verde", "Itaú")
 
+    // With the bank's bill PDF option under the cards.
     @Test fun logosFaturasLight() = shot("logos-faturas-light", night = false, scrollTo = "Cartões") {
-        FaturasScreen(ScreenState(json.decodeFromString(InvoicesView.serializer(), banked("invoices.json"))), {}, {})
+        FaturasScreen(
+            ScreenState(json.decodeFromString(InvoicesView.serializer(), banked("invoices.json"))), {}, {},
+            onStatement = { error("not read in a shot") },
+        )
     }
 
     @Test fun logosMesDark() = shot("logos-mes-dark", night = true, scrollTo = "Para onde foi") {

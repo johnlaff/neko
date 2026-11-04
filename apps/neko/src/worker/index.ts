@@ -20,6 +20,7 @@ import {
 } from "./auth.ts";
 import { entries, queue } from "./entries.ts";
 import type { AppEnv, Env } from "./env.ts";
+import { receiveEmail } from "./inbox.ts";
 import {
   askMia,
   CAP_MICRO_USD,
@@ -57,6 +58,7 @@ import {
   sendReminder,
 } from "./push.ts";
 import { keepBankCards, loadSettings, saveSettings, UserSettings } from "./settings.ts";
+import { takeStatement } from "./statement.ts";
 import { recordUse, UsagePost, usageSummary } from "./usage.ts";
 
 const app = new Hono<AppEnv>().basePath("/api");
@@ -160,6 +162,7 @@ app.use("/entries", requireSession);
 app.use("/entries/*", requireSession);
 app.use("/queue/*", requireSession);
 app.use("/usage", requireSession);
+app.use("/statement", requireSession);
 app.route("/entries", entries);
 app.route("/queue", queue);
 
@@ -460,6 +463,19 @@ app.post("/mia", async (c) => {
   }
 });
 
+/** Faturas › "Ler a fatura do banco". */
+app.post("/statement", async (c) =>
+  c.json(await takeStatement(c.env, await c.req.json().catch(() => null))),
+);
+
+/** The same for a script or service holding the inbox token, outside the e-mail route. */
+app.post("/inbox/statement", async (c) => {
+  const token = c.env.STATEMENT_INBOX_TOKEN ?? "";
+  const auth = c.req.header("authorization") ?? "";
+  if (!sameSecret(auth.replace(/^Bearer /, ""), token)) return c.json({ error: "forbidden" }, 403);
+  return c.json(await takeStatement(c.env, await c.req.json().catch(() => null)));
+});
+
 /** Lançar com a Mia: a sentence fills the Lançar form; nothing is written here. */
 app.post("/mia/lancamento", async (c) => {
   const key = c.env.ANTHROPIC_API_KEY;
@@ -595,6 +611,10 @@ site.route("/", app);
 
 export default Sentry.withSentry(sentry, {
   fetch: site.fetch,
+  /** fatura@ on the Neko domain: the bank's bill PDF, read like one sent from Faturas. */
+  async email(message, env) {
+    await receiveEmail(message, env);
+  },
   /**
    * 08:00 in São Paulo: refresh the projection, record the day's point in the forecast history
    * and send "ainda cabem". 21:00: remind to log the day in the sheet, unless it already is.

@@ -1,6 +1,6 @@
 import { type BankCardLine, withFutureParcels } from "./bank.ts";
 import { normalizeName } from "./cards.ts";
-import { diffDays, type LocalDate } from "./date.ts";
+import { daysInMonth, diffDays, type LocalDate, parts, ymd } from "./date.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
 
 /**
@@ -33,16 +33,32 @@ export interface StatementCard {
   readonly lines: readonly StatementLineRead[];
 }
 
-/** A whole bill as read from the bank's PDF. */
+/**
+ * A whole bill as read from the bank's PDF. An open one ("em aberto") has what the bank put on it
+ * so far: what comes after reaches the feed anyway.
+ */
 export interface StatementRead {
   readonly due: LocalDate;
-  /** False while the bank still adds to it ("em aberto"). */
-  readonly closed: boolean;
   readonly total: Cents;
   readonly cards: readonly StatementCard[];
-  /** Charges the bank already scheduled for this bill (parcels), outside the cards' totals. */
-  readonly scheduled: readonly (StatementLineRead & { readonly number: string })[];
 }
+
+/**
+ * A bill prints a line's day and month only: its year is the one that puts it on or before the
+ * due day (a parcel of a purchase from last year included).
+ */
+export const billLineDate = (due: LocalDate, month: number, day: number): LocalDate => {
+  const on = (year: number) =>
+    month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(year, month)
+      ? ymd(year, month, day)
+      : null;
+  const { year } = parts(due);
+  const same = on(year);
+  if (same && same <= due) return same;
+  const before = on(year - 1);
+  if (!before) throw new RangeError(`invalid bill date: ${day}/${month}`);
+  return before;
+};
 
 /** A card, or the whole bill (`card` null), whose lines do not add up to what it prints. */
 export interface StatementProblem {

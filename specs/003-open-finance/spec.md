@@ -72,6 +72,30 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   cartão só na planilha (titular e adicional seguem pela soma das linhas). Parcela futura que o banco
   já lista com texto encurtado ou centavo de arredondamento diferente conta uma vez só. Nada disso
   entra no saldo. A tela mostra "já comprometido" ao lado do que a planilha prevê e avisa a diferença.
+- **Fatura fechada de titular e adicionais (engine, `billChecks`, 2026-11):** o total do banco vale.
+  Se a divisão da planilha soma o total, ela fica; se as linhas do banco somam, elas valem; senão
+  cada cartão fica com as linhas dele e o cartão do titular (o que está ligado à conta inteira em
+  Ajustes › Bancos) fica com a diferença, como o ajuste de conciliação do YNAB. Sem titular conhecido,
+  a fatura não diz nada.
+- **Ignorar numa fatura aberta (engine, `ignoredGaps`, 2026-11):** a chave do item guarda, por
+  fatura, o valor da planilha e o proposto (`card:<cartão>:<vencimento>=<planilha>><proposto>`).
+  Ignorar diz que essa diferença não é real (um crédito que o feed não mandou, uma compra que o banco
+  vai cancelar): enquanto a fatura está aberta, ela sai do total do banco e só o que o banco somar
+  depois volta a Para lançar. Fechada, vale o total do banco. O item ignorado fica em "Ignorados"
+  enquanto a fatura não vence, para voltar com um toque.
+- **Fatura do banco em PDF (2026-11, opcional):** o Open Finance do Bradesco deixa linhas de fora
+  (créditos provisórios de contestação, a segunda de duas compras iguais no mesmo dia, corridas do
+  dia do fechamento). A fatura que o banco gera tem todas. O Claude (Opus 5.5, saída estruturada)
+  copia cada linha; o Neko só guarda a leitura quando, em cada cartão, saldo anterior + linhas −
+  pagamentos dá o valor impresso, e os cartões somam o total (`checkStatement`); senão lê de novo
+  com mais esforço e, falhando, não guarda nada. A conta é a que tem os números dos cartões. As linhas
+  ficam no D1 (`statement`, `statement_line`, migração 0011); uma leitura nova da mesma fatura
+  substitui a anterior. `withStatements` junta cada linha do PDF com a do feed do mesmo cartão e
+  valor (a parcela, com o centavo de arredondamento), e só acrescenta o que o feed não tem, marcado
+  `fromStatement`; quando o feed manda a linha, a cópia do PDF sai. Entra pelo botão em Faturas
+  (web e Android) ou por e-mail: o endereço `fatura@` do domínio do Neko (Cloudflare Email Routing)
+  entrega ao Worker, que aceita só o dono (encaminhamento do Gmail) e os domínios do banco. Gasta do
+  mesmo teto mensal da Mia. Nunca escreve na planilha.
 - **Telas (web e Android 1:1, mesma API):**
   - Faturas: por cartão, "Parcelas já compradas" por mês vindas do banco, e a diferença para a
     planilha quando houver.

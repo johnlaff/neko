@@ -21,6 +21,7 @@ import dev.johnlaff.neko.data.MiaAsk
 import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MiaStatus
 import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.data.StatementAnswer
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.data.UserSettings
@@ -322,6 +323,13 @@ class AppModel(
             neko.api.keepPrevisto()
             readToday(shown = false, after = true)
         }
+    }
+
+    /** Faturas › "Ler a fatura do banco": a kept read shows on the bills at once. */
+    suspend fun readStatement(pdf: String): StatementAnswer {
+        val answer = neko.api.readStatement(pdf)
+        if (answer.read) read(Tab.Faturas, shown = false, after = true)
+        return answer
     }
 
     /** Hoje's "Perguntar à Mia"; the Worker runs the tools and checks the answer. */

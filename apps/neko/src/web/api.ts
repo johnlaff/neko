@@ -12,6 +12,7 @@ import type {
   MiaReply,
   MiaStatus,
   ProjectionResponse,
+  StatementAnswer,
   UserSettings,
 } from "../shared/types.ts";
 import type { UsageEvent, UsageSummary } from "../shared/usage.ts";
@@ -73,6 +74,8 @@ export class ApiError extends Error {
 /** How long a call may wait, like the app's: 30 s, and 90 s for Mia and writes to the sheet. */
 const WAIT = 30_000;
 const LONG_WAIT = 90_000;
+/** Reading a bill PDF: two careful reads at most. */
+const PDF_WAIT = 300_000;
 
 const request = async <T>(path: string, init?: RequestInit, wait = WAIT): Promise<T> => {
   const res = await fetch(`/api${path}`, {
@@ -192,6 +195,13 @@ export const api = {
   /** One request: the Worker reads each cell and writes only if every changed line still holds what Neko saw. */
   launch: (body: { id: string; draft: Draft; key?: string }) =>
     request<LaunchResult>("/entries", { method: "POST", body: JSON.stringify(body) }, LONG_WAIT),
+  /** The bank's bill PDF, base64: kept only when its sums close. */
+  readStatement: (pdf: string) =>
+    request<StatementAnswer>(
+      "/statement",
+      { method: "POST", body: JSON.stringify({ pdf }) },
+      PDF_WAIT,
+    ),
   /** Atualizar agora: the banks read now instead of at the next morning sync. */
   refreshBanks: () => request<{ ok: boolean }>("/banks/refresh", { method: "POST" }),
   undoEntry: (id: string) =>

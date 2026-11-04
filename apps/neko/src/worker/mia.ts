@@ -21,14 +21,16 @@ import { z } from "zod";
 const API = "https://api.anthropic.com/v1/messages";
 export const HAIKU = "claude-haiku-5-5";
 export const SONNET = "claude-sonnet-5-5";
-type Model = typeof HAIKU | typeof SONNET;
+/** Not Mia's: it reads the bank's bill (statement.ts), on the same monthly cap. */
+export const OPUS = "claude-opus-5-5";
+export type Model = typeof HAIKU | typeof SONNET | typeof OPUS;
 
 /** Calls to the API in one attempt, tool rounds and the answer included. */
 const MAX_CALLS = 4;
 /** Earlier exchanges sent back with a question. */
 export const MAX_HISTORY = 6;
-const MAX_TOKENS: Record<Model, number> = { [HAIKU]: 2000, [SONNET]: 4000 };
-const EFFORT: Record<Model, string> = { [HAIKU]: "low", [SONNET]: "medium" };
+const MAX_TOKENS: Record<Model, number> = { [HAIKU]: 2000, [SONNET]: 4000, [OPUS]: 32000 };
+const EFFORT: Record<Model, string> = { [HAIKU]: "low", [SONNET]: "medium", [OPUS]: "medium" };
 
 /** Monthly cap in millionths of a dollar; the Console workspace limit sits at the same US$ 80. */
 export const CAP_MICRO_USD = 80_000_000;
@@ -39,6 +41,7 @@ const NO_ESCALATION_AT = 0.7;
 const PRICES: Record<Model, readonly [number, number, number, number]> = {
   [HAIKU]: [0.1, 0.125, 0.01, 0.5],
   [SONNET]: [2, 2.5, 0.1, 10],
+  [OPUS]: [4, 5, 0.2, 20],
 };
 /** Haiku 5.5 costs five times as much past this many prompt tokens. */
 const HAIKU_STEP = 100_000;
@@ -156,7 +159,7 @@ const ContentBlock = z.union([
   z.object({ type: z.string() }).loose(),
 ]);
 
-const Message = z.object({
+export const Message = z.object({
   content: z.array(ContentBlock),
   stop_reason: z.string().nullable(),
   usage: z.object({
