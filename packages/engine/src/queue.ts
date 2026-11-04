@@ -7,6 +7,7 @@ import {
   MATCH_DAYS,
   matchMovements,
   originKey,
+  originOf,
   type SheetLine,
 } from "./bank.ts";
 import { type CardConfig, normalizeName } from "./cards.ts";
@@ -274,6 +275,15 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     if (line.description !== "") names.set(originKey(movement.description), line.description);
   const nameOf = (m: BankMovement) =>
     names.get(originKey(m.description)) ?? lineName(m.description);
+  // Who already pays each planned name: a line always paid to the teacher is not taken for a
+  // purchase of near value somewhere else.
+  const payers = new Map<string, Set<string>>();
+  for (const { movement, line } of matching.pairs) {
+    const name = normalizeName(line.description);
+    payers.set(name, (payers.get(name) ?? new Set()).add(originOf(movement.description)));
+  }
+  const othersPay = (l: SheetLine, m: BankMovement) =>
+    payers.get(normalizeName(l.description))?.has(originOf(m.description)) === false;
 
   const items: QueueItem[] = [];
   const push = (item: QueueItem) => {
@@ -345,6 +355,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
           (f) =>
             !f.used &&
             f.l.column === "entrada" &&
+            !othersPay(f.l, m) &&
             Math.abs(diffDays(f.l.date, m.date)) <= 7 &&
             near(planned(f).net, m.amount),
         )
@@ -425,6 +436,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
           f.l.column === "saida" &&
           f.l.section !== "reserva" &&
           (known === undefined || sharesWord(known, f.l.description)) &&
+          !othersPay(f.l, m) &&
           Math.abs(diffDays(f.l.date, m.date)) <= 7 &&
           near(f.l.amount, m.amount),
       )

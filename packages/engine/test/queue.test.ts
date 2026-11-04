@@ -306,6 +306,31 @@ describe("Para lançar: account movements", () => {
     ).toEqual([]);
   });
 
+  it("does not take a planned bill someone else always gets for a payment to another origin", () => {
+    // The class is a Pix to the teacher every month; a purchase of near value is no class.
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-01": { saida: cell(23200, [item(23200, "Aulas", "contas")]) },
+      "2026-10-15": { saida: cell(23200, [item(23200, "Aulas", "contas")]) },
+    });
+    const items = queue({
+      ledger: days,
+      movements: [
+        mov("2026-10-01", -23200, "PIX ENVIADO - DES  Ana Exemplo Souza  01/10 - DOCTO: 1"),
+        mov("2026-10-17", -23391, "PIX QR CODE ESTATICO - DES: PIX Marketplace  17/10"),
+      ],
+    });
+    expect(items.map((i) => [i.kind, i.options[0]?.draft?.type])).toEqual([["diario", "new"]]);
+    // The teacher paid from another bank, whose text is different, still is the class.
+    const [same] = queue({
+      ledger: days,
+      movements: [
+        mov("2026-10-01", -23200, "PIX ENVIADO - DES  Ana Exemplo Souza  01/10 - DOCTO: 1"),
+        mov("2026-10-17", -23391, "Pix enviado Ana Exemplo Souza"),
+      ],
+    });
+    expect(same).toMatchObject({ kind: "conta", date: "2026-10-17" });
+  });
+
   it("does not take a planned bill for a payment the sheet already names as something else", () => {
     // The same person gets a ride paid each month; a bill of near value is planned that week.
     const days = ledger("2026-10-01", 92, 0, {
