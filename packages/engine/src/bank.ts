@@ -391,6 +391,10 @@ const self = (description: string): string | null => {
   return third ? `${first} ${second} ${third[0]}` : null;
 };
 
+/** Who a movement is with: the person of a Pix however each bank writes it, else its text. */
+export const originOf = (description: string): string =>
+  self(description) ?? originKey(description);
+
 /**
  * The bank's account movements against the sheet. A movement matches a sheet line of the same
  * amount, same direction, within MATCH_DAYS; each sheet line answers for one movement only, the
