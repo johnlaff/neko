@@ -292,6 +292,26 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     expect(checks[0]?.lines.map((l) => l.description)).toEqual(["PADARIA"]);
   });
 
+  it("reads a bill already due where the sheet wrote it, off the due day", () => {
+    // Paid late: the sheet carries Oct's 10,00 on Oct 13. Nov is still to pay: its due day only.
+    const late = ledger("2026-10-01", 92, 0, {
+      "2026-10-13": { saida: cell(1000, [item(1000, "Visa")]) },
+      "2026-11-17": { saida: cell(2000, [item(2000, "Visa")]) },
+    });
+    const checks = billChecks(
+      late,
+      [visa],
+      [line(1000, "2026-10"), line(2000, "2026-11")],
+      localDate("2026-10-20"),
+      [{ cards: ["Visa"], billMonth: "2026-10", total: cents(1000) }],
+      localDate("2026-06-01"),
+    );
+    expect(checks.map((c) => [c.due, c.sheet, c.gap])).toEqual([
+      ["2026-10-10", 1000, 0],
+      ["2026-11-10", 0, 2000],
+    ]);
+  });
+
   it("leaves out bills already due and cards the sheet does not know", () => {
     const checks = billChecks(
       days,

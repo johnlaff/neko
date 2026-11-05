@@ -61,8 +61,12 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   planilha somadas. A tela mostra só os últimos 40 dias.
 - **Faturas (engine, `billChecks`):** para cada fatura futura de um cartão que a planilha conhece,
   soma o que o banco já pôs nela (compras e parcelas, com estornos descontados e sem o pagamento da
-  fatura anterior) e compara com a linha da planilha no vencimento. Cada cartão do banco é ligado ao
-  nome dele na planilha em Ajustes, inclusive o adicional, que vem no mesmo cartão com outro número.
+  fatura anterior) e compara com a linha da planilha no vencimento. Fatura já vencida fica com as
+  linhas do cartão mais perto do vencimento dela do que do anterior ou do seguinte (paga com
+  atraso, adiantada ou antes de o cartão mudar o dia de vencimento; no empate, a fatura mais
+  antiga); fatura por vencer só no dia, porque é lá que uma linha nova é escrita. Cada cartão do
+  banco é ligado ao nome dele na planilha em Ajustes, inclusive o adicional, que vem no mesmo
+  cartão com outro número.
 - **Parcelas futuras (engine):** a soma por cartão e por fatura usa `installmentNumber`,
   `totalInstallments` e `billForecastDate`. O Open Finance não liga as parcelas de uma mesma compra,
   então a compra é reconhecida por descrição, valor da parcela e total de parcelas. O

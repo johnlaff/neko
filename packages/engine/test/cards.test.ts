@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  billOnSheet,
   type CardConfig,
   cycleContaining,
   cycleForDueMonth,
@@ -38,6 +39,26 @@ describe("card cycles", () => {
   it("handles a cycle crossing the year", () => {
     expect(cycleContaining(card(25, 5), localDate("2026-12-30")).due).toBe("2027-02-05");
     expect(cycleContaining(card(25, 5), localDate("2026-12-20")).due).toBe("2027-01-05");
+  });
+});
+
+describe("a bill on the sheet", () => {
+  const visa = card(3, 10);
+  const days = ledger("2026-09-01", 100, 0, {
+    "2026-10-08": { saida: cell(100, [item(100, "Visa")]) },
+    "2026-10-12": { saida: cell(200, [item(200, "visa")]) },
+    // 16 days after Oct 10 and 15 before Nov 10: November's, paid early.
+    "2026-10-26": { saida: cell(400, [item(400, "Visa")]) },
+  });
+  it("reads only the due day of a bill still to pay", () => {
+    expect(billOnSheet(days, visa, localDate("2026-10-10"))).toBe(0);
+    expect(billOnSheet(days, visa, localDate("2026-11-10"))).toBe(0);
+    expect(billOnSheet(days, visa, localDate("2027-01-10"))).toBeNull();
+  });
+  it("gives a bill already due every line nearer its due day than the card's other ones", () => {
+    expect(billOnSheet(days, visa, localDate("2026-10-10"), true)).toBe(300);
+    expect(billOnSheet(days, visa, localDate("2026-11-10"), true)).toBe(400);
+    expect(billOnSheet(days, visa, localDate("2026-09-10"), true)).toBe(0);
   });
 });
 

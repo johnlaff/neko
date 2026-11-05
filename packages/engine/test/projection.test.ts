@@ -417,6 +417,23 @@ describe("bills by month, all cards", () => {
     expect(p.invoicesAverage).toBe(700_00);
   });
 
+  it("finds a bill already due where it was paid: late, or early, on another day", () => {
+    const paid = ledger("2026-08-01", 120, 10_000_00, {
+      "2026-09-04": { saida: cell(40_00, [item(40_00, "Verde")]) },
+      // 14 days before Sep 10 and 17 after Aug 10: September's bill, paid early.
+      "2026-08-27": { saida: cell(700_00, [item(700_00, "Visa")]) },
+      "2026-10-10": { saida: cell(800_00, [item(800_00, "Visa")]) },
+    });
+    const q = project(paid, today, settings({ cards: [visa, verdeLate] }));
+    const sep = q.invoices.find((m) => m.month === "2026-09");
+    expect(sep?.cards.map((c) => [c.card, c.amount, c.state])).toEqual([
+      ["Verde", 40_00, "due"],
+      ["Visa", 700_00, "due"],
+    ]);
+    expect(q.invoices.find((m) => m.month === "2026-08")?.total).toBe(0);
+    expect(q.invoices.find((m) => m.month === "2026-10")?.total).toBe(800_00);
+  });
+
   it("marks a bill that closed and is not due yet", () => {
     const q = project(l, localDate("2026-11-05"), settings({ cards: [visa, verdeLate] }));
     const nov = q.invoices.find((m) => m.month === "2026-11");
