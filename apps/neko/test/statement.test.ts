@@ -5,6 +5,7 @@ import { type BankRows, bankInput, loadBank } from "../src/worker/bank.ts";
 import { costMicroUsd, type OPUS } from "../src/worker/mia.ts";
 import {
   fromRaw,
+  openBillDue,
   readStatement,
   saveStatement,
   statementAccount,
@@ -116,9 +117,47 @@ describe("reading the bank's bill PDF", () => {
     expect(efforts).toEqual(["medium", "high"]);
   });
 
+  it("dates an open bill, which prints no due date, by the bill its cards have open", async () => {
+    const open = { ...raw(), vencimento: "" };
+    const { deps } = api([open]);
+    const asked: string[][] = [];
+    const result = await readStatement(
+      {
+        ...deps,
+        openDue: (numbers) => {
+          asked.push([...numbers]);
+          return localDate("2026-12-12");
+        },
+      },
+      "JVBERi0",
+    );
+    expect(asked).toEqual([["1111", "2222"]]);
+    expect(result.kind === "ok" && result.read.due).toBe("2026-12-12");
+    // With no card account to tell which bill is open, nothing is read.
+    expect(await readStatement(api([open, open]).deps, "JVBERi0")).toEqual({ kind: "unreadable" });
+  });
+
   it("says unreadable when no read comes out", async () => {
     const { deps } = api([{ nada: true }, "x"]);
     expect(await readStatement(deps, "JVBERi0")).toEqual({ kind: "unreadable" });
+  });
+});
+
+describe("the bill an open statement is", () => {
+  it("is the one its card account's holder card has open on the day it is read", () => {
+    const map: UserSettings["bankCards"] = [
+      { accountId: "a", cardNumber: "2222", card: "Visa Bia" },
+      { accountId: "a", cardNumber: null, card: "Visa Ana" },
+    ];
+    const cards: CardConfig[] = [
+      { name: "Visa Ana", closingDay: 29, dueDay: 12, closingEstimated: false },
+    ];
+    const accounts = [{ id: "a", number: null }];
+    // Read after the Oct 29 closing: the open bill is the one due Dec 12.
+    expect(openBillDue(["1111", "2222"], accounts, map, cards, localDate("2026-11-05"))).toBe(
+      "2026-12-12",
+    );
+    expect(openBillDue(["9999"], accounts, map, cards, localDate("2026-11-05"))).toBeNull();
   });
 });
 

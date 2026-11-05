@@ -1,7 +1,10 @@
 import {
   billLineDate,
+  type CardConfig,
   cents,
   checkStatement,
+  cycleContaining,
+  type LocalDate,
   localDate,
   normalizeName,
   type StatementProblem,
@@ -80,7 +83,8 @@ export const SCHEMA = {
 const SYSTEM = `Você lê a fatura de cartão de crédito que o dono baixou do banco e copia cada \
 lançamento exatamente como está impresso, sem somar, juntar, corrigir nem inventar nada.
 
-- vencimento: a data de vencimento da fatura, AAAA-MM-DD.
+- vencimento: a data de vencimento da fatura, AAAA-MM-DD; vazio ("") quando não está impressa, \
+como num extrato em aberto.
 - total: o total da fatura impresso, em reais (número, negativo se for crédito).
 - cartoes: um por cartão (titular e adicionais), na ordem da fatura. final: os 4 últimos \
 dígitos. valor: o "Valor da fatura" impresso para esse cartão, com o sinal. saldo_anterior: o \
@@ -118,9 +122,14 @@ const Raw = z.object({
 
 const toCents = (reais: number) => cents(Math.round(reais * 100));
 
-/** What Claude read, in the engine's terms: cents, full dates, a parcel only when it has two or more. */
-export const fromRaw = (raw: z.infer<typeof Raw>): StatementRead => {
-  const due = localDate(raw.vencimento);
+/**
+ * What Claude read, in the engine's terms: cents, full dates, a parcel only when it has two or more.
+ * An open bill prints no due date: `openDue` is then the one its cards have open.
+ */
+export const fromRaw = (raw: z.infer<typeof Raw>, openDue?: LocalDate | null): StatementRead => {
+  const printed = raw.vencimento.trim();
+  const due = printed ? localDate(printed) : openDue;
+  if (!due) throw new RangeError("bill without a due date");
   return {
     due,
     total: toCents(raw.total),
@@ -147,6 +156,8 @@ export interface ReaderDeps {
   readonly fetch: typeof fetch;
   readonly key: string;
   readonly record: (model: Model, usage: Usage) => Promise<void>;
+  /** The due date of the bill these cards have open, for a bill that prints none. */
+  readonly openDue?: (numbers: readonly string[]) => LocalDate | null | Promise<LocalDate | null>;
 }
 
 /** One read at one effort; null when Claude refused, ran out of room or gave a shape not usable. */
@@ -199,12 +210,22 @@ const readOnce = async (
     cache_creation_input_tokens: msg.usage.cache_creation_input_tokens ?? 0,
     cache_read_input_tokens: msg.usage.cache_read_input_tokens ?? 0,
   });
-  if (msg.stop_reason !== "end_turn") return null;
+  if (msg.stop_reason !== "end_turn") {
+    console.warn("statement read stopped", msg.stop_reason);
+    return null;
+  }
   const text = msg.content.find((b) => b.type === "text" && "text" in b);
   try {
     const raw = Raw.safeParse(JSON.parse(text && "text" in text ? String(text.text) : ""));
-    return raw.success ? fromRaw(raw.data) : null;
-  } catch {
+    if (!raw.success) {
+      console.warn("statement read off shape", raw.error.issues[0]?.path.join("."));
+      return null;
+    }
+    const printed = raw.data.vencimento.trim();
+    const numbers = raw.data.cartoes.map((c) => c.final.replace(/\D/g, "").slice(-4));
+    return fromRaw(raw.data, printed ? null : await deps.openDue?.(numbers));
+  } catch (e) {
+    console.warn("statement read unusable", e instanceof Error ? e.message : e);
     return null;
   }
 };
@@ -233,7 +254,7 @@ const last4 = (s: string | null) => (s ? s.replace(/\D/g, "").slice(-4) : "");
  * share the most numbers with the bill. None, or a tie, is not guessed.
  */
 export const statementAccount = (
-  read: StatementRead,
+  read: { readonly cards: readonly { readonly number: string }[] },
   accounts: readonly { readonly id: string; readonly number: string | null }[],
   map: UserSettings["bankCards"],
 ): string | null => {
@@ -250,6 +271,24 @@ export const statementAccount = (
     .sort((a, b) => b.score - a.score);
   const [best, next] = scored;
   return best && best.score !== next?.score ? best.id : null;
+};
+
+/**
+ * The bill an open statement is, which prints no due date: the one its card account's holder card
+ * has open on the day it is read (the owner sends it as soon as the bank gives it). None when the
+ * account or its card is not known.
+ */
+export const openBillDue = (
+  numbers: readonly string[],
+  accounts: readonly { readonly id: string; readonly number: string | null }[],
+  map: UserSettings["bankCards"],
+  cards: readonly CardConfig[],
+  today: LocalDate,
+): LocalDate | null => {
+  const account = statementAccount({ cards: numbers.map((number) => ({ number })) }, accounts, map);
+  const holder = map.find((m) => m.accountId === account && m.cardNumber === null)?.card;
+  const card = holder && cards.find((c) => normalizeName(c.name) === normalizeName(holder));
+  return card ? cycleContaining(card, today).due : null;
 };
 
 /** A newer read of the same bill replaces the older one. */
@@ -331,9 +370,24 @@ export const takeStatement = async (env: Env, body: unknown): Promise<StatementA
     console.warn("statement pdf locked or damaged");
     return { read: false, reason: "unreadable" };
   }
+  const settings = await loadSettings(env.DB);
+  const accounts = await env.DB.prepare(
+    "SELECT id, number FROM bank_account WHERE type = 'CREDIT'",
+  ).all<{ id: string; number: string | null }>();
+  const openDue = async (numbers: readonly string[]) =>
+    openBillDue(
+      numbers,
+      accounts.results,
+      settings.bankCards,
+      (await getProjection(env, today)).cardsKnown,
+      today,
+    );
   let result: ReadResult;
   try {
-    result = await readStatement({ fetch, key, record: recordUsage(env.DB, today, now) }, pdf);
+    result = await readStatement(
+      { fetch, key, record: recordUsage(env.DB, today, now), openDue },
+      pdf,
+    );
   } catch (e) {
     if (e instanceof MiaSpendLimit) return paused;
     throw e;
@@ -342,10 +396,6 @@ export const takeStatement = async (env: Env, body: unknown): Promise<StatementA
   if (result.kind === "wrong")
     return { read: false, reason: "mismatch", problems: [...result.problems] };
   const { read } = result;
-  const settings = await loadSettings(env.DB);
-  const accounts = await env.DB.prepare(
-    "SELECT id, number FROM bank_account WHERE type = 'CREDIT'",
-  ).all<{ id: string; number: string | null }>();
   const account = statementAccount(read, accounts.results, settings.bankCards);
   if (!account) return { read: false, reason: "account" };
   await saveStatement(env.DB, account, read, now);
