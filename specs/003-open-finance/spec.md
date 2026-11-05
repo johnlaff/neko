@@ -90,7 +90,9 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   dia do fechamento). A fatura que o banco gera tem todas. O Claude (Opus 5.5, saída estruturada)
   copia cada linha; o Neko só guarda a leitura quando, em cada cartão, saldo anterior + linhas −
   pagamentos dá o valor impresso, e os cartões somam o total (`checkStatement`); senão lê de novo
-  com mais esforço e, falhando, não guarda nada. A conta é a que tem os números dos cartões. As linhas
+  com mais esforço e, falhando, não guarda nada. A conta é a que tem os números dos cartões. O
+  extrato em aberto não imprime vencimento: vale o da fatura que o cartão titular da conta tem
+  aberta no dia em que o PDF chega (o dono manda logo que baixa). As linhas
   ficam no D1 (`statement`, `statement_line`, migração 0011); uma leitura nova da mesma fatura
   substitui a anterior. `withStatements` junta cada linha do PDF com a do feed do mesmo cartão e
   valor (a parcela, com o centavo de arredondamento), e só acrescenta o que o feed não tem, marcado
