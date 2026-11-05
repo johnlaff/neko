@@ -164,25 +164,47 @@ describe("bills: what the bank already knows against what the sheet expects", ()
       ]);
     });
 
+    const holder = (lines: BankCardLine[], total: number) =>
+      billChecks(shared, [visa, gio], lines, today, [
+        { ...closed[0]!, total: cents(total), holder: "Visa" },
+      ]).map((c) => [c.card, c.bank, c.gap]);
+    // A purchase on the bill before, so the feed already ran when this bill's cycle began (Oct 3).
+    const before = line(5000, "2026-10", { date: localDate("2026-09-20") });
+
     it("puts what the bank's lines miss on the holder's card when neither adds up", () => {
       // The feed left out 10,00 the bill has: the holder answers for the bill, so it goes there.
-      const holder = (lines: BankCardLine[], total: number) =>
-        billChecks(shared, [visa, gio], lines, today, [
-          { ...closed[0]!, total: cents(total), holder: "Visa" },
-        ]).map((c) => [c.card, c.bank, c.gap]);
       expect(
-        holder([line(31000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })], 42000),
+        holder(
+          [before, line(31000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })],
+          42000,
+        ),
       ).toEqual([
         ["Visa", 32000, 2000],
         ["Visa Gio", 10000, 0],
       ]);
       // A credit the feed left out lowers the holder's part the same way.
       expect(
-        holder([line(31000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })], 39000),
+        holder(
+          [before, line(31000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })],
+          39000,
+        ),
       ).toEqual([
         ["Visa", 29000, -1000],
         ["Visa Gio", 10000, 0],
       ]);
+    });
+
+    it("says nothing when the feed began midway through the bill's cycle", () => {
+      // Linked on Oct 25: the few lines it has are no split, the holder would take nearly all.
+      expect(
+        holder(
+          [
+            line(31000, "2026-11", { date: localDate("2026-10-26") }),
+            line(10000, "2026-11", { card: "Visa Gio", date: localDate("2026-10-27") }),
+          ],
+          42000,
+        ),
+      ).toEqual([]);
     });
 
     it("says nothing when neither adds up and no card is the holder's", () => {
