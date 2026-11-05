@@ -76,7 +76,9 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   Se a divisão da planilha soma o total, ela fica; se as linhas do banco somam, elas valem; senão
   cada cartão fica com as linhas dele e o cartão do titular (o que está ligado à conta inteira em
   Ajustes › Bancos) fica com a diferença, como o ajuste de conciliação do YNAB. Sem titular conhecido,
-  a fatura não diz nada.
+  a fatura não diz nada. Nem quando o feed começou no meio do ciclo (nenhuma compra dos cartões
+  datada até o fechamento anterior): as poucas linhas não dizem a divisão, e o titular ficaria com
+  quase a fatura inteira.
 - **Ignorar numa fatura aberta (engine, `ignoredGaps`, 2026-11):** a chave do item guarda, por
   fatura, o valor da planilha e o proposto (`card:<cartão>:<vencimento>=<planilha>><proposto>`).
   Ignorar diz que essa diferença não é real (um crédito que o feed não mandou, uma compra que o banco
