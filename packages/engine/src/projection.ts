@@ -1,6 +1,7 @@
 import { checkBalances } from "./balance.ts";
 import { type Fixed, monthFixed, monthOutflows, type Outflow, UNITEMIZED } from "./breakdown.ts";
 import {
+  billLines,
   billOnSheet,
   type CardConfig,
   type Cycle,
@@ -438,7 +439,6 @@ const invoiceMonths = (
   others: ReadonlySet<string>,
   reimbursed: ReadonlySet<NoteItem>,
 ): InvoiceMonth[] => {
-  const byDate = new Map(ledger.map((r) => [r.date, r]));
   const { year, month } = parts(today);
   const out: InvoiceMonth[] = [];
   for (let k = -INVOICE_MONTHS_BACK; k <= INVOICE_MONTHS_AHEAD; k++) {
@@ -448,9 +448,10 @@ const invoiceMonths = (
     let known = false;
     for (const card of cards) {
       const cycle = cycleForDueMonth(card, y, m);
-      const amount = billOnSheet(ledger, card, cycle.due);
-      if (amount === null) continue;
+      const items = billLines(ledger, card, cycle.due, cycle.due <= today);
+      if (items === null) continue;
       known = true;
+      const amount = add(ZERO, ...items.map((i) => i.amount));
       if (amount === 0) continue;
       const key = normalizeName(card.name);
       const state = billState(cycle, today);
@@ -461,12 +462,7 @@ const invoiceMonths = (
         state,
         closesInDays: state === "open" ? diffDays(today, cycle.closing) + 1 : 0,
         closingEstimated: card.closingEstimated,
-        reimbursed:
-          byDate
-            .get(cycle.due)
-            ?.saida.items.some(
-              (it) => reimbursed.has(it) && normalizeName(it.description) === key,
-            ) ?? false,
+        reimbursed: items.some((it) => reimbursed.has(it)),
         others: others.has(key),
       });
     }
@@ -607,7 +603,7 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     let cycle = usualView.cycle;
     for (let i = 0; i < HISTORY_BILLS; i++) {
       cycle = cycleContaining(usualView.card, cycle.start);
-      const amount = billOnSheet(ledger, usualView.card, cycle.due);
+      const amount = billOnSheet(ledger, usualView.card, cycle.due, cycle.due <= today);
       if (amount === null) break;
       history.unshift({ due: cycle.due, amount });
     }
