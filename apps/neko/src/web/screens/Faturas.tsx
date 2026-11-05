@@ -560,8 +560,8 @@ const statementText = (a: StatementAnswer): string => {
   if (a.read) {
     const bill = `Fatura que vence em ${shortDate(a.due)} lida`;
     return a.added.length === 0
-      ? `${bill}: ${plural(a.lines, "linha", "linhas")} em ${plural(a.cards, "cartão", "cartões")}, e o Open Finance já tinha todas.`
-      : `${bill}. Entraram nela ${plural(a.added.length, "linha", "linhas")} que o Open Finance não mandou:`;
+      ? `${bill}: ${plural(a.lines, "linha", "linhas")} em ${plural(a.cards, "cartão", "cartões")}, e o banco já tinha mandado todas.`
+      : `${bill}. Entraram nela ${plural(a.added.length, "linha", "linhas")} que o banco não tinha mandado:`;
   }
   if (a.reason === "mismatch") {
     const card = a.problems?.find((p) => p.card)?.card;
@@ -575,11 +575,14 @@ const statementText = (a: StatementAnswer): string => {
   return "Não consegui ler esse PDF. Se ele pede senha, salve uma cópia sem senha e envie de novo.";
 };
 
+/** A file the browser could not open: its own words, not "the connection dropped". */
+class Unopened extends Error {}
+
 const asBase64 = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ""));
-    reader.onerror = () => reject(reader.error);
+    reader.onerror = () => reject(new Unopened());
     reader.readAsDataURL(file);
   });
 
@@ -589,10 +592,12 @@ const STATEMENT = ["statement"];
  * The bank's own bill, as a PDF: its lines fill in what Open Finance left out (a credit, the
  * second of two equal purchases). Optional: the bill e-mailed to the Neko address is read alone.
  */
-const StatementUpload = () => {
+const StatementUpload = ({ month, onPick }: { month: string; onPick: (month: string) => void }) => {
   const queryClient = useQueryClient();
   const read = useMutation({
     mutationKey: STATEMENT,
+    // The answer stays a while after leaving Faturas, as the lines it brought do.
+    gcTime: 30 * 60_000,
     mutationFn: async (file: File) => api.readStatement(await asBase64(file)),
     onSuccess: async (a) => {
       if (a.read) await queryClient.invalidateQueries({ queryKey: ["projection"] });
@@ -605,6 +610,8 @@ const StatementUpload = () => {
   }).at(-1);
   const pending = last?.status === "pending";
   const answer = last?.status === "success" ? last.data : undefined;
+  // The lines landed on the bill's own month, which may not be the one on screen.
+  const elsewhere = answer?.read && answer.added.length > 0 && answer.due.slice(0, 7) !== month;
   return (
     <div className="statement">
       <label className="text-link">
@@ -644,7 +651,22 @@ const StatementUpload = () => {
             </ul>
           </div>
         )}
-        {last?.status === "error" && <p className="warn">{reasonOf(last.error)}</p>}
+        {answer?.read && elsewhere && (
+          <button
+            type="button"
+            className="text-link"
+            onClick={() => onPick(answer.due.slice(0, 7))}
+          >
+            Ver {monthOf(answer.due.slice(0, 7))}
+          </button>
+        )}
+        {last?.status === "error" && (
+          <p className="warn">
+            {last.error instanceof Unopened
+              ? "Não consegui abrir esse arquivo. Tente de novo."
+              : reasonOf(last.error)}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -766,7 +788,7 @@ export const Faturas = () => {
                       ))}
                     </ul>
                   )}
-                  {v.bank && <StatementUpload />}
+                  {v.bank && <StatementUpload month={m.key} onPick={setPicked} />}
                 </section>
               ),
               owed: m.owed.length > 0 && <Owed m={m} people={v.people} />,

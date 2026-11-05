@@ -202,7 +202,7 @@ private fun CardsPanel(
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
         // By card only: it stays open while its chart picks another month.
         m.cards.forEach { key(it.card) { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, owners, onPick) } }
-        statement?.let { StatementUpload(it, onStatement) }
+        statement?.let { StatementUpload(it, m.key, onStatement, onPick) }
     }
 }
 
@@ -213,8 +213,8 @@ internal fun statementText(a: StatementAnswer): String {
     val bill = "Fatura que vence em ${shortDate(a.due ?: "")} lida"
     return when {
         a.read && a.added.isEmpty() ->
-            "$bill: ${plural(a.lines, "linha", "linhas")} em ${plural(a.cards, "cartão", "cartões")}, e o Open Finance já tinha todas."
-        a.read -> "$bill. Entraram nela ${plural(a.added.size, "linha", "linhas")} que o Open Finance não mandou:"
+            "$bill: ${plural(a.lines, "linha", "linhas")} em ${plural(a.cards, "cartão", "cartões")}, e o banco já tinha mandado todas."
+        a.read -> "$bill. Entraram nela ${plural(a.added.size, "linha", "linhas")} que o banco não tinha mandado:"
         // A no-break space keeps "final" with its digits.
         a.reason == "mismatch" -> "As somas do PDF não fecharam" +
             (a.problems.firstNotNullOfOrNull { it.card }?.let { " no cartão final\u00a0$it" } ?: "") +
@@ -238,7 +238,7 @@ class StatementRead(answer: StatementAnswer? = null) {
  * second of two equal purchases). Optional: the bill e-mailed to the Neko address is read alone.
  */
 @Composable
-private fun StatementUpload(s: StatementRead, onRead: (String) -> Unit) {
+private fun StatementUpload(s: StatementRead, month: String, onRead: (String) -> Unit, onPick: (String) -> Unit) {
     val l = LocalLedger.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -248,8 +248,10 @@ private fun StatementUpload(s: StatementRead, onRead: (String) -> Unit) {
             val bytes = runCatching {
                 withContext(Dispatchers.IO) { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }
             }.getOrNull()
-            if (bytes == null) s.failed = "Não consegui abrir esse arquivo. Tente de novo."
-            else onRead(Base64.encodeToString(bytes, Base64.NO_WRAP))
+            if (bytes == null) {
+                s.answer = null
+                s.failed = "Não consegui abrir esse arquivo. Tente de novo."
+            } else onRead(Base64.encodeToString(bytes, Base64.NO_WRAP))
         }
     }
     Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -265,13 +267,18 @@ private fun StatementUpload(s: StatementRead, onRead: (String) -> Unit) {
                 Text(statementText(a), color = if (a.read) l.muted else l.warn, style = MaterialTheme.typography.bodySmall)
                 // The same rows as a bill's bank lines.
                 a.added.forEach { x ->
-                    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text(bankLineName(BankLine(x.description, x.amount)), style = MaterialTheme.typography.bodyMedium)
                             Text(x.card, color = l.faint, style = MaterialTheme.typography.labelMedium)
                         }
                         Text(money(x.amount), style = MaterialTheme.typography.bodyMedium)
                     }
+                }
+                // The lines landed on the bill's own month, which may not be the one on screen.
+                val due = a.due?.take(7)
+                if (a.read && a.added.isNotEmpty() && due != null && due != month) {
+                    TextAction("Ver ${monthOf(due)}", { onPick(due) }, color = l.accent)
                 }
             }
             s.failed?.let { Text(it, color = l.warn, style = MaterialTheme.typography.bodySmall) }
