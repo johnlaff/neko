@@ -189,7 +189,8 @@ export const billChecks = (
       const key = `${normalizeName(card.name)}|${b.billMonth}`;
       closedKeys.add(key);
       const [y = 0, m = 0] = b.billMonth.split("-").map(Number);
-      const sheet = billOnSheet(ledger, card, cycleForDueMonth(card, y, m).due);
+      const { due } = cycleForDueMonth(card, y, m);
+      const sheet = billOnSheet(ledger, card, due, due <= today);
       if (!groups.has(key)) groups.set(key, { card, month: b.billMonth, lines: [] });
       const seen = firstSeen.get(normalizeName(card.name));
       // A purchase dated on or before the cycle's start: the feed saw the whole cycle.
@@ -225,7 +226,7 @@ export const billChecks = (
     if (past && (since === undefined || due < since)) continue;
     const bank = totals.get(key) ?? sum(ls);
     const parcels = add(ZERO, ...ls.filter(isParcel).map((l) => l.amount));
-    const sheet = billOnSheet(ledger, card, due);
+    const sheet = billOnSheet(ledger, card, due, past);
     if (sheet === null) continue;
     const closed = closedKeys.has(key);
     const off = closed ? ZERO : (ignored.get(`${normalizeName(card.name)}|${due}`) ?? ZERO);
