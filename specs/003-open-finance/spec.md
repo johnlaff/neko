@@ -96,8 +96,11 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   valor (a parcela, com o centavo de arredondamento), e só acrescenta o que o feed não tem, marcado
   `fromStatement`; quando o feed manda a linha, a cópia do PDF sai. Entra pelo botão em Faturas
   (web e Android) ou por e-mail: o endereço `fatura@` do domínio do Neko (Cloudflare Email Routing)
-  entrega ao Worker, que aceita só o dono (encaminhamento do Gmail) e os domínios do banco. Gasta do
-  mesmo teto mensal da Mia. Nunca escreve na planilha.
+  entrega ao Worker, que aceita só o dono (encaminhamento do Gmail, inclusive o do filtro, que chega
+  com o remetente marcado `+caf_`) e os domínios do banco. A fatura que o banco manda por e-mail vem
+  trancada com senha feita dos dados do dono: o Worker a abre com as senhas do secret
+  `STATEMENT_PDF_PASSWORDS` (nunca no repositório) e copia as páginas para um PDF aberto antes da
+  leitura; sem senha que sirva, não lê. Gasta do mesmo teto mensal da Mia. Nunca escreve na planilha.
 - **Telas (web e Android 1:1, mesma API):**
   - Faturas: por cartão, "Parcelas já compradas" por mês vindas do banco, e a diferença para a
     planilha quando houver.

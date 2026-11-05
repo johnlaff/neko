@@ -60,8 +60,15 @@ describe("fatura@: the bill by e-mail", () => {
   it("takes the bank and the owner's own forwarding, nobody else", () => {
     expect(allowedSender("Dono@Example.com", [OWNER])).toBe(true);
     expect(allowedSender("faturas@cartoes.bradesco.com.br", [OWNER])).toBe(true);
+    expect(allowedSender("faturabradescard@infobradesco.com.br", [OWNER])).toBe(true);
     expect(allowedSender("faturas@bradesco.com.br.golpe.com", [OWNER])).toBe(false);
+    expect(allowedSender("faturas@golpeinfobradesco.com.br", [OWNER])).toBe(false);
     expect(allowedSender("alguem@example.com", [OWNER])).toBe(false);
+  });
+
+  it("takes the owner's Gmail filter, which forwards with a tagged sender", () => {
+    expect(allowedSender("dono+caf_=fatura=neko.example@example.com", [OWNER])).toBe(true);
+    expect(allowedSender("outro+caf_=fatura=neko.example@example.com", [OWNER])).toBe(false);
   });
 
   it("reads each PDF attached, as one sent from Faturas", async () => {
