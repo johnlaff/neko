@@ -840,6 +840,9 @@ const waitingLines = (
   diff: Cents,
 ): SaldoWaiting[] => {
   if (diff === 0) return [];
+  // What the bank moved after `date` was still in the account then: a class paid today was
+  // waiting yesterday.
+  const moved = movements.filter((m) => diffDays(m.date, date) >= 0);
   // Bill payments never pair with a sheet line, so a card's bill stays free once paid too: it is
   // paid when a debit within MATCH_DAYS is its amount, or all that day's bills in one go.
   const billPaid = (l: SheetLine) => {
@@ -847,14 +850,14 @@ const waitingLines = (
     const allBills = cents(
       -add(ZERO, ...day.filter((i) => isCardSection(i.section)).map((i) => i.amount)),
     );
-    return movements.some(
+    return moved.some(
       (m) =>
         m.amount < 0 &&
         Math.abs(diffDays(l.date, m.date)) <= MATCH_DAYS &&
         (m.amount === l.amount || m.amount === allBills),
     );
   };
-  const lines = matchMovements(ledger, movements, today)
+  const lines = matchMovements(ledger, moved, today)
     .free.filter(
       (l) =>
         l.column !== "diario" &&
