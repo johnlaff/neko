@@ -10,14 +10,17 @@ import { takeStatement } from "./statement.ts";
  */
 
 /** The banks whose bills are taken as they arrive. */
-const BANKS = /@(?:[a-z0-9-]+\.)*(?:bradesco\.com\.br|bradescard\.com\.br)$/i;
+const BANKS = /@(?:[a-z0-9-]+\.)*(?:bradesco|infobradesco|bradescard)\.com\.br$/i;
 
 /** Gmail's sender for the code that confirms a forwarding address. */
 const GMAIL_FORWARDING = "forwarding-noreply@google.com";
 
+/** A Gmail filter forwards with the owner's address tagged, as in dono+caf_=fatura=…@gmail.com. */
+const untagged = (address: string) => address.replace(/\+[^@]*@/, "@");
+
 export const allowedSender = (from: string, owners: readonly string[]): boolean => {
   const address = from.trim().toLowerCase();
-  return owners.includes(address) || BANKS.test(address);
+  return owners.includes(untagged(address)) || BANKS.test(address);
 };
 
 /** What the e-mail handler needs: the message's sender and bytes, and a way to refuse it. */

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "2.0.0",
+    "@cantoo/pdf-lib": "2.11.1",
     "@fontsource-variable/faustina": "5.3.0",
     "@fontsource-variable/geist": "5.3.0",
     "@neko/engine": "workspace:*",
