@@ -234,6 +234,20 @@ describe("Para lançar from the bank rows", () => {
           txn({ id: "p1", amount: 5000, type: "CREDIT", description: "PIX RECEBIDO" }),
           txn({ id: "p2", amount: -1990, description: "PADARIA" }),
           txn({ id: "p3", amount: -700, description: "MERCADO", status: "PENDING" }),
+          // A purchase from before the Oct 12 bill's cycle began: the feed saw that cycle whole.
+          txn({
+            id: "c0",
+            account_id: "cartao",
+            date: "2026-08-20",
+            amount: 4000,
+            bill_id: "b0",
+            bill_month: "2026-09",
+            card_number: "1111",
+          }),
+        ],
+        bills: [
+          { id: "b0", account_id: "cartao", due_date: "2026-09-12", total: 4000 },
+          ...rows.bills,
         ],
       },
       days,
@@ -272,7 +286,7 @@ describe("Para lançar from the bank rows", () => {
           },
         ],
       ],
-      // The closed bill shared by both cards lists no lines: the holder's card answers for it.
+      // The closed bill shared by both cards lists none of its lines: the holder's card answers.
       [
         "card:visa:2026-10-12=0>98000",
         "cartao",

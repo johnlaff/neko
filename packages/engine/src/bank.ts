@@ -169,7 +169,15 @@ export const billChecks = (
   // holder and additional cards, the total says nothing of each one's share: the sheet's split
   // stands when its sum is the total, the bank's lines when theirs is, and otherwise each card
   // keeps its lines and the holder's card takes the rest, as a reconciliation adjustment would.
-  // Without a known holder, neither.
+  // Without a known holder, neither. Nor when the feed began midway through the bill's cycle: its
+  // few lines are no split, and the holder would take nearly the whole bill.
+  const firstSeen = new Map<string, LocalDate>();
+  for (const l of lines) {
+    const key = normalizeName(l.card);
+    if (!l.date || isParcel(l) || isCardPayment(l)) continue;
+    const seen = firstSeen.get(key);
+    if (seen === undefined || l.date < seen) firstSeen.set(key, l.date);
+  }
   const totals = new Map<string, Cents>();
   const unsure = new Set<string>();
   const closedKeys = new Set<string>();
@@ -183,7 +191,18 @@ export const billChecks = (
       const [y = 0, m = 0] = b.billMonth.split("-").map(Number);
       const sheet = billOnSheet(ledger, card, cycleForDueMonth(card, y, m).due);
       if (!groups.has(key)) groups.set(key, { card, month: b.billMonth, lines: [] });
-      return [{ key, sheet, lines: sum(groups.get(key)?.lines ?? []), holder: isHolder(b, card) }];
+      const seen = firstSeen.get(normalizeName(card.name));
+      // A purchase dated on or before the cycle's start: the feed saw the whole cycle.
+      const covered = seen !== undefined && seen <= cycleForDueMonth(card, y, m).start;
+      return [
+        {
+          key,
+          sheet,
+          lines: sum(groups.get(key)?.lines ?? []),
+          holder: isHolder(b, card),
+          covered,
+        },
+      ];
     });
     const [only] = shared;
     const lines = add(ZERO, ...shared.map((c) => c.lines));
@@ -192,7 +211,8 @@ export const billChecks = (
     else if (add(ZERO, ...shared.map((c) => c.sheet ?? ZERO)) === b.total)
       for (const c of shared) totals.set(c.key, c.sheet ?? ZERO);
     else if (lines === b.total) continue;
-    else if (holder) totals.set(holder.key, add(holder.lines, sub(b.total, lines)));
+    else if (holder && shared.some((c) => c.covered))
+      totals.set(holder.key, add(holder.lines, sub(b.total, lines)));
     else for (const c of shared) unsure.add(c.key);
   }
   const out: BillCheck[] = [];
