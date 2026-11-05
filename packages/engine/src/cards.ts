@@ -56,15 +56,48 @@ export const cycleContaining = (card: CardConfig, date: LocalDate): Cycle => {
   throw new Error(`no cycle found for ${card.name} on ${date}`);
 };
 
-/** Amount the sheet already holds for this card on a given due date (Saída note lines). */
-export const billOnSheet = (ledger: Ledger, card: CardConfig, due: LocalDate): Cents | null => {
-  const row = ledger.find((r) => r.date === due);
-  if (!row) return null;
+/**
+ * The sheet's Saída lines for this card on a given due date; null when the sheet has no such day.
+ * A bill already due (`paid`) takes every line of the card nearer its due day than the card's
+ * previous or next one, the earlier bill on a tie: where a bill paid late, early or before a
+ * change of due day was written. A bill still to pay takes only its due day, where a new line goes.
+ */
+export const billLines = (
+  ledger: Ledger,
+  card: CardConfig,
+  due: LocalDate,
+  paid = false,
+): NoteItem[] | null => {
+  const at = ledger.findIndex((r) => r.date === due);
+  if (at < 0) return null;
   const key = normalizeName(card.name);
-  const lines = row.saida.items.filter(
-    (i) => isCardItem(i) && normalizeName(i.description) === key,
-  );
-  return lines.length === 0 ? ZERO : add(...lines.map((i) => i.amount));
+  const { year, month } = parts(due);
+  const prev = cycleForDueMonth(card, year, month - 1).due;
+  const next = cycleForDueMonth(card, year, month + 1).due;
+  const mine = (date: LocalDate): boolean => {
+    const off = Math.abs(diffDays(due, date));
+    return paid ? off < diffDays(prev, date) && off <= diffDays(date, next) : off === 0;
+  };
+  const out: NoteItem[] = [];
+  const reach = paid ? diffDays(prev, next) : 0;
+  for (let i = Math.max(0, at - reach); i <= at + reach && i < ledger.length; i++) {
+    const row = ledger[i];
+    if (!row || !mine(row.date)) continue;
+    for (const it of row.saida.items)
+      if (isCardItem(it) && normalizeName(it.description) === key) out.push(it);
+  }
+  return out;
+};
+
+/** Amount the sheet already holds for this card on a given due date (see `billLines`). */
+export const billOnSheet = (
+  ledger: Ledger,
+  card: CardConfig,
+  due: LocalDate,
+  paid = false,
+): Cents | null => {
+  const lines = billLines(ledger, card, due, paid);
+  return lines === null ? null : add(ZERO, ...lines.map((i) => i.amount));
 };
 
 const RECENT_BILLS = 3;
