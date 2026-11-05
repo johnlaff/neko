@@ -160,11 +160,29 @@ export interface ReaderDeps {
   readonly openDue?: (numbers: readonly string[]) => LocalDate | null | Promise<LocalDate | null>;
 }
 
+const reais = (c: number) =>
+  `R$ ${(c / 100)
+    .toFixed(2)
+    .replace(".", ",")
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+
+/** What the last read got wrong, told to the next one so it checks those cards line by line. */
+const retryNote = (problems: readonly StatementProblem[]) =>
+  [
+    "Na leitura anterior as somas não fecharam:",
+    ...problems.map(
+      (p) =>
+        `- ${p.card === null ? "total da fatura" : `cartão final ${p.card}`}: impresso ${reais(p.printed)}, as linhas dão ${reais(p.read)}.`,
+    ),
+    "Confira linha a linha esses cartões: linha esquecida, repetida, valor ou sinal trocado.",
+  ].join("\n");
+
 /** One read at one effort; null when Claude refused, ran out of room or gave a shape not usable. */
 const readOnce = async (
   deps: ReaderDeps,
   pdf: string,
   effort: "medium" | "high",
+  problems: readonly StatementProblem[] = [],
 ): Promise<StatementRead | null> => {
   const res = await deps.fetch(API, {
     method: "POST",
@@ -187,6 +205,7 @@ const readOnce = async (
               source: { type: "base64", media_type: "application/pdf", data: pdf },
             },
             { type: "text", text: "Leia esta fatura." },
+            ...(problems.length > 0 ? [{ type: "text", text: retryNote(problems) }] : []),
           ],
         },
       ],
@@ -239,7 +258,7 @@ export type ReadResult =
 export const readStatement = async (deps: ReaderDeps, pdf: string): Promise<ReadResult> => {
   let problems: StatementProblem[] = [];
   for (const effort of ["medium", "high"] as const) {
-    const read = await readOnce(deps, pdf, effort);
+    const read = await readOnce(deps, pdf, effort, problems);
     if (!read) continue;
     problems = checkStatement(read);
     if (problems.length === 0) return { kind: "ok", read };
