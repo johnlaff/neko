@@ -8,15 +8,18 @@ import {
   type ClosedBill,
   cents,
   cycleContaining,
+  ignoredGaps,
   type Ledger,
   type LocalDate,
   localDate,
   movedToday,
   normalizeName,
+  type Statement,
   saldoCheck,
   subscriptions,
   todayIn,
   unmatchedMovements,
+  withStatements,
 } from "@neko/engine";
 import { queueView } from "../shared/queue.ts";
 import type { BankView, UserSettings } from "../shared/types.ts";
@@ -66,6 +69,18 @@ export interface BankBillRow {
   readonly total: number;
 }
 
+/** A line of the bank's own bill, read from its PDF (statement.ts). */
+export interface StatementLineRow {
+  readonly account_id: string;
+  readonly bill_month: string;
+  readonly card_number: string;
+  readonly date: string;
+  readonly description: string;
+  readonly amount: number;
+  readonly installment: number | null;
+  readonly installments: number | null;
+}
+
 export interface BankRows {
   readonly items: number;
   readonly syncedAt: string | null;
@@ -77,6 +92,8 @@ export interface BankRows {
   readonly accounts: readonly BankAccountRow[];
   readonly txns: readonly BankTxnRow[];
   readonly bills: readonly BankBillRow[];
+  /** The bills read from the bank's PDFs, line by line; none before migration 0011. */
+  readonly statements?: readonly StatementLineRow[];
 }
 
 const last4 = (s: string | null) => (s ? s.replace(/\D/g, "").slice(-4) : null);
@@ -169,14 +186,41 @@ export const bankInput = (
       });
   }
   // A closed bill's total is final, though the bank may leave a line or two out of the list. With
-  // holder and additional cards on one account, it is the total of all of them (billChecks).
+  // holder and additional cards on one account, it is the total of all of them (billChecks), and
+  // the card mapped to the account as a whole is the holder's.
   const closed: ClosedBill[] = rows.bills.flatMap((b) => {
     const names = [...new Set(map.filter((m) => m.accountId === b.account_id).map((m) => m.card))];
+    const holder = map.find((m) => m.accountId === b.account_id && m.cardNumber === null)?.card;
     return names.length > 0
-      ? [{ cards: names, billMonth: b.due_date.slice(0, 7), total: cents(b.total) }]
+      ? [
+          {
+            cards: names,
+            billMonth: b.due_date.slice(0, 7),
+            total: cents(b.total),
+            ...(holder ? { holder } : {}),
+          },
+        ]
       : [];
   });
-  return { lines, movements, closed };
+  // The bank's own bills fill in the lines the feed left out (statement.ts in the engine).
+  const statements = new Map<string, Statement & { lines: BankCardLine[] }>();
+  for (const r of rows.statements ?? []) {
+    const card = cardName(map, r.account_id, r.card_number);
+    if (!card) continue;
+    const key = `${r.account_id}|${r.bill_month}`;
+    const s = statements.get(key) ?? { billMonth: r.bill_month, lines: [] };
+    s.lines.push({
+      card,
+      amount: cents(r.amount),
+      billMonth: r.bill_month,
+      description: r.description,
+      installment: r.installment,
+      installments: r.installments,
+      date: localDate(r.date),
+    });
+    statements.set(key, s);
+  }
+  return { lines: withStatements(lines, [...statements.values()]), movements, closed };
 };
 
 /** How far back a bank movement missing from the sheet is still shown. */
@@ -201,6 +245,7 @@ export const bankView = (
     use: settings.accountUse[a.id] ?? null,
   }));
   const ignored = new Set(rows.ignored ?? []);
+  const gaps = ignoredGaps(ignored);
   const built = buildQueue({
     ledger,
     cards,
@@ -214,6 +259,7 @@ export const bankView = (
     savedOrigins: new Set(settings.savedOrigins),
     // Ignored items are built too, then set aside below, so they can be brought back.
     decided: new Set((rows.decided ?? []).filter((k) => !ignored.has(k))),
+    ignored,
     forecast: settings.previstoSince !== null ? cents(settings.dailyForecast ?? 0) : null,
   });
   const queue = built.filter((i) => !ignored.has(i.key));
@@ -221,13 +267,16 @@ export const bankView = (
   return {
     syncedAt: rows.syncedAt,
     queue: queueView(queue, ledger, cards),
-    ignored: built
-      .filter((i) => ignored.has(i.key))
-      .map((i) => ({
-        key: i.key,
-        date: i.date,
-        title: queueView([i], ledger, cards)[0]?.title ?? "",
-      })),
+    ignored: [
+      ...built
+        .filter((i) => ignored.has(i.key))
+        .map((i) => ({
+          key: i.key,
+          date: i.date,
+          title: queueView([i], ledger, cards)[0]?.title ?? "",
+        })),
+      ...ignoredBills(ignored, built, cards, today),
+    ],
     saldo: saldoCheck(
       ledger,
       today,
@@ -246,7 +295,7 @@ export const bankView = (
       movements,
     ),
     // Faturas shows five months back: their bills keep what the bank had on them.
-    checks: billChecks(ledger, cards, lines, today, closed, addDays(today, -160)),
+    checks: billChecks(ledger, cards, lines, today, closed, addDays(today, -160), gaps),
     // A holder and an additional card share one account, and so one limit.
     limits: rows.accounts.flatMap((a) =>
       a.type === "CREDIT" && a.credit_limit != null && a.available_limit != null
@@ -295,7 +344,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
-    const [itemRows, accounts, txns, bills, decisions] = await Promise.all([
+    const [itemRows, accounts, txns, bills, decisions, statements] = await Promise.all([
       db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
       db
         .prepare(
@@ -311,6 +360,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
         .prepare("SELECT id, account_id, due_date, close_date, total FROM bank_bill")
         .all<BankBillRow>(),
       loadDecided(db),
+      loadStatements(db),
     ]);
     return {
       items: items.n,
@@ -321,10 +371,47 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       accounts: accounts.results,
       txns: txns.results,
       bills: bills.results,
+      statements,
     };
   } catch (error) {
     console.error("bank tables unreadable", error);
     return null;
+  }
+};
+
+/**
+ * An ignored card bill leaves Para lançar for good while the bank adds nothing to it, so it is not
+ * built again: listed from its key, while its bill is still to come, so it can be brought back.
+ */
+const ignoredBills = (
+  ignored: ReadonlySet<string>,
+  built: readonly { readonly key: string }[],
+  cards: readonly CardConfig[],
+  today: LocalDate,
+) => {
+  const keys = new Set(built.map((i) => i.key));
+  return [...ignored].flatMap((key) => {
+    if (keys.has(key)) return [];
+    const [at] = ignoredGaps([key]).keys();
+    const [name = "", due = ""] = at?.split("|") ?? [];
+    const card = cards.find((c) => normalizeName(c.name) === name);
+    return card && due >= today ? [{ key, date: due, title: `Fatura ${card.name}` }] : [];
+  });
+};
+
+/** The bills read from PDFs; none before migration 0011 is applied. */
+const loadStatements = async (db: D1Database): Promise<StatementLineRow[]> => {
+  try {
+    return (
+      await db
+        .prepare(
+          "SELECT account_id, bill_month, card_number, date, description, amount, installment, installments FROM statement_line ORDER BY account_id, bill_month, seq",
+        )
+        .all<StatementLineRow>()
+    ).results;
+  } catch (error) {
+    console.error("statements unreadable", error);
+    return [];
   }
 };
 

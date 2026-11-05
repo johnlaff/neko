@@ -170,6 +170,8 @@ export interface QueueInput {
   readonly savedOrigins: ReadonlySet<string>;
   /** Keys already launched or ignored. */
   readonly decided: ReadonlySet<string>;
+  /** The ignored ones: on an open card bill, what the bank had above the sheet then stays out. */
+  readonly ignored?: ReadonlySet<string>;
   /** The Diário previsto, when the owner turned it on: its value per day. */
   readonly forecast?: Cents | null;
 }
@@ -282,6 +284,29 @@ const newDraft = (m: BankMovement, kind: EntryKind, description: string): Draft 
   date: m.date,
   description,
 });
+
+/** A card item's key: the card (normalized) and each bill it moves, from the sheet's value to its. */
+const CARD_KEY = /^card:(.+?):(\d{4}-\d{2}-\d{2}=-?\d+>-?\d+(?:,\d{4}-\d{2}-\d{2}=-?\d+>-?\d+)*)/;
+
+/**
+ * Ignoring a card item says the bank's rise on those bills is not real (a credit the feed left
+ * out, a charge the bank will cancel): per `card|due`, how much of the bank's total to leave out.
+ * Ignored again later, the new rise adds to it.
+ */
+export const ignoredGaps = (keys: Iterable<string>): Map<string, Cents> => {
+  const out = new Map<string, Cents>();
+  for (const key of keys) {
+    const [, card, bills] = CARD_KEY.exec(key) ?? [];
+    if (!card || !bills) continue;
+    for (const bill of bills.split(",")) {
+      const [due = "", values = ""] = bill.split("=");
+      const [was = 0, amount = 0] = values.split(">").map(Number);
+      const at = `${card}|${due}`;
+      out.set(at, cents((out.get(at) ?? 0) + amount - was));
+    }
+  }
+  return out;
+};
 
 export const buildQueue = (input: QueueInput): QueueItem[] => {
   const { ledger, today } = input;
@@ -653,10 +678,20 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   };
   const byCard = new Map<string, { due: LocalDate; was: Cents; amount: Cents }[]>();
   const onBill = new Map<string, readonly BankCardLine[]>();
-  for (const c of billChecks(ledger, input.cards, input.lines, today, input.closed)) {
+  const gaps = ignoredGaps(input.ignored ?? []);
+  for (const c of billChecks(
+    ledger,
+    input.cards,
+    input.lines,
+    today,
+    input.closed,
+    undefined,
+    gaps,
+  )) {
     // The same rule that marks the bill on Faturas, so every warning there has its item here.
     const moves = c.disagrees;
-    const amount = moves ? c.bank : c.sheet;
+    // The bank's total, less what the owner ignored on this open bill.
+    const amount = moves ? add(c.sheet, c.gap) : c.sheet;
     // A payback that differs from its bill is worth fixing even when the bill itself is right.
     const back = payback(c.card, c.due);
     if (!moves && (!back || back.amount === rest(c.card, c.due, amount))) continue;
@@ -707,7 +742,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     });
     push({
       // A payback left behind after "Só a fatura" is a new item, not the bill already decided.
-      key: `card:${normalizeName(card)}:${bills.map((b) => `${b.due}=${b.amount}`).join(",")}${billChanges ? "" : ":reembolso"}`,
+      key: `card:${normalizeName(card)}:${bills.map((b) => `${b.due}=${b.was}>${b.amount}`).join(",")}${billChanges ? "" : ":reembolso"}`,
       kind: "cartao",
       date: first.due,
       bank: [],

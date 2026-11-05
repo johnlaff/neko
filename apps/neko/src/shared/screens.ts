@@ -54,6 +54,8 @@ export interface BankLineView {
   readonly key: string | null;
   /** Whose it is, when marked as someone else's; null for yours. */
   readonly person: string | null;
+  /** Only on the bank's bill PDF: Open Finance left it out (or put it on another bill). */
+  readonly fromStatement: boolean;
 }
 
 /** One card's bill in a month: the sheet's amount, where it stands, and what the bank has on it. */
@@ -164,6 +166,7 @@ const lineView = (l: BillCheck["lines"][number], owners: readonly OwnerMark[]): 
     installments: l.installments,
     key: mark?.key ?? ownerKey(l),
     person: mark?.person ?? null,
+    fromStatement: l.fromStatement ?? false,
   };
 };
 
