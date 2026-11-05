@@ -19,6 +19,7 @@ export * from "./queue.ts";
 export * from "./recap.ts";
 export * from "./reserve.ts";
 export * from "./savings.ts";
+export * from "./statement.ts";
 export * from "./subscriptions.ts";
 export * from "./thermometer.ts";
 export * from "./trend.ts";

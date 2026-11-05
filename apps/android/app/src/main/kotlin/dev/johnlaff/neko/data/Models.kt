@@ -296,6 +296,28 @@ data class Reminder(val title: String, val body: String, val url: String, val ta
 @Serializable
 data class RemindersView(val morning: Reminder? = null, val evening: Reminder? = null)
 
+/**
+ * POST /api/statement: the bank's bill PDF read and kept, with the lines it added to what Open
+ * Finance sent; or why it was not kept (`mismatch`, `unreadable`, `account`, `paused`).
+ */
+@Serializable
+data class StatementAnswer(
+    val read: Boolean,
+    val due: String? = null,
+    val cards: Int = 0,
+    val lines: Int = 0,
+    val added: List<StatementLine> = emptyList(),
+    val reason: String? = null,
+    val problems: List<StatementProblem> = emptyList(),
+    val pausedUntil: String? = null,
+)
+
+@Serializable
+data class StatementLine(val card: String, val description: String, val amount: Long)
+
+@Serializable
+data class StatementProblem(val card: String? = null, val printed: Long, val read: Long)
+
 /** GET /api/mia: whether Mia is on and how much of the month's cap is spent (specs/004-mia). */
 @Serializable
 data class MiaStatus(val ligada: Boolean = false, val usadoPct: Int = 0, val pausadaAte: String? = null)

@@ -1,4 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  type MutationState,
+  useMutation,
+  useMutationState,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -9,8 +14,8 @@ import {
   invoicesView,
   type OwedView,
 } from "../../shared/screens.ts";
-import type { SubscriptionsView } from "../../shared/types.ts";
-import { api } from "../api.ts";
+import type { StatementAnswer, SubscriptionsView } from "../../shared/types.ts";
+import { api, reasonOf } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
@@ -79,7 +84,7 @@ const OwnerPick = ({
   people,
   onDone,
 }: {
-  line: BankLineView & { key: string };
+  line: Pick<BankLineView, "installments" | "person"> & { key: string };
   people: readonly string[];
   onDone: () => void;
 }) => {
@@ -187,7 +192,11 @@ const BankLines = ({
             <>
               <span className="text">
                 {bankLineName(l)}
-                <small>{l.person ? `De ${l.person}${when ? ` · ${when}` : ""}` : when}</small>
+                <small>
+                  {[l.person && `De ${l.person}`, when, l.fromStatement && "da fatura em PDF"]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </small>
               </span>
               <span className="amount">{money(l.amount)}</span>
             </>
@@ -270,15 +279,7 @@ const OwedItemLine = ({
       </button>
       {picking && (
         <OwnerPick
-          line={{
-            description: i.description,
-            amount: i.amount,
-            date: i.date,
-            installment: i.installment,
-            installments: i.installments,
-            key: i.key,
-            person,
-          }}
+          line={{ installments: i.installments, key: i.key, person }}
           people={people}
           onDone={() => setPicking(false)}
         />
@@ -552,6 +553,125 @@ const Subscriptions = ({ subs }: { subs: SubscriptionsView }) => {
   );
 };
 
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** What a read of the bill PDF came to, in a sentence. */
+const statementText = (a: StatementAnswer): string => {
+  if (a.read) {
+    const bill = `Fatura que vence em ${shortDate(a.due)} lida`;
+    return a.added.length === 0
+      ? `${bill}: ${plural(a.lines, "linha", "linhas")} em ${plural(a.cards, "cartão", "cartões")}, e o banco já tinha mandado todas.`
+      : `${bill}. Entraram nela ${plural(a.added.length, "linha", "linhas")} que o banco não tinha mandado:`;
+  }
+  if (a.reason === "mismatch") {
+    const card = a.problems?.find((p) => p.card)?.card;
+    // A no-break space keeps "final" with its digits.
+    return `As somas do PDF não fecharam${card ? ` no cartão final\u00a0${card}` : ""}, então nada foi guardado. Envie de novo para outra leitura.`;
+  }
+  if (a.reason === "account")
+    return "Não achei esses cartões nos bancos ligados. Confira os cartões em Ajustes › Bancos.";
+  if (a.reason === "paused")
+    return `O limite de IA do mês acabou. Volta em ${shortDate(a.pausedUntil ?? "")}.`;
+  return "Não consegui ler esse PDF. Se ele pede senha, salve uma cópia sem senha e envie de novo.";
+};
+
+/** A file the browser could not open: its own words, not "the connection dropped". */
+class Unopened extends Error {}
+
+const asBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ""));
+    reader.onerror = () => reject(new Unopened());
+    reader.readAsDataURL(file);
+  });
+
+const STATEMENT = ["statement"];
+
+/**
+ * The bank's own bill, as a PDF: its lines fill in what Open Finance left out (a credit, the
+ * second of two equal purchases). Optional: the bill e-mailed to the Neko address is read alone.
+ */
+const StatementUpload = ({ month, onPick }: { month: string; onPick: (month: string) => void }) => {
+  const queryClient = useQueryClient();
+  const read = useMutation({
+    mutationKey: STATEMENT,
+    // The answer stays a while after leaving Faturas, as the lines it brought do.
+    gcTime: 30 * 60_000,
+    mutationFn: async (file: File) => api.readStatement(await asBase64(file)),
+    onSuccess: async (a) => {
+      if (a.read) await queryClient.invalidateQueries({ queryKey: ["projection"] });
+    },
+  });
+  // The read outlives the screen: leaving Faturas and coming back finds it, still going or done.
+  const last = useMutationState({
+    filters: { mutationKey: STATEMENT },
+    select: (m) => m.state as MutationState<StatementAnswer>,
+  }).at(-1);
+  const pending = last?.status === "pending";
+  const answer = last?.status === "success" ? last.data : undefined;
+  // The lines landed on the bill's own month, which may not be the one on screen.
+  const elsewhere = answer?.read && answer.added.length > 0 && answer.due.slice(0, 7) !== month;
+  return (
+    <div className="statement">
+      <label className="text-link">
+        Ler a fatura do banco (PDF)
+        <input
+          type="file"
+          accept="application/pdf"
+          className="sr-only"
+          // Not `disabled`: that would drop the focus while the read goes on.
+          aria-disabled={pending}
+          onClick={(e) => {
+            if (pending) e.preventDefault();
+          }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) read.mutate(file);
+          }}
+        />
+      </label>
+      <div aria-live="polite">
+        {pending && <p className="hint">Lendo a fatura. Leva uns 2 minutos…</p>}
+        {answer && <p className={answer.read ? "hint" : "warn"}>{statementText(answer)}</p>}
+        {answer?.read && answer.added.length > 0 && (
+          <div className="bank-lines">
+            <ul>
+              {answer.added.map((l, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: two equal lines are two lines here.
+                <li key={`${l.card}-${l.description}-${i}`}>
+                  <span className="text">
+                    {bankText(merchantName(l.description))}
+                    <small>{l.card}</small>
+                  </span>
+                  <span>{money(l.amount)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {answer?.read && elsewhere && (
+          <button
+            type="button"
+            className="text-link"
+            onClick={() => onPick(answer.due.slice(0, 7))}
+          >
+            Ver {monthOf(answer.due.slice(0, 7))}
+          </button>
+        )}
+        {last?.status === "error" && (
+          <p className="warn">
+            {last.error instanceof Unopened
+              ? "Não consegui abrir esse arquivo. Tente de novo."
+              : reasonOf(last.error)}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const Faturas = () => {
   const [picked, setPicked] = useState<string | null>(null);
   return (
@@ -668,6 +788,7 @@ export const Faturas = () => {
                       ))}
                     </ul>
                   )}
+                  {v.bank && <StatementUpload month={m.key} onPick={setPicked} />}
                 </section>
               ),
               owed: m.owed.length > 0 && <Owed m={m} people={v.people} />,

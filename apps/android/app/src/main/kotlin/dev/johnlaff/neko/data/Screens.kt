@@ -132,6 +132,8 @@ data class BankLine(
     val key: String? = null,
     /** Whose it is, when marked as someone else's; null for yours. */
     val person: String? = null,
+    /** Only on the bank's bill PDF: Open Finance left it out (or put it on another bill). */
+    val fromStatement: Boolean = false,
 )
 
 @Serializable

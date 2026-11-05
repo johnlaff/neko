@@ -40,6 +40,9 @@ class Api(
      */
     private val patient = client.newBuilder().readTimeout(MIA_WAIT).callTimeout(MIA_WAIT).build()
 
+    /** Reading a bill PDF: two careful reads at most. */
+    private val slow = client.newBuilder().readTimeout(PDF_WAIT).callTimeout(PDF_WAIT).build()
+
     private suspend fun call(
         path: String,
         body: RequestBody? = null,
@@ -203,6 +206,12 @@ class Api(
         return reply.lancamento
     }
 
+    /** The bank's bill PDF, base64: kept only when its sums close. */
+    suspend fun readStatement(pdf: String): StatementAnswer {
+        val body = buildJsonObject { put("pdf", pdf) }.asBody()
+        return json.decodeFromString(call("/statement", body, via = slow))
+    }
+
     suspend fun askMia(ask: MiaAsk): MiaReply {
         val body = json.encodeToString(MiaAsk.serializer(), ask).toRequestBody(jsonType)
         return json.decodeFromString(call("/mia", body, via = patient))
@@ -225,6 +234,7 @@ class Api(
 
 /** How long a question to Mia may take before the app gives up. */
 val MIA_WAIT: Duration = Duration.ofSeconds(90)
+val PDF_WAIT: Duration = Duration.ofSeconds(300)
 
 @Serializable
 private data class BanksBody(val items: List<BankLink>)
