@@ -1045,6 +1045,20 @@ describe("saldo bate", () => {
     ).toEqual(["Aulas Inglês", "Despesas de Casa"]);
   });
 
+  it("names a planned line the bank only moved today, after the day it checks", () => {
+    // The Pix for the class left this morning: at the end of yesterday the money was still there.
+    const s = saldoCheck(
+      planned,
+      today,
+      [{ ...at(today, 106800), today: cents(-23200) }],
+      [mov("2026-10-18", 30000, "PIX RECEBIDO GIO"), mov(today, -23200, "PIX ENVIADO PROFESSOR")],
+    );
+    expect(s?.diff).toBe(23200);
+    expect(s?.waiting).toEqual([
+      { date: "2026-10-17", column: "saida", description: "Aulas Inglês", amount: 23200 },
+    ]);
+  });
+
   it("names nothing when the bank already moved the line or the lines do not make the gap", () => {
     const paid = [
       mov("2026-10-18", 30000, "PIX RECEBIDO GIO"),
