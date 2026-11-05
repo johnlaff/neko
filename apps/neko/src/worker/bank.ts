@@ -81,6 +81,13 @@ export interface StatementLineRow {
   readonly installments: number | null;
 }
 
+/** A closed bill known only from the bank's e-mail (inbox.ts), for a card outside Open Finance. */
+export interface MailedBillRow {
+  readonly card: string;
+  readonly due_date: string;
+  readonly total: number;
+}
+
 export interface BankRows {
   readonly items: number;
   readonly syncedAt: string | null;
@@ -94,6 +101,8 @@ export interface BankRows {
   readonly bills: readonly BankBillRow[];
   /** The bills read from the bank's PDFs, line by line; none before migration 0011. */
   readonly statements?: readonly StatementLineRow[];
+  /** Bills known only from the bank's e-mail; none before migration 0012. */
+  readonly mailedBills?: readonly MailedBillRow[];
 }
 
 const last4 = (s: string | null) => (s ? s.replace(/\D/g, "").slice(-4) : null);
@@ -152,6 +161,9 @@ export const bankInput = (
   };
   const lines: BankCardLine[] = [];
   const movements: BankMovement[] = [];
+  // Pending checking movements: no item comes from them, but the bank's balance may already count
+  // them (the saldo check, in bankView).
+  const pending: BankMovement[] = [];
   for (const t of rows.txns) {
     if (cardAccounts.has(t.account_id)) {
       const card = cardName(map, t.account_id, t.card_number);
@@ -175,9 +187,10 @@ export const bankInput = (
         installments: t.installments,
         date: localDate(t.date),
       });
-    } else if (t.status !== "PENDING")
-      // Only what the bank confirmed: a pending movement waits.
-      movements.push({
+    }
+    // Only what the bank confirmed becomes an item: a pending movement waits.
+    else
+      (t.status === "PENDING" ? pending : movements).push({
         date: localDate(t.date),
         amount: cents(signed(t)),
         description: t.description,
@@ -202,6 +215,14 @@ export const bankInput = (
         ]
       : [];
   });
+  // A card outside Open Finance is known by its closing e-mail: its bill's total, its own alone.
+  for (const b of rows.mailedBills ?? [])
+    closed.push({
+      cards: [b.card],
+      billMonth: b.due_date.slice(0, 7),
+      total: cents(b.total),
+      holder: b.card,
+    });
   // The bank's own bills fill in the lines the feed left out (statement.ts in the engine).
   const statements = new Map<string, Statement & { lines: BankCardLine[] }>();
   for (const r of rows.statements ?? []) {
@@ -220,7 +241,7 @@ export const bankInput = (
     });
     statements.set(key, s);
   }
-  return { lines: withStatements(lines, [...statements.values()]), movements, closed };
+  return { lines: withStatements(lines, [...statements.values()]), movements, pending, closed };
 };
 
 /** How far back a bank movement missing from the sheet is still shown. */
@@ -236,7 +257,7 @@ export const bankView = (
   input: ReturnType<typeof bankInput> | null = rows && bankInput(rows, settings.bankCards, cards),
 ): BankView | null => {
   if (!rows || !input) return null;
-  const { lines, movements, closed } = input;
+  const { lines, movements, pending, closed } = input;
   const labels = new Map((rows.itemRows ?? []).map((i) => [i.item_id, i]));
   const checking = rows.accounts.filter((a) => a.type !== "CREDIT");
   const accounts = checking.map((a) => ({
@@ -286,10 +307,11 @@ export const bankView = (
           label: labels.get(a.item_id ?? "")?.label ?? "Banco",
           balance: cents(a.balance ?? 0),
           readOn: synced(a) ? todayIn(new Date(synced(a) as string)) : null,
+          // A debit made today is off the balance even while the bank lists it as pending.
           today: movedToday(
             ledger,
             today,
-            movements.filter((m) => m.account === a.id),
+            [...movements, ...pending].filter((m) => m.account === a.id),
           ),
         })),
       movements,
@@ -344,24 +366,27 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
-    const [itemRows, accounts, txns, bills, decisions, statements] = await Promise.all([
-      db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
-      db
-        .prepare(
-          "SELECT id, type, item_id, balance, credit_limit, available_limit FROM bank_account",
-        )
-        .all<BankAccountRow>(),
-      db
-        .prepare(
-          "SELECT COALESCE(provider_id, id) AS id, status, account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",
-        )
-        .all<BankTxnRow>(),
-      db
-        .prepare("SELECT id, account_id, due_date, close_date, total FROM bank_bill")
-        .all<BankBillRow>(),
-      loadDecided(db),
-      loadStatements(db),
-    ]);
+    const [itemRows, accounts, txns, bills, decisions, statements, mailedBills] = await Promise.all(
+      [
+        db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
+        db
+          .prepare(
+            "SELECT id, type, item_id, balance, credit_limit, available_limit FROM bank_account",
+          )
+          .all<BankAccountRow>(),
+        db
+          .prepare(
+            "SELECT COALESCE(provider_id, id) AS id, status, account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",
+          )
+          .all<BankTxnRow>(),
+        db
+          .prepare("SELECT id, account_id, due_date, close_date, total FROM bank_bill")
+          .all<BankBillRow>(),
+        loadDecided(db),
+        loadStatements(db),
+        loadMailedBills(db),
+      ],
+    );
     return {
       items: items.n,
       syncedAt: items.at,
@@ -372,6 +397,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       txns: txns.results,
       bills: bills.results,
       statements,
+      mailedBills,
     };
   } catch (error) {
     console.error("bank tables unreadable", error);
@@ -411,6 +437,20 @@ const loadStatements = async (db: D1Database): Promise<StatementLineRow[]> => {
     ).results;
   } catch (error) {
     console.error("statements unreadable", error);
+    return [];
+  }
+};
+
+/** The bills known from the bank's e-mail; none before migration 0012 is applied. */
+const loadMailedBills = async (db: D1Database): Promise<MailedBillRow[]> => {
+  try {
+    return (
+      await db
+        .prepare("SELECT card, due_date, total FROM mailed_bill ORDER BY card, due_date")
+        .all<MailedBillRow>()
+    ).results;
+  } catch (error) {
+    console.error("mailed bills unreadable", error);
     return [];
   }
 };

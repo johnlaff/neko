@@ -147,6 +147,51 @@ describe("bank rows to the engine", () => {
   });
 });
 
+describe("a card outside Open Finance, by its closing e-mail", () => {
+  // Closes on the 25th, due on the 2nd; no bank feed at all.
+  const nu: CardConfig = {
+    name: "Cartao Roxo",
+    closingDay: 25,
+    dueDay: 2,
+    closingEstimated: false,
+  };
+  const mailed = {
+    ...rows,
+    mailedBills: [{ card: "Cartao Roxo", due_date: "2026-11-02", total: 4321 }],
+  };
+
+  it("is a closed bill of that card alone", () => {
+    expect(bankInput(mailed, map, [...cards, nu]).closed).toContainEqual({
+      cards: ["Cartao Roxo"],
+      billMonth: "2026-11",
+      total: 4321,
+      holder: "Cartao Roxo",
+    });
+  });
+
+  it("proposes the bill in Para lançar while it is still to be paid", async () => {
+    const { ledger } = await import("../../../packages/engine/test/builders.ts");
+    const view = bankView(
+      { ...mailed, txns: [], bills: [] },
+      ledger("2026-10-01", 92, 100000),
+      [...cards, nu],
+      UserSettings.parse({ bankCards: map }),
+      localDate("2026-10-28"),
+    );
+    expect(view?.queue?.map((i) => i.key)).toEqual(["card:cartao roxo:2026-11-02=0>4321"]);
+  });
+
+  it("is read from its table", async () => {
+    const db = sqliteD1();
+    db.sqlite.exec(
+      "INSERT INTO bank_item (item_id, label, synced_at) VALUES ('i', 'Banco', '2026-10-08T09:00:00Z'); INSERT INTO mailed_bill (card, due_date, total, read_at) VALUES ('Cartao Roxo', '2026-11-02', 4321, 't')",
+    );
+    expect((await loadBank(db as never))?.mailedBills).toEqual([
+      { card: "Cartao Roxo", due_date: "2026-11-02", total: 4321 },
+    ]);
+  });
+});
+
 describe("bank tables", () => {
   it("are no bank at all until one is linked, and tell syncs apart", async () => {
     const db = sqliteD1();
@@ -315,5 +360,27 @@ describe("Para lançar from the bank rows", () => {
       stale: [],
       waiting: [],
     });
+  });
+});
+
+describe("Saldo against the bank", () => {
+  it("takes out of yesterday's balance a debit the bank made today and still lists as pending", async () => {
+    const { ledger } = await import("../../../packages/engine/test/builders.ts");
+    const days = ledger("2026-10-01", 92, 100000);
+    const view = bankView(
+      {
+        ...rows,
+        itemRows: [{ item_id: "i", label: "Banco A", synced_at: "2026-10-08T09:00:00.000Z" }],
+        accounts: [{ id: "conta", type: "BANK", item_id: "i", balance: 99001 }],
+        // An insurance debit of this morning: already off the balance, though still pending.
+        txns: [txn({ date: "2026-10-08", amount: -999, description: "SEGURO", status: "PENDING" })],
+        bills: [],
+      },
+      days,
+      cards,
+      UserSettings.parse({ bankCards: map }),
+      localDate("2026-10-08"),
+    );
+    expect(view?.saldo).toMatchObject({ date: "2026-10-07", sheet: 100000, bank: 100000, diff: 0 });
   });
 });
