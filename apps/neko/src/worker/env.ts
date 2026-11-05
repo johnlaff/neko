@@ -28,6 +28,8 @@ export interface Env {
   ANTHROPIC_API_KEY?: string;
   /** Bearer token of the script that sends the bank's bill PDF from the owner's e-mail. */
   STATEMENT_INBOX_TOKEN?: string;
+  /** Passwords the banks lock the bill PDF with, comma-separated; absent, a locked bill is not read. */
+  STATEMENT_PDF_PASSWORDS?: string;
   /** Workers rate limiting for sign-in routes; absent in tests and local dev. */
   AUTH_LIMIT?: RateLimit;
 }
