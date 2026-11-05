@@ -82,6 +82,19 @@ describe("fatura@: the bill by e-mail", () => {
     expect(m.rejected).toEqual([]);
   });
 
+  it("refuses a stranger writing as the bank, by the From the bank's DMARC protects", async () => {
+    // The envelope sender is not covered by the bank's DMARC policy (a subdomain without SPF is
+    // not rejected); the From header is, so both must be allowed.
+    const { taken, take } = taker();
+    const m = {
+      ...message("aviso@faturas.nubank.com.br"),
+      raw: new Response(mime("alguem@example.com", true)).body as ReadableStream<Uint8Array>,
+    };
+    await receiveEmail(m, env, take);
+    expect(taken).toEqual([]);
+    expect(m.rejected).toHaveLength(1);
+  });
+
   it("refuses a stranger and reads nothing", async () => {
     const { taken, take } = taker();
     const m = message("alguem@example.com");

@@ -111,7 +111,10 @@ export const receiveEmail = async (
     console.log("inbox: gmail forwarding confirmation", mail.subject, link?.[0] ?? "no link");
     return;
   }
-  if (!allowedSender(from, owners)) {
+  // Cloudflare rejects mail that fails the From domain's DMARC policy (the banks publish
+  // p=reject), but that covers the From header, not the envelope sender: both must be allowed.
+  const header = mail.from && "address" in mail.from ? (mail.from.address ?? "") : "";
+  if (!allowedSender(from, owners) || !allowedSender(header, owners)) {
     console.warn("inbox: sender refused", from.replace(/^[^@]+/, "…"));
     message.setReject("Endereço só para faturas do dono do Neko.");
     return;
