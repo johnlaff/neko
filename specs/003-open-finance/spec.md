@@ -101,6 +101,14 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   trancada com senha feita dos dados do dono: o Worker a abre com as senhas do secret
   `STATEMENT_PDF_PASSWORDS` (nunca no repositório) e copia as páginas para um PDF aberto antes da
   leitura; sem senha que sirva, não lê. Gasta do mesmo teto mensal da Mia. Nunca escreve na planilha.
+- **Cartão fora do Open Finance, pelo e-mail de fechamento (2026-11):** o Meu Pluggy liga só cinco
+  bancos, e o Nubank ficou de fora. O e-mail "Sua fatura fechou" dele traz no texto o cartão, o dia
+  do vencimento e o total ("A fatura do seu cartão de crédito Nubank com vencimento no dia 2 de
+  dezembro fechou no valor de R$ 1.234,56"). Chegando ao `fatura@` (o domínio do banco também é
+  aceito), o Worker lê essa frase, sem Claude e sem abrir o PDF, e guarda só o total por cartão e
+  vencimento no D1 (`mailed_bill`, migração 0012; um e-mail novo da mesma fatura substitui). O total
+  entra como fatura fechada daquele cartão sozinho, casado com o cartão da planilha pelo nome: a
+  fatura aparece em Faturas e, se a planilha difere e ainda não venceu, vai para Para lançar.
 - **Telas (web e Android 1:1, mesma API):**
   - Faturas: por cartão, "Parcelas já compradas" por mês vindas do banco, e a diferença para a
     planilha quando houver.
