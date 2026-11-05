@@ -117,6 +117,18 @@ describe("reading the bank's bill PDF", () => {
     expect(efforts).toEqual(["medium", "high"]);
   });
 
+  it("tells the second read which sums did not close", async () => {
+    const asked: string[] = [];
+    const { deps } = api([raw({ pet: 30 }), raw()]);
+    const seen: typeof fetch = async (url, init) => {
+      asked.push(String(init?.body));
+      return deps.fetch(url, init);
+    };
+    await readStatement({ ...deps, fetch: seen }, "JVBERi0");
+    expect(asked[0]).not.toContain("não fecharam");
+    expect(asked[1]).toContain("cartão final 2222: impresso R$ 61,50, as linhas dão R$ 60,75");
+  });
+
   it("dates an open bill, which prints no due date, by the bill its cards have open", async () => {
     const open = { ...raw(), vencimento: "" };
     const { deps } = api([open]);

@@ -90,7 +90,7 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   dia do fechamento). A fatura que o banco gera tem todas. O Claude (Opus 5.5, saída estruturada)
   copia cada linha; o Neko só guarda a leitura quando, em cada cartão, saldo anterior + linhas −
   pagamentos dá o valor impresso, e os cartões somam o total (`checkStatement`); senão lê de novo
-  com mais esforço e, falhando, não guarda nada. A conta é a que tem os números dos cartões. O
+  com mais esforço, dizendo quais somas não fecharam, e, falhando, não guarda nada. A conta é a que tem os números dos cartões. O
   extrato em aberto não imprime vencimento: vale o da fatura que o cartão titular da conta tem
   aberta no dia em que o PDF chega (o dono manda logo que baixa). As linhas
   ficam no D1 (`statement`, `statement_line`, migração 0011); uma leitura nova da mesma fatura
@@ -99,7 +99,9 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   `fromStatement`; quando o feed manda a linha, a cópia do PDF sai. Entra pelo botão em Faturas
   (web e Android) ou por e-mail: o endereço `fatura@` do domínio do Neko (Cloudflare Email Routing)
   entrega ao Worker, que aceita só o dono (encaminhamento do Gmail, inclusive o do filtro, que chega
-  com o remetente marcado `+caf_`) e os domínios do banco. A fatura que o banco manda por e-mail vem
+  com o remetente marcado `+caf_`) e os domínios do banco, no envelope e no cabeçalho From: o
+  Cloudflare recusa o e-mail que falha no DMARC do domínio do From (os bancos publicam p=reject),
+  e o envelope sozinho não é protegido. A fatura que o banco manda por e-mail vem
   trancada com senha feita dos dados do dono: o Worker a abre com as senhas do secret
   `STATEMENT_PDF_PASSWORDS` (nunca no repositório) e copia as páginas para um PDF aberto antes da
   leitura; sem senha que sirva, não lê. Gasta do mesmo teto mensal da Mia. Nunca escreve na planilha.
