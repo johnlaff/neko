@@ -323,12 +323,17 @@ export const takeStatement = async (env: Env, body: unknown): Promise<StatementA
     pausedUntil: nextMonthStart(today),
   };
   if ((await spentThisMonth(env.DB, today)) >= CAP_MICRO_USD) return paused;
+  const passwords = (env.STATEMENT_PDF_PASSWORDS ?? "").split(",").map((s) => s.trim());
+  // Loaded only here: the PDF library is most of the Worker's size, and every other request skips it.
+  const { unlockPdf } = await import("./pdf.ts");
+  const pdf = await unlockPdf(parsed.data.pdf, passwords.filter(Boolean));
+  if (!pdf) {
+    console.warn("statement pdf locked or damaged");
+    return { read: false, reason: "unreadable" };
+  }
   let result: ReadResult;
   try {
-    result = await readStatement(
-      { fetch, key, record: recordUsage(env.DB, today, now) },
-      parsed.data.pdf,
-    );
+    result = await readStatement({ fetch, key, record: recordUsage(env.DB, today, now) }, pdf);
   } catch (e) {
     if (e instanceof MiaSpendLimit) return paused;
     throw e;
