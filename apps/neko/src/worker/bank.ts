@@ -88,6 +88,14 @@ export interface MailedBillRow {
   readonly total: number;
 }
 
+/** A biller's bill read from its e-mail (inbox.ts), before it is paid. */
+export interface MailedContaRow {
+  readonly biller: string;
+  readonly due_date: string;
+  readonly total: number;
+  readonly read_at: string;
+}
+
 export interface BankRows {
   readonly items: number;
   readonly syncedAt: string | null;
@@ -103,6 +111,8 @@ export interface BankRows {
   readonly statements?: readonly StatementLineRow[];
   /** Bills known only from the bank's e-mail; none before migration 0012. */
   readonly mailedBills?: readonly MailedBillRow[];
+  /** Light and phone bills known from the biller's e-mail; none before migration 0013. */
+  readonly mailedContas?: readonly MailedContaRow[];
 }
 
 const last4 = (s: string | null) => (s ? s.replace(/\D/g, "").slice(-4) : null);
@@ -282,6 +292,12 @@ export const bankView = (
     decided: new Set((rows.decided ?? []).filter((k) => !ignored.has(k))),
     ignored,
     forecast: settings.previstoSince !== null ? cents(settings.dailyForecast ?? 0) : null,
+    mailed: (rows.mailedContas ?? []).map((r) => ({
+      biller: r.biller,
+      due: localDate(r.due_date),
+      total: cents(r.total),
+      arrived: todayIn(new Date(r.read_at)),
+    })),
   });
   const queue = built.filter((i) => !ignored.has(i.key));
   const synced = (a: BankAccountRow) => labels.get(a.item_id ?? "")?.synced_at ?? null;
@@ -366,8 +382,8 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
-    const [itemRows, accounts, txns, bills, decisions, statements, mailedBills] = await Promise.all(
-      [
+    const [itemRows, accounts, txns, bills, decisions, statements, mailedBills, mailedContas] =
+      await Promise.all([
         db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
         db
           .prepare(
@@ -385,8 +401,8 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
         loadDecided(db),
         loadStatements(db),
         loadMailedBills(db),
-      ],
-    );
+        loadMailedContas(db),
+      ]);
     return {
       items: items.n,
       syncedAt: items.at,
@@ -398,6 +414,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       bills: bills.results,
       statements,
       mailedBills,
+      mailedContas,
     };
   } catch (error) {
     console.error("bank tables unreadable", error);
@@ -451,6 +468,22 @@ const loadMailedBills = async (db: D1Database): Promise<MailedBillRow[]> => {
     ).results;
   } catch (error) {
     console.error("mailed bills unreadable", error);
+    return [];
+  }
+};
+
+/** The light and phone bills known from e-mail; none before migration 0013 is applied. */
+const loadMailedContas = async (db: D1Database): Promise<MailedContaRow[]> => {
+  try {
+    return (
+      await db
+        .prepare(
+          "SELECT biller, due_date, total, read_at FROM mailed_conta ORDER BY biller, due_date",
+        )
+        .all<MailedContaRow>()
+    ).results;
+  } catch (error) {
+    console.error("mailed contas unreadable", error);
     return [];
   }
 };

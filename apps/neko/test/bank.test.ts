@@ -192,6 +192,52 @@ describe("a card outside Open Finance, by its closing e-mail", () => {
   });
 });
 
+describe("a light or phone bill, by the biller's e-mail", () => {
+  const mailed = {
+    ...rows,
+    txns: [],
+    bills: [],
+    mailedContas: [
+      {
+        biller: "Luzdovale",
+        due_date: "2026-11-15",
+        total: 18760,
+        read_at: "2026-10-20T12:00:00.000Z",
+      },
+    ],
+  };
+
+  it("proposes the bill on its due day while it is still to be paid, as a Conta", async () => {
+    const { ledger } = await import("../../../packages/engine/test/builders.ts");
+    const view = bankView(
+      mailed,
+      ledger("2026-10-01", 92, 100000),
+      cards,
+      UserSettings.parse({ bankCards: map }),
+      localDate("2026-10-28"),
+    );
+    expect(view?.queue).toMatchObject([
+      {
+        key: "mail:luzdovale:2026-11-15:18760",
+        kind: "conta",
+        title: "Luzdovale",
+        bank: [{ date: "2026-11-15", amount: -18760, description: "Conta Luzdovale por e-mail" }],
+        note: "A conta chegou por e-mail e a planilha ainda não tem.",
+      },
+    ]);
+  });
+
+  it("is read from its table", async () => {
+    const db = sqliteD1();
+    db.sqlite.exec(
+      "INSERT INTO bank_item (item_id, label, synced_at) VALUES ('i', 'Banco', '2026-10-08T09:00:00Z'); INSERT INTO mailed_conta (biller, due_date, total, read_at) VALUES ('Luzdovale', '2026-11-15', 18760, 't')",
+    );
+    expect((await loadBank(db as never))?.mailedContas).toEqual([
+      { biller: "Luzdovale", due_date: "2026-11-15", total: 18760, read_at: "t" },
+    ]);
+  });
+});
+
 describe("bank tables", () => {
   it("are no bank at all until one is linked, and tell syncs apart", async () => {
     const db = sqliteD1();
