@@ -174,6 +174,18 @@ export interface QueueInput {
   readonly ignored?: ReadonlySet<string>;
   /** The Diário previsto, when the owner turned it on: its value per day. */
   readonly forecast?: Cents | null;
+  /** Bills that came by e-mail before they are paid. */
+  readonly mailed?: readonly MailedConta[];
+}
+
+/** A bill the biller e-mailed (light, phone): its value and due day, known before it is paid. */
+export interface MailedConta {
+  /** Who sent it, as its e-mail names it: what the bank or the sheet also call it. */
+  readonly biller: string;
+  readonly due: LocalDate;
+  readonly total: Cents;
+  /** The day the e-mail came: a payment to the biller from then on is this bill's. */
+  readonly arrived: LocalDate;
 }
 
 /** How close a planned line's value must be for a movement to stand for it: a quarter. */
@@ -578,6 +590,71 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
       date: m.date,
       bank,
       options: [{ label: "", draft: newDraft(m, "diario", nameOf(m)) }],
+    });
+  }
+
+  // A bill that came by e-mail and is not paid yet: the line the sheet plans for it takes its
+  // value, so the Saldo ahead is right before the money moves; with none planned, it goes on its
+  // due day. Once the bank shows the payment, or the day passes, the bank says what happened.
+  for (const b of input.mailed ?? []) {
+    const words = new Set(
+      originKey(b.biller)
+        .split(" ")
+        .filter((w) => w.length >= 3),
+    );
+    const named = (text: string) =>
+      originKey(text)
+        .split(" ")
+        .some((w) => words.has(w));
+    // What the sheet calls the bills paid to this biller before, the latest last.
+    const called = matching.pairs
+      .filter((p) => p.line.column === "saida" && p.line.description !== "")
+      .filter((p) => named(p.movement.description))
+      .map((p) => p.line)
+      .sort((x, y) => x.date.localeCompare(y.date))
+      .map((l) => l.description);
+    const theirs = new Set(called.map(normalizeName));
+    const planned = (l: SheetLine) =>
+      l.column === "saida" &&
+      !isCardSection(l.section) &&
+      l.section !== "reserva" &&
+      (named(l.description) || theirs.has(normalizeName(l.description))) &&
+      Math.abs(diffDays(l.date, b.due)) <= MATCH_DAYS;
+    // Paid since the e-mail came: to the biller by name, of the bill's exact value, or matched to
+    // the line planned for it (the bank may call the biller something else).
+    const paid =
+      input.movements.some(
+        (m) =>
+          m.amount < 0 && m.date >= b.arrived && (named(m.description) || m.amount === -b.total),
+      ) || matching.pairs.some((p) => p.movement.date >= b.arrived && planned(p.line));
+    if (b.due < today || paid) continue;
+    const line = matching.free
+      .filter(planned)
+      .sort((x, y) => Math.abs(diffDays(x.date, b.due)) - Math.abs(diffDays(y.date, b.due)))[0];
+    if (line && -line.amount === b.total) continue;
+    // A payment already corrects that line: one item for it, the bank's.
+    const fixed = (d: Draft | null) =>
+      d?.type === "fix" &&
+      line !== undefined &&
+      d.line.date === line.date &&
+      d.line.column === line.column &&
+      d.line.description === line.description;
+    if (items.some((i) => i.options.some((o) => fixed(o.draft)))) continue;
+    const description = line?.description ?? called.at(-1) ?? b.biller;
+    const date = line?.date ?? b.due;
+    push({
+      key: `mail:${normalizeName(b.biller)}:${b.due}:${b.total}`,
+      kind: "conta",
+      date,
+      bank: [{ date: b.due, amount: cents(-b.total), description: `Conta ${b.biller} por e-mail` }],
+      options: [
+        {
+          label: "",
+          draft: line
+            ? { type: "fix", line: ref(line), amount: b.total, date, description }
+            : { type: "new", kind: "conta", amount: b.total, date, description },
+        },
+      ],
     });
   }
 

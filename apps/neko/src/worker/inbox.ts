@@ -4,6 +4,7 @@ import {
   clampedDay,
   diffDays,
   type LocalDate,
+  localDate,
   parts,
   todayIn,
 } from "@neko/engine";
@@ -15,7 +16,8 @@ import { takeStatement } from "./statement.ts";
 /**
  * fatura@ on the Neko domain (Cloudflare Email Routing sends it to this Worker): the bank's bill
  * PDF, straight from the bank or forwarded by the owner's mail filter, read like one sent from
- * Faturas. Anyone else's mail is refused; nothing here reaches the sheet.
+ * Faturas, and the bills of the billers the owner set (light, phone), kept for Para lançar.
+ * Anyone else's mail is refused; nothing here reaches the sheet.
  */
 
 /** The banks whose bills are taken as they arrive. */
@@ -27,9 +29,30 @@ const GMAIL_FORWARDING = "forwarding-noreply@google.com";
 /** A Gmail filter forwards with the owner's address tagged, as in dono+caf_=fatura=…@gmail.com. */
 const untagged = (address: string) => address.replace(/\+[^@]*@/, "@");
 
-export const allowedSender = (from: string, owners: readonly string[]): boolean => {
+/** The domain of an address, lowercase; "" for none. */
+const domainOf = (address: string) => address.trim().toLowerCase().split("@")[1] ?? "";
+
+/**
+ * The biller behind an address, among the domains the owner set (BILL_SENDERS, a secret: who the
+ * owner pays for light and phone says where he lives), named by its domain: contas@luz.com.br
+ * reads "Luz". Null for any other sender.
+ */
+export const billerOf = (from: string, billers: readonly string[]): string | null => {
+  const domain = domainOf(from);
+  const set = billers.find((b) => domain === b || domain.endsWith(`.${b}`));
+  const name = set?.split(".")[0];
+  return name ? name.charAt(0).toUpperCase() + name.slice(1) : null;
+};
+
+export const allowedSender = (
+  from: string,
+  owners: readonly string[],
+  billers: readonly string[] = [],
+): boolean => {
   const address = from.trim().toLowerCase();
-  return owners.includes(untagged(address)) || BANKS.test(address);
+  return (
+    owners.includes(untagged(address)) || BANKS.test(address) || billerOf(address, billers) !== null
+  );
 };
 
 const MONTHS = [
@@ -81,6 +104,34 @@ export const mailedBill = (
   return { card: m[1], due, total: cents(Number(m[4].replace(/\D/g, ""))) };
 };
 
+/**
+ * A biller's bill as its e-mail words it: the due day and the value, in either order, as "Data de
+ * vencimento: 01/12/2026" and "Valor da fatura: R$ 62,50" or "TOTAL A PAGAR 62,50". A notice with
+ * no due day (a reminder of what is late) is not a bill.
+ */
+export const mailedConta = (body: string): { due: LocalDate; total: Cents } | null => {
+  const text = words(body);
+  const due = /vencimento\W{0,5}(\d{2})\/(\d{2})\/(\d{4})\b/i.exec(text);
+  const total =
+    /(?:valor (?:da fatura|da conta|a pagar|total)|total a pagar)\W{0,5}(?:R\$\s?)?([\d.]+,\d{2})\b/i.exec(
+      text,
+    );
+  if (!due || !total?.[1]) return null;
+  const [, d = "", m = "", y = ""] = due;
+  try {
+    return {
+      due: localDate(`${y}-${m}-${d}`),
+      total: cents(Number(total[1].replace(/\D/g, ""))),
+    };
+  } catch {
+    return null;
+  }
+};
+
+/** Forwarded by hand, a bill's sender is in the header the forward quotes: "De: Luz <contas@luz.com.br>". */
+const forwardedFrom = (text: string): string =>
+  /^\s*(?:from|de):[^\n@]*?<?([^\s<>@]+@[^\s<>]+?)>?\s*$/im.exec(text)?.[1] ?? "";
+
 /** What the e-mail handler needs: the message's sender and bytes, and a way to refuse it. */
 export interface InboxMessage {
   readonly from: string;
@@ -95,10 +146,13 @@ export const receiveEmail = async (
   now = new Date(),
 ): Promise<void> => {
   const from = message.from.trim().toLowerCase();
-  const owners = (env.ALLOWED_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
+  const list = (value: string | undefined) =>
+    (value ?? "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+  const owners = list(env.ALLOWED_EMAILS);
+  const billers = list(env.BILL_SENDERS);
   const mail = await PostalMime.parse(await new Response(message.raw).arrayBuffer(), {
     attachmentEncoding: "base64",
   });
@@ -114,12 +168,32 @@ export const receiveEmail = async (
   // Cloudflare rejects mail that fails the From domain's DMARC policy (the banks publish
   // p=reject), but that covers the From header, not the envelope sender: both must be allowed.
   const header = mail.from && "address" in mail.from ? (mail.from.address ?? "") : "";
-  if (!allowedSender(from, owners) || !allowedSender(header, owners)) {
+  if (!allowedSender(from, owners, billers) || !allowedSender(header, owners, billers)) {
     console.warn("inbox: sender refused", from.replace(/^[^@]+/, "…"));
     message.setReject("Endereço só para faturas do dono do Neko.");
     return;
   }
-  const bill = mailedBill(`${mail.text ?? ""} ${mail.html ?? ""}`, todayIn(now));
+  const text = `${mail.text ?? ""} ${mail.html ?? ""}`;
+  // A biller's bill (light, phone): its value and due day are the whole news, and its PDF is no
+  // card statement, so it is never read as one.
+  const biller =
+    billerOf(header, billers) ??
+    (owners.includes(untagged(header)) ? billerOf(forwardedFrom(text), billers) : null);
+  if (biller) {
+    const conta = mailedConta(text);
+    if (!conta) {
+      console.warn("inbox: biller e-mail without a bill", biller, mail.subject);
+      return;
+    }
+    await env.DB.prepare(
+      "INSERT INTO mailed_conta (biller, due_date, total, read_at) VALUES (?, ?, ?, ?) ON CONFLICT (biller, due_date) DO UPDATE SET total = excluded.total, read_at = excluded.read_at",
+    )
+      .bind(biller, conta.due, conta.total, now.toISOString())
+      .run();
+    console.log("inbox: mailed conta", biller, conta.due, conta.total);
+    return;
+  }
+  const bill = mailedBill(text, todayIn(now));
   if (bill) {
     // The total is the whole news: the PDF is not read, and the card has no feed to add lines to.
     await env.DB.prepare(

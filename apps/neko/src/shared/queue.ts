@@ -226,6 +226,11 @@ const noteOf = (item: QueueItem): string => {
         : // The box under it says "Linha nova na planilha" and the line says Entrada: nothing to add.
           "";
     case "conta":
+      // A biller's e-mail (engine `MailedConta`), before any money moved.
+      if (item.key.startsWith("mail:"))
+        return draft?.type === "fix"
+          ? "A conta chegou por e-mail com outro valor."
+          : "A conta chegou por e-mail e a planilha ainda não tem.";
       return "Paga com outro valor ou em outro dia.";
     case "guardar":
       return "Você guardou dinheiro e a planilha não tem.";
