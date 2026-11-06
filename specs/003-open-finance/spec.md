@@ -117,6 +117,17 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   vencimento no D1 (`mailed_bill`, migração 0012; um e-mail novo da mesma fatura substitui). O total
   entra como fatura fechada daquele cartão sozinho, casado com o cartão da planilha pelo nome: a
   fatura aparece em Faturas e, se a planilha difere e ainda não venceu, vai para Para lançar.
+- **Contas de luz e celular pelo e-mail da empresa (2026-11):** a conta chega por e-mail semanas
+  antes do vencimento, com o valor e o dia no texto ("Data de vencimento: 01/12/2026", "Valor a
+  pagar: R$ 62,50"). Os domínios dessas empresas ficam no secret `BILL_SENDERS` (onde o dono paga
+  luz diz onde ele mora, então nunca no repositório); o filtro do Gmail encaminha ao `fatura@`, e
+  o encaminhamento à mão também vale (o Worker acha a empresa no cabeçalho citado). O Worker lê o
+  texto, sem Claude e sem abrir o PDF, e guarda valor e vencimento por empresa (`mailed_conta`,
+  migração 0013; um aviso de atraso, sem vencimento, não é conta). Em Para lançar, a linha que a
+  planilha planeja para ela (Saída fora de cartão, a até 7 dias do vencimento, com o nome da
+  empresa ou o nome que a planilha deu aos pagamentos feitos a ela) recebe o valor da conta; sem
+  linha planejada, entra uma Conta nova no vencimento. Depois que o banco mostra o pagamento (a
+  partir do dia em que o e-mail chegou) ou o vencimento passa, quem diz o que aconteceu é o banco.
 - **Telas (web e Android 1:1, mesma API):**
   - Faturas: por cartão, "Parcelas já compradas" por mês vindas do banco, e a diferença para a
     planilha quando houver.
