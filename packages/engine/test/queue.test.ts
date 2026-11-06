@@ -395,6 +395,128 @@ describe("Para lançar: account movements", () => {
   });
 });
 
+describe("Para lançar: a bill that came by e-mail", () => {
+  const light = {
+    biller: "Lumina",
+    due: d("2026-11-15"),
+    total: cents(18760),
+    arrived: d("2026-10-17"),
+  };
+  // The sheet calls the light "Luz"; the bank paid last month's to Lumina.
+  const days = ledger("2026-10-01", 92, 0, {
+    "2026-10-15": { saida: cell(16420, [item(16420, "Luz", "contas")]) },
+    "2026-11-15": { saida: cell(15000, [item(15000, "Luz", "contas")]) },
+  });
+  const lastMonth = mov("2026-10-16", -16420, "PIX QR LUMINA DISTRIBUIDORA");
+
+  it("sets the line the sheet plans for it to the bill's value, before it is paid", () => {
+    const items = queue({ ledger: days, movements: [lastMonth], mailed: [light] });
+    expect(items).toEqual([
+      {
+        key: "mail:lumina:2026-11-15:18760",
+        kind: "conta",
+        date: "2026-11-15",
+        bank: [{ date: "2026-11-15", amount: -18760, description: "Conta Lumina por e-mail" }],
+        options: [
+          {
+            label: "",
+            draft: {
+              type: "fix",
+              line: {
+                date: "2026-11-15",
+                column: "saida",
+                section: "contas",
+                description: "Luz",
+                amount: 15000,
+              },
+              amount: 18760,
+              date: "2026-11-15",
+              description: "Luz",
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("finds the line by the biller's name too, on a day near the due day", () => {
+    const phone = { biller: "Fonix", due: d("2026-12-01"), arrived: d("2026-10-19") };
+    const planned = ledger("2026-10-01", 92, 0, {
+      "2026-12-03": { saida: cell(5990, [item(5990, "Conta Fonix", "contas")]) },
+    });
+    const [i] = queue({ ledger: planned, mailed: [{ ...phone, total: cents(6250) }] });
+    expect(i).toMatchObject({
+      date: "2026-12-03",
+      options: [{ draft: { type: "fix", amount: 6250, date: "2026-12-03" } }],
+    });
+    // Already the bill's value: nothing to do.
+    expect(queue({ ledger: planned, mailed: [{ ...phone, total: cents(5990) }] })).toEqual([]);
+  });
+
+  it("adds the bill on its due day, under the sheet's name for it, when nothing is planned", () => {
+    const unplanned = ledger("2026-10-01", 92, 0, {
+      "2026-10-15": { saida: cell(16420, [item(16420, "Luz", "contas")]) },
+    });
+    const [i] = queue({ ledger: unplanned, movements: [lastMonth], mailed: [light] });
+    expect(i).toMatchObject({ kind: "conta", date: "2026-11-15" });
+    expect(i?.options[0]?.draft).toEqual({
+      type: "new",
+      kind: "conta",
+      amount: 18760,
+      date: "2026-11-15",
+      description: "Luz",
+    });
+  });
+
+  it("leaves it to the bank once the bill is paid or its due day passed", () => {
+    // Paid early: the payment corrects the line, the e-mail adds nothing.
+    const paid = queue({
+      ledger: days,
+      movements: [lastMonth, mov("2026-10-18", -18760, "PIX QR LUMINA DISTRIBUIDORA")],
+      mailed: [light],
+    });
+    expect(paid.map((i) => i.key)).toEqual(["mov:2026-10-18--18760"]);
+    expect(
+      queue({ ledger: days, today: d("2026-11-16"), movements: [lastMonth], mailed: [light] }),
+    ).toEqual([]);
+  });
+
+  it("knows the bill paid when the bank calls the biller something else", () => {
+    const phone = {
+      biller: "Fonix",
+      due: d("2026-10-25"),
+      total: cents(6250),
+      arrived: d("2026-10-15"),
+    };
+    const planned = (value: number) =>
+      ledger("2026-10-01", 92, 0, {
+        "2026-10-25": { saida: cell(value, [item(value, "Conta Fonix", "contas")]) },
+      });
+    const at = { today: d("2026-10-26"), mailed: [{ ...phone, due: d("2026-10-27") }] };
+    // Launched from the e-mail, then paid to the carrier's company name: the line matches.
+    const launched = queue({
+      ...at,
+      ledger: planned(6250),
+      movements: [mov("2026-10-25", -6250, "PIX TELECOM BRASIL SA")],
+    });
+    expect(launched).toEqual([]);
+    // Not launched: the payment of the bill's exact value corrects the line, alone.
+    const exact = queue({
+      ...at,
+      ledger: planned(5990),
+      movements: [mov("2026-10-25", -6250, "PIX TELECOM BRASIL SA")],
+    });
+    expect(exact.map((i) => i.key)).toEqual(["mov:2026-10-25--6250"]);
+    // Paid with a fine: still one item for the line, the bank's.
+    const late = queue({
+      ...at,
+      ledger: planned(5990),
+      movements: [mov("2026-10-26", -6400, "PIX TELECOM BRASIL SA")],
+    });
+    expect(late.map((i) => i.key)).toEqual(["mov:2026-10-26--6400"]);
+  });
+});
+
 describe("Para lançar: the owner's own accounts", () => {
   const accounts: QueueInput["accounts"] = [
     { id: "cc", label: "Banco A", use: "corrente" },

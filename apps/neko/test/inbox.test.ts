@@ -2,7 +2,13 @@ import { localDate } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import type { StatementAnswer } from "../src/shared/types.ts";
 import type { Env } from "../src/worker/env.ts";
-import { allowedSender, mailedBill, receiveEmail } from "../src/worker/inbox.ts";
+import {
+  allowedSender,
+  billerOf,
+  mailedBill,
+  mailedConta,
+  receiveEmail,
+} from "../src/worker/inbox.ts";
 import { sqliteD1 } from "./d1.ts";
 
 // Invented addresses (public repo).
@@ -178,6 +184,85 @@ describe("fatura@: a bill that comes as the e-mail's own words", () => {
     expect(taken).toEqual([]);
     expect(db.sqlite.prepare("SELECT card, due_date, total FROM mailed_bill").all()).toEqual([
       { card: "Nubank", due_date: "2026-12-02", total: 130000 },
+    ]);
+  });
+});
+
+// A biller the owner set in BILL_SENDERS (light, phone) writes the value and due day in the e-mail.
+const BILLER = "contas@luzdovale.example";
+const withBillers = { ...env, BILL_SENDERS: "luzdovale.example, fonix.example" } as unknown as Env;
+
+const billMime = (from: string, text: string) =>
+  [
+    `From: ${from}`,
+    "To: fatura@neko.example",
+    "Subject: Sua conta chegou",
+    "MIME-Version: 1.0",
+    'Content-Type: multipart/mixed; boundary="b"',
+    "",
+    "--b",
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    text,
+    "--b",
+    'Content-Type: application/pdf; name="conta.pdf"',
+    "Content-Transfer-Encoding: base64",
+    'Content-Disposition: attachment; filename="conta.pdf"',
+    "",
+    PDF,
+    "--b--",
+    "",
+  ].join("\r\n");
+
+const LIGHT = "Olá, Fulano. Sua conta de outubro: Vencimento: 15/11/2026 Valor a pagar: R$ 187,60";
+
+describe("fatura@: a bill from a biller the owner set", () => {
+  it("reads the due day and the value, however the biller lays them out", () => {
+    expect(mailedConta(LIGHT)).toEqual({ due: "2026-11-15", total: 18760 });
+    expect(mailedConta("DATA DE VENCIMENTO | 01/12/2026 | TOTAL A PAGAR | 1.062,50")).toEqual({
+      due: "2026-12-01",
+      total: 106250,
+    });
+    expect(mailedConta("Valor da fatura: R$ 62,50 Data de vencimento: 01/12/2026")).toEqual({
+      due: "2026-12-01",
+      total: 6250,
+    });
+    // A dunning notice with no due day is not a bill.
+    expect(mailedConta("TOTAL A PAGAR R$ 187,60")).toBeNull();
+  });
+
+  it("names the biller by its domain, only for the senders the owner set", () => {
+    const billers = ["luzdovale.example", "fonix.example"];
+    expect(billerOf(BILLER, billers)).toBe("Luzdovale");
+    expect(billerOf("Conta@Mail.Fonix.example", billers)).toBe("Fonix");
+    expect(billerOf("contas@luzdovale.example.golpe.example", billers)).toBeNull();
+    expect(billerOf("alguem@example.com", billers)).toBeNull();
+    expect(allowedSender(BILLER, [OWNER], billers)).toBe(true);
+    expect(allowedSender(BILLER, [OWNER])).toBe(false);
+  });
+
+  it("keeps it without reading the PDF, from the biller or forwarded by the owner", async () => {
+    const db = sqliteD1();
+    const { taken, take } = taker();
+    const send = (from: string, text: string) => ({
+      from,
+      raw: new Response(billMime(from, text)).body as ReadableStream<Uint8Array>,
+      setReject: () => {},
+    });
+    const withDb = { ...withBillers, DB: db } as unknown as Env;
+    const now = new Date("2026-10-20T12:00:00Z");
+    await receiveEmail(send(BILLER, LIGHT), withDb, take, now);
+    // Forwarded by hand: the biller is the one in the forwarded header.
+    const forwarded = `---------- Forwarded message ---------\nFrom: <no-reply@fonix.example>\nDate: Mon, 19 Oct 2026\n\nData de vencimento: 01/12/2026 Valor da fatura: R$ 62,50`;
+    await receiveEmail(send(OWNER, forwarded), withDb, take, now);
+    // From a biller nobody set, or a notice without a due day: nothing kept, no PDF read either.
+    await receiveEmail(send(BILLER, "TOTAL A PAGAR R$ 187,60"), withDb, take, now);
+    expect(taken).toEqual([]);
+    expect(
+      db.sqlite.prepare("SELECT biller, due_date, total, read_at FROM mailed_conta").all(),
+    ).toEqual([
+      { biller: "Luzdovale", due_date: "2026-11-15", total: 18760, read_at: now.toISOString() },
+      { biller: "Fonix", due_date: "2026-12-01", total: 6250, read_at: now.toISOString() },
     ]);
   });
 });
