@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "./api.ts";
 
@@ -24,7 +25,49 @@ export const syncPush = () => {
     .catch(() => {});
 };
 
-/** Opt-in for the 08:00 and 21:00 notifications, on this device only. */
+/** The hours Ajustes offers for the evening message (worker/notices.ts EVENING_HOURS). */
+const EVENING_HOURS = [19, 20, 21, 22, 23] as const;
+
+/**
+ * The evening message's hour, the same on the browser and the phone: what waits in Para lançar
+ * comes when the owner's day allows logging it, and the banks are read half an hour before.
+ */
+const EveningHour = () => {
+  const queryClient = useQueryClient();
+  const hour = useQuery({ queryKey: ["evening-hour"], queryFn: api.eveningHour });
+  const save = useMutation({
+    mutationFn: api.saveEveningHour,
+    onSuccess: (data) => queryClient.setQueryData(["evening-hour"], data),
+  });
+  const value = save.isPending ? save.variables : hour.data?.eveningHour;
+  if (value === undefined) return null;
+  return (
+    <label className="setting">
+      <span className="label">
+        Lembrete da noite
+        <span className={save.isError ? "sub error" : "sub"}>
+          {save.isError ? "Não salvou. Tente de novo" : "Os bancos são lidos meia hora antes"}
+        </span>
+      </span>
+      <select
+        value={value}
+        disabled={save.isPending}
+        onChange={(e) => save.mutate(Number(e.target.value))}
+      >
+        {EVENING_HOURS.map((h) => (
+          <option key={h} value={h}>
+            {h}h
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+};
+
+/**
+ * Opt-in for Neko's notifications on this device only: in the morning when a bill is due or the
+ * ceiling crossed a mark, at the evening hour what waits in Para lançar, and the rare alert.
+ */
 export const Reminders = () => {
   const [state, setState] = useState<State>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +93,7 @@ export const Reminders = () => {
         return setState("off");
       }
       const { publicKey } = await api.pushKey();
-      if (!publicKey) throw new Error("Lembretes ainda não configurados no servidor.");
+      if (!publicKey) throw new Error("Notificações ainda não configuradas no servidor.");
       if ((await Notification.requestPermission()) !== "granted") return setState("denied");
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -61,7 +104,7 @@ export const Reminders = () => {
     } catch (e) {
       // Browser push errors come in English and name internals; say what to do instead.
       setError(
-        e instanceof Error && e.message.startsWith("Lembretes")
+        e instanceof Error && e.message.startsWith("Notificações")
           ? e.message
           : "Não deu para ativar agora. Confira a conexão e tente de novo.",
       );
@@ -75,23 +118,26 @@ export const Reminders = () => {
       ? "Instale o Neko na tela inicial primeiro"
       : state === "denied"
         ? "Bloqueadas no navegador. Libere nos ajustes dele"
-        : "Às 8h, quanto ainda cabe. Às 21h, lançar o dia");
+        : "Contas de manhã, Para lançar à noite");
   const on = state === "on";
   return (
-    <label className="setting">
-      <span className="label">
-        Lembretes
-        <span className={error ? "sub error" : "sub"}>{sub}</span>
-      </span>
-      <input
-        type="checkbox"
-        role="switch"
-        className="switch"
-        aria-checked={on}
-        checked={on}
-        onChange={toggle}
-        disabled={state !== "on" && state !== "off"}
-      />
-    </label>
+    <>
+      <label className="setting">
+        <span className="label">
+          Notificações
+          <span className={error ? "sub error" : "sub"}>{sub}</span>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          className="switch"
+          aria-checked={on}
+          checked={on}
+          onChange={toggle}
+          disabled={state !== "on" && state !== "off"}
+        />
+      </label>
+      {on && <EveningHour />}
+    </>
   );
 };

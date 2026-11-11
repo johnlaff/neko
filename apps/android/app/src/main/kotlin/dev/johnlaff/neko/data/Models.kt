@@ -289,12 +289,39 @@ data class TodayIssue(val issue: HealthIssue, val url: String)
 @Serializable
 data class Me(val email: String? = null)
 
-/** One reminder as GET /api/reminders sends it (worker/push.ts): `url` "/" opens the app. */
+/**
+ * One message as GET /api/reminders sends it (worker/push.ts): `url` "/" opens Hoje,
+ * "/#para-lancar" its Para lançar, "/faturas" Faturas, and a full address the sheet.
+ */
 @Serializable
 data class Reminder(val title: String, val body: String, val url: String, val tag: String)
 
+/** An alert born on the server (worker/notices.ts), shown once per `id`. */
 @Serializable
-data class RemindersView(val morning: Reminder? = null, val evening: Reminder? = null)
+data class Notice(
+    val id: String,
+    val title: String,
+    val body: String,
+    val url: String = "/",
+    /** "ceiling" for the ceiling crossing a mark, which goes with the bills; "alert" otherwise. */
+    val tag: String = "alert",
+)
+
+/** Today's two messages, the evening hour chosen in Ajustes, and the alerts still standing. */
+@Serializable
+data class RemindersView(
+    val morning: Reminder? = null,
+    val evening: Reminder? = null,
+    /** Absent from a Worker that predates the choice: the old fixed 21:00. */
+    val eveningHour: Int = 21,
+    val notices: List<Notice> = emptyList(),
+)
+
+@Serializable
+data class NoticesView(val notices: List<Notice> = emptyList())
+
+@Serializable
+data class EveningHourView(val eveningHour: Int)
 
 /**
  * POST /api/statement: the bank's bill PDF read and kept, with the lines it added to what Open

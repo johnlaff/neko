@@ -349,9 +349,11 @@ data class UsageSummary(
     val days: Int,
     val android: Int,
     val web: Int,
-    /** Every screen, then every button, the ones never used with zero. */
+    /** Every screen, then every button, then every kind of notification, the ones never used with zero. */
     val screens: List<UsageCount>,
     val taps: List<UsageCount>,
+    /** Taps on each kind of notification; absent from a Worker that predates them. */
+    val notices: List<UsageCount> = emptyList(),
 )
 
 @Serializable
