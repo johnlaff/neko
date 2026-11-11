@@ -3,16 +3,17 @@ import { normalizeName } from "./cards.ts";
 import { diffDays, type LocalDate } from "./date.ts";
 
 /**
- * Card purchases the phone read from the bank app's notification (specs/002, "Compras na hora").
- * Open Finance brings the same charge hours or days later, and is the check on every read: a bank
- * app's reads move the ceiling only after the bank confirmed the last PHONE_TRUST_AFTER of them in
- * a row, and one read the bank never brought sends that bank back to learning. Reads never become
- * a line of the sheet: the bank's charge does, through Para lançar.
+ * Card purchases the phone read from the bank app's notification (specs/002, "Avisos de compra").
+ * Open Finance brings the same charge hours or days later, and is the check on every read. For
+ * now the reads only learn: a bank app's reads move the ceiling once it is released by hand, after
+ * its real notices were checked, and while the bank confirmed its last PHONE_TRUST_AFTER reads in a
+ * row; one read the bank never brought stops it again. Reads never become a line of the sheet: the
+ * bank's charge does, through Para lançar.
  */
 
 /** How far apart the notification's day and the bank's date of the same charge may be. */
 export const PHONE_MATCH_DAYS = 3;
-/** Reads in a row the bank must confirm before the ceiling counts that bank app's reads. */
+/** Reads in a row the bank must have confirmed for a released bank app's reads to count. */
 export const PHONE_TRUST_AFTER = 3;
 /**
  * How long the bank has to bring a read purchase: read this many days later without it, the read
@@ -31,11 +32,13 @@ export interface PhoneRead extends BankCardLine {
   readonly bankReadOn: LocalDate | null;
 }
 
-/** How far the bank confirmed one bank app's reads, for Ajustes. */
+/** How one bank app's reads fared against the bank, for Ajustes. */
 export interface PhoneTrust {
   readonly bank: string;
-  /** Reads the bank confirmed in a row, since the last one it never brought. */
-  readonly confirmed: number;
+  /** Reads the bank already judged: it brought them, or never did in PHONE_WAIT_DAYS. */
+  readonly judged: number;
+  /** Of those, the ones the bank brought: same card, same amount. */
+  readonly matched: number;
   /** The ceiling counts this bank app's reads. */
   readonly trusted: boolean;
 }
@@ -44,11 +47,13 @@ type Verdict = "confirmed" | "missed" | "waiting";
 
 /**
  * Each read against the bank's charges, oldest first: the purchases the ceiling counts now (reads
- * of a trusted bank the bank has not brought yet), and each bank's trust.
+ * of a trusted bank the bank has not brought yet), and how each bank app fared. `released`: the
+ * bank apps whose reads may count at all, chosen by hand.
  */
 export const phoneReads = (
   reads: readonly PhoneRead[],
   bank: readonly BankCardLine[],
+  released: ReadonlySet<string>,
 ): { provisional: BankCardLine[]; trust: PhoneTrust[] } => {
   const ordered = [...reads].sort((a, b) => diffDays(b.date, a.date));
   const taken = new Set<number>();
@@ -69,21 +74,25 @@ export const phoneReads = (
       ? "missed"
       : "waiting";
   });
-  const streak = new Map<string, number>();
+  const tally = new Map<string, { streak: number; judged: number; matched: number }>();
   ordered.forEach((p, i) => {
-    const now = streak.get(p.bank) ?? 0;
-    if (verdicts[i] === "confirmed") streak.set(p.bank, now + 1);
-    else if (verdicts[i] === "missed") streak.set(p.bank, 0);
-    else streak.set(p.bank, now);
+    const t = tally.get(p.bank) ?? { streak: 0, judged: 0, matched: 0 };
+    if (verdicts[i] === "confirmed")
+      tally.set(p.bank, { streak: t.streak + 1, judged: t.judged + 1, matched: t.matched + 1 });
+    else if (verdicts[i] === "missed")
+      tally.set(p.bank, { streak: 0, judged: t.judged + 1, matched: t.matched });
+    else tally.set(p.bank, t);
   });
-  const trusted = (bank: string) => (streak.get(bank) ?? 0) >= PHONE_TRUST_AFTER;
+  const trusted = (bank: string) =>
+    released.has(bank) && (tally.get(bank)?.streak ?? 0) >= PHONE_TRUST_AFTER;
   return {
     provisional: ordered
       .filter((p, i) => verdicts[i] === "waiting" && trusted(p.bank))
       .map(({ bank: _, bankReadOn: __, ...l }) => l),
-    trust: [...streak].map(([bank, confirmed]) => ({
+    trust: [...tally].map(([bank, t]) => ({
       bank,
-      confirmed,
+      judged: t.judged,
+      matched: t.matched,
       trusted: trusted(bank),
     })),
   };

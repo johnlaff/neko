@@ -55,7 +55,7 @@
                 android:resource="@xml/today_widget_info" />
         </receiver>
 
-        <!-- Compras na hora: reads only the bank apps' purchase notices, once the owner allows it
+        <!-- Avisos de compra: reads only the bank apps' purchase notices, once the owner allows it
              in Android's settings (purchases/Purchases.kt). -->
         <service
             android:name=".purchases.PurchaseListener"
