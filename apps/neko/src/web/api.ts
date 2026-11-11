@@ -161,6 +161,12 @@ export const api = {
       method: "DELETE",
       body: JSON.stringify({ endpoint }),
     }),
+  eveningHour: () => request<{ eveningHour: number }>("/reminders/hour"),
+  saveEveningHour: (hour: number) =>
+    request<{ eveningHour: number }>("/reminders/hour", {
+      method: "PUT",
+      body: JSON.stringify({ hour }),
+    }),
   sessions: () => request<Device[]>("/sessions"),
   endSession: (id: string) =>
     request<{ ok: true }>(`/sessions/${encodeURIComponent(id)}`, { method: "DELETE" }),

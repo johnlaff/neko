@@ -934,6 +934,9 @@ const Refresh = ({ syncedAt }: { syncedAt: string | null }) => {
   );
 };
 
+/** Where the evening notification lands (worker/push.ts PARA_LANCAR). */
+const PARA_LANCAR_ID = "para-lancar";
+
 /**
  * Para lançar on Hoje: a deck, one item at a time. The bar under the title fills as items are
  * answered, and the edges under the card say more are waiting.
@@ -958,6 +961,22 @@ export const ParaLancar = ({
   const [at, setAt] = useState(0);
   const [back, setBack] = useState(false);
   const deck = useRef<HTMLElement>(null);
+  const drawn = queue !== undefined;
+  // The evening notification opens "/#para-lancar": the deck comes into view once it is drawn,
+  // its title takes the focus, and the address goes back to plain Hoje.
+  useEffect(() => {
+    const bring = () => {
+      const at = deck.current;
+      if (window.location.hash !== `#${PARA_LANCAR_ID}` || !at) return;
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      at.scrollIntoView({ block: "start", behavior: still ? "auto" : "smooth" });
+      at.querySelector<HTMLElement>("#h-queue")?.focus({ preventScroll: true });
+      history.replaceState(history.state, "", window.location.pathname + window.location.search);
+    };
+    if (drawn) bring();
+    window.addEventListener("hashchange", bring);
+    return () => window.removeEventListener("hashchange", bring);
+  }, [drawn]);
   if (!queue) return null;
   const items = queue.filter((i) => !gone.has(i.key));
   if (items.length === 0 && !bank.saldo) return null;
@@ -971,6 +990,7 @@ export const ParaLancar = ({
   return (
     <section
       ref={deck}
+      id={PARA_LANCAR_ID}
       className="panel q-deck"
       aria-labelledby="h-queue"
       data-under={Math.min(Math.max(items.length - 1 - index, 0), 2)}
@@ -984,7 +1004,9 @@ export const ParaLancar = ({
       }}
     >
       <div className="panel-head">
-        <h2 id="h-queue">Para lançar</h2>
+        <h2 id="h-queue" tabIndex={-1}>
+          Para lançar
+        </h2>
         {total > 1 && items.length > 0 && (
           <span className="q-nav">
             <button
