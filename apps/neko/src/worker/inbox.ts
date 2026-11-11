@@ -11,6 +11,8 @@ import {
 import PostalMime from "postal-mime";
 import type { StatementAnswer } from "../shared/types.ts";
 import type { Env } from "./env.ts";
+import { finishSignIn, signInLink } from "./meupluggy.ts";
+import type { Fetch } from "./pluggy.ts";
 import { takeStatement } from "./statement.ts";
 
 /**
@@ -25,6 +27,9 @@ const BANKS = /@(?:[a-z0-9-]+\.)*(?:bradesco|infobradesco|bradescard|nubank)\.co
 
 /** Gmail's sender for the code that confirms a forwarding address. */
 const GMAIL_FORWARDING = "forwarding-noreply@google.com";
+
+/** Meu Pluggy's sign-in e-mail, forwarded by the owner's filter (meupluggy.ts). */
+const MEU_PLUGGY = "no-reply@pluggy.ai";
 
 /** A Gmail filter forwards with the owner's address tagged, as in dono+caf_=fatura=…@gmail.com. */
 const untagged = (address: string) => address.replace(/\+[^@]*@/, "@");
@@ -144,6 +149,8 @@ export const receiveEmail = async (
   env: Env,
   take: (env: Env, body: unknown) => Promise<StatementAnswer> = takeStatement,
   now = new Date(),
+  /** After a Meu Pluggy sign-in finishes here, `signedIn` refreshes the banks. */
+  meuPluggy: { readonly fetch?: Fetch; readonly signedIn?: () => void } = {},
 ): Promise<void> => {
   const from = message.from.trim().toLowerCase();
   const list = (value: string | undefined) =>
@@ -168,6 +175,19 @@ export const receiveEmail = async (
   // Cloudflare rejects mail that fails the From domain's DMARC policy (the banks publish
   // p=reject), but that covers the From header, not the envelope sender: both must be allowed.
   const header = mail.from && "address" in mail.from ? (mail.from.address ?? "") : "";
+  if (header.trim().toLowerCase() === MEU_PLUGGY && owners.includes(untagged(from))) {
+    // Only the link of a sign-in Neko began opens anything (finishSignIn checks its state).
+    const link = signInLink(`${mail.text ?? ""} ${mail.html ?? ""}`);
+    const done = link
+      ? await finishSignIn(env.DB, env, meuPluggy.fetch ?? fetch, link, now).catch((error) => {
+          console.error("inbox: meu pluggy sign-in failed", error);
+          return false;
+        })
+      : false;
+    console.log("inbox: meu pluggy sign-in", done ? "finished" : "not ours or expired");
+    if (done) meuPluggy.signedIn?.();
+    return;
+  }
   if (!allowedSender(from, owners, billers) || !allowedSender(header, owners, billers)) {
     console.warn("inbox: sender refused", from.replace(/^[^@]+/, "…"));
     message.setReject("Endereço só para faturas do dono do Neko.");

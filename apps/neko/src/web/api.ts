@@ -202,8 +202,6 @@ export const api = {
       { method: "POST", body: JSON.stringify({ pdf }) },
       PDF_WAIT,
     ),
-  /** Atualizar agora: the banks read now instead of at the next morning sync. */
-  refreshBanks: () => request<{ ok: boolean }>("/banks/refresh", { method: "POST" }),
   undoEntry: (id: string) =>
     request<LaunchResult>(`/entries/${encodeURIComponent(id)}/undo`, { method: "POST" }, LONG_WAIT),
   /** The Diário previsto on the days ahead at `value` per day; 0 takes it away. */
@@ -213,6 +211,14 @@ export const api = {
       { method: "POST", body: JSON.stringify({ id, value }) },
       LONG_WAIT,
     ),
+  /**
+   * Atualizar: Meu Pluggy reads every bank and the Worker waits for it (up to about a minute).
+   * signIn: there is no session at Meu Pluggy, so the banks were only read.
+   */
+  refreshBanks: () =>
+    request<{ ok: boolean; signIn: boolean }>("/banks/refresh", { method: "POST" }, LONG_WAIT),
+  /** Entrar no Meu Pluggy: the page where the owner asks for the e-mailed link. */
+  meuPluggySignIn: () => request<{ url: string }>("/banks/meu-pluggy", { method: "POST" }),
   /** The review every 3 months, answered "keep the value". */
   keepPrevisto: () => request<{ ok: true }>("/queue/previsto/manter", { method: "POST" }),
   ignore: (key: string) =>

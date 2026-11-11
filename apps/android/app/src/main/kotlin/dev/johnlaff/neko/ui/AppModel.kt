@@ -285,8 +285,16 @@ class AppModel(
             r.entryId
         }
 
-        override suspend fun refreshBanks(): Boolean =
-            neko.api.refreshBanks().also { readToday(shown = false, after = true) }
+        override suspend fun refreshBanks(): Banks =
+            neko.api.refreshBanks().also { readToday(shown = false, after = true) }.let {
+                when {
+                    it.signIn -> Banks.SignIn
+                    it.ok -> Banks.Done
+                    else -> Banks.Failed
+                }
+            }
+
+        override suspend fun meuPluggySignIn(): String = neko.api.meuPluggySignIn()
 
         override suspend fun undo(id: String): Boolean =
             if (id.startsWith(IGNORED)) {
