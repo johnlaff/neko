@@ -300,7 +300,7 @@ private fun Reminders(r: RemindersSwitch) {
 }
 
 /**
- * Compras na hora (purchases/Purchases.kt): Android's own permission is the switch, so turning it
+ * Avisos de compra (purchases/Purchases.kt): Android's own permission is the switch, so turning it
  * on or off opens Android's page for it, after saying plainly what is read and what is sent.
  */
 data class PurchasesSwitch(
@@ -310,23 +310,24 @@ data class PurchasesSwitch(
     val onOpen: () -> Unit = {},
 )
 
-/** Reads in a row the bank confirms before the ceiling counts a bank app's (engine PHONE_TRUST_AFTER). */
-private const val TRUST_AFTER = 3
-
 @Composable
 private fun Purchases(p: PurchasesSwitch, trust: List<PhoneTrust>) {
     val l = LocalLedger.current
     var asking by remember { mutableStateOf(false) }
-    // Each bank app learns on its own: the ceiling counts its reads once the bank confirmed them.
+    // For now the reads only learn: each bank app's, checked against what its bank brings.
     val banks = trust.joinToString("") { t ->
-        if (t.trusted) "\n${t.bank}: conta no teto" else "\n${t.bank}: aprendendo (${t.confirmed} de $TRUST_AFTER conferidas)"
+        "\n${t.bank}: " + when {
+            t.trusted -> "conta no teto"
+            t.judged == 0 -> "esperando o banco conferir"
+            else -> "${t.matched} de ${t.judged} bateram com o banco"
+        }
     }
     Setting(
-        "Compras na hora",
+        "Avisos de compra",
         when {
-            !p.on -> "O teto anda na hora da compra"
-            p.last != null -> "Última: ${p.last}$banks"
-            else -> "Esperando a próxima compra no cartão$banks"
+            !p.on -> "O Neko aprende como cada banco avisa"
+            p.last != null -> "Último lido: ${p.last}$banks"
+            else -> "Esperando o próximo aviso de compra$banks"
         },
         modifier = Modifier.toggleable(
             p.on,
@@ -343,10 +344,10 @@ private fun Purchases(p: PurchasesSwitch, trust: List<PhoneTrust>) {
             text = {
                 Text(
                     "O Neko lê só os avisos de compra e de cartão dos apps Bradesco, Itaú, Inter e Mercado Pago. " +
-                        "Manda ao seu Neko o valor, a loja, o final do cartão e o texto do aviso, guardado 15 dias " +
-                        "para conferir a leitura. Avisos de outros apps e de Pix são ignorados.\n\n" +
-                        "O teto conta as compras lidas de um banco depois que o próprio banco confirmar $TRUST_AFTER " +
-                        "delas.\n\nNa próxima tela, ative o Neko.",
+                        "Manda ao seu Neko o valor, a loja, o final do cartão e o texto do aviso, guardado 15 dias. " +
+                        "Avisos de outros apps e de Pix são ignorados.\n\n" +
+                        "Por enquanto é só para aprender: o Neko confere cada aviso com o banco, e o teto não muda " +
+                        "com eles.\n\nNa próxima tela, ative o Neko.",
                     color = l.muted,
                 )
             },

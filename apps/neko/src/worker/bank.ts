@@ -28,7 +28,7 @@ import {
 } from "@neko/engine";
 import { queueView } from "../shared/queue.ts";
 import type { BankView, UserSettings } from "../shared/types.ts";
-import { loadPhonePurchases, type PhonePurchase } from "./phone.ts";
+import { loadPhonePurchases, PHONE_RELEASED, type PhonePurchase } from "./phone.ts";
 
 /**
  * What was read from the banks, as the engine takes it (specs/003-open-finance). Only the mapping
@@ -153,6 +153,8 @@ export const bankInput = (
   rows: BankRows,
   map: UserSettings["bankCards"],
   cards: readonly CardConfig[],
+  /** The bank apps whose phone reads may move the ceiling (phone.ts). */
+  released: ReadonlySet<string> = PHONE_RELEASED,
 ) => {
   const config = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const cardAccounts = new Set(rows.accounts.filter((a) => a.type === "CREDIT").map((a) => a.id));
@@ -304,7 +306,7 @@ export const bankInput = (
       bankReadOn: readAt ? todayIn(new Date(readAt)) : null,
     });
   }
-  const phone = phoneReads(seen, all);
+  const phone = phoneReads(seen, all, released);
   return {
     lines: all,
     movements,
@@ -312,7 +314,7 @@ export const bankInput = (
     closed,
     /** Card purchases the phone read that the ceiling counts: the bank has not brought them yet. */
     provisional: phone.provisional,
-    /** How far the bank confirmed each bank app's reads. */
+    /** How each bank app's reads fared against the bank. */
     phoneTrust: phone.trust,
   };
 };

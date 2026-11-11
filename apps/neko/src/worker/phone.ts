@@ -2,9 +2,9 @@ import { z } from "zod";
 
 /**
  * Card purchases the Android app read from the bank app's notification, the moment the bank told
- * the owner (specs/002, "Compras na hora"): the value, the shop and the card's last digits. Open
- * Finance checks each one, and a bank app's reads move the month's ceiling only once the bank
- * confirmed its last ones (engine `phoneReads`). They are never written to the sheet.
+ * the owner (specs/002, "Avisos de compra"): the value, the shop and the card's last digits. Open
+ * Finance checks each one (engine `phoneReads`). For now they only learn: a bank app's reads move
+ * the month's ceiling only once it is in PHONE_RELEASED. They are never written to the sheet.
  *
  * The text of those notices comes too, kept as long, so the reading can be checked against the
  * banks' real wording (bank_notice).
@@ -12,6 +12,14 @@ import { z } from "zod";
 
 /** The banks whose apps the phone reads, by the name a linked bank's label carries. */
 export const PHONE_BANKS = ["Bradesco", "Itaú", "Inter", "Mercado Pago"] as const;
+export type PhoneBank = (typeof PHONE_BANKS)[number];
+
+/**
+ * The bank apps whose reads may move the ceiling, added here by hand, in a reviewed change, once
+ * their real notices (bank_notice) and the bank's checks show the reading is right. Empty: the
+ * phone's reads only learn, and the ceiling moves when the bank brings the purchase.
+ */
+export const PHONE_RELEASED: ReadonlySet<PhoneBank> = new Set<PhoneBank>([]);
 
 export const PhonePurchase = z.object({
   /** The phone's key for the notification, so the same one is kept once. */

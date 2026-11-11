@@ -35,60 +35,69 @@ const read = (
   ...over,
 });
 
-/** Three reads the bank already brought: the Azul bank is trusted. */
+/** Three reads the bank already brought: the Azul bank is trusted, once released. */
 const proven = [read(1000, "2026-11-01"), read(2000, "2026-11-02"), read(3000, "2026-11-03")];
 const provenLines = [line(1000, "2026-11-01"), line(2000, "2026-11-03"), line(3000, "2026-11-03")];
+const azul = new Set(["Azul"]);
+const none = new Set<string>();
 
 describe("a purchase the phone read, before the bank brings it", () => {
   it("is matched to the bank's charge: same card, same amount, a few days apart, one each", () => {
     const bank = [line(4590, "2026-11-11", { description: "PADARIA DO ZE LTDA" })];
     const twice = [...proven, read(4590, "2026-11-10"), read(4590, "2026-11-10")];
     // The bank dates it a day later and writes the shop its own way; the twin still waits.
-    expect(phoneReads(twice, [...provenLines, ...bank]).provisional).toEqual([
+    expect(phoneReads(twice, [...provenLines, ...bank], azul).provisional).toEqual([
       line(4590, "2026-11-10"),
     ]);
     // Too far in time, or on another card: not the same purchase.
     const far = [line(4590, "2026-11-20")];
     const other = [line(4590, "2026-11-10", { card: "Cartão Verde" })];
-    expect(
-      phoneReads([...proven, read(4590, "2026-11-10")], [...provenLines, ...far]).provisional,
-    ).toHaveLength(1);
-    expect(
-      phoneReads([...proven, read(4590, "2026-11-10")], [...provenLines, ...other]).provisional,
-    ).toHaveLength(1);
+    const fresh = [...proven, read(4590, "2026-11-10")];
+    expect(phoneReads(fresh, [...provenLines, ...far], azul).provisional).toHaveLength(1);
+    expect(phoneReads(fresh, [...provenLines, ...other], azul).provisional).toHaveLength(1);
   });
 
-  it("counts on the ceiling only once its bank confirmed the last reads in a row", () => {
+  it("only learns until its bank app is released by hand, however many the bank confirmed", () => {
     const fresh = read(4590, "2026-11-10");
-    // A bank never confirmed yet: learning, the read waits for the bank.
-    expect(phoneReads([fresh], [])).toEqual({
+    expect(phoneReads([...proven, fresh], provenLines, none)).toEqual({
       provisional: [],
-      trust: [{ bank: "Azul", confirmed: 0, trusted: false }],
+      trust: [{ bank: "Azul", judged: 3, matched: 3, trusted: false }],
+    });
+  });
+
+  it("counts once released, while the bank confirmed its last reads in a row", () => {
+    const fresh = read(4590, "2026-11-10");
+    // Not judged yet: the bank was read only a day after it.
+    expect(phoneReads([fresh], [], azul)).toEqual({
+      provisional: [],
+      trust: [{ bank: "Azul", judged: 0, matched: 0, trusted: false }],
     });
     // Two confirmed are not enough.
-    expect(phoneReads([...proven.slice(1), fresh], provenLines.slice(1)).provisional).toEqual([]);
+    expect(phoneReads([...proven.slice(1), fresh], provenLines.slice(1), azul).provisional).toEqual(
+      [],
+    );
     expect(PHONE_TRUST_AFTER).toBe(3);
-    expect(phoneReads([...proven, fresh], provenLines)).toEqual({
+    expect(phoneReads([...proven, fresh], provenLines, azul)).toEqual({
       provisional: [line(4590, "2026-11-10")],
-      trust: [{ bank: "Azul", confirmed: 3, trusted: true }],
+      trust: [{ bank: "Azul", judged: 3, matched: 3, trusted: true }],
     });
   });
 
-  it("sends its bank back to learning when the bank, read days later, never brought one", () => {
-    // Read on the 3rd: the bank, read on the 11th, has no such charge. The read was wrong.
+  it("stops counting when the bank, read days later, never brought one", () => {
+    // Read on the 4th: the bank, read on the 11th, has no such charge. The read was wrong.
     const wrong = read(9990, "2026-11-04");
     const fresh = read(4590, "2026-11-10");
-    expect(phoneReads([...proven, wrong, fresh], provenLines)).toEqual({
+    expect(phoneReads([...proven, wrong, fresh], provenLines, azul)).toEqual({
       provisional: [],
-      trust: [{ bank: "Azul", confirmed: 0, trusted: false }],
+      trust: [{ bank: "Azul", judged: 4, matched: 3, trusted: false }],
     });
     // Not yet judged while the bank was not read long enough after it.
     const stale = [...proven, read(9990, "2026-11-04", "2026-11-06"), fresh];
-    expect(phoneReads(stale, provenLines).trust).toEqual([
-      { bank: "Azul", confirmed: 3, trusted: true },
+    expect(phoneReads(stale, provenLines, azul).trust).toEqual([
+      { bank: "Azul", judged: 3, matched: 3, trusted: true },
     ]);
-    expect(phoneReads(stale, provenLines).provisional).toHaveLength(2);
-    // Three confirmed after the miss earn the trust back.
+    expect(phoneReads(stale, provenLines, azul).provisional).toHaveLength(2);
+    // Three confirmed after the miss bring it back.
     const again = [
       ...proven,
       wrong,
@@ -102,16 +111,18 @@ describe("a purchase the phone read, before the bank brings it", () => {
       line(1200, "2026-11-06"),
       line(1300, "2026-11-08"),
     ];
-    expect(phoneReads(again, bank).trust).toEqual([{ bank: "Azul", confirmed: 3, trusted: true }]);
+    expect(phoneReads(again, bank, azul).trust).toEqual([
+      { bank: "Azul", judged: 7, matched: 6, trusted: true },
+    ]);
   });
 
   it("weighs each bank's app on its own", () => {
     const other = read(4590, "2026-11-10", null, { bank: "Verde", card: "Cartão Verde" });
-    expect(phoneReads([...proven, other], provenLines)).toEqual({
+    expect(phoneReads([...proven, other], provenLines, new Set(["Azul", "Verde"]))).toEqual({
       provisional: [],
       trust: [
-        { bank: "Azul", confirmed: 3, trusted: true },
-        { bank: "Verde", confirmed: 0, trusted: false },
+        { bank: "Azul", judged: 3, matched: 3, trusted: true },
+        { bank: "Verde", judged: 0, matched: 0, trusted: false },
       ],
     });
   });

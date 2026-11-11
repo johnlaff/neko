@@ -281,7 +281,7 @@ data class AjustesView(
     val dailyAuto: Long = 0,
     /** The Diário previsto; null from a Worker that predates it. */
     val previsto: PrevistoView? = null,
-    /** Compras na hora: how far the bank confirmed each bank app's reads. */
+    /** Avisos de compra: how each bank app's reads fared against the bank. */
     val phone: List<PhoneTrust> = emptyList(),
 )
 
@@ -289,10 +289,12 @@ data class AjustesView(
 @Serializable
 data class PhoneTrust(
     val bank: String,
-    /** Reads the bank confirmed in a row, since the last one it never brought. */
-    val confirmed: Int,
-    /** The ceiling counts this bank app's reads. */
-    val trusted: Boolean,
+    /** Reads the bank already judged: it brought them, or never did. */
+    val judged: Int = 0,
+    /** Of those, the ones the bank brought: same card, same amount. */
+    val matched: Int = 0,
+    /** The ceiling counts this bank app's reads (released by hand on the Worker). */
+    val trusted: Boolean = false,
 )
 
 /** The Worker's UserSettings (apps/neko/src/shared/types.ts), sent back whole on PUT. */

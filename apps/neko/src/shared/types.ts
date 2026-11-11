@@ -112,7 +112,7 @@ export interface BankView {
   readonly owners?: readonly OwnerMark[];
   /** Money to move into an account before the bank debits a bill from it; absent before. */
   readonly transfers?: readonly TransferDue[];
-  /** Compras na hora: how far the bank confirmed each bank app's reads; absent before. */
+  /** Avisos de compra: how each bank app's reads fared against the bank; absent before. */
   readonly phone?: readonly PhoneTrust[];
 }
 

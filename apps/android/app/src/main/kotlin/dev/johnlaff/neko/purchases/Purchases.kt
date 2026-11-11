@@ -32,13 +32,13 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 /**
- * Compras na hora (specs/002): with the owner's leave in Android's settings, the phone reads the
- * card purchase in a bank app's notice and sends the Worker its amount, shop and card digits, so
- * the month's ceiling moves at the purchase instead of hours later, when Open Finance brings it.
- * The Worker counts a bank app's reads only once the bank confirmed its last ones (engine
- * phone.ts). The words of that bank's notices of a purchase or a card go too, kept 15 days, so the
- * reading is checked against them (PurchaseText.keep). Nothing of other apps' notices leaves the
- * phone, and nothing is written to the sheet.
+ * Avisos de compra (specs/002): with the owner's leave in Android's settings, the phone reads the
+ * card purchase in a bank app's notice and sends the Worker its amount, shop and card digits, and
+ * the words of that bank's notices of a purchase or a card (PurchaseText.keep), kept 15 days. For
+ * now this only learns: the Worker checks each read against what Open Finance brings, and the
+ * ceiling moves with a bank app's reads only once that app is released by hand (worker/phone.ts
+ * PHONE_RELEASED). Nothing of other apps' notices leaves the phone, and nothing is written to the
+ * sheet.
  */
 object Purchases {
     private const val PREFS = "purchases"
