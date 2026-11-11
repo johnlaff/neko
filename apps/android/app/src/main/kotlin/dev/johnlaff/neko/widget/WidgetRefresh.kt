@@ -14,6 +14,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dev.johnlaff.neko.BuildConfig
 import dev.johnlaff.neko.NekoApp
+import dev.johnlaff.neko.reminders.Reminders
 import dev.johnlaff.neko.shortcuts.Shortcuts
 import dev.johnlaff.neko.data.ApiException
 import java.util.concurrent.TimeUnit
@@ -23,8 +24,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Reads Hoje every few hours with the network on, so the widget follows the day (and a new
- * purchase on the sheet) without opening the app. The Worker caches per sheet version, so an
- * unchanged sheet costs one Drive call.
+ * purchase on the sheet) without opening the app, and picks up the server's alerts. The Worker
+ * caches per sheet version, so an unchanged sheet costs one Drive call.
  */
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
@@ -33,6 +34,10 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             val view = app.today.refresh()
             TodayWidget().updateAll(applicationContext)
             Shortcuts.lancar(applicationContext, view.todayUrl)
+            // The phone has no push service: the server's alerts come along with this read.
+            if (Reminders.enabled(applicationContext)) {
+                runCatching { Reminders.showNotices(applicationContext, app.api.notices().notices) }
+            }
             Result.success()
         } catch (e: ApiException) {
             // Signed out or the sheet changed shape: retrying will not help until something changes.

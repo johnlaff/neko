@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { LocalDate } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import type { ProjectionResponse } from "../src/shared/types.ts";
@@ -135,5 +137,34 @@ describe("GET /api/reminders", () => {
       eveningHour: 22,
       notices,
     });
+  });
+});
+
+describe("reminders.json", () => {
+  /** The Android app parses this file in its unit tests. UPDATE_CONTRACT=1 rewrites it. */
+  it("matches what the Worker sends the phone", () => {
+    const data = {
+      projection: {
+        today: "2026-11-10",
+        todayRef: { tab: "2026", a1: "BB17" },
+        upcoming: [
+          { date: "2026-11-10", description: "Aluguel", amount: 1484_24, kind: "bill" },
+          { date: "2026-11-10", description: "Roxo", amount: 154_00, kind: "card" },
+        ],
+        insights: [],
+      },
+      sheet: { id: "s", tabs: { "2026": 1 } },
+      writing: true,
+      bank: { queue: [{ key: "a", kind: "diario", date: "2026-11-10", title: "PADARIA" }] },
+      habit: { editedToday: false, streak: 6, atRisk: false },
+    } as unknown as ProjectionResponse;
+    const view = remindersView(data, {
+      ceiling: null,
+      eveningHour: 22,
+      notices: [{ id: "meu-pluggy:2026-11-10", ...alert, title: "Entre no Meu Pluggy de novo" }],
+    });
+    const path = join(import.meta.dirname, "../../android/app/src/test/resources/reminders.json");
+    if (process.env.UPDATE_CONTRACT) writeFileSync(path, `${JSON.stringify(view, null, 2)}\n`);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual(view);
   });
 });

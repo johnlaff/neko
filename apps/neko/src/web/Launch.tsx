@@ -962,8 +962,8 @@ export const ParaLancar = ({
   const [back, setBack] = useState(false);
   const deck = useRef<HTMLElement>(null);
   const drawn = queue !== undefined;
-  // The evening notification opens "/#para-lancar": the deck comes into view once it is drawn,
-  // its title takes the focus, and the address goes back to plain Hoje.
+  // The evening notification opens "/#para-lancar": the deck comes into view once it is drawn and
+  // its title takes the focus. The hash stays: the router's own scroll would undo a cleaned address.
   useEffect(() => {
     const bring = () => {
       const at = deck.current;
@@ -971,7 +971,6 @@ export const ParaLancar = ({
       const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       at.scrollIntoView({ block: "start", behavior: still ? "auto" : "smooth" });
       at.querySelector<HTMLElement>("#h-queue")?.focus({ preventScroll: true });
-      history.replaceState(history.state, "", window.location.pathname + window.location.search);
     };
     if (drawn) bring();
     window.addEventListener("hashchange", bring);

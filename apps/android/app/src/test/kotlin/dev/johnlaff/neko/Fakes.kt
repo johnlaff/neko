@@ -46,6 +46,11 @@ object Fakes {
             UsageCount("calculo", "Como calculei", 1),
             UsageCount("ler", "Ler a planilha de novo", 4),
         ),
+        notices = listOf(
+            UsageCount("notificacao_manha", "Manhã", 3),
+            UsageCount("notificacao_noite", "Noite", 8),
+            UsageCount("notificacao_aviso", "Avisos", 0),
+        ),
     )
 
     /** Mia on, nothing said yet: her mark shows in the head. */

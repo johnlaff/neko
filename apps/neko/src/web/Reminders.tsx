@@ -118,7 +118,7 @@ export const Reminders = () => {
       ? "Instale o Neko na tela inicial primeiro"
       : state === "denied"
         ? "Bloqueadas no navegador. Libere nos ajustes dele"
-        : "Só quando há o que fazer: contas de manhã, Para lançar à noite");
+        : "Contas de manhã, Para lançar à noite");
   const on = state === "on";
   return (
     <>
