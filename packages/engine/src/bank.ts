@@ -335,22 +335,34 @@ export const MATCH_DAYS = 7;
  * What an account moved today that yesterday's Saldo cannot hold yet, so the balance read now
  * compares with it. The automatic investment is the account's own money. A card bill the bank
  * debits after its due day (a holiday, a slow posting) is not today's: the sheet took it out on
- * the due day, so the money set aside for it is already gone from yesterday's Saldo.
+ * the due day, so the money set aside for it is already gone from yesterday's Saldo. Nor is any
+ * movement the sheet already holds on an earlier day: the bank sometimes dates again today what
+ * left days ago, and if it did leave today, the sheet took it out before yesterday's Saldo too.
+ * `all` is every account's movements, so a sheet line goes to the movement that really took it.
  */
 export const movedToday = (
   ledger: Ledger,
   today: LocalDate,
-  movements: readonly Pick<BankMovement, "date" | "amount" | "description">[],
+  movements: readonly BankMovement[],
+  all: readonly BankMovement[] = movements,
 ): Cents => {
   const billsPaid = ledger
     .filter((r) => diffDays(r.date, today) >= 1 && diffDays(r.date, today) <= MATCH_DAYS)
     .map((r) => add(ZERO, ...r.saida.items.filter(isCardItem).map((i) => i.amount)));
+  const mine = movements.filter((m) => m.date === today);
+  const earlier = new Set(
+    mine.length === 0
+      ? []
+      : matchMovements(ledger, all, today)
+          .pairs.filter((p) => p.line.date < today)
+          .map((p) => p.movement),
+  );
   return add(
     ZERO,
-    ...movements
+    ...mine
       .filter(
         (m) =>
-          m.date === today &&
+          !earlier.has(m) &&
           !isAutoInvest(m.description) &&
           !(
             m.amount < 0 &&
