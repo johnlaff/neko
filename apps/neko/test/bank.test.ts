@@ -251,6 +251,14 @@ describe("bank tables", () => {
     expect(bankVersion(read)).not.toBe("none");
   });
 
+  it("are as fresh as the bank Meu Pluggy read longest ago, not as Neko's last read", async () => {
+    const db = sqliteD1();
+    db.sqlite.exec(`INSERT INTO bank_item (item_id, label, synced_at, bank_updated_at) VALUES
+      ('a', 'Banco A', '2026-10-08T09:00:00Z', '2026-10-08T01:25:00Z'),
+      ('b', 'Banco B', '2026-10-08T09:00:00Z', '2026-10-08T01:18:00Z')`);
+    expect((await loadBank(db as never))?.syncedAt).toBe("2026-10-08T01:18:00Z");
+  });
+
   it("change version with any decision or bank value, not just a count", () => {
     const base: BankRows = { items: 1, syncedAt: "t", accounts: [], txns: [], bills: [] };
     const a = bankVersion({ ...base, decided: ["mov:a", "mov:z"] });
