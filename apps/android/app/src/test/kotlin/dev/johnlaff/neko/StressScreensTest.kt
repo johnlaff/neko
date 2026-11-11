@@ -8,6 +8,7 @@ import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.ui.AjustesScreen
 import dev.johnlaff.neko.ui.PurchasesSwitch
+import dev.johnlaff.neko.data.PhoneTrust
 import dev.johnlaff.neko.ui.RemindersSwitch
 import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
@@ -83,7 +84,7 @@ class StressScreensTest {
     }
 
     @Test fun ajustesHugeText() = compose.shot(path("ajustes-200"), night = true, Device.HugeText, Tab.Ajustes) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher, usage = Fakes.usage, purchases = PurchasesSwitch(on = true, last = "R$ 1.234,56 em Supermercado Bom Preço da Esquina"))
+        AjustesScreen(ScreenState(ajustes.copy(phone = listOf(PhoneTrust("Mercado Pago", 2, false), PhoneTrust("Bradesco", 3, true)))), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher, usage = Fakes.usage, purchases = PurchasesSwitch(on = true, last = "R$ 1.234,56 em Supermercado Bom Preço da Esquina"))
     }
 
     @Test fun simular() = compose.shot(path("simular"), night = true, Device.SmallLargeText) {
@@ -112,7 +113,7 @@ class StressScreensTest {
     }
 
     @Test fun ajustes() = compose.shot(path("ajustes"), night = false, Device.SmallLargeText, Tab.Ajustes) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher, usage = Fakes.usage, purchases = PurchasesSwitch(on = true, last = "R$ 1.234,56 em Supermercado Bom Preço da Esquina"))
+        AjustesScreen(ScreenState(ajustes.copy(phone = listOf(PhoneTrust("Mercado Pago", 2, false), PhoneTrust("Bradesco", 3, true)))), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, launcher = Fakes.launcher, usage = Fakes.usage, purchases = PurchasesSwitch(on = true, last = "R$ 1.234,56 em Supermercado Bom Preço da Esquina"))
     }
 
     // Hoje with Mia on: her mark and name beside the title.

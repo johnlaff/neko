@@ -340,6 +340,25 @@ data class PhonePurchase(
 )
 
 /**
+ * A bank app's notice of a purchase or a card, word for word (PurchaseText.keep), as POST
+ * /api/purchases/notice takes it: read or not, it shows how the bank words its notices.
+ */
+@Serializable
+data class BankNotice(
+    /** The phone's key for the notice, so the same one is kept once. */
+    val id: String,
+    /** The bank app's package. */
+    val app: String,
+    val bank: String,
+    val title: String,
+    val text: String,
+    /** When the bank notified, as an ISO instant. */
+    val at: String,
+    /** Whether a purchase was taken from it. */
+    val read: Boolean,
+)
+
+/**
  * POST /api/statement: the bank's bill PDF read and kept, with the lines it added to what Open
  * Finance sent; or why it was not kept (`mismatch`, `unreadable`, `account`, `paused`).
  */

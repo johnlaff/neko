@@ -22,7 +22,7 @@ object PurchaseText {
         "com.mercadopago.wallet" to "Mercado Pago",
     )
 
-    /** What leaves the phone: no other word of the notice. */
+    /** What the ceiling takes from a notice. */
     data class Read(val bank: String, val amount: Long, val last4: String?, val merchant: String)
 
     private val I = RegexOption.IGNORE_CASE
@@ -55,6 +55,21 @@ object PurchaseText {
         val last4 = LAST4.find(all)?.let { m -> m.groupValues[1].ifEmpty { m.groupValues[2] } }
         val merchant = (LOCAL.find(all) ?: AT.find(all))?.groupValues?.get(1)?.trim()?.take(80).orEmpty()
         return Read(bank, amount, last4, merchant)
+    }
+
+    private val MONEY = Regex("""R\$\s?\d""")
+    private val ABOUT = Regex("""compr|cart[ãa]o|transa[çc]""", I)
+    private val PIX = Regex("""\bpix\b""", I)
+
+    /**
+     * Whether a notice's words go to the Neko too, read or not, so this reader is checked against
+     * how each bank really words its notices: a listed bank's notice with an amount in reais that
+     * speaks of a purchase or a card, never one of Pix. Kept 15 days (worker/phone.ts).
+     */
+    fun keep(pkg: String, title: String?, text: String?): Boolean {
+        if (pkg !in BANKS) return false
+        val all = listOfNotNull(title, text).joinToString(". ")
+        return MONEY.containsMatchIn(all) && ABOUT.containsMatchIn(all) && !PIX.containsMatchIn(all)
     }
 
     /** The Worker takes up to R$ 100.000,00 at once. */

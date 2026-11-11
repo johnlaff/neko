@@ -22,6 +22,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import dev.johnlaff.neko.NekoApp
 import dev.johnlaff.neko.data.ApiException
+import dev.johnlaff.neko.data.BankNotice
 import dev.johnlaff.neko.data.PhonePurchase
 import dev.johnlaff.neko.reminders.Reminders
 import dev.johnlaff.neko.ui.Format
@@ -34,7 +35,10 @@ import java.util.concurrent.TimeUnit
  * Compras na hora (specs/002): with the owner's leave in Android's settings, the phone reads the
  * card purchase in a bank app's notice and sends the Worker its amount, shop and card digits, so
  * the month's ceiling moves at the purchase instead of hours later, when Open Finance brings it.
- * Nothing else of any notice leaves the phone, and nothing is written to the sheet.
+ * The Worker counts a bank app's reads only once the bank confirmed its last ones (engine
+ * phone.ts). The words of that bank's notices of a purchase or a card go too, kept 15 days, so the
+ * reading is checked against them (PurchaseText.keep). Nothing of other apps' notices leaves the
+ * phone, and nothing is written to the sheet.
  */
 object Purchases {
     private const val PREFS = "purchases"
@@ -72,11 +76,30 @@ object Purchases {
     }
 
     /** The same notice, posted again or updated, gets the same key. */
-    fun key(sbnKey: String, amount: Long, at: Long): String =
+    fun key(sbnKey: String, amount: Long, at: Long): String = hash("$sbnKey|$amount|${at / 60_000}")
+
+    /** A notice's words, kept once: posted again unchanged, the same key. */
+    fun noticeKey(sbnKey: String, at: Long, text: String): String = hash("$sbnKey|${at / 60_000}|$text")
+
+    private fun hash(s: String) =
         MessageDigest.getInstance("SHA-256")
-            .digest("$sbnKey|$amount|${at / 60_000}".toByteArray())
+            .digest(s.toByteArray())
             .joinToString("") { "%02x".format(it) }
             .take(40)
+
+    internal fun keep(context: Context, notice: BankNotice) {
+        val request = OneTimeWorkRequestBuilder<NoticeWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+            .setInputData(
+                workDataOf(
+                    "id" to notice.id, "app" to notice.app, "bank" to notice.bank, "title" to notice.title,
+                    "text" to notice.text, "at" to notice.at, "read" to notice.read,
+                ),
+            )
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork("notice-${notice.id}", ExistingWorkPolicy.KEEP, request)
+    }
 
     internal fun send(context: Context, purchase: PhonePurchase) {
         val request = OneTimeWorkRequestBuilder<PurchaseWorker>()
@@ -103,8 +126,23 @@ class PurchaseListener : NotificationListenerService() {
         val extras = n.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val text = (extras.getCharSequence(Notification.EXTRA_BIG_TEXT) ?: extras.getCharSequence(Notification.EXTRA_TEXT))?.toString()
-        val read = PurchaseText.read(sbn.packageName, title, text) ?: return
+        val read = PurchaseText.read(sbn.packageName, title, text)
         val at = n.`when`.takeIf { it > 0 } ?: sbn.postTime
+        if (PurchaseText.keep(sbn.packageName, title, text)) {
+            Purchases.keep(
+                applicationContext,
+                BankNotice(
+                    id = Purchases.noticeKey(sbn.key, at, "$title|$text"),
+                    app = sbn.packageName,
+                    bank = PurchaseText.BANKS.getValue(sbn.packageName),
+                    title = title.orEmpty().take(300),
+                    text = text.orEmpty().take(2000),
+                    at = Instant.ofEpochMilli(at).toString(),
+                    read = read != null,
+                ),
+            )
+        }
+        if (read == null) return
         Purchases.send(
             applicationContext,
             PhonePurchase(
@@ -156,5 +194,29 @@ class PurchaseWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val money = Format.money(p.amount)
         val shop = p.merchant.takeIf { it.isNotBlank() }?.let { Format.bankText(Format.merchantName(it)) }
         return if (shop != null) "$money em $shop" else "$money no ${p.bank}"
+    }
+}
+
+/** Sends one notice's words; a refusal is final, a lost connection is tried again a few times. */
+class NoticeWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        val d = inputData
+        val notice = BankNotice(
+            id = d.getString("id") ?: return Result.success(),
+            app = d.getString("app") ?: return Result.success(),
+            bank = d.getString("bank") ?: return Result.success(),
+            title = d.getString("title").orEmpty(),
+            text = d.getString("text").orEmpty(),
+            at = d.getString("at") ?: return Result.success(),
+            read = d.getBoolean("read", false),
+        )
+        return try {
+            (applicationContext as NekoApp).api.notice(notice)
+            Result.success()
+        } catch (e: ApiException) {
+            Result.success()
+        } catch (e: Exception) {
+            if (runAttemptCount < 5) Result.retry() else Result.success()
+        }
     }
 }
