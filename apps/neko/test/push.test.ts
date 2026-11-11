@@ -122,6 +122,45 @@ describe("morning", () => {
     expect(m?.body).not.toMatch(/negativo/);
   });
 
+  it("asks to move money into the account a bill is debited from, before the due day", () => {
+    const transfer = (bills: object[]) => ({
+      bank: { transfers: [{ to: "Banco Azul", amount: 1200_00, balance: 5000_00, bills }] },
+    });
+    const one = morningMessage(
+      response({}, transfer([{ card: "Azul", due: "2026-10-08", amount: 6200_00 }])),
+    );
+    expect(one).toEqual({
+      title: "Transfira R$ 1.200,00 para a conta Banco Azul",
+      body: "A fatura do Azul, R$ 6.200,00, sai dessa conta em 8 out, e ela tem R$ 5.000,00.",
+      url: "/faturas",
+      tag: "morning",
+    });
+    // Holder and additional card make one bill, debited in full.
+    const two = morningMessage(
+      response(
+        {},
+        transfer([
+          { card: "Azul Titular", due: "2026-10-07", amount: 4500_00 },
+          { card: "Azul Adicional", due: "2026-10-07", amount: 1700_00 },
+        ]),
+      ),
+    );
+    expect(two?.body).toBe(
+      "As faturas do Azul Titular R$ 4.500,00 e do Azul Adicional R$ 1.700,00 saem dessa conta amanhã, e ela tem R$ 5.000,00.",
+    );
+    // On the due day it follows the bills' own line.
+    const today = morningMessage(
+      response(
+        { upcoming: [bill(TUESDAY, "Azul", 6200_00, "card")] } as never,
+        transfer([{ card: "Azul", due: TUESDAY, amount: 6200_00 }]),
+      ),
+    );
+    expect(today?.title).toBe("Vence hoje: fatura do Azul, R$ 6.200,00");
+    expect(today?.body).toBe(
+      "Transfira R$ 1.200,00 para a conta Banco Azul. A fatura do Azul, R$ 6.200,00, sai dessa conta hoje, e ela tem R$ 5.000,00.",
+    );
+  });
+
   it("warns of the balance going red now or within two days, with what is due that day", () => {
     expect(
       morningMessage(
