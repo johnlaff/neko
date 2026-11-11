@@ -304,6 +304,7 @@ export const bankView = (
   });
   const queue = built.filter((i) => !ignored.has(i.key));
   const synced = (a: BankAccountRow) => labels.get(a.item_id ?? "")?.synced_at ?? null;
+  const moving = [...movements, ...pending];
   return {
     syncedAt: rows.syncedAt,
     queue: queueView(queue, ledger, cards),
@@ -330,7 +331,8 @@ export const bankView = (
           today: movedToday(
             ledger,
             today,
-            [...movements, ...pending].filter((m) => m.account === a.id),
+            moving.filter((m) => m.account === a.id),
+            moving,
           ),
         })),
       movements,
