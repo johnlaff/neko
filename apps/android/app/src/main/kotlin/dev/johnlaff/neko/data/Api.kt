@@ -80,7 +80,14 @@ class Api(
 
     suspend fun ajustes(): AjustesView = json.decodeFromString(call("/ajustes"))
 
-    suspend fun reminders(): RemindersView = json.decodeFromString(call("/reminders"))
+    /** `slot` "morning" is the 08:00 ask, the only one that can carry the ceiling's news. */
+    suspend fun reminders(slot: String): RemindersView = json.decodeFromString(call("/reminders?slot=$slot"))
+
+    suspend fun notices(): NoticesView = json.decodeFromString(call("/notices"))
+
+    /** The evening message's hour, for the account: the site's push follows it too. */
+    suspend fun saveEveningHour(hour: Int): EveningHourView =
+        json.decodeFromString(call("/reminders/hour", buildJsonObject { put("hour", hour) }.asBody(), "PUT"))
 
     suspend fun history(): HistoryView = json.decodeFromString(call("/history"))
 

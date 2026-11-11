@@ -9,6 +9,7 @@ import {
   inferCards,
   inferDailyForecast,
   type LocalDate,
+  lastWeekSpend,
   localDate,
   mergeCards,
   monthsSince,
@@ -40,7 +41,7 @@ import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./go
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "87";
+const PIPELINE_VERSION = "88";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -212,6 +213,7 @@ export const buildResponse = (
     sheet,
     bank: bankView(bank, ledger, cards, settings, today, input),
     previsto: previstoView(settings, dailyForecast, today, suggestion, sheet.tabs),
+    week: spend && lastWeekSpend(spend, settings.owners),
   };
 };
 

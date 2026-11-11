@@ -10,6 +10,7 @@ import type {
   RefValue,
   SaldoCheck,
   Subscription,
+  WeekSpend,
 } from "@neko/engine";
 import { z } from "zod";
 import type { QueueItemView } from "./queue.ts";
@@ -54,6 +55,8 @@ export interface ProjectionResponse {
   readonly bank?: BankView | null;
   /** The Diário previsto (specs/005-lancamentos, Fase 3); absent from older copies. */
   readonly previsto?: PrevistoView;
+  /** Cards and Pix of the last whole week and the one before, for Sunday's summary; absent without a bank. */
+  readonly week?: WeekSpend | null;
 }
 
 /** The Diário previsto: on or off, its value, and what the bank says a day costs. */
