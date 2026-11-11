@@ -28,7 +28,7 @@ export interface Reminder {
   /** Opened when the notification is tapped: "/" is Hoje, PARA_LANCAR its Para lançar. */
   readonly url: string;
   /** Same tag replaces the previous notification instead of stacking. */
-  readonly tag: "morning" | "evening" | "alert";
+  readonly tag: "morning" | "evening" | "alert" | "ceiling";
 }
 
 /** Hoje, scrolled to Para lançar: the web reads the hash, the Android app its own action. */
@@ -194,26 +194,28 @@ const savingPart = (p: Projection): Part | null => {
 /** The ceiling's marks worth a message, once each in a month (see notices.ts `ceilingNews`). */
 export type CeilingNews = 75 | 100;
 
-/** The month's ceiling crossed 75% or 100% since the last time it was said. */
-const ceilingPart = (p: Projection, news: CeilingNews | null): Part | null => {
+/**
+ * The month's ceiling crossed 75% or 100%, said when the bank brings the purchase that crossed
+ * it: a nudge at the moment of spending changes more than one the next morning (Atalay 2025).
+ */
+export const ceilingReminder = (p: Projection, news: CeilingNews): Reminder | null => {
   const cs = p.canSpend;
-  if (news === null || cs?.mode !== "cards") return null;
+  if (cs?.mode !== "cards") return null;
   if (news === 75)
     return {
       title: "Cartões e Pix passaram de 75% do teto",
       body: `Ainda cabem ${money(cs.left)} até o fim do mês.`,
-      line: `Cartões e Pix passaram de 75% do teto: ainda cabem ${money(cs.left)}.`,
       url: "/",
+      tag: "ceiling",
     };
-  const title =
-    cs.overBy > 0
-      ? `Cartões e Pix passaram ${money(cs.overBy)} do teto`
-      : "Cartões e Pix chegaram ao teto";
   return {
-    title,
+    title:
+      cs.overBy > 0
+        ? `Cartões e Pix passaram ${money(cs.overBy)} do teto`
+        : "Cartões e Pix chegaram ao teto",
     body: `O teto do mês é ${money(cs.budget)}.`,
-    line: `${title}.`,
     url: "/",
+    tag: "ceiling",
   };
 };
 
@@ -257,20 +259,17 @@ const weekPart = ({ projection: p, habit, week }: ProjectionResponse): Part | nu
 
 /**
  * 08:00, only when there is something to do, the most urgent in the title: bills due today, money
- * to move into the account a bill is debited from, the balance going red, payday's saving, the ceiling crossing a mark, and on Sunday the week. What
+ * to move into the account a bill is debited from, the balance going red, payday's saving, and on
+ * Sunday the week. The ceiling speaks when the bank brings the purchase (`ceilingReminder`). What
  * still fits lives on the widget and Hoje, where it is seen without an interruption.
  */
-export const morningMessage = (
-  data: ProjectionResponse,
-  ceiling: CeilingNews | null = null,
-): Reminder | null => {
+export const morningMessage = (data: ProjectionResponse): Reminder | null => {
   const p = data.projection;
   const parts = [
     billsPart(p),
     transferPart(data),
     redPart(p),
     savingPart(p),
-    ceilingPart(p, ceiling),
     weekPart(data),
   ].filter((x): x is Part => x !== null);
   const [lead, ...rest] = parts;
