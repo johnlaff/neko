@@ -84,6 +84,11 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
   100% (uma vez no mês cada, guardado em `setting.ceiling_said`); aos domingos, a semana que fechou
   (Cartões e Pix contra a anterior, `lastWeekSpend`, e dias lançados). Sem nada disso, silêncio:
   "Ainda cabem" fica no widget e no Hoje.
+- **Fatura debitada de uma conta só**: o banco tira a fatura do cartão da conta dele, não do Saldo
+  inteiro. A conta que pagou uma fatura nos últimos 100 dias (débito "gastos cartão" ou "pagamento de
+  fatura") paga os cartões do mesmo banco (`billPayers`). De 2 dias antes do vencimento até o dia, se
+  a fatura inteira (titular e adicional) passa do saldo lido hoje ou ontem, a manhã diz quanto
+  transferir para essa conta (`transfersDue`). Uma fatura paga por Pix de outro banco fica com o Saldo.
 - **Noite, na hora escolhida em Ajustes** (19h a 23h, padrão 21h, uma para a conta): "N para lançar"
   com os nomes dos itens, e o toque abre direto em Para lançar (`/#para-lancar` no site, a ação
   `PARA_LANCAR` no app). Fila vazia: "Lançou o dia?" até a planilha mudar no dia. Os bancos são
