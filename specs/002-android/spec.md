@@ -87,6 +87,15 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
   Pluggy, Atualizar), se Cartões e Pix passaram de 75% ou de 100% do teto, sai um aviso (uma vez no
   mês cada marca, guardado em `setting.ceiling_said`; tabela `notice`, `teto-75`/`teto-100`). O
   navegador recebe por push na hora; o celular, na próxima busca, no canal Contas e teto.
+- **Compras na hora** (só no app, Ajustes › Neste celular): com a permissão de ler notificações do
+  Android, o app olha só os avisos dos apps do Bradesco, Itaú, Inter e Mercado Pago (bancos ligados
+  por Open Finance; um cartão fora dele contaria duas vezes ao lado da fatura por e-mail). De uma
+  compra aprovada à vista e em reais que não fale de débito nem de Pix (`PurchaseText`), manda o valor, a loja e o final
+  do cartão a `POST /api/purchases` (tabela `phone_purchase`, 15 dias). A compra entra na fatura do
+  cartão pelo ciclo e move Cartões e Pix na hora, com o aviso do teto se passou de uma marca, até o
+  banco trazer a mesma cobrança (mesmo cartão e valor, até 3 dias de diferença, `stillProvisional`).
+  Depois de 5 dias sem o banco, para de contar. Nunca vira linha da planilha. Antes de abrir a
+  permissão, o app diz em claro o que lê e o que manda.
 - **Fatura debitada de uma conta só**: o banco tira a fatura do cartão da conta dele, não do Saldo
   inteiro. A conta que pagou uma fatura nos últimos 100 dias (débito "gastos cartão" ou "pagamento de
   fatura") paga os cartões do mesmo banco (`billPayers`). De 2 dias antes do vencimento até o dia, se
