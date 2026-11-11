@@ -438,3 +438,43 @@ describe("Saldo against the bank", () => {
     expect(view?.saldo).toMatchObject({ date: "2026-10-07", sheet: 100000, bank: 100000, diff: 0 });
   });
 });
+
+describe("money to move before the bank debits a bill", () => {
+  // The bank debited last month's bill from its own account, so it debits this one there too.
+  const debiting: BankRows = {
+    items: 1,
+    syncedAt: "2026-11-10T09:00:00.000Z",
+    itemRows: [{ item_id: "i", label: "Banco Azul", synced_at: "2026-11-10T09:00:00.000Z" }],
+    accounts: [
+      { id: "conta", type: "BANK", item_id: "i", balance: 100000 },
+      { id: "cartao", type: "CREDIT", item_id: "i" },
+    ],
+    txns: [txn({ date: "2026-10-14", amount: -140000, description: "GASTOS CARTAO DE CREDITO" })],
+    bills: [],
+  };
+
+  it("is the bill, holder and additional card together, less what the account has", async () => {
+    const { cell, item, ledger } = await import("../../../packages/engine/test/builders.ts");
+    const days = ledger("2026-10-01", 92, 500000, {
+      "2026-11-12": { saida: cell(150000, [item(120000, "Visa"), item(30000, "Visa Gio")]) },
+    });
+    const view = bankView(
+      debiting,
+      days,
+      cards,
+      UserSettings.parse({ bankCards: map }),
+      localDate("2026-11-10"),
+    );
+    expect(view?.transfers).toEqual([
+      {
+        to: "Banco Azul",
+        amount: 50000,
+        balance: 100000,
+        bills: [
+          { card: "Visa", due: "2026-11-12", amount: 120000 },
+          { card: "Visa Gio", due: "2026-11-12", amount: 30000 },
+        ],
+      },
+    ]);
+  });
+});

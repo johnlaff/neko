@@ -3,6 +3,7 @@ import {
   type BankCardLine,
   type BankMovement,
   billChecks,
+  billPayers,
   buildQueue,
   type CardConfig,
   type ClosedBill,
@@ -18,6 +19,7 @@ import {
   saldoCheck,
   subscriptions,
   todayIn,
+  transfersDue,
   unmatchedMovements,
   withStatements,
 } from "@neko/engine";
@@ -354,6 +356,27 @@ export const bankView = (
       .map(({ account: _, ...m }) => m),
     subscriptions: subscriptionsView(lines, today, settings),
     owners: settings.owners,
+    transfers: transfersDue(
+      ledger,
+      billPayers(
+        checking
+          .filter((a) => a.balance != null && settings.accountUse[a.id] !== "guardado")
+          .map((a) => ({
+            id: a.id,
+            label: labels.get(a.item_id ?? "")?.label ?? "Banco",
+            bank: a.item_id ?? a.id,
+            balance: cents(a.balance ?? 0),
+            readOn: synced(a) ? todayIn(new Date(synced(a) as string)) : null,
+          })),
+        settings.bankCards.flatMap((c) => {
+          const bank = rows.accounts.find((a) => a.id === c.accountId)?.item_id;
+          return bank ? [{ bank, card: c.card }] : [];
+        }),
+        [...movements, ...pending],
+        today,
+      ),
+      today,
+    ),
   };
 };
 

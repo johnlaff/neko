@@ -104,6 +104,44 @@ const billsPart = (p: Projection): Part | null => {
       };
 };
 
+/** "hoje", "amanhã" or "em 12 nov", for a day from today on. */
+const whenFrom = (today: string, date: string) =>
+  date === today
+    ? "hoje"
+    : date === addDays(today as LocalDate, 1)
+      ? "amanhã"
+      : `em ${shortDate(date)}`;
+
+/**
+ * A card bill the bank debits from one account, more than that account has: the money may sit in
+ * another account, so the Saldo says nothing. The move to make, from two days before the due day.
+ */
+const transferPart = (data: ProjectionResponse): Part | null => {
+  const today = data.projection.today;
+  const sentences = (data.bank?.transfers ?? []).map((t) => {
+    const [one, ...more] = t.bills;
+    const last = t.bills.reduce((at, b) => (b.due > at ? b.due : at), today);
+    const when = whenFrom(today, last);
+    const what =
+      one && more.length === 0
+        ? `A fatura do ${one.card}, ${money(one.amount)}, sai dessa conta ${when}`
+        : `As faturas ${listOf(t.bills.map((b) => `do ${b.card} ${money(b.amount)}`))} saem dessa conta ${t.bills.every((b) => b.due === last) ? when : `até ${when.replace(/^em /, "")}`}`;
+    return {
+      title: `Transfira ${money(t.amount)} para a conta ${t.to}`,
+      body: `${what}, e ela tem ${money(t.balance)}.`,
+    };
+  });
+  const [first] = sentences;
+  if (!first) return null;
+  const all = sentences.map((x) => `${x.title}. ${x.body}`);
+  return {
+    title: first.title,
+    body: [first.body, ...all.slice(1)].join(" "),
+    line: all.join(" "),
+    url: "/faturas",
+  };
+};
+
 /** Days ahead the balance going red is announced: time to move money before the bill. */
 const RED_AHEAD = 2;
 
@@ -218,8 +256,8 @@ const weekPart = ({ projection: p, habit, week }: ProjectionResponse): Part | nu
 };
 
 /**
- * 08:00, only when there is something to do, the most urgent in the title: bills due today, the
- * balance going red, payday's saving, the ceiling crossing a mark, and on Sunday the week. What
+ * 08:00, only when there is something to do, the most urgent in the title: bills due today, money
+ * to move into the account a bill is debited from, the balance going red, payday's saving, the ceiling crossing a mark, and on Sunday the week. What
  * still fits lives on the widget and Hoje, where it is seen without an interruption.
  */
 export const morningMessage = (
@@ -229,6 +267,7 @@ export const morningMessage = (
   const p = data.projection;
   const parts = [
     billsPart(p),
+    transferPart(data),
     redPart(p),
     savingPart(p),
     ceilingPart(p, ceiling),
