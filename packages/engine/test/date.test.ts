@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { addDays, clampedDay, diffDays, localDate, todayIn } from "../src/index.ts";
+import {
+  addDays,
+  clampedDay,
+  clockIn,
+  diffDays,
+  localDate,
+  todayIn,
+  weekday,
+  weekStart,
+} from "../src/index.ts";
 
 describe("dates", () => {
   it("rejects impossible dates", () => {
@@ -17,5 +26,16 @@ describe("dates", () => {
   });
   it("uses São Paulo's civil date, not UTC", () => {
     expect(todayIn(new Date("2026-10-05T02:30:00Z"))).toBe("2026-10-04");
+  });
+  it("reads São Paulo's clock, midnight as hour 0", () => {
+    expect(clockIn(new Date("2026-10-05T02:30:00Z"))).toEqual({ hour: 23, minute: 30 });
+    expect(clockIn(new Date("2026-10-05T03:00:00Z"))).toEqual({ hour: 0, minute: 0 });
+    expect(clockIn(new Date("2026-10-05T11:05:00Z"))).toEqual({ hour: 8, minute: 5 });
+  });
+  it("starts weeks on Sunday, as the streak does", () => {
+    expect(weekday(localDate("2026-11-15"))).toBe(0);
+    expect(weekStart(localDate("2026-11-15"))).toBe("2026-11-15");
+    expect(weekStart(localDate("2026-11-21"))).toBe("2026-11-15");
+    expect(weekStart(localDate("2026-11-01"))).toBe("2026-11-01");
   });
 });

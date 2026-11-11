@@ -1,4 +1,11 @@
-import { type Cents, historyDelta, MAX_INSTALLMENTS, normalizeName, todayIn } from "@neko/engine";
+import {
+  type Cents,
+  clockIn,
+  historyDelta,
+  MAX_INSTALLMENTS,
+  normalizeName,
+  todayIn,
+} from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import * as Sentry from "@sentry/cloudflare";
 import { Hono, type MiddlewareHandler } from "hono";
@@ -33,6 +40,18 @@ import {
   spentThisMonth,
 } from "./mia.ts";
 import {
+  ceilingNews,
+  clearNotices,
+  EVENING_HOURS,
+  eveningJob,
+  loadEveningHour,
+  pruneNotices,
+  raiseNotice,
+  recentNotices,
+  remindersView,
+  saveEveningHour,
+} from "./notices.ts";
+import {
   authenticationOptions,
   registrationOptions,
   usableInvite,
@@ -50,13 +69,7 @@ import {
   syncAll,
   WebhookEvent,
 } from "./pluggy.ts";
-import {
-  eveningMessage,
-  morningMessage,
-  readFailedMessage,
-  remindersView,
-  sendReminder,
-} from "./push.ts";
+import { eveningMessage, morningMessage, readFailedMessage, sendReminder } from "./push.ts";
 import { keepBankCards, loadSettings, saveSettings, UserSettings } from "./settings.ts";
 import { takeStatement } from "./statement.ts";
 import { recordUse, UsagePost, usageSummary } from "./usage.ts";
@@ -147,6 +160,8 @@ app.use("/invoices", requireSession);
 app.use("/months", requireSession);
 app.use("/ajustes", requireSession);
 app.use("/reminders", requireSession);
+app.use("/reminders/*", requireSession);
+app.use("/notices", requireSession);
 app.use("/history", requireSession);
 app.use("/simulate", requireSession);
 app.use("/settings", requireSession);
@@ -431,7 +446,7 @@ app.post("/banks/meu-pluggy", async (c) => {
 
 /**
  * Asks Meu Pluggy to refresh every bank; a failure there never stops the read that follows. A
- * scheduled refresh that finds the session over says so once, by push.
+ * scheduled refresh that finds the session over says so once, by push and to the phone.
  */
 const askMeuPluggy = async (env: Env, scheduled: boolean) => {
   const asked = await refreshBanks(env.DB, env, fetch).catch((error) => {
@@ -439,13 +454,14 @@ const askMeuPluggy = async (env: Env, scheduled: boolean) => {
     Sentry.captureException(error);
     return "failed" as const;
   });
-  if (scheduled && asked === "expired") await sendReminder(env, signInReminder);
+  if (scheduled && asked === "expired")
+    await raiseNotice(env, "meu-pluggy", todayIn(new Date()), signInReminder);
   return asked;
 };
 
 /**
- * 06:00 and 21:00 (and right after a sign-in): Meu Pluggy reads every bank, then Neko reads them
- * all and makes sure Pluggy knows where to send news.
+ * 06:00 and half an hour before the evening message (and right after a sign-in): Meu Pluggy reads
+ * every bank, then Neko reads them all and makes sure Pluggy knows where to send news.
  */
 const bankSync = async (env: Env) => {
   if (!configured(env)) return;
@@ -573,10 +589,32 @@ app.get("/simulate", async (c) => {
   return c.json(simulateView(data, amount as Cents, count));
 });
 
-/** Today's 08:00 and 21:00 reminders, for the Android app to show itself (see push.ts). */
-app.get("/reminders", async (c) =>
-  c.json(remindersView(await getProjection(c.env, todayIn(new Date())))),
-);
+/**
+ * Today's morning and evening messages, for the Android app to show itself (see notices.ts). Only
+ * the 08:00 ask (`slot=morning`) can carry the ceiling's news, which is said once.
+ */
+app.get("/reminders", async (c) => {
+  const now = new Date();
+  const data = await getProjection(c.env, todayIn(now));
+  const [ceiling, eveningHour, notices] = await Promise.all([
+    c.req.query("slot") === "morning" ? ceilingNews(c.env.DB, data) : null,
+    loadEveningHour(c.env.DB),
+    recentNotices(c.env.DB, now),
+  ]);
+  return c.json(remindersView(data, { ceiling, eveningHour, notices }));
+});
+
+/** The alerts the phone may not have shown yet; read with the widget, every 3 hours. */
+app.get("/notices", async (c) => c.json({ notices: await recentNotices(c.env.DB) }));
+
+app.get("/reminders/hour", async (c) => c.json({ eveningHour: await loadEveningHour(c.env.DB) }));
+
+/** The evening message's hour, chosen in Ajustes: one for the account, browser and phone alike. */
+app.put("/reminders/hour", async (c) => {
+  const { hour } = z.object({ hour: z.literal(EVENING_HOURS) }).parse(await c.req.json());
+  await saveEveningHour(c.env.DB, hour);
+  return c.json({ eveningHour: hour });
+});
 
 app.get("/history", async (c) => {
   const points = await monthEndHistory(c.env.DB, todayIn(new Date()));
@@ -629,8 +667,11 @@ app.delete("/push/subscription", async (c) => {
 
 /** Crons run in UTC; São Paulo is UTC−3 all year. */
 const MORNING = "0 11 * * *"; // 08:00
-const EVENING = "0 0 * * *"; // 21:00
-const BANKS = "0 9 * * *"; // 06:00, before "ainda cabem"
+const BANKS = "0 9 * * *"; // 06:00, before the morning message
+// The evening message comes at the owner's hour (19:00 to 23:00, Ajustes), with the banks read half
+// an hour before: each run checks the hour and does its part, or nothing.
+const EVENING_BANKS = "30 21-23,0-1 * * *"; // 18:30 to 22:30
+const EVENING = "0 22-23,0-2 * * *"; // 19:00 to 23:00
 
 /** Errors go to Sentry when SENTRY_DSN is set; without it the SDK stays off. */
 const sentry = (env: Env) => ({
@@ -654,12 +695,18 @@ export default Sentry.withSentry(sentry, {
    */
   async email(message, env, ctx) {
     await receiveEmail(message, env, takeStatement, new Date(), {
-      signedIn: () => ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error))),
+      signedIn: () =>
+        ctx.waitUntil(
+          Promise.all([clearNotices(env.DB, "meu-pluggy"), bankSync(env)]).catch((error) =>
+            Sentry.captureException(error),
+          ),
+        ),
     });
   },
   /**
    * 08:00 in São Paulo: refresh the projection, record the day's point in the forecast history
-   * and send "ainda cabem". 21:00: remind to log the day in the sheet, unless it already is.
+   * and send the morning message, if there is something to do. At the evening hour: what waits in
+   * Para lançar, or the nudge to log the day.
    */
   async scheduled(event, env, ctx) {
     if (event.cron === BANKS) {
@@ -667,29 +714,37 @@ export default Sentry.withSentry(sentry, {
       ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error)));
       return;
     }
-    // 21:00, when the reminder asks to log the day: Para lançar shows today's purchases.
-    if (event.cron === EVENING)
-      ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error)));
+    if (event.cron === EVENING_BANKS || event.cron === EVENING) {
+      const job = eveningJob(clockIn(new Date(event.scheduledTime)), await loadEveningHour(env.DB));
+      // Half an hour before the message: Para lançar then shows the day's purchases.
+      if (job === "banks")
+        ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error)));
+      if (job !== "message") return;
+    }
     const run = async () => {
+      const today = todayIn(new Date());
       // Housekeeping does not depend on the sheet: a failed read must not let the cache grow.
       if (event.cron === MORNING)
-        await Promise.all([pruneSnapshots(env.DB), pruneSessions(env.DB)]).catch((error) =>
-          console.error("pruning failed", error),
-        );
+        await Promise.all([
+          pruneSnapshots(env.DB),
+          pruneSessions(env.DB),
+          pruneNotices(env.DB),
+        ]).catch((error) => console.error("pruning failed", error));
       let data: Awaited<ReturnType<typeof getProjection>>;
       try {
-        data = await getProjection(env, todayIn(new Date()));
+        data = await getProjection(env, today);
       } catch (error) {
         console.error("scheduled sheet read failed", error);
         Sentry.captureException(error);
-        await sendReminder(env, readFailedMessage(error));
+        await raiseNotice(env, "planilha", today, readFailedMessage(error));
         return;
       }
+      await clearNotices(env.DB, "planilha");
       if (event.cron === MORNING) {
         await backfillEdits(env).catch((error) => console.error("revision backfill failed", error));
-        const morning = morningMessage(data);
+        const morning = morningMessage(data, await ceilingNews(env.DB, data));
         if (morning) await sendReminder(env, morning);
-      } else if (event.cron === EVENING) {
+      } else {
         const evening = eveningMessage(data);
         if (evening) await sendReminder(env, evening);
       }

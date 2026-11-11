@@ -1,4 +1,5 @@
 import type { SaldoWaiting } from "@neko/engine";
+import { bankText } from "../shared/text.ts";
 import { valuesHidden } from "./privacy.ts";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -59,25 +60,7 @@ export const waitingText = (waiting: readonly SaldoWaiting[]) => {
   return `${list ?? ""} ainda não ${verb} banco.`;
 };
 
-/** Joining words that stay lowercase inside a name. */
-const SMALL_WORDS = new Set("a as o os e de da das do dos em na no para".split(" "));
-
-/**
- * A bank's description as people write it: banks send "PIX FEIRA DO BAIRRO" in capitals, read as
- * "Pix Feira do Bairro". Text that already has lowercase, and words with digits, stay as sent.
- */
-export const bankText = (text: string) => {
-  if (/\p{Ll}/u.test(text)) return text;
-  return text
-    .split(" ")
-    .map((word, i) => {
-      if (/\d/.test(word)) return word;
-      const lower = word.toLocaleLowerCase("pt-BR");
-      if (i > 0 && SMALL_WORDS.has(lower)) return lower;
-      return lower.charAt(0).toLocaleUpperCase("pt-BR") + lower.slice(1);
-    })
-    .join(" ");
-};
+export { bankText };
 
 /** The usual card's closing, from `closesInDays`, which counts today: 1 is today, 2 tomorrow. */
 export const closesIn = (closesInDays: number) =>

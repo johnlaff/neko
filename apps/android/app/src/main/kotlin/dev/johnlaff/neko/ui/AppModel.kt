@@ -157,6 +157,9 @@ class AppModel(
      */
     fun used(event: String) = side { neko.api.used(event) }
 
+    /** The evening message's hour, for the account (Ajustes › Neste celular). */
+    fun saveEveningHour(hour: Int) = side { neko.api.saveEveningHour(hour) }
+
     /**
      * A tab shown or the app back in front: a fresh reading is kept as is, an older one is read
      * again in the background without a spinner, as Gmail does, and lands quietly.

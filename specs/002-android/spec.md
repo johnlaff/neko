@@ -71,3 +71,29 @@ Mia, leitura de notificações do banco, qualquer escrita na planilha.
   à esquerda. Colunas do Mês: a faixa inteira de cada mês é o alvo, sem vãos, e dá para deslizar o
   dedo de um mês ao outro. Gráficos desenham uma vez por lugar, e o puxar para atualizar termina com
   uma vibração de confirmação ou de erro.
+
+## Notificações (revisão de 11/11/2026)
+
+Pesquisa e veredito com o dono em 11/11: no máximo duas por dia, quase sempre uma, cada uma com uma
+ação clara, só com números da planilha e do banco (nada de previsão, nada de bronca). Código em
+`worker/push.ts` (textos) e `worker/notices.ts` (entrega).
+
+- **Manhã (08:00), só quando há o que fazer**, o mais urgente no título: todas as contas da planilha
+  que vencem hoje, cartões ou não, com o que falta na conta quando o saldo do dia fica negativo;
+  saldo negativo agora ou em até 2 dias; dia de guardar; teto de Cartões e Pix passando de 75% ou de
+  100% (uma vez no mês cada, guardado em `setting.ceiling_said`); aos domingos, a semana que fechou
+  (Cartões e Pix contra a anterior, `lastWeekSpend`, e dias lançados). Sem nada disso, silêncio:
+  "Ainda cabem" fica no widget e no Hoje.
+- **Noite, na hora escolhida em Ajustes** (19h a 23h, padrão 21h, uma para a conta): "N para lançar"
+  com os nomes dos itens, e o toque abre direto em Para lançar (`/#para-lancar` no site, a ação
+  `PARA_LANCAR` no app). Fila vazia: "Lançou o dia?" até a planilha mudar no dia. Os bancos são
+  lidos meia hora antes, para a fila estar fresca.
+- **Avisos do servidor** (Meu Pluggy vencido, planilha ilegível): tabela `notice`, um por tipo por
+  dia. O navegador recebe por push; o app, que não usa FCM, busca em `GET /api/reminders` (08:00 e
+  noite) e `GET /api/notices` (a cada 3 horas, junto do widget). Resolvido o problema, o aviso sai
+  da tabela e o app tira a notificação.
+- **Android**: um canal por tipo (Contas e teto, Lançar o dia, Avisos), categoria de lembrete ou de
+  erro, a da manhã some na hora da noite e a da noite na manhã seguinte, tela bloqueada só com o
+  tipo.
+- **Uso do Neko** conta os toques em cada tipo (`notificacao_manha`, `_noite`, `_aviso`), só a
+  contagem.

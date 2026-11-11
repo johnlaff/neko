@@ -15,20 +15,27 @@ describe("usage", () => {
     await recordUse(d, "2026-10-20", "hoje", "android");
     await recordUse(d, "2026-10-21", "hoje", "web");
     await recordUse(d, "2026-10-21", "simular", "android");
+    await recordUse(d, "2026-10-21", "notificacao_noite", "android");
     // Older than 30 days: kept in D1, out of the summary.
     await recordUse(d, "2026-09-01", "mia", "android");
     const s = await usageSummary(d, "2026-10-23");
     expect(s).toMatchObject({ window: 30, days: 2, android: 2, web: 1 });
     const count = (event: string) =>
-      [...s.screens, ...s.taps].find((e) => e.event === event)?.count;
+      [...s.screens, ...s.taps, ...s.notices].find((e) => e.event === event)?.count;
     expect(count("hoje")).toBe(3);
     expect(count("simular")).toBe(1);
+    expect(count("notificacao_noite")).toBe(1);
     // What was never used is the most telling line: it is listed, with zero.
     expect(count("mia")).toBe(0);
     // Screens apart from buttons, each in USAGE order.
     expect(s.screens.map((e) => e.event)).toEqual(["hoje", "faturas", "mes", "ajustes", "mia"]);
     expect(s.taps.map((e) => e.event)).toEqual(["lancar", "simular", "calculo", "ler"]);
-    expect([...s.screens, ...s.taps].map((e) => e.event)).toEqual(Object.keys(USAGE));
+    expect(s.notices.map((e) => e.event)).toEqual([
+      "notificacao_manha",
+      "notificacao_noite",
+      "notificacao_aviso",
+    ]);
+    expect([...s.screens, ...s.taps, ...s.notices].map((e) => e.event)).toEqual(Object.keys(USAGE));
     expect(s.screens[0]).toEqual({ event: "hoje", label: "Hoje", count: 3 });
   });
 

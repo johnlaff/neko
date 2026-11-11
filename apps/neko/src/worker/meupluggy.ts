@@ -7,7 +7,7 @@ import type { Reminder } from "./push.ts";
  * Making the banks refresh now (specs/003-open-finance). Pluggy's API refuses to update the
  * MeuPluggy items Neko reads (400 "MeuPluggy item cant be updated"); only meu.pluggy.ai can, for a
  * signed-in person, as its Atualizar button does. So Neko keeps the owner's session there,
- * encrypted, and uses it at the 06:00 and 21:00 refreshes, which keeps it from lapsing. Unofficial:
+ * encrypted, and uses it at the 06:00 and evening refreshes, which keeps it from lapsing. Unofficial:
  * if the site changes, this stops, and the banks still refresh once a day on their own.
  *
  * Signing in: Meu Pluggy's login page asks servers for a captcha, so the owner's browser does that
