@@ -324,6 +324,22 @@ data class NoticesView(val notices: List<Notice> = emptyList())
 data class EveningHourView(val eveningHour: Int)
 
 /**
+ * A card purchase read from a bank app's notification (purchases/PurchaseText.kt), as POST
+ * /api/purchases takes it: nothing of the notice but these.
+ */
+@Serializable
+data class PhonePurchase(
+    /** The phone's key for the notice, so the same one is kept once. */
+    val id: String,
+    val bank: String,
+    val amount: Long,
+    val last4: String?,
+    val merchant: String,
+    /** When the bank notified, as an ISO instant. */
+    val at: String,
+)
+
+/**
  * POST /api/statement: the bank's bill PDF read and kept, with the lines it added to what Open
  * Finance sent; or why it was not kept (`mismatch`, `unreadable`, `account`, `paused`).
  */

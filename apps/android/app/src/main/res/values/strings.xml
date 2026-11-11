@@ -9,4 +9,5 @@
     <string name="shortcut_mes">Mês</string>
     <string name="shortcut_lancar">Lançar</string>
     <string name="shortcut_lancar_long">Lançar hoje na planilha</string>
+    <string name="purchases_listener">Neko: compras na hora</string>
 </resources>
