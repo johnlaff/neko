@@ -41,7 +41,7 @@ import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./go
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "91";
+const PIPELINE_VERSION = "92";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -198,7 +198,7 @@ export const buildResponse = (
     pixSpent: spend ? variableSpend(spend, monthStart, addDays(today, 1)).pix : null,
     // The bills due next month: a week after the 28th is always in it.
     // With the purchases the phone read that the bank has not brought yet, from the bank apps
-    // whose reads the bank confirmed: the ceiling moves at the purchase, not hours later.
+    // released by hand (phone.ts PHONE_RELEASED): the ceiling moves at the purchase.
     cardsSpent: spend
       ? cardsBillSpend(
           [...spend.lines, ...(input?.provisional ?? [])],

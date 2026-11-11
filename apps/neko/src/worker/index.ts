@@ -631,9 +631,9 @@ app.get("/reminders", async (c) => {
 app.get("/notices", async (c) => c.json({ notices: await recentNotices(c.env.DB) }));
 
 /**
- * A card purchase the phone read from the bank app's notification (phone.ts): once the bank has
- * confirmed that app's reads, the ceiling moves at once, and the answer carries the messages, so a
- * mark crossed shows on the phone right away.
+ * A card purchase the phone read from the bank app's notification (phone.ts): kept to learn, and,
+ * from a bank app released by hand, the ceiling moves at once; the answer carries the messages, so
+ * a mark crossed shows on the phone right away.
  */
 app.post("/purchases", async (c) => {
   await savePhonePurchase(c.env.DB, PhonePurchase.parse(await c.req.json()));

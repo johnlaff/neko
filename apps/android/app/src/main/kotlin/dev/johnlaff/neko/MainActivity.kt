@@ -339,7 +339,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Ajustes' Compras na hora: Android's permission is the state, read again each time the app
+     * Ajustes' Avisos de compra: Android's permission is the state, read again each time the app
      * comes back (from Android's page for it, most often).
      */
     @Composable
