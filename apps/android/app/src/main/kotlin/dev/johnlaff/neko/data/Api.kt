@@ -89,6 +89,11 @@ class Api(
     suspend fun purchase(p: PhonePurchase): NoticesView =
         json.decodeFromString(call("/purchases", json.encodeToString(PhonePurchase.serializer(), p).toRequestBody(jsonType)))
 
+    /** A bank notice's words, kept 15 days so the reading can be checked against them. */
+    suspend fun notice(n: BankNotice) {
+        call("/purchases/notice", json.encodeToString(BankNotice.serializer(), n).toRequestBody(jsonType))
+    }
+
     /** The evening message's hour, for the account: the site's push follows it too. */
     suspend fun saveEveningHour(hour: Int): EveningHourView =
         json.decodeFromString(call("/reminders/hour", buildJsonObject { put("hour", hour) }.asBody(), "PUT"))

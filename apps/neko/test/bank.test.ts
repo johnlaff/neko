@@ -148,7 +148,7 @@ describe("bank rows to the engine", () => {
 });
 
 describe("a card purchase the phone read from the bank app", () => {
-  // The linked bank whose label names the phone's bank; its only card account.
+  // The linked bank whose label names the phone's bank; its only card account. Read on the 8th.
   const linked: BankRows = {
     ...rows,
     itemRows: [{ item_id: "i", label: "Banco Inter", synced_at: "2026-10-08T09:00:00.000Z" }],
@@ -166,9 +166,33 @@ describe("a card purchase the phone read from the bank app", () => {
     merchant: "LIVRARIA",
     at: "2026-10-06T15:00:00.000Z",
   };
+  /** Three reads of the bank's app that the bank brought, the same days: the app is trusted. */
+  const proven = (bank: "Inter" | "Bradesco", last4: string) => {
+    const days = ["2026-09-20", "2026-09-21", "2026-09-22"];
+    return {
+      phone: days.map((d, i) => ({
+        ...seen,
+        id: `phone-${bank}-${i}`,
+        bank,
+        last4,
+        amount: 1000 * (i + 1),
+        at: `${d}T15:00:00.000Z`,
+      })),
+      txns: days.map((d, i) =>
+        txn({ account_id: "cartao", date: d, amount: 1000 * (i + 1), card_number: last4 }),
+      ),
+    };
+  };
+  const trusted = proven("Inter", "2222");
+  const read = (phone: (typeof seen)[], txns: BankRows["txns"] = []) =>
+    bankInput(
+      { ...linked, txns: [...trusted.txns, ...txns], phone: [...trusted.phone, ...phone] },
+      map,
+      cards,
+    );
 
   it("lands on its card's bill by the cycle, by its last digits or else the account's card", () => {
-    expect(bankInput({ ...linked, phone: [seen] }, map, cards).provisional).toEqual([
+    expect(read([seen]).provisional).toEqual([
       {
         card: "Visa Gio",
         amount: 4590,
@@ -179,10 +203,16 @@ describe("a card purchase the phone read from the bank app", () => {
         date: "2026-10-06",
       },
     ]);
-    const plain = { ...seen, last4: null };
-    expect(bankInput({ ...linked, phone: [plain] }, map, cards).provisional).toMatchObject([
+    expect(read([{ ...seen, last4: null }]).provisional).toMatchObject([
       { card: "Visa", amount: 4590 },
     ]);
+    expect(read([seen]).phoneTrust).toEqual([{ bank: "Inter", confirmed: 3, trusted: true }]);
+  });
+
+  it("waits for the bank while the bank has not confirmed that app's reads", () => {
+    const learning = bankInput({ ...linked, phone: [seen] }, map, cards);
+    expect(learning.provisional).toEqual([]);
+    expect(learning.phoneTrust).toEqual([{ bank: "Inter", confirmed: 0, trusted: false }]);
   });
 
   it("steps aside once the bank brings the same charge", () => {
@@ -192,27 +222,36 @@ describe("a card purchase the phone read from the bank app", () => {
       amount: 4590,
       card_number: "2222",
     });
-    const read = { ...linked, txns: [brought], phone: [seen] };
-    expect(bankInput(read, map, cards).provisional).toEqual([]);
-    expect(bankInput(read, map, cards).lines).toHaveLength(1);
+    expect(read([seen], [brought]).provisional).toEqual([]);
+    expect(read([seen], [brought]).lines).toHaveLength(4);
+  });
+
+  it("sends the app back to learning when the bank, read days later, never brought one", () => {
+    // Read on the 1st; the bank, read on the 8th, has no such charge.
+    const wrong = { ...seen, id: "phone-0000", amount: 9990, at: "2026-10-01T15:00:00.000Z" };
+    expect(read([wrong, seen]).provisional).toEqual([]);
+    expect(read([wrong, seen]).phoneTrust).toEqual([
+      { bank: "Inter", confirmed: 0, trusted: false },
+    ]);
+  });
+
+  it("counts one purchase both bank apps told once", () => {
+    const twin = { ...seen, id: "phone-0002", last4: null, at: "2026-10-06T15:01:00.000Z" };
+    expect(read([twin, seen]).provisional).toMatchObject([{ card: "Visa Gio", amount: 4590 }]);
   });
 
   it("finds its card by digits the bank already brought, whatever the bank's label", () => {
-    const before = txn({
-      account_id: "cartao",
-      date: "2026-09-10",
-      amount: 100,
-      card_number: "7777",
-    });
+    const bradesco = proven("Bradesco", "7777");
     const other = { ...seen, bank: "Bradesco" as const, last4: "7777" };
     expect(
-      bankInput({ ...linked, txns: [before], phone: [other] }, map, cards).provisional,
+      bankInput({ ...linked, txns: bradesco.txns, phone: [...bradesco.phone, other] }, map, cards)
+        .provisional,
     ).toMatchObject([{ card: "Visa", amount: 4590 }]);
   });
 
   it("is left out when no linked bank is the phone's", () => {
     const other = { ...seen, bank: "Bradesco" as const, last4: "9999" };
-    expect(bankInput({ ...linked, phone: [other] }, map, cards).provisional).toEqual([]);
+    expect(bankInput({ ...linked, phone: [other] }, map, cards).phoneTrust).toEqual([]);
   });
 });
 
