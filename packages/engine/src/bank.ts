@@ -318,6 +318,7 @@ export const TRANSFER_DAYS = 2;
 
 /** Paying a card bill from the account: the bills are checked on their own. */
 const BILL_PAYMENT = /gastos cart[aã]o|pagamento (de )?fatura|pagto\.? fatura/i;
+export const isBillPayment = (description: string): boolean => BILL_PAYMENT.test(description);
 
 /**
  * The account's automatic investment: the bank sweeps what is left into it and back when a

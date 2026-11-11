@@ -50,7 +50,11 @@ export const Usage = () => {
           </dl>
           <Counts title="Telas" items={s.screens} />
           <Counts title="Botões" items={s.taps} />
-          <p>Só contagens de telas e botões, no servidor do Neko. Nenhum valor da planilha.</p>
+          {/* An older Worker answers without it. */}
+          {Array.isArray(s.notices) && <Counts title="Notificações tocadas" items={s.notices} />}
+          <p>
+            Só contagens de telas, botões e toques, no servidor do Neko. Nenhum valor da planilha.
+          </p>
         </details>
       </div>
     </section>

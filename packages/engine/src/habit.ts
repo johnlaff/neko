@@ -1,4 +1,4 @@
-import { addDays, diffDays, type LocalDate, todayIn } from "./date.ts";
+import { addDays, diffDays, type LocalDate, todayIn, weekStart } from "./date.ts";
 
 /**
  * The habit the method asks for: open the sheet and log the day. A day counts when the sheet
@@ -47,11 +47,6 @@ export interface Habit {
   /** Days logged last week (Sunday to Saturday); null until a whole week was watched. */
   readonly lastWeek: number | null;
 }
-
-/** Day of the week, 0 = Sunday. */
-const weekday = (d: LocalDate): number => new Date(`${d}T00:00:00Z`).getUTCDay();
-
-const weekStart = (d: LocalDate): LocalDate => addDays(d, -weekday(d));
 
 /** The civil day in São Paulo on which the sheet was edited, from Drive's `modifiedTime`. */
 export const editDay = (modifiedTime: string): LocalDate => todayIn(new Date(modifiedTime));

@@ -2882,6 +2882,8 @@ main.mia-page form.mia-form > input {
 .panel.q-deck {
   position: relative;
   margin-bottom: 12px;
+  /* Where the evening notification lands: a little air above it. */
+  scroll-margin-top: 16px;
 }
 .q-deck::before,
 .q-deck::after {

@@ -262,22 +262,26 @@ fun AjustesScreen(
     }
 }
 
-/** The phone's own reminders: a setting of this device, not of the account, so it is not saved. */
+/**
+ * The phone's own notifications: a setting of this device, not of the account, so it is not saved
+ * with the form. The evening hour under it is the account's (the site's push follows it too).
+ */
 data class RemindersSwitch(
     val on: Boolean = false,
     /** Android refused notifications to the app; only its settings can undo that. */
     val blocked: Boolean = false,
+    val hour: Int = 21,
+    val onHour: (Int) -> Unit = {},
     val onChange: (Boolean) -> Unit = {},
 )
 
 @Composable
 private fun Reminders(r: RemindersSwitch) {
-    val l = LocalLedger.current
     Setting(
-        "Lembretes",
+        "Notificações",
         when {
             r.blocked -> "Permita as notificações do Neko no Android"
-            else -> "Às 8h, quanto ainda cabe. Às 21h, lançar o dia"
+            else -> "Contas de manhã, Para lançar à noite"
         },
         r.blocked,
         // The whole row is the switch: a bigger target, and TalkBack reads the label with the state.
@@ -288,6 +292,40 @@ private fun Reminders(r: RemindersSwitch) {
             onCheckedChange = null,
             colors = switchColors(),
         )
+    }
+    if (r.on) Setting("Lembrete da noite", "Os bancos são lidos meia hora antes") { HourPicker(r.hour, r.onHour) }
+}
+
+/** The evening hours the Worker accepts (worker/notices.ts EVENING_HOURS). */
+@Composable
+private fun HourPicker(hour: Int, onPick: (Int) -> Unit) {
+    val l = LocalLedger.current
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(
+            onClick = { open = true },
+            modifier = Modifier.semantics { role = androidx.compose.ui.semantics.Role.DropdownList },
+        ) {
+            Text("${hour}h", color = l.text)
+            Spacer(Modifier.width(4.dp))
+            androidx.compose.material3.Icon(
+                androidx.compose.ui.res.painterResource(dev.johnlaff.neko.R.drawable.ic_chevron_down),
+                contentDescription = null,
+                tint = l.muted,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            dev.johnlaff.neko.reminders.ReminderClock.EVENING_HOURS.forEach { h ->
+                DropdownMenuItem(
+                    text = { Text("${h}h") },
+                    onClick = {
+                        open = false
+                        onPick(h)
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -647,8 +685,12 @@ private fun Usage(s: UsageSummary) {
                 s.screens.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
                 UsageHead("Botões")
                 s.taps.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
+                if (s.notices.isNotEmpty()) {
+                    UsageHead("Notificações tocadas")
+                    s.notices.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
+                }
                 Text(
-                    "Só contagens de telas e botões, no servidor do Neko. Nenhum valor da planilha.",
+                    "Só contagens de telas, botões e toques, no servidor do Neko. Nenhum valor da planilha.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 4.dp),

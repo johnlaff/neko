@@ -1,0 +1,31 @@
+{
+  "morning": {
+    "title": "Vencem hoje 2 contas: R$ 1.638,24",
+    "body": "Aluguel R$ 1.484,24 e fatura do Roxo R$ 154,00.",
+    "url": "/",
+    "tag": "morning"
+  },
+  "evening": {
+    "title": "1 para lançar",
+    "body": "Padaria. Você está há 6 dias em dia.",
+    "url": "/#para-lancar",
+    "tag": "evening"
+  },
+  "eveningHour": 22,
+  "notices": [
+    {
+      "id": "meu-pluggy:2026-11-10",
+      "title": "Entre no Meu Pluggy de novo",
+      "body": "Tento de novo na próxima atualização. Os números do Neko são da última leitura.",
+      "url": "/",
+      "tag": "alert"
+    },
+    {
+      "id": "teto-75:2026-11-10",
+      "title": "Cartões e Pix passaram de 75% do teto",
+      "body": "Ainda cabem R$ 800,00 até o fim do mês.",
+      "url": "/",
+      "tag": "ceiling"
+    }
+  ]
+}

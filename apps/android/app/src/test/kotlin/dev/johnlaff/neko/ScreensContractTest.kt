@@ -5,6 +5,7 @@ import dev.johnlaff.neko.data.InstallmentSimulation
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.data.RemindersView
 import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.data.json
 import java.io.File
@@ -144,5 +145,17 @@ class ScreensContractTest {
         assertEquals(4, v.taps.size)
         assertEquals("Hoje", v.screens.first().label)
         assertEquals(0, v.taps.single { it.event == "simular" }.count)
+        assertEquals(listOf("notificacao_manha", "notificacao_noite", "notificacao_aviso"), v.notices.map { it.event })
+    }
+
+    /** GET /api/reminders, as apps/neko/test/notices.test.ts writes it. */
+    @Test fun reminders() {
+        val v = json.decodeFromString<RemindersView>(text("reminders.json"))
+        assertEquals("Vencem hoje 2 contas: R$ 1.638,24", v.morning?.title)
+        assertEquals("/#para-lancar", v.evening?.url)
+        assertEquals(22, v.eveningHour)
+        assertEquals(listOf("meu-pluggy:2026-11-10", "teto-75:2026-11-10"), v.notices.map { it.id })
+        // The ceiling's goes with the bills; the rest are alerts.
+        assertEquals(listOf("alert", "ceiling"), v.notices.map { it.tag })
     }
 }
