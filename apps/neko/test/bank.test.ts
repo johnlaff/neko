@@ -9,6 +9,7 @@ import {
   bankView,
   loadBank,
 } from "../src/worker/bank.ts";
+import { PHONE_RELEASED } from "../src/worker/phone.ts";
 import { sqliteD1 } from "./d1.ts";
 
 // Invented bank: ids, names and amounts are made up (public repo).
@@ -184,11 +185,13 @@ describe("a card purchase the phone read from the bank app", () => {
     };
   };
   const trusted = proven("Inter", "2222");
-  const read = (phone: (typeof seen)[], txns: BankRows["txns"] = []) =>
+  const both = new Set(["Inter", "Bradesco"]);
+  const read = (phone: (typeof seen)[], txns: BankRows["txns"] = [], released = both) =>
     bankInput(
       { ...linked, txns: [...trusted.txns, ...txns], phone: [...trusted.phone, ...phone] },
       map,
       cards,
+      released,
     );
 
   it("lands on its card's bill by the cycle, by its last digits or else the account's card", () => {
@@ -206,13 +209,22 @@ describe("a card purchase the phone read from the bank app", () => {
     expect(read([{ ...seen, last4: null }]).provisional).toMatchObject([
       { card: "Visa", amount: 4590 },
     ]);
-    expect(read([seen]).phoneTrust).toEqual([{ bank: "Inter", confirmed: 3, trusted: true }]);
+    expect(read([seen]).phoneTrust).toEqual([
+      { bank: "Inter", judged: 3, matched: 3, trusted: true },
+    ]);
+  });
+
+  it("only learns while no bank app is released, as now", () => {
+    const learning = read([seen], [], PHONE_RELEASED);
+    expect(PHONE_RELEASED.size).toBe(0);
+    expect(learning.provisional).toEqual([]);
+    expect(learning.phoneTrust).toEqual([{ bank: "Inter", judged: 3, matched: 3, trusted: false }]);
   });
 
   it("waits for the bank while the bank has not confirmed that app's reads", () => {
-    const learning = bankInput({ ...linked, phone: [seen] }, map, cards);
+    const learning = bankInput({ ...linked, phone: [seen] }, map, cards, both);
     expect(learning.provisional).toEqual([]);
-    expect(learning.phoneTrust).toEqual([{ bank: "Inter", confirmed: 0, trusted: false }]);
+    expect(learning.phoneTrust).toEqual([{ bank: "Inter", judged: 0, matched: 0, trusted: false }]);
   });
 
   it("steps aside once the bank brings the same charge", () => {
@@ -226,12 +238,12 @@ describe("a card purchase the phone read from the bank app", () => {
     expect(read([seen], [brought]).lines).toHaveLength(4);
   });
 
-  it("sends the app back to learning when the bank, read days later, never brought one", () => {
+  it("stops counting the app when the bank, read days later, never brought one", () => {
     // Read on the 1st; the bank, read on the 8th, has no such charge.
     const wrong = { ...seen, id: "phone-0000", amount: 9990, at: "2026-10-01T15:00:00.000Z" };
     expect(read([wrong, seen]).provisional).toEqual([]);
     expect(read([wrong, seen]).phoneTrust).toEqual([
-      { bank: "Inter", confirmed: 0, trusted: false },
+      { bank: "Inter", judged: 4, matched: 3, trusted: false },
     ]);
   });
 
@@ -244,8 +256,12 @@ describe("a card purchase the phone read from the bank app", () => {
     const bradesco = proven("Bradesco", "7777");
     const other = { ...seen, bank: "Bradesco" as const, last4: "7777" };
     expect(
-      bankInput({ ...linked, txns: bradesco.txns, phone: [...bradesco.phone, other] }, map, cards)
-        .provisional,
+      bankInput(
+        { ...linked, txns: bradesco.txns, phone: [...bradesco.phone, other] },
+        map,
+        cards,
+        both,
+      ).provisional,
     ).toMatchObject([{ card: "Visa", amount: 4590 }]);
   });
 

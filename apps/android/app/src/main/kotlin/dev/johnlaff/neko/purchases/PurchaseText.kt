@@ -1,7 +1,7 @@
 package dev.johnlaff.neko.purchases
 
 /**
- * A card purchase read from a bank app's notification (specs/002, "Compras na hora"). Pure, so it
+ * A card purchase read from a bank app's notification (specs/002, "Avisos de compra"). Pure, so it
  * is tested without a phone. Only an approved purchase in reais, paid at once, is taken: a notice
  * that speaks of Pix, debit, a refusal, a refund or installments is left alone, as is any notice
  * from an app not listed here. The bank brings the same charge later; this only moves the ceiling

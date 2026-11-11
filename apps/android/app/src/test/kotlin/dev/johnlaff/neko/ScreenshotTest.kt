@@ -141,7 +141,7 @@ class ScreenshotTest {
     }
 
     @Test fun ajustesDark() = shot("ajustes-dark", night = true) {
-        AjustesScreen(ScreenState(ajustes.copy(phone = listOf(PhoneTrust("Bradesco", 3, true), PhoneTrust("Inter", 1, false)))), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true), launcher = Fakes.launcher, purchases = PurchasesSwitch(on = true, last = "R$ 45,90 em Livraria Central"))
+        AjustesScreen(ScreenState(ajustes.copy(phone = listOf(PhoneTrust("Bradesco", judged = 3, matched = 3), PhoneTrust("Inter")))), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true), launcher = Fakes.launcher, purchases = PurchasesSwitch(on = true, last = "R$ 45,90 em Livraria Central"))
     }
 
     // The Diário previsto (specs/005-lancamentos, Fase 3): the value with the bank's suggestion,

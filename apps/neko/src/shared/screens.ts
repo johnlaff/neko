@@ -445,7 +445,7 @@ export interface AjustesView {
   readonly dailyAuto: number;
   /** The Diário previsto; null from a Worker that predates it. */
   readonly previsto: PrevistoView | null;
-  /** Compras na hora: how far the bank confirmed each bank app's reads (Android only). */
+  /** Avisos de compra: how each bank app's reads fared against the bank (Android only). */
   readonly phone: readonly PhoneTrust[];
 }
 

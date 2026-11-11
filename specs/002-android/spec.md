@@ -87,19 +87,19 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
   Pluggy, Atualizar), se Cartões e Pix passaram de 75% ou de 100% do teto, sai um aviso (uma vez no
   mês cada marca, guardado em `setting.ceiling_said`; tabela `notice`, `teto-75`/`teto-100`). O
   navegador recebe por push na hora; o celular, na próxima busca, no canal Contas e teto.
-- **Compras na hora** (só no app, Ajustes › Neste celular): com a permissão de ler notificações do
+- **Avisos de compra** (só no app, Ajustes › Neste celular): com a permissão de ler notificações do
   Android, o app olha só os avisos dos apps do Bradesco, Itaú, Inter e Mercado Pago (bancos ligados
   por Open Finance; um cartão fora dele contaria duas vezes ao lado da fatura por e-mail). De uma
   compra aprovada à vista e em reais que não fale de débito nem de Pix (`PurchaseText`), manda o valor, a loja e o final
   do cartão a `POST /api/purchases` (tabela `phone_purchase`, 15 dias). O mesmo aviso dos dois apps
   do banco conta uma vez (`onePerPurchase`).
-  - **Aprender antes de confiar** (modo sombra, por banco): o Open Finance confere cada leitura
-    (mesmo cartão e valor, até 3 dias de diferença). O teto só conta as leituras de um app depois que
-    o banco confirmou as 3 últimas seguidas; uma leitura que o banco, lido 5 dias depois, nunca
-    trouxe faz aquele app voltar a aprender (`phoneReads`). Contando, a compra entra na fatura do
-    cartão pelo ciclo e move Cartões e Pix na hora, com o aviso do teto se passou de uma marca, até o
-    banco trazer a mesma cobrança. Ajustes mostra cada app: "conta no teto" ou "aprendendo (1 de 3
-    conferidas)".
+  - **Por enquanto, só aprende** (modo sombra, por banco): o Open Finance confere cada leitura
+    (mesmo cartão e valor, até 3 dias de diferença; sem a cobrança com o banco lido 5 dias depois, a
+    leitura não bateu), e Ajustes mostra, por banco, "N de M bateram com o banco". O teto não muda
+    com os avisos. Um app só passa a mover o teto quando for liberado à mão, numa mudança revisada
+    (`PHONE_RELEASED` em `worker/phone.ts`), depois de conferir os textos reais e as conferências
+    do banco; liberado, conta enquanto o banco confirmou as 3 últimas leituras seguidas
+    (`phoneReads`), e a cópia do celular sai quando o banco traz a mesma cobrança.
   - **Texto real dos avisos**: dos avisos desses apps com valor em reais que falam de compra ou de
     cartão, e nunca de Pix (`PurchaseText.keep`), o app manda também o texto, lido ou não, a
     `POST /api/purchases/notice` (tabela `bank_notice`, 15 dias), para a leitura ser conferida com o
