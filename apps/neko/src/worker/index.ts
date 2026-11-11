@@ -40,7 +40,7 @@ import {
   spentThisMonth,
 } from "./mia.ts";
 import {
-  ceilingNews,
+  checkCeiling,
   clearNotices,
   EVENING_HOURS,
   eveningJob,
@@ -258,10 +258,13 @@ app.post("/pluggy/webhook", async (c) => {
   // so a D1 hiccup is retried in the background instead of failing the request.
   if (itemId && configured(c.env))
     c.executionCtx.waitUntil(
-      hookSync(c.env.DB, pluggy(c.env, fetch), itemId, todayIn(new Date())).catch((error) => {
-        console.error("bank sync failed", itemId, error);
-        Sentry.captureException(error);
-      }),
+      hookSync(c.env.DB, pluggy(c.env, fetch), itemId, todayIn(new Date())).then(
+        () => ceilingAfterRead(c.env),
+        (error) => {
+          console.error("bank sync failed", itemId, error);
+          Sentry.captureException(error);
+        },
+      ),
     );
   return c.json({ ok: true });
 });
@@ -427,6 +430,7 @@ app.post("/banks/refresh", async (c) => {
   if (!configured(c.env)) return c.json({ ok: false, signIn: false });
   const asked = await askMeuPluggy(c.env, false);
   const failed = await syncAll(c.env.DB, pluggy(c.env, fetch), todayIn(new Date()));
+  c.executionCtx.waitUntil(ceilingAfterRead(c.env));
   return c.json({
     ok: asked === "refreshed" && failed === 0,
     signIn: asked === "signed-out" || asked === "expired",
@@ -475,6 +479,20 @@ const bankSync = async (env: Env) => {
   await askMeuPluggy(env, true);
   const failed = await syncAll(env.DB, api, todayIn(new Date()));
   if (failed > 0) Sentry.captureMessage(`bank sync: ${failed} bank(s) failed`);
+  await ceilingAfterRead(env);
+};
+
+/**
+ * After the banks are read: the ceiling crossing a mark is said then, not the next morning. A
+ * failure here never fails the read.
+ */
+const ceilingAfterRead = async (env: Env) => {
+  try {
+    await checkCeiling(env, await getProjection(env, todayIn(new Date())));
+  } catch (error) {
+    console.error("ceiling check failed", error);
+    Sentry.captureException(error);
+  }
 };
 
 /** First day of the next month, when a paused Mia comes back. */
@@ -589,22 +607,18 @@ app.get("/simulate", async (c) => {
   return c.json(simulateView(data, amount as Cents, count));
 });
 
-/**
- * Today's morning and evening messages, for the Android app to show itself (see notices.ts). Only
- * the 08:00 ask (`slot=morning`) can carry the ceiling's news, which is said once.
- */
+/** Today's morning and evening messages, for the Android app to show itself (see notices.ts). */
 app.get("/reminders", async (c) => {
   const now = new Date();
   const data = await getProjection(c.env, todayIn(now));
-  const [ceiling, eveningHour, notices] = await Promise.all([
-    c.req.query("slot") === "morning" ? ceilingNews(c.env.DB, data) : null,
+  const [eveningHour, notices] = await Promise.all([
     loadEveningHour(c.env.DB),
     recentNotices(c.env.DB, now),
   ]);
-  return c.json(remindersView(data, { ceiling, eveningHour, notices }));
+  return c.json(remindersView(data, { eveningHour, notices }));
 });
 
-/** The alerts the phone may not have shown yet; read with the widget, every 3 hours. */
+/** The server's messages the phone may not have shown yet; read with the widget, every 3 hours. */
 app.get("/notices", async (c) => c.json({ notices: await recentNotices(c.env.DB) }));
 
 app.get("/reminders/hour", async (c) => c.json({ eveningHour: await loadEveningHour(c.env.DB) }));
@@ -742,7 +756,7 @@ export default Sentry.withSentry(sentry, {
       await clearNotices(env.DB, "planilha");
       if (event.cron === MORNING) {
         await backfillEdits(env).catch((error) => console.error("revision backfill failed", error));
-        const morning = morningMessage(data, await ceilingNews(env.DB, data));
+        const morning = morningMessage(data);
         if (morning) await sendReminder(env, morning);
       } else {
         const evening = eveningMessage(data);

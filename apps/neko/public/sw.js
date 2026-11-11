@@ -80,7 +80,8 @@ self.addEventListener("message", (event) => {
 });
 
 // Notifications the Worker sends (worker/push.ts): the morning message, the evening one with what
-// waits in Para lançar, and the rare alert. The same tag replaces the last one of its kind.
+// waits in Para lançar, the ceiling crossing a mark and the rare alert. The same tag replaces the
+// last one of its kind.
 self.addEventListener("push", (event) => {
   const msg = event.data?.json() ?? { title: "Neko", body: "", url: "/", tag: "neko" };
   event.waitUntil(
@@ -102,6 +103,7 @@ self.addEventListener("push", (event) => {
 // What a tap on each kind counts as (shared/usage.ts NOTICE_TAP): only how often, never what it said.
 const NOTICE_TAP = {
   morning: "notificacao_manha",
+  ceiling: "notificacao_manha",
   evening: "notificacao_noite",
   alert: "notificacao_aviso",
 };

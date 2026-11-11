@@ -7,6 +7,7 @@ import type { Env } from "../src/worker/env.ts";
 import {
   ceilingNews,
   ceilingStep,
+  checkCeiling,
   clearNotices,
   DEFAULT_EVENING,
   eveningJob,
@@ -80,8 +81,8 @@ describe("the ceiling's news", () => {
       next: { month: "2026-11", mark: 75, day: tue },
     });
     const said = { month: "2026-11", mark: 75, day: tue };
-    // The phone and the browser both ask that morning: both hear it, nothing new to keep.
-    expect(ceilingStep(said, tue, 75)).toEqual({ news: 75, next: null });
+    // The next read of the bank, the same day or later, has nothing new to say.
+    expect(ceilingStep(said, tue, 75)).toEqual({ news: null, next: null });
     expect(ceilingStep(said, day("2026-11-11"), 75)).toEqual({ news: null, next: null });
     expect(ceilingStep(said, day("2026-11-12"), 100)).toEqual({
       news: 100,
@@ -98,10 +99,45 @@ describe("the ceiling's news", () => {
     const data = (today: string, used: number, mode = "cards") =>
       ({ projection: { today, canSpend: { mode, used } } }) as unknown as ProjectionResponse;
     expect(await ceilingNews(d, data("2026-11-10", 75))).toBe(75);
-    expect(await ceilingNews(d, data("2026-11-10", 75))).toBe(75);
+    expect(await ceilingNews(d, data("2026-11-10", 75))).toBeNull();
     expect(await ceilingNews(d, data("2026-11-11", 75))).toBeNull();
     expect(await ceilingNews(d, data("2026-11-11", 100, "cycle"))).toBeNull();
     expect(await ceilingNews(d, data("2026-11-12", 100))).toBe(100);
+  });
+});
+
+describe("the ceiling, when the bank brings the purchase", () => {
+  it("goes out once per mark, with the bills on the phone", async () => {
+    const d = db();
+    const env = envWith(d);
+    const data = (used: number, left: number, overBy = 0) =>
+      ({
+        projection: {
+          today: "2026-11-10",
+          canSpend: { mode: "cards", used, left, overBy, budget: 3800_00 },
+        },
+      }) as unknown as ProjectionResponse;
+    await checkCeiling(env, data(50, 2000_00));
+    await checkCeiling(env, data(75, 800_00));
+    await checkCeiling(env, data(75, 700_00));
+    await checkCeiling(env, data(100, 0, 120_00));
+    const notices = await recentNotices(d, new Date("2026-11-10T20:00:00Z"));
+    expect(notices.sort((a, b) => a.id.localeCompare(b.id))).toEqual([
+      {
+        id: "teto-100:2026-11-10",
+        title: "Cartões e Pix passaram R$ 120,00 do teto",
+        body: "O teto do mês é R$ 3.800,00.",
+        url: "/",
+        tag: "ceiling",
+      },
+      {
+        id: "teto-75:2026-11-10",
+        title: "Cartões e Pix passaram de 75% do teto",
+        body: "Ainda cabem R$ 800,00 até o fim do mês.",
+        url: "/",
+        tag: "ceiling",
+      },
+    ]);
   });
 });
 
@@ -131,7 +167,7 @@ describe("GET /api/reminders", () => {
       sheet: { id: "s", tabs: {} },
     } as unknown as ProjectionResponse;
     const notices = [{ id: "planilha:2026-11-10", ...alert }];
-    expect(remindersView(data, { ceiling: null, eveningHour: 22, notices })).toEqual({
+    expect(remindersView(data, { eveningHour: 22, notices })).toEqual({
       morning: null,
       evening: null,
       eveningHour: 22,
@@ -159,9 +195,17 @@ describe("reminders.json", () => {
       habit: { editedToday: false, streak: 6, atRisk: false },
     } as unknown as ProjectionResponse;
     const view = remindersView(data, {
-      ceiling: null,
       eveningHour: 22,
-      notices: [{ id: "meu-pluggy:2026-11-10", ...alert, title: "Entre no Meu Pluggy de novo" }],
+      notices: [
+        { id: "meu-pluggy:2026-11-10", ...alert, title: "Entre no Meu Pluggy de novo" },
+        {
+          id: "teto-75:2026-11-10",
+          title: "Cartões e Pix passaram de 75% do teto",
+          body: "Ainda cabem R$ 800,00 até o fim do mês.",
+          url: "/",
+          tag: "ceiling",
+        },
+      ],
     });
     const path = join(import.meta.dirname, "../../android/app/src/test/resources/reminders.json");
     if (process.env.UPDATE_CONTRACT) writeFileSync(path, `${JSON.stringify(view, null, 2)}\n`);

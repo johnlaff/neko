@@ -298,7 +298,14 @@ data class Reminder(val title: String, val body: String, val url: String, val ta
 
 /** An alert born on the server (worker/notices.ts), shown once per `id`. */
 @Serializable
-data class Notice(val id: String, val title: String, val body: String, val url: String = "/")
+data class Notice(
+    val id: String,
+    val title: String,
+    val body: String,
+    val url: String = "/",
+    /** "ceiling" for the ceiling crossing a mark, which goes with the bills; "alert" otherwise. */
+    val tag: String = "alert",
+)
 
 /** Today's two messages, the evening hour chosen in Ajustes, and the alerts still standing. */
 @Serializable

@@ -19,6 +19,13 @@
       "body": "Tento de novo na próxima atualização. Os números do Neko são da última leitura.",
       "url": "/",
       "tag": "alert"
+    },
+    {
+      "id": "teto-75:2026-11-10",
+      "title": "Cartões e Pix passaram de 75% do teto",
+      "body": "Ainda cabem R$ 800,00 até o fim do mês.",
+      "url": "/",
+      "tag": "ceiling"
     }
   ]
 }

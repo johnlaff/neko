@@ -80,10 +80,13 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
 
 - **Manhã (08:00), só quando há o que fazer**, o mais urgente no título: todas as contas da planilha
   que vencem hoje, cartões ou não, com o que falta na conta quando o saldo do dia fica negativo;
-  saldo negativo agora ou em até 2 dias; dia de guardar; teto de Cartões e Pix passando de 75% ou de
-  100% (uma vez no mês cada, guardado em `setting.ceiling_said`); aos domingos, a semana que fechou
-  (Cartões e Pix contra a anterior, `lastWeekSpend`, e dias lançados). Sem nada disso, silêncio:
-  "Ainda cabem" fica no widget e no Hoje.
+  saldo negativo agora ou em até 2 dias; dia de guardar; aos domingos, a semana que fechou (Cartões
+  e Pix contra a anterior, `lastWeekSpend`, e dias lançados). Sem nada disso, silêncio: "Ainda
+  cabem" fica no widget e no Hoje.
+- **Teto na hora da compra**: depois de cada leitura dos bancos (06:00, a da noite, o webhook da
+  Pluggy, Atualizar), se Cartões e Pix passaram de 75% ou de 100% do teto, sai um aviso (uma vez no
+  mês cada marca, guardado em `setting.ceiling_said`; tabela `notice`, `teto-75`/`teto-100`). O
+  navegador recebe por push na hora; o celular, na próxima busca, no canal Contas e teto.
 - **Fatura debitada de uma conta só**: o banco tira a fatura do cartão da conta dele, não do Saldo
   inteiro. A conta que pagou uma fatura nos últimos 100 dias (débito "gastos cartão" ou "pagamento de
   fatura") paga os cartões do mesmo banco (`billPayers`). De 2 dias antes do vencimento até o dia, se
@@ -100,5 +103,5 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
 - **Android**: um canal por tipo (Contas e teto, Lançar o dia, Avisos), categoria de lembrete ou de
   erro, a da manhã some na hora da noite e a da noite na manhã seguinte, tela bloqueada só com o
   tipo.
-- **Uso do Neko** conta os toques em cada tipo (`notificacao_manha`, `_noite`, `_aviso`), só a
-  contagem.
+- **Uso do Neko** conta os toques em cada canal (Contas e teto, Lançar o dia, Avisos:
+  `notificacao_manha`, `_noite`, `_aviso`), só a contagem.
