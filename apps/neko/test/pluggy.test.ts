@@ -7,7 +7,6 @@ import {
   ensureWebhook,
   hookSync,
   pluggy,
-  refreshAll,
   retryD1,
   sameSecret,
   syncAll,
@@ -75,7 +74,11 @@ const fakeApi = (state: { txns: unknown[]; hooks?: { id: string; url: string }[]
       const next = start + 2 < state.txns.length ? `/v2/transactions?after=${start + 2}` : null;
       return json({ results: page, next });
     }
-    if (url.pathname.startsWith("/items/") && init?.method === "PATCH") return json({ id: "x" });
+    // A MeuPluggy item: readable, never updatable from here.
+    if (url.pathname.startsWith("/items/") && init?.method === "PATCH")
+      return json({ message: "MeuPluggy item cant be updated", code: 400 }, 400);
+    if (url.pathname.startsWith("/items/"))
+      return json({ id: url.pathname.slice(7), lastUpdatedAt: "2026-10-08T01:18:14.097Z" });
     if (url.pathname === "/webhooks" && init?.method === "POST") {
       state.hooks?.push({ id: "h", url: JSON.parse(String(init.body)).url });
       return json({ id: "h" });
@@ -114,15 +117,17 @@ describe("pluggy boundary", () => {
 });
 
 describe("bank sync", () => {
-  it("Atualizar agora asks each bank for news, then reads what Pluggy has", async () => {
+  it("keeps when Meu Pluggy last read the bank, and never asks Pluggy to update a mirror", async () => {
     const db = await withItem();
     const { api, calls } = fakeApi({ txns: [txn("t1")] });
-    expect(await refreshAll(db as never, api, TODAY)).toBe(0);
-    expect(calls.indexOf(`PATCH /items/${ITEM}`)).toBeGreaterThan(-1);
-    expect(calls.indexOf(`PATCH /items/${ITEM}`)).toBeLessThan(
+    expect(await syncAll(db as never, api, TODAY)).toBe(0);
+    expect(calls.some((c) => c.startsWith("PATCH"))).toBe(false);
+    expect(calls.indexOf(`GET /items/${ITEM}`)).toBeLessThan(
       calls.indexOf(`GET /accounts?itemId=${ITEM}`),
     );
-    expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM bank_txn").get()).toEqual({ n: 1 });
+    expect(db.sqlite.prepare("SELECT bank_updated_at FROM bank_item").get()).toEqual({
+      bank_updated_at: "2026-10-08T01:18:14.097Z",
+    });
   });
 
   it("stores accounts, every page of transactions, parcels and bills in cents", async () => {

@@ -24,6 +24,7 @@ import {
   IconCheck,
   IconChevron,
   IconChevronLeft,
+  IconExternal,
   IconIncome,
   IconPlus,
   IconReceipt,
@@ -858,33 +859,77 @@ const Saldo = ({ bank, writing }: { bank: BankView; writing: boolean }) => {
   );
 };
 
-/** When the banks were last read, and Atualizar to read them without waiting for the morning. */
+/**
+ * How fresh the bank numbers are, and Atualizar: Meu Pluggy reads every bank now (about half a
+ * minute) and the screen shows the news. With no session there, Entrar opens Meu Pluggy's login,
+ * where the owner asks for the e-mailed link; the Gmail filter brings it to Neko, which signs in.
+ */
 const Refresh = ({ syncedAt }: { syncedAt: string | null }) => {
   const queryClient = useQueryClient();
+  const [asked, setAsked] = useState(false);
   const refresh = useMutation({
     mutationFn: api.refreshBanks,
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["projection"] }),
   });
-  return (
-    <p className="q-sync">
-      <span aria-live="polite">
-        {refresh.isPending
-          ? "Lendo os bancos…"
-          : refresh.data?.ok === false || refresh.isError
+  const signIn = useMutation({
+    mutationFn: async (tab: Window | null) => {
+      try {
+        const { url } = await api.meuPluggySignIn();
+        if (tab) tab.location.href = url;
+        else window.location.assign(url);
+        setAsked(true);
+      } catch (error) {
+        tab?.close();
+        throw error;
+      }
+    },
+  });
+  const needsSignIn = refresh.data?.signIn === true && !asked;
+  const text = refresh.isPending
+    ? "Atualizando os bancos…"
+    : asked
+      ? "Peça o link por e-mail no Meu Pluggy. O Neko entra sozinho quando ele chegar."
+      : signIn.isError
+        ? "Não consegui abrir o Meu Pluggy. Tente mais tarde."
+        : needsSignIn
+          ? "Para atualizar os bancos na hora, entre no Meu Pluggy."
+          : refresh.isError || refresh.data?.ok === false
             ? "Algum banco não respondeu. Tente mais tarde."
             : syncedAt
-              ? `Bancos lidos ${readAtLabel(syncedAt)}`
-              : "Bancos ainda não lidos"}
-      </span>
-      <button
-        type="button"
-        className="text-link"
-        disabled={refresh.isPending}
-        onClick={() => refresh.mutate()}
-      >
-        <IconRefresh />
-        Atualizar
-      </button>
+              ? `Bancos atualizados ${readAtLabel(syncedAt)}`
+              : "Bancos ainda não lidos";
+  return (
+    <p className="q-sync">
+      <span aria-live="polite">{text}</span>
+      {needsSignIn ? (
+        <button
+          type="button"
+          className="text-link"
+          disabled={signIn.isPending}
+          // The tab opens on the tap itself, or the browser would block it after the wait.
+          onClick={() => {
+            const tab = window.open("", "_blank");
+            if (tab) tab.opener = null;
+            signIn.mutate(tab);
+          }}
+        >
+          Entrar
+          <IconExternal />
+          <span className="sr-only">, abre o Meu Pluggy em outra aba</span>
+        </button>
+      ) : (
+        !asked && (
+          <button
+            type="button"
+            className="text-link refresh"
+            disabled={refresh.isPending}
+            onClick={() => refresh.mutate()}
+          >
+            <IconRefresh />
+            Atualizar
+          </button>
+        )
+      )}
     </p>
   );
 };
