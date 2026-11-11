@@ -98,6 +98,7 @@ export interface MailedContaRow {
 
 export interface BankRows {
   readonly items: number;
+  /** When Meu Pluggy last read the bank read longest ago: how fresh the bank numbers are. */
   readonly syncedAt: string | null;
   readonly itemRows?: readonly BankItemRow[];
   /** Para lançar keys already launched or ignored. */
@@ -379,7 +380,10 @@ const subscriptionsView = (
 export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
   try {
     const items = await db
-      .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
+      // How fresh the banks are: the one Meu Pluggy read longest ago, not when Neko last asked.
+      .prepare(
+        "SELECT COUNT(*) AS n, MIN(COALESCE(bank_updated_at, synced_at)) AS at FROM bank_item",
+      )
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
     const [itemRows, accounts, txns, bills, decisions, statements, mailedBills, mailedContas] =
