@@ -15,9 +15,11 @@ import {
   localDate,
   movedToday,
   normalizeName,
+  onePerPurchase,
+  type PhoneRead,
+  phoneReads,
   type Statement,
   saldoCheck,
-  stillProvisional,
   subscriptions,
   todayIn,
   transfersDue,
@@ -47,6 +49,8 @@ export interface BankItemRow {
   readonly item_id: string;
   readonly label: string;
   readonly synced_at: string | null;
+  /** When Meu Pluggy last read this bank (or Neko asked, before that was kept). */
+  readonly read_at?: string | null;
 }
 
 export interface BankTxnRow {
@@ -259,13 +263,16 @@ export const bankInput = (
     statements.set(key, s);
   }
   const all = withStatements(lines, [...statements.values()]);
-  // A purchase the phone saw lands on its card's bill like any other, by the same cycle, until
-  // the bank brings it. Its card account: the one its last digits are known on (Ajustes › Bancos,
-  // or a charge the bank brought before), else the only card account of the linked bank whose
-  // label names it.
-  const seen: BankCardLine[] = [];
+  // A purchase the phone read lands on its card's bill like any other, by the same cycle, and is
+  // checked against the bank's charges (engine phoneReads). Its card account: the one its last
+  // digits are known on (Ajustes › Bancos, or a charge the bank brought before), else the only
+  // card account of the linked bank whose label names it.
+  const seen: PhoneRead[] = [];
   const credit = rows.accounts.filter((a) => a.type === "CREDIT");
-  for (const p of rows.phone ?? []) {
+  const itemReadAt = new Map(
+    (rows.itemRows ?? []).map((i) => [i.item_id, i.read_at ?? i.synced_at]),
+  );
+  for (const p of onePerPurchase(rows.phone ?? [])) {
     const bank = normalizeName(p.bank);
     const items = new Set(
       (rows.itemRows ?? [])
@@ -284,7 +291,9 @@ export const bankInput = (
     const days = card ? config.get(normalizeName(card)) : undefined;
     if (!account || !card || !days) continue;
     const date = todayIn(new Date(p.at));
+    const readAt = itemReadAt.get(account.item_id ?? "");
     seen.push({
+      bank: p.bank,
       card,
       amount: cents(p.amount),
       billMonth: after(account.id, cycleContaining(days, date).due.slice(0, 7), date),
@@ -292,15 +301,19 @@ export const bankInput = (
       installment: null,
       installments: null,
       date,
+      bankReadOn: readAt ? todayIn(new Date(readAt)) : null,
     });
   }
+  const phone = phoneReads(seen, all);
   return {
     lines: all,
     movements,
     pending,
     closed,
-    /** Card purchases the phone saw that the bank has not brought yet. */
-    provisional: stillProvisional(seen, all),
+    /** Card purchases the phone read that the ceiling counts: the bank has not brought them yet. */
+    provisional: phone.provisional,
+    /** How far the bank confirmed each bank app's reads. */
+    phoneTrust: phone.trust,
   };
 };
 
@@ -426,6 +439,7 @@ export const bankView = (
       ),
       today,
     ),
+    phone: input.phoneTrust,
   };
 };
 
@@ -469,7 +483,11 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       mailedContas,
       phone,
     ] = await Promise.all([
-      db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
+      db
+        .prepare(
+          "SELECT item_id, label, synced_at, COALESCE(bank_updated_at, synced_at) AS read_at FROM bank_item",
+        )
+        .all<BankItemRow>(),
       db
         .prepare(
           "SELECT id, type, item_id, balance, credit_limit, available_limit FROM bank_account",

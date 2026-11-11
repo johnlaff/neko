@@ -3,7 +3,9 @@ package dev.johnlaff.neko
 import dev.johnlaff.neko.purchases.PurchaseText
 import dev.johnlaff.neko.purchases.PurchaseText.Read
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Invented notices in the shapes banks use (public repo: no real shop, card or amount). */
@@ -65,5 +67,18 @@ class PurchaseTextTest {
         assertNull(read(bradesco, "Fatura", "Sua fatura de R$ 900,00 fechou"))
         // Any other app, even with the same words.
         assertNull(read("com.example.chat", "Compra aprovada", "Compra de R$ 45,90 em LOJA"))
+    }
+
+    @Test
+    fun `keeps the words of a listed bank's notice of a purchase or a card, never of Pix`() {
+        val bradesco = "br.com.bradesco.cartoes"
+        assertTrue(PurchaseText.keep(bradesco, "Compra aprovada", "Compra de R$ 45,90 em LOJA"))
+        // Not read, and still kept: a wording this reader does not know yet.
+        assertTrue(PurchaseText.keep(bradesco, "Transação aprovada", "Cartão final 1234: R$ 45,90 LOJA"))
+        assertTrue(PurchaseText.keep(bradesco, "Compra aprovada", "Compra no débito de R$ 10,00 em LOJA"))
+        assertFalse(PurchaseText.keep(bradesco, "Pix enviado", "Você enviou um Pix de R$ 50,00 no cartão"))
+        assertFalse(PurchaseText.keep(bradesco, "Compra aprovada", "Sua compra foi aprovada"))
+        assertFalse(PurchaseText.keep(bradesco, "Bom dia", "Confira as ofertas de hoje"))
+        assertFalse(PurchaseText.keep("com.example.chat", "Compra aprovada", "Compra de R$ 45,90 em LOJA"))
     }
 }

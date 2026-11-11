@@ -2,9 +2,12 @@ import { z } from "zod";
 
 /**
  * Card purchases the Android app read from the bank app's notification, the moment the bank told
- * the owner (specs/002, "Notificações", item 11). Only the value, the shop and the card's last
- * digits leave the phone. They move the month's ceiling until Open Finance brings the same charge
- * (engine `stillProvisional`), and are never written to the sheet.
+ * the owner (specs/002, "Compras na hora"): the value, the shop and the card's last digits. Open
+ * Finance checks each one, and a bank app's reads move the month's ceiling only once the bank
+ * confirmed its last ones (engine `phoneReads`). They are never written to the sheet.
+ *
+ * The text of those notices comes too, kept as long, so the reading can be checked against the
+ * banks' real wording (bank_notice).
  */
 
 /** The banks whose apps the phone reads, by the name a linked bank's label carries. */
@@ -26,14 +29,11 @@ export const PhonePurchase = z.object({
 });
 export type PhonePurchase = z.infer<typeof PhonePurchase>;
 
-/** How long a purchase the phone saw is kept: the bank brings it well before. */
-const KEEP_DAYS = 15;
 /**
- * How long one moves the ceiling while the bank has not brought it. Banks bring a card charge in a
- * day or two; one still missing after this was likely no credit purchase (a debit the notice did
- * not name), and stops counting.
+ * How long a purchase the phone read, and a notice's text, are kept: the bank brings the purchase
+ * well before, and the reads of the days before are what earns a bank app the trust.
  */
-const COUNT_DAYS = 5;
+const KEEP_DAYS = 15;
 
 export const savePhonePurchase = async (db: D1Database, p: PhonePurchase): Promise<void> => {
   await db
@@ -44,13 +44,13 @@ export const savePhonePurchase = async (db: D1Database, p: PhonePurchase): Promi
     .run();
 };
 
-/** The ones still counted: the last COUNT_DAYS; none before migration 0016 is applied. */
+/** The ones kept, oldest first; none before migration 0016 is applied. */
 export const loadPhonePurchases = async (
   db: D1Database,
   now = new Date(),
 ): Promise<PhonePurchase[]> => {
   try {
-    const since = new Date(now.getTime() - COUNT_DAYS * 86_400_000).toISOString();
+    const since = new Date(now.getTime() - KEEP_DAYS * 86_400_000).toISOString();
     return (
       await db
         .prepare(
@@ -65,7 +65,44 @@ export const loadPhonePurchases = async (
   }
 };
 
+/**
+ * A bank app's notice that speaks of a purchase or a card, word for word (PurchaseText.kt keeps):
+ * read or not, it shows how each bank words its notices.
+ */
+export const BankNotice = z.object({
+  /** The phone's key for the notice, so the same one is kept once. */
+  id: z.string().trim().min(8).max(80),
+  /** The bank app's package: one bank may word its two apps' notices differently. */
+  app: z.string().regex(/^[a-z][\w.]{2,99}$/i),
+  bank: z.enum(PHONE_BANKS),
+  title: z.string().max(300),
+  text: z.string().max(2000),
+  at: z.string().datetime(),
+  /** Whether the phone took a purchase from it. */
+  read: z.boolean(),
+});
+export type BankNotice = z.infer<typeof BankNotice>;
+
+/** Kept once; dropped when migration 0017 is not applied yet, as the phone would only retry. */
+export const saveBankNotice = async (db: D1Database, n: BankNotice): Promise<void> => {
+  try {
+    await db
+      .prepare(
+        "INSERT INTO bank_notice (id, app, bank, title, text, at, read) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING",
+      )
+      .bind(n.id, n.app, n.bank, n.title, n.text, n.at, n.read ? 1 : 0)
+      .run();
+  } catch (error) {
+    console.error("bank notice not kept", error);
+  }
+};
+
 export const prunePhonePurchases = async (db: D1Database, now = new Date()): Promise<void> => {
   const since = new Date(now.getTime() - KEEP_DAYS * 86_400_000).toISOString();
   await db.prepare("DELETE FROM phone_purchase WHERE at <= ?").bind(since).run();
+  try {
+    await db.prepare("DELETE FROM bank_notice WHERE at <= ?").bind(since).run();
+  } catch (error) {
+    console.error("bank notices not pruned", error);
+  }
 };
