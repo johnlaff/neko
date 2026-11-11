@@ -20,14 +20,15 @@ export const USAGE_TAPS = {
 
 /** Taps on each kind of notification (worker/push.ts tags), to see which ones earn their place. */
 export const USAGE_NOTICES = {
-  notificacao_manha: "Manhã",
-  notificacao_noite: "Noite",
+  notificacao_manha: "Contas e teto",
+  notificacao_noite: "Lançar o dia",
   notificacao_aviso: "Avisos",
 } as const;
 
-/** The notification's tag to what its tap counts as. */
+/** The notification's tag to what its tap counts as: named after the Android channels. */
 export const NOTICE_TAP = {
   morning: "notificacao_manha",
+  ceiling: "notificacao_manha",
   evening: "notificacao_noite",
   alert: "notificacao_aviso",
 } as const satisfies Record<string, keyof typeof USAGE_NOTICES>;

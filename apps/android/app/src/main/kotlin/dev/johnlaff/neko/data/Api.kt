@@ -80,8 +80,8 @@ class Api(
 
     suspend fun ajustes(): AjustesView = json.decodeFromString(call("/ajustes"))
 
-    /** `slot` "morning" is the 08:00 ask, the only one that can carry the ceiling's news. */
-    suspend fun reminders(slot: String): RemindersView = json.decodeFromString(call("/reminders?slot=$slot"))
+    /** Today's two messages, the evening hour and the server's messages still standing. */
+    suspend fun reminders(): RemindersView = json.decodeFromString(call("/reminders"))
 
     suspend fun notices(): NoticesView = json.decodeFromString(call("/notices"))
 

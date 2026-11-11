@@ -55,12 +55,12 @@
   "notices": [
     {
       "event": "notificacao_manha",
-      "label": "Manhã",
+      "label": "Contas e teto",
       "count": 0
     },
     {
       "event": "notificacao_noite",
-      "label": "Noite",
+      "label": "Lançar o dia",
       "count": 0
     },
     {

@@ -154,6 +154,8 @@ class ScreensContractTest {
         assertEquals("Vencem hoje 2 contas: R$ 1.638,24", v.morning?.title)
         assertEquals("/#para-lancar", v.evening?.url)
         assertEquals(22, v.eveningHour)
-        assertEquals(listOf("meu-pluggy:2026-11-10"), v.notices.map { it.id })
+        assertEquals(listOf("meu-pluggy:2026-11-10", "teto-75:2026-11-10"), v.notices.map { it.id })
+        // The ceiling's goes with the bills; the rest are alerts.
+        assertEquals(listOf("alert", "ceiling"), v.notices.map { it.tag })
     }
 }

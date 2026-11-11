@@ -2,6 +2,7 @@ import { SheetStructureError } from "@neko/sheet-reader";
 import { describe, expect, it } from "vitest";
 import type { ProjectionResponse } from "../src/shared/types.ts";
 import {
+  ceilingReminder,
   eveningMessage,
   morningMessage,
   PARA_LANCAR,
@@ -202,27 +203,11 @@ describe("morning", () => {
     ).toBeNull();
   });
 
-  it("says the ceiling crossed 75% or 100%, only on the morning that has the news", () => {
-    const at = (left: number, overBy = 0) =>
-      response({
-        canSpend: { ...cardsMode, left, overBy, used: overBy > 0 || left === 0 ? 100 : 75 },
-      } as never);
-    expect(morningMessage(at(800_00), 75)).toMatchObject({
-      title: "Cartões e Pix passaram de 75% do teto",
-      body: "Ainda cabem R$ 800,00 até o fim do mês.",
-    });
-    expect(morningMessage(at(0), 100)).toMatchObject({
-      title: "Cartões e Pix chegaram ao teto",
-      body: "O teto do mês é R$ 3.500,00.",
-    });
-    expect(morningMessage(at(0, 100_00), 100)?.title).toBe(
-      "Cartões e Pix passaram R$ 100,00 do teto",
-    );
-    expect(morningMessage(at(800_00))).toBeNull();
-    // Only the ceiling has marks; the usual card's cycle does not.
-    expect(
-      morningMessage(response({ canSpend: { ...cardsMode, mode: "cycle" } } as never), 75),
-    ).toBeNull();
+  it("leaves the ceiling out: it speaks when the bank brings the purchase", () => {
+    const over = response({
+      canSpend: { ...cardsMode, left: 0, overBy: 100_00, used: 100 },
+    } as never);
+    expect(morningMessage(over)).toBeNull();
   });
 
   it("on Sunday, the week that closed: cards and Pix against the week before, and the days logged", () => {
@@ -264,14 +249,12 @@ describe("morning", () => {
         } as never,
         { week: { total: 812_40, previous: 812_40 }, habit: { lastWeek: 6 } },
       ),
-      75,
     );
     expect(m?.title).toBe("Vence hoje: Aluguel, R$ 1.484,24");
     expect(m?.body).toBe(
       [
         "O saldo fica negativo em 6 out. Faltam R$ 2.030,00 na conta nesse dia. Vence: fatura do Verde R$ 3.230,00.",
         "Hoje dá para guardar R$ 500,00.",
-        "Cartões e Pix passaram de 75% do teto: ainda cabem R$ 800,00.",
         "Semana passada: R$ 812,40 em cartões e Pix, o mesmo que na semana anterior, 6 de 7 dias lançados.",
       ].join(" "),
     );
@@ -281,6 +264,29 @@ describe("morning", () => {
 const item = (title: string) => ({ key: title, kind: "diario", date: TUESDAY, title });
 const withQueue = (titles: string[], rest: object = {}) =>
   response({}, { writing: true, bank: { queue: titles.map(item) }, ...rest });
+
+describe("the ceiling", () => {
+  it("says it crossed 75% or 100% of the month, with what still fits or the ceiling", () => {
+    const at = (left: number, overBy = 0) =>
+      response({ canSpend: { ...cardsMode, left, overBy } } as never).projection;
+    expect(ceilingReminder(at(800_00), 75)).toEqual({
+      title: "Cartões e Pix passaram de 75% do teto",
+      body: "Ainda cabem R$ 800,00 até o fim do mês.",
+      url: "/",
+      tag: "ceiling",
+    });
+    expect(ceilingReminder(at(0), 100)).toMatchObject({
+      title: "Cartões e Pix chegaram ao teto",
+      body: "O teto do mês é R$ 3.500,00.",
+    });
+    expect(ceilingReminder(at(0, 100_00), 100)?.title).toBe(
+      "Cartões e Pix passaram R$ 100,00 do teto",
+    );
+    // Only the ceiling has marks; the usual card's cycle does not.
+    const cycle = response({ canSpend: { ...cardsMode, mode: "cycle" } } as never).projection;
+    expect(ceilingReminder(cycle, 75)).toBeNull();
+  });
+});
 
 describe("evening", () => {
   it("counts and names what waits in Para lançar, and opens right on it", () => {
