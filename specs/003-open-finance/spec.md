@@ -41,7 +41,15 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   chega em `POST /api/pluggy/webhook`, que responde 2XX na hora e processa depois (`waitUntil`).
   Um cron diário às 06:00 de São Paulo refaz a leitura dos últimos 40 dias, porque a Pluggy só tenta
   o webhook 3 vezes. O payload do webhook nunca é confiado: ele só diz "olhe o item X", e o Worker
-  busca os dados na API da Pluggy. O Meu Pluggy atualiza uma vez por dia e não permite forçar.
+  busca os dados na API da Pluggy. O Meu Pluggy atualiza uma vez por dia sozinho, e a API recusa
+  atualizar os itens que o Neko lê (400 "MeuPluggy item cant be updated").
+- **Atualizar na hora (não oficial, 2026-11):** só o site meu.pluggy.ai, com alguém logado, pede a
+  leitura dos bancos agora (botão Atualizar: `connect-token` e `PATCH` no item original). O Neko
+  guarda a sessão do dono lá, cifrada no D1 com chave derivada de `SESSION_SECRET` (`meu_pluggy`),
+  e a usa às 06:00, às 21:00 e no Atualizar de Para lançar, o que a mantém viva. Entrar de novo: o
+  Neko começa o login, o dono pede o link por e-mail na página que o Neko abre (o login pede captcha
+  a servidores, então essa parte é do navegador dele), um filtro do Gmail encaminha o e-mail para
+  fatura@ e o Worker abre o link com os cookies que guardou. Sem sessão, tudo segue como antes.
 - **Armazenamento (D1, migração nova):**
   - `bank_item`: item, banco e último sync.
   - `bank_account`: conta ou cartão, tipo, últimos dígitos e o cartão adicional pelo próprio número.

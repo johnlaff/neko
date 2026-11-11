@@ -1,5 +1,13 @@
 package dev.johnlaff.neko.ui
 
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
@@ -117,8 +125,10 @@ import kotlinx.serialization.json.put
 interface Launcher {
     /** Writes in one request, refusing a line that changed; the launch's id, for Desfazer. */
     suspend fun launch(draft: JsonObject, key: String?): String
-    /** Atualizar agora: the banks read now; false when one did not answer. */
-    suspend fun refreshBanks(): Boolean = false
+    /** Atualizar: Meu Pluggy reads every bank now, and Neko reads them after. */
+    suspend fun refreshBanks(): Banks = Banks.Failed
+    /** Meu Pluggy's login page, for Entrar when Neko has no session there. */
+    suspend fun meuPluggySignIn(): String? = null
     suspend fun undo(id: String): Boolean
     suspend fun ignore(key: String)
     suspend fun account(account: String, use: String)
@@ -128,6 +138,9 @@ interface Launcher {
     /** Lançar com a Mia; null while Mia is off or resting for the month. */
     val fill: (suspend (String, List<String>) -> MiaEntry?)? get() = null
 }
+
+/** What Atualizar did: every bank read, one did not answer, or Neko must sign in to Meu Pluggy first. */
+enum class Banks { Done, Failed, SignIn }
 
 /** An undo id for Ignorar: Desfazer brings the item back instead of undoing a launch. */
 const val IGNORED = "ignored:"
@@ -563,6 +576,7 @@ private fun stroke(name: String, path: String): ImageVector =
 private val TodayIcon = stroke("today", "M6.5 5h11a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3zM3.5 10h17M8 3v4M16 3v4M12 14.25a0.75 0.75 0 1 1 0 1.5a0.75 0.75 0 1 1 0-1.5")
 private val CheckIcon = stroke("check", "m5 12.5 4.5 4.5L19 7.5")
 private val RefreshIcon = stroke("refresh", "M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5")
+private val ExternalIcon = stroke("external", "M14 4h6v6M20 4l-9 9M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10")
 private val PrevIcon = stroke("prev", "m15 6-6 6 6 6")
 private val NextIcon = stroke("next", "m9 6 6 6-6 6")
 
@@ -777,29 +791,63 @@ private fun Saldo(s: SaldoView, v: TodayView, launcher: Launcher?, onLaunched: (
     }
 }
 
-/** When the banks were last read, and Atualizar to read them without waiting for the morning. */
+/**
+ * How fresh the bank numbers are, and Atualizar: Meu Pluggy reads every bank now (about half a
+ * minute) and the screen shows the news (web Refresh). With no session there, Entrar opens Meu
+ * Pluggy's login, where the owner asks for the e-mailed link; the Gmail filter brings it to Neko.
+ */
 @Composable
 private fun Refresh(syncedAt: String?, launcher: Launcher?) {
     val l = LocalLedger.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var reading by remember { mutableStateOf(false) }
-    var failed by remember { mutableStateOf(false) }
+    var answer by remember { mutableStateOf<Banks?>(null) }
+    var opening by remember { mutableStateOf(false) }
+    var openFailed by remember { mutableStateOf(false) }
+    var asked by remember { mutableStateOf(false) }
+    val needsSignIn = answer == Banks.SignIn && !asked
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             when {
-                reading -> "Lendo os bancos…"
-                failed -> "Algum banco não respondeu. Tente mais tarde."
-                syncedAt != null -> "Bancos lidos ${readAtText(syncedAt)}"
+                reading -> "Atualizando os bancos…"
+                asked -> "Peça o link por e-mail no Meu Pluggy. O Neko entra sozinho quando ele chegar."
+                openFailed -> "Não consegui abrir o Meu Pluggy. Tente mais tarde."
+                needsSignIn -> "Para atualizar os bancos na hora, entre no Meu Pluggy."
+                answer == Banks.Failed -> "Algum banco não respondeu. Tente mais tarde."
+                syncedAt != null -> "Bancos atualizados ${readAtText(syncedAt)}"
                 else -> "Bancos ainda não lidos"
             },
             Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }, color = l.faint, style = MaterialTheme.typography.bodySmall,
         )
-        if (launcher != null) Row(
+        if (launcher == null || asked) return@Row
+        if (needsSignIn) Row(
+            Modifier
+                .clickable(enabled = !opening, onClickLabel = "abrir o Meu Pluggy", role = Role.Button) {
+                    opening = true
+                    scope.launch {
+                        val url = runCatching { launcher.meuPluggySignIn() }.getOrNull()
+                        val opened = url != null &&
+                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }.isSuccess
+                        asked = opened
+                        openFailed = !opened
+                        opening = false
+                    }
+                }
+                .heightIn(min = 44.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("Entrar", color = l.muted, style = MaterialTheme.typography.bodySmall)
+            Icon(ExternalIcon, contentDescription = null, tint = l.muted, modifier = Modifier.size(14.dp))
+        }
+        else Row(
             Modifier
                 .clickable(enabled = !reading, role = Role.Button) {
                     reading = true
+                    openFailed = false
                     scope.launch {
-                        failed = !runCatching { launcher.refreshBanks() }.getOrDefault(false)
+                        answer = runCatching { launcher.refreshBanks() }.getOrDefault(Banks.Failed)
                         reading = false
                     }
                 }
@@ -807,10 +855,22 @@ private fun Refresh(syncedAt: String?, launcher: Launcher?) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(RefreshIcon, contentDescription = null, tint = l.muted, modifier = Modifier.size(14.dp))
+            if (reading) Turning { Icon(RefreshIcon, contentDescription = null, tint = l.muted, modifier = Modifier.size(14.dp).graphicsLayer { rotationZ = it() }) }
+            else Icon(RefreshIcon, contentDescription = null, tint = l.muted, modifier = Modifier.size(14.dp))
             Text("Atualizar", color = l.muted, style = MaterialTheme.typography.bodySmall)
         }
     }
+}
+
+/** A turn every 800 ms while composed, as the site's spin; still when the phone asks for no animations. */
+@Composable
+private fun Turning(content: @Composable (angle: () -> Float) -> Unit) {
+    val resolver = LocalContext.current.contentResolver
+    val still = remember { Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f }
+    val turn = rememberInfiniteTransition(label = "refresh").animateFloat(
+        0f, 360f, infiniteRepeatable(tween(800, easing = LinearEasing)), label = "turn",
+    )
+    content { if (still) 0f else turn.value }
 }
 
 /** A line across the whole panel, through its padding (web .q-tail's border). */

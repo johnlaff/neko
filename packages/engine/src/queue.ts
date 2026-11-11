@@ -190,6 +190,8 @@ export interface MailedConta {
 
 /** How close a planned line's value must be for a movement to stand for it: a quarter. */
 const NEAR_SHARE = 0.25;
+/** Looser when the sheet already calls this origin by the planned line's name: half. */
+const NAMED_SHARE = 0.5;
 
 /** A name fit for a note line: one line, no leading "R$", not too long. */
 const lineName = (description: string): string => {
@@ -205,8 +207,8 @@ const lineName = (description: string): string => {
 const isCardSection = (s: string | null) =>
   s === "cartoes" || s === "cartao" || s === "faturas" || s === "fatura";
 
-const near = (a: number, b: number) =>
-  Math.abs(a - b) <= NEAR_SHARE * Math.max(Math.abs(a), Math.abs(b));
+const near = (a: number, b: number, share = NEAR_SHARE) =>
+  Math.abs(a - b) <= share * Math.max(Math.abs(a), Math.abs(b));
 
 /** Whether two names share a word of three letters or more: "Vivo" and "Fatura Vivo" do. */
 const sharesWord = (a: string, b: string) => {
@@ -540,7 +542,8 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
       continue;
     }
     // A planned bill or payment, near in value and day: the planned line is corrected. Not one
-    // whose name has nothing in common with what the sheet already calls this origin.
+    // whose name has nothing in common with what the sheet already calls this origin; one that
+    // shares it may be further off in value (a tuition planned below the real boleto).
     const known = names.get(originKey(m.description));
     const found = free
       .filter(
@@ -551,7 +554,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
           (known === undefined || sharesWord(known, f.l.description)) &&
           !othersPay(f.l, m) &&
           Math.abs(diffDays(f.l.date, m.date)) <= 7 &&
-          near(f.l.amount, m.amount),
+          near(f.l.amount, m.amount, known === undefined ? NEAR_SHARE : NAMED_SHARE),
       )
       .sort(
         (a, b) =>

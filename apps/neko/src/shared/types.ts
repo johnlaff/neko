@@ -87,7 +87,7 @@ export interface CardLimit {
 }
 
 export interface BankView {
-  /** Last time any linked bank was read; null before the first read. */
+  /** When Meu Pluggy last read the bank read longest ago; null before the first read. */
   readonly syncedAt: string | null;
   /** Future bills of the cards tied to a sheet name, with the parcels already owed. */
   readonly checks: readonly BillCheck[];

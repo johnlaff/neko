@@ -70,6 +70,9 @@ const Page = <T extends z.ZodType>(item: T) =>
 
 const Webhook = z.object({ id: z.string(), url: z.string() });
 
+/** When Meu Pluggy last read the bank; the item here only mirrors that connection. */
+const Item = z.object({ lastUpdatedAt: z.string().nullish() });
+
 export const WebhookEvent = z.object({ event: z.string(), itemId: z.string().optional() });
 
 export type Fetch = typeof fetch;
@@ -148,8 +151,13 @@ export const pluggy = (env: Pick<Env, "PLUGGY_CLIENT_ID" | "PLUGGY_CLIENT_SECRET
         `/v2/transactions?accountId=${encodeURIComponent(accountId)}&dateFrom=${from}`,
       ),
     bills: (accountId: string) => all(Bill, `/bills?accountId=${encodeURIComponent(accountId)}`),
-    /** Asks Pluggy to read the bank again now; its webhook says when that is done. */
-    update: (itemId: string) => call("PATCH", `/items/${encodeURIComponent(itemId)}`, {}),
+    /**
+     * The item itself, for when its bank was last read. A MeuPluggy item cannot be updated from
+     * here (Pluggy answers 400 to a PATCH): only Meu Pluggy refreshes the bank, daily or when the
+     * owner taps Atualizar there, and the webhook then brings the news.
+     */
+    item: async (itemId: string) =>
+      Item.parse(await call("GET", `/items/${encodeURIComponent(itemId)}`)),
     webhooks: () => all(Webhook, "/webhooks"),
     createWebhook: (url: string, secret: string) =>
       call("POST", "/webhooks", { event: "all", url, headers: { [HOOK_HEADER]: secret } }),
@@ -174,6 +182,8 @@ export const syncItem = async (
 ): Promise<void> => {
   const from = addDays(today, -SYNC_DAYS);
   try {
+    // Read before the data, so the time kept is never newer than what was read.
+    const { lastUpdatedAt } = await api.item(itemId);
     const accounts = await api.accounts(itemId);
     for (const a of accounts) {
       const isCard = a.type === "CREDIT";
@@ -270,9 +280,9 @@ export const syncItem = async (
     }
     await db
       .prepare(
-        "UPDATE bank_item SET synced_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), error = NULL WHERE item_id = ?",
+        "UPDATE bank_item SET synced_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), bank_updated_at = ?, error = NULL WHERE item_id = ?",
       )
-      .bind(itemId)
+      .bind(lastUpdatedAt ?? null, itemId)
       .run();
   } catch (error) {
     // The bank's state stays as last read; Ajustes shows that this one is behind and why.
@@ -337,19 +347,6 @@ export const syncAll = async (db: D1Database, api: Pluggy, today: LocalDate): Pr
       console.error("bank sync failed", id, error);
     });
   return failed;
-};
-
-/**
- * "Atualizar agora": asks each bank for news, then reads what Pluggy already has. What the banks
- * answer later arrives by the webhook. A bank that refuses the update is still read.
- */
-export const refreshAll = async (
-  db: D1Database,
-  api: Pluggy,
-  today: LocalDate,
-): Promise<number> => {
-  await Promise.allSettled((await itemIds(db)).map((id) => api.update(id)));
-  return syncAll(db, api, today);
 };
 
 /** Registers this site's webhook once; later runs find it and do nothing. */

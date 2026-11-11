@@ -102,7 +102,7 @@ export interface TodayView {
   readonly queue: readonly QueueItemView[] | null;
   /** Para lançar items set aside with Ignorar, to bring back; empty with no bank. */
   readonly ignored: readonly IgnoredItem[];
-  /** When the banks were last read, beside Atualizar agora; null with no bank linked yet. */
+  /** How fresh the bank numbers are, beside Atualizar no Meu Pluggy; null with no bank linked yet. */
   readonly bankSyncedAt: string | null;
   /** "Saldo bate" against the bank, shown when the queue is empty. */
   readonly saldo: SaldoView | null;
