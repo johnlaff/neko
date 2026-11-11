@@ -22,4 +22,5 @@ export * from "./savings.ts";
 export * from "./statement.ts";
 export * from "./subscriptions.ts";
 export * from "./thermometer.ts";
+export * from "./transfers.ts";
 export * from "./trend.ts";

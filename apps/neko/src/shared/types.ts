@@ -10,6 +10,7 @@ import type {
   RefValue,
   SaldoCheck,
   Subscription,
+  TransferDue,
   WeekSpend,
 } from "@neko/engine";
 import { z } from "zod";
@@ -108,6 +109,8 @@ export interface BankView {
   readonly subscriptions?: SubscriptionsView;
   /** Purchases on your cards marked as someone else's; absent from a Worker that predates it. */
   readonly owners?: readonly OwnerMark[];
+  /** Money to move into an account before the bank debits a bill from it; absent before. */
+  readonly transfers?: readonly TransferDue[];
 }
 
 export interface SubscriptionsView {
