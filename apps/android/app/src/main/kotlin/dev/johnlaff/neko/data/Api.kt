@@ -85,6 +85,10 @@ class Api(
 
     suspend fun notices(): NoticesView = json.decodeFromString(call("/notices"))
 
+    /** A purchase the phone read; the answer is the messages, the ceiling's among them. */
+    suspend fun purchase(p: PhonePurchase): NoticesView =
+        json.decodeFromString(call("/purchases", json.encodeToString(PhonePurchase.serializer(), p).toRequestBody(jsonType)))
+
     /** The evening message's hour, for the account: the site's push follows it too. */
     suspend fun saveEveningHour(hour: Int): EveningHourView =
         json.decodeFromString(call("/reminders/hour", buildJsonObject { put("hour", hour) }.asBody(), "PUT"))

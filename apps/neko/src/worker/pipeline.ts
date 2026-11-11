@@ -41,7 +41,7 @@ import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./go
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "89";
+const PIPELINE_VERSION = "90";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -197,9 +197,11 @@ export const buildResponse = (
     // This month's Pix the sheet did not plan, today's included: with the bills under the ceiling.
     pixSpent: spend ? variableSpend(spend, monthStart, addDays(today, 1)).pix : null,
     // The bills due next month: a week after the 28th is always in it.
+    // With the purchases the phone saw that the bank has not brought yet: the ceiling moves at
+    // the purchase, not hours later.
     cardsSpent: spend
       ? cardsBillSpend(
-          spend.lines,
+          [...spend.lines, ...(input?.provisional ?? [])],
           addDays(localDate(`${today.slice(0, 8)}28`), 7).slice(0, 7),
           settings.othersCards,
           settings.owners,
