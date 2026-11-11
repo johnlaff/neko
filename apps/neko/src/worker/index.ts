@@ -58,7 +58,13 @@ import {
   verifyAuthentication,
   verifyRegistration,
 } from "./passkey.ts";
-import { PhonePurchase, prunePhonePurchases, savePhonePurchase } from "./phone.ts";
+import {
+  BankNotice,
+  PhonePurchase,
+  prunePhonePurchases,
+  saveBankNotice,
+  savePhonePurchase,
+} from "./phone.ts";
 import { backfillEdits, getProjection, monthEndHistory, pruneSnapshots } from "./pipeline.ts";
 import {
   configured,
@@ -179,6 +185,7 @@ app.use("/entries/*", requireSession);
 app.use("/queue/*", requireSession);
 app.use("/usage", requireSession);
 app.use("/purchases", requireSession);
+app.use("/purchases/*", requireSession);
 app.use("/statement", requireSession);
 app.route("/entries", entries);
 app.route("/queue", queue);
@@ -624,13 +631,20 @@ app.get("/reminders", async (c) => {
 app.get("/notices", async (c) => c.json({ notices: await recentNotices(c.env.DB) }));
 
 /**
- * A card purchase the phone read from the bank app's notification (phone.ts): the ceiling moves at
- * once, and the answer carries the messages, so a mark crossed shows on the phone right away.
+ * A card purchase the phone read from the bank app's notification (phone.ts): once the bank has
+ * confirmed that app's reads, the ceiling moves at once, and the answer carries the messages, so a
+ * mark crossed shows on the phone right away.
  */
 app.post("/purchases", async (c) => {
   await savePhonePurchase(c.env.DB, PhonePurchase.parse(await c.req.json()));
   await checkCeiling(c.env, await getProjection(c.env, todayIn(new Date())));
   return c.json({ notices: await recentNotices(c.env.DB) });
+});
+
+/** The words of a bank app's notice of a purchase or a card, kept 15 days to check the reading. */
+app.post("/purchases/notice", async (c) => {
+  await saveBankNotice(c.env.DB, BankNotice.parse(await c.req.json()));
+  return c.body(null, 204);
 });
 
 app.get("/reminders/hour", async (c) => c.json({ eveningHour: await loadEveningHour(c.env.DB) }));

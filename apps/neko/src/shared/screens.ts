@@ -23,6 +23,7 @@ import {
   outflowTrend,
   owedOnBills,
   ownerKey,
+  type PhoneTrust,
   type Reserve,
   type Saving,
   simulateInstallments,
@@ -444,6 +445,8 @@ export interface AjustesView {
   readonly dailyAuto: number;
   /** The Diário previsto; null from a Worker that predates it. */
   readonly previsto: PrevistoView | null;
+  /** Compras na hora: how far the bank confirmed each bank app's reads (Android only). */
+  readonly phone: readonly PhoneTrust[];
 }
 
 export const ajustesView = (r: ProjectionResponse, settings: UserSettings): AjustesView => ({
@@ -451,4 +454,5 @@ export const ajustesView = (r: ProjectionResponse, settings: UserSettings): Ajus
   cards: r.cardsKnown,
   dailyAuto: r.projection.dailyForecast,
   previsto: r.previsto ?? null,
+  phone: r.bank?.phone ?? [],
 });

@@ -91,11 +91,21 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
   Android, o app olha só os avisos dos apps do Bradesco, Itaú, Inter e Mercado Pago (bancos ligados
   por Open Finance; um cartão fora dele contaria duas vezes ao lado da fatura por e-mail). De uma
   compra aprovada à vista e em reais que não fale de débito nem de Pix (`PurchaseText`), manda o valor, a loja e o final
-  do cartão a `POST /api/purchases` (tabela `phone_purchase`, 15 dias). A compra entra na fatura do
-  cartão pelo ciclo e move Cartões e Pix na hora, com o aviso do teto se passou de uma marca, até o
-  banco trazer a mesma cobrança (mesmo cartão e valor, até 3 dias de diferença, `stillProvisional`).
-  Depois de 5 dias sem o banco, para de contar. Nunca vira linha da planilha. Antes de abrir a
-  permissão, o app diz em claro o que lê e o que manda.
+  do cartão a `POST /api/purchases` (tabela `phone_purchase`, 15 dias). O mesmo aviso dos dois apps
+  do banco conta uma vez (`onePerPurchase`).
+  - **Aprender antes de confiar** (modo sombra, por banco): o Open Finance confere cada leitura
+    (mesmo cartão e valor, até 3 dias de diferença). O teto só conta as leituras de um app depois que
+    o banco confirmou as 3 últimas seguidas; uma leitura que o banco, lido 5 dias depois, nunca
+    trouxe faz aquele app voltar a aprender (`phoneReads`). Contando, a compra entra na fatura do
+    cartão pelo ciclo e move Cartões e Pix na hora, com o aviso do teto se passou de uma marca, até o
+    banco trazer a mesma cobrança. Ajustes mostra cada app: "conta no teto" ou "aprendendo (1 de 3
+    conferidas)".
+  - **Texto real dos avisos**: dos avisos desses apps com valor em reais que falam de compra ou de
+    cartão, e nunca de Pix (`PurchaseText.keep`), o app manda também o texto, lido ou não, a
+    `POST /api/purchases/notice` (tabela `bank_notice`, 15 dias), para a leitura ser conferida com o
+    jeito real de cada banco escrever.
+  - Nunca vira linha da planilha nem item de Para lançar: o lançamento vem só do banco. Antes de
+    abrir a permissão, o app diz em claro o que lê, o que manda e quanto tempo guarda.
 - **Fatura debitada de uma conta só**: o banco tira a fatura do cartão da conta dele, não do Saldo
   inteiro. A conta que pagou uma fatura nos últimos 100 dias (débito "gastos cartão" ou "pagamento de
   fatura") paga os cartões do mesmo banco (`billPayers`). De 2 dias antes do vencimento até o dia, se

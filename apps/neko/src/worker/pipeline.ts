@@ -197,8 +197,8 @@ export const buildResponse = (
     // This month's Pix the sheet did not plan, today's included: with the bills under the ceiling.
     pixSpent: spend ? variableSpend(spend, monthStart, addDays(today, 1)).pix : null,
     // The bills due next month: a week after the 28th is always in it.
-    // With the purchases the phone saw that the bank has not brought yet: the ceiling moves at
-    // the purchase, not hours later.
+    // With the purchases the phone read that the bank has not brought yet, from the bank apps
+    // whose reads the bank confirmed: the ceiling moves at the purchase, not hours later.
     cardsSpent: spend
       ? cardsBillSpend(
           [...spend.lines, ...(input?.provisional ?? [])],
