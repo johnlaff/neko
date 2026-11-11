@@ -31,8 +31,8 @@ const API: Record<string, unknown> = {
     ],
     taps: [{ event: "simular", label: "Simular compra", count: 0 }],
     notices: [
-      { event: "notificacao_manha", label: "Manhã", count: 3 },
-      { event: "notificacao_noite", label: "Noite", count: 8 },
+      { event: "notificacao_manha", label: "Contas e teto", count: 3 },
+      { event: "notificacao_noite", label: "Lançar o dia", count: 8 },
       { event: "notificacao_aviso", label: "Avisos", count: 0 },
     ],
   },
@@ -570,7 +570,9 @@ test("Neko counts the screens it shows, and Ajustes tells what was used", async 
   await expect(usage).toContainText("OndeNo app Android10 dias");
   await expect(usage).toContainText("TelasHoje31 vezes");
   await expect(usage).toContainText("BotõesSimular compraNunca");
-  await expect(usage).toContainText("Notificações tocadasManhã3 vezesNoite8 vezesAvisosNunca");
+  await expect(usage).toContainText(
+    "Notificações tocadasContas e teto3 vezesLançar o dia8 vezesAvisosNunca",
+  );
   await expect(usage).toContainText("Nenhum valor da planilha");
   expect(errors).toEqual([]);
 });

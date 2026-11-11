@@ -80,7 +80,7 @@ enum class Kind(
 ) {
     Morning(
         "manha", "Contas e teto",
-        "De manhã, só quando vence uma conta, o saldo fica negativo, é dia de guardar ou o teto passa de 75%. Aos domingos, a semana",
+        "De manhã, só quando vence uma conta, falta dinheiro na conta da fatura, o saldo fica negativo ou é dia de guardar. Aos domingos, a semana. E na hora em que o teto passa de 75% ou 100%",
         "notificacao_manha", "Contas e teto",
     ),
     Evening(
@@ -98,7 +98,8 @@ enum class Kind(
 /**
  * Notifications the phone shows by itself, read from the Worker when the time comes, so they need
  * no push service and carry the numbers of that moment: GET /api/reminders at 08:00 and at the
- * evening hour, and the server's alerts also every 3 hours with the widget. Off until turned on.
+ * evening hour, and the server's messages (alerts, the ceiling crossing a mark) also every 3 hours
+ * with the widget. Off until turned on.
  */
 object Reminders {
     private const val PREFS = "reminders"
@@ -107,7 +108,7 @@ object Reminders {
     private const val SHOWN = "notices_shown"
     /** The one channel before each kind had its own. */
     private const val OLD_CHANNEL = "reminders"
-    /** Alerts' notification ids start here; the two messages use 1 and 2. */
+    /** The server's messages' notification ids start here; the two daily messages use 1 and 2. */
     private const val NOTICE_IDS = 1000
 
     /** Says which notification opened the app, so Uso do Neko counts the tap. */
@@ -242,14 +243,21 @@ object Reminders {
     private fun noticeId(id: String) = NOTICE_IDS + Math.floorMod(id.hashCode(), 100_000)
 
     /**
-     * The server's alerts still standing: each shown once, and taken down once the Worker no longer
-     * lists it (the sheet read again, a new Meu Pluggy sign-in).
+     * The server's messages still standing: each shown once, and taken down once the Worker no
+     * longer lists it (the sheet read again, a new Meu Pluggy sign-in). The ceiling crossing a mark
+     * goes with the bills, and leaves the tray the next morning, when its numbers are old.
      */
     fun showNotices(context: Context, notices: List<Notice>) {
         val shown = prefs(context).getStringSet(SHOWN, emptySet()).orEmpty()
         val standing = notices.map { it.id }.toSet()
         val posted = notices.filter { it.id !in shown }
-            .filter { n -> post(context, Kind.Alert, noticeId(n.id), n.title, n.body, n.url, null) }
+            .filter { n ->
+                val ceiling = n.tag == "ceiling"
+                post(
+                    context, if (ceiling) Kind.Morning else Kind.Alert, noticeId(n.id), n.title, n.body, n.url,
+                    if (ceiling) ReminderClock.untilNext(ZonedDateTime.now(), ReminderClock.MORNING) else null,
+                )
+            }
             .map { it.id }
         val manager = NotificationManagerCompat.from(context)
         (shown - standing).forEach { manager.cancel(noticeId(it)) }
@@ -265,7 +273,7 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val hour = if (slot == Slot.Morning) ReminderClock.MORNING else Reminders.eveningHour(context)
         if (ReminderClock.onTime(ZonedDateTime.now(), hour)) {
             try {
-                val view = (context as NekoApp).api.reminders(if (slot == Slot.Morning) "morning" else "evening")
+                val view = (context as NekoApp).api.reminders()
                 (if (slot == Slot.Morning) view.morning else view.evening)
                     ?.let { Reminders.show(context, slot, it) }
                 Reminders.showNotices(context, view.notices)

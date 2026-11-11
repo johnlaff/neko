@@ -3,6 +3,7 @@ import type { ProjectionResponse } from "../shared/types.ts";
 import type { Env } from "./env.ts";
 import {
   type CeilingNews,
+  ceilingReminder,
   eveningMessage,
   morningMessage,
   type Reminder,
@@ -15,8 +16,11 @@ import {
  * evening hour and every 3 hours with the widget, so what the server has to say waits here.
  */
 
-/** Alerts born on the server, one of each kind per day (migrations/0015_notice.sql). */
-export type NoticeKind = "meu-pluggy" | "planilha";
+/**
+ * Messages born on the server, one of each kind per day (migrations/0015_notice.sql): the alerts,
+ * and the ceiling crossing a mark when the bank brings the purchase.
+ */
+export type NoticeKind = "meu-pluggy" | "planilha" | "teto-75" | "teto-100";
 
 export interface Notice extends Reminder {
   /** The kind and the day ("planilha:2026-11-11"): the app shows each id once. */
@@ -53,13 +57,13 @@ export const clearNotices = async (db: D1Database, kind: NoticeKind): Promise<vo
   await db.prepare("DELETE FROM notice WHERE id LIKE ?").bind(`${kind}:%`).run();
 };
 
-/** What the phone should be showing now, oldest first. */
+/** What the phone should be showing now, oldest first; the ceiling's go with the bills. */
 export const recentNotices = async (db: D1Database, now = new Date()): Promise<Notice[]> => {
   const { results } = await db
     .prepare("SELECT id, title, body, url FROM notice WHERE created_at > ? ORDER BY created_at, id")
     .bind(daysAgo(now, KEEP_DAYS))
     .all<Omit<Notice, "tag">>();
-  return results.map((r) => ({ ...r, tag: "alert" }));
+  return results.map((r) => ({ ...r, tag: r.id.startsWith("teto") ? "ceiling" : "alert" }));
 };
 
 export const pruneNotices = async (db: D1Database, now = new Date()): Promise<void> => {
@@ -82,7 +86,7 @@ const get = async <T>(db: D1Database, key: string): Promise<T | null> => {
   return row ? (JSON.parse(row.value) as T) : null;
 };
 
-/** The highest mark of the month's ceiling already said, and the morning it was said. */
+/** The highest mark of the month's ceiling already said, and the day it was said. */
 export interface CeilingSaid {
   readonly month: string;
   readonly mark: number;
@@ -90,9 +94,8 @@ export interface CeilingSaid {
 }
 
 /**
- * Whether this morning has the ceiling's news: 75% or 100% crossed since the last time it was
- * said, never twice in a month and never lowered by a refund. The browser's push and the phone
- * both ask on the same morning, in any order, and both hear it. `next` is what to keep, if new.
+ * Whether the ceiling has news: 75% or 100% crossed since the last time it was said, never twice
+ * in a month and never lowered by a refund. `next` is what to keep, if new.
  */
 export const ceilingStep = (
   said: CeilingSaid | null,
@@ -101,15 +104,14 @@ export const ceilingStep = (
 ): { readonly news: CeilingNews | null; readonly next: CeilingSaid | null } => {
   const month = today.slice(0, 7);
   const before = said?.month === month ? said : null;
-  if (used !== 75 && used !== 100) return { news: null, next: null };
-  if (before?.day === today && before.mark === used) return { news: used, next: null };
-  if (used > (before?.mark ?? 0)) return { news: used, next: { month, mark: used, day: today } };
+  if ((used === 75 || used === 100) && used > (before?.mark ?? 0))
+    return { news: used, next: { month, mark: used, day: today } };
   return { news: null, next: null };
 };
 
 const CEILING_KEY = "ceiling_said";
 
-/** The morning's ceiling news, kept so tomorrow does not say it again. */
+/** The ceiling's news in this read of the bank, kept so the next read does not say it again. */
 export const ceilingNews = async (
   db: D1Database,
   data: ProjectionResponse,
@@ -123,6 +125,18 @@ export const ceilingNews = async (
   );
   if (next) await put(db, CEILING_KEY, next);
   return news;
+};
+
+/**
+ * After every read of the banks (06:00, the evening, a Pluggy webhook, Atualizar, a purchase the
+ * phone saw): the ceiling crossing a mark goes out at once, by push to the browsers and to the
+ * phone with its next ask.
+ */
+export const checkCeiling = async (env: Env, data: ProjectionResponse): Promise<void> => {
+  const news = await ceilingNews(env.DB, data);
+  const reminder = news && ceilingReminder(data.projection, news);
+  if (news && reminder)
+    await raiseNotice(env, `teto-${news}`, data.projection.today as LocalDate, reminder);
 };
 
 /** The hours the evening message can come at: after work, before the late-night launches. */
@@ -159,17 +173,14 @@ export const eveningJob = (
 
 /**
  * GET /api/reminders, for the Android app, which shows these itself: today's two messages (null
- * when one has nothing to say), its evening hour, and the alerts it may not have shown yet.
+ * when one has nothing to say), its evening hour, and the server's messages it may not have
+ * shown yet.
  */
 export const remindersView = (
   data: ProjectionResponse,
-  extra: {
-    readonly ceiling: CeilingNews | null;
-    readonly eveningHour: EveningHour;
-    readonly notices: readonly Notice[];
-  },
+  extra: { readonly eveningHour: EveningHour; readonly notices: readonly Notice[] },
 ) => ({
-  morning: morningMessage(data, extra.ceiling),
+  morning: morningMessage(data),
   evening: eveningMessage(data),
   eveningHour: extra.eveningHour,
   notices: extra.notices,
