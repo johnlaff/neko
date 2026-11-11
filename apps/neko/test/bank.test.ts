@@ -147,6 +147,75 @@ describe("bank rows to the engine", () => {
   });
 });
 
+describe("a card purchase the phone read from the bank app", () => {
+  // The linked bank whose label names the phone's bank; its only card account.
+  const linked: BankRows = {
+    ...rows,
+    itemRows: [{ item_id: "i", label: "Banco Inter", synced_at: "2026-10-08T09:00:00.000Z" }],
+    accounts: [
+      { id: "conta", type: "BANK", item_id: "i" },
+      { id: "cartao", type: "CREDIT", item_id: "i" },
+    ],
+    txns: [],
+  };
+  const seen = {
+    id: "phone-0001",
+    bank: "Inter" as const,
+    amount: 4590,
+    last4: "2222",
+    merchant: "LIVRARIA",
+    at: "2026-10-06T15:00:00.000Z",
+  };
+
+  it("lands on its card's bill by the cycle, by its last digits or else the account's card", () => {
+    expect(bankInput({ ...linked, phone: [seen] }, map, cards).provisional).toEqual([
+      {
+        card: "Visa Gio",
+        amount: 4590,
+        billMonth: "2026-11",
+        description: "LIVRARIA",
+        installment: null,
+        installments: null,
+        date: "2026-10-06",
+      },
+    ]);
+    const plain = { ...seen, last4: null };
+    expect(bankInput({ ...linked, phone: [plain] }, map, cards).provisional).toMatchObject([
+      { card: "Visa", amount: 4590 },
+    ]);
+  });
+
+  it("steps aside once the bank brings the same charge", () => {
+    const brought = txn({
+      account_id: "cartao",
+      date: "2026-10-07",
+      amount: 4590,
+      card_number: "2222",
+    });
+    const read = { ...linked, txns: [brought], phone: [seen] };
+    expect(bankInput(read, map, cards).provisional).toEqual([]);
+    expect(bankInput(read, map, cards).lines).toHaveLength(1);
+  });
+
+  it("finds its card by digits the bank already brought, whatever the bank's label", () => {
+    const before = txn({
+      account_id: "cartao",
+      date: "2026-09-10",
+      amount: 100,
+      card_number: "7777",
+    });
+    const other = { ...seen, bank: "Bradesco" as const, last4: "7777" };
+    expect(
+      bankInput({ ...linked, txns: [before], phone: [other] }, map, cards).provisional,
+    ).toMatchObject([{ card: "Visa", amount: 4590 }]);
+  });
+
+  it("is left out when no linked bank is the phone's", () => {
+    const other = { ...seen, bank: "Bradesco" as const, last4: "9999" };
+    expect(bankInput({ ...linked, phone: [other] }, map, cards).provisional).toEqual([]);
+  });
+});
+
 describe("a card outside Open Finance, by its closing e-mail", () => {
   // Closes on the 25th, due on the 2nd; no bank feed at all.
   const nu: CardConfig = {

@@ -164,6 +164,7 @@ fun AjustesScreen(
     /** The Diário previsto's fill, and its Desfazer. */
     launcher: Launcher? = null,
     usage: UsageSummary? = null,
+    purchases: PurchasesSwitch = PurchasesSwitch(),
 ) {
     var undo by remember { mutableStateOf<Pair<String, String>?>(null) }
     Box(Modifier.fillMaxSize()) {
@@ -234,6 +235,7 @@ fun AjustesScreen(
         item {
             Group("Neste celular") {
                 Reminders(reminders)
+                Purchases(purchases)
                 Lock(lock)
                 if (dev.johnlaff.neko.tile.LancarTile.canAsk) QuickTile()
             }
@@ -294,6 +296,60 @@ private fun Reminders(r: RemindersSwitch) {
         )
     }
     if (r.on) Setting("Lembrete da noite", "Os bancos são lidos meia hora antes") { HourPicker(r.hour, r.onHour) }
+}
+
+/**
+ * Compras na hora (purchases/Purchases.kt): Android's own permission is the switch, so turning it
+ * on or off opens Android's page for it, after saying plainly what is read and what is sent.
+ */
+data class PurchasesSwitch(
+    val on: Boolean = false,
+    /** The last purchase read, as sent: "R$ 45,90 em Livraria". */
+    val last: String? = null,
+    val onOpen: () -> Unit = {},
+)
+
+@Composable
+private fun Purchases(p: PurchasesSwitch) {
+    val l = LocalLedger.current
+    var asking by remember { mutableStateOf(false) }
+    Setting(
+        "Compras na hora",
+        when {
+            !p.on -> "O teto anda na hora da compra"
+            p.last != null -> "Última: ${p.last}"
+            else -> "Esperando a próxima compra no cartão"
+        },
+        modifier = Modifier.toggleable(
+            p.on,
+            role = Role.Switch,
+            onValueChange = toggled { want -> if (want) asking = true else p.onOpen() },
+        ),
+    ) {
+        Switch(checked = p.on, onCheckedChange = null, colors = switchColors())
+    }
+    if (asking) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text("Ler os avisos de compra?", style = MaterialTheme.typography.headlineSmall) },
+            text = {
+                Text(
+                    "O Neko lê só os avisos de compra no cartão dos apps Bradesco, Itaú, Inter e Mercado Pago, " +
+                        "e manda ao seu Neko o valor, a loja e o final do cartão. Assim o teto anda na hora, sem " +
+                        "esperar o banco. Avisos de outros apps são ignorados.\n\nNa próxima tela, ative o Neko.",
+                    color = l.muted,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    asking = false
+                    p.onOpen()
+                }) { Text("Continuar", color = l.accent) }
+            },
+            dismissButton = { TextButton(onClick = { asking = false }) { Text("Agora não", color = l.text) } },
+            containerColor = l.surface,
+        )
+    }
 }
 
 /** The evening hours the Worker accepts (worker/notices.ts EVENING_HOURS). */

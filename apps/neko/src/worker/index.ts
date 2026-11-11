@@ -58,6 +58,7 @@ import {
   verifyAuthentication,
   verifyRegistration,
 } from "./passkey.ts";
+import { PhonePurchase, prunePhonePurchases, savePhonePurchase } from "./phone.ts";
 import { backfillEdits, getProjection, monthEndHistory, pruneSnapshots } from "./pipeline.ts";
 import {
   configured,
@@ -177,6 +178,7 @@ app.use("/entries", requireSession);
 app.use("/entries/*", requireSession);
 app.use("/queue/*", requireSession);
 app.use("/usage", requireSession);
+app.use("/purchases", requireSession);
 app.use("/statement", requireSession);
 app.route("/entries", entries);
 app.route("/queue", queue);
@@ -621,6 +623,16 @@ app.get("/reminders", async (c) => {
 /** The server's messages the phone may not have shown yet; read with the widget, every 3 hours. */
 app.get("/notices", async (c) => c.json({ notices: await recentNotices(c.env.DB) }));
 
+/**
+ * A card purchase the phone read from the bank app's notification (phone.ts): the ceiling moves at
+ * once, and the answer carries the messages, so a mark crossed shows on the phone right away.
+ */
+app.post("/purchases", async (c) => {
+  await savePhonePurchase(c.env.DB, PhonePurchase.parse(await c.req.json()));
+  await checkCeiling(c.env, await getProjection(c.env, todayIn(new Date())));
+  return c.json({ notices: await recentNotices(c.env.DB) });
+});
+
 app.get("/reminders/hour", async (c) => c.json({ eveningHour: await loadEveningHour(c.env.DB) }));
 
 /** The evening message's hour, chosen in Ajustes: one for the account, browser and phone alike. */
@@ -743,6 +755,7 @@ export default Sentry.withSentry(sentry, {
           pruneSnapshots(env.DB),
           pruneSessions(env.DB),
           pruneNotices(env.DB),
+          prunePhonePurchases(env.DB),
         ]).catch((error) => console.error("pruning failed", error));
       let data: Awaited<ReturnType<typeof getProjection>>;
       try {
