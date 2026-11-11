@@ -1,3 +1,4 @@
+import type { SaldoWaiting } from "@neko/engine";
 import { valuesHidden } from "./privacy.ts";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -35,6 +36,28 @@ const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 export const weekday = (iso: string) => WEEKDAYS[new Date(`${iso}T12:00:00Z`).getUTCDay()] ?? "";
 
 export const days = (n: number) => (n === 1 ? "1 dia" : `${n} dias`);
+
+/**
+ * Under the Saldo, the planned lines the bank has not moved yet: "Aulas Inglês (R$ 232,00, 29
+ * out) ainda não saiu do banco." The Android app (Format.waitingText) says it the same way.
+ */
+export const waitingText = (waiting: readonly SaldoWaiting[]) => {
+  const names = waiting.map((w) => `${w.description} (${money(w.amount)}, ${shortDate(w.date)})`);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} e ${names.at(-1)}` : names[0];
+  const out = waiting.every((w) => w.column === "saida");
+  const into = waiting.every((w) => w.column === "entrada");
+  const verb =
+    waiting.length === 1
+      ? out
+        ? "saiu do"
+        : "entrou no"
+      : out
+        ? "saíram do"
+        : into
+          ? "entraram no"
+          : "passaram pelo";
+  return `${list ?? ""} ainda não ${verb} banco.`;
+};
 
 /** Joining words that stay lowercase inside a name. */
 const SMALL_WORDS = new Set("a as o os e de da das do dos em na no para".split(" "));

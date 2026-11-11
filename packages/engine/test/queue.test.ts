@@ -4,6 +4,7 @@ import {
   buildQueue,
   type CardConfig,
   cents,
+  ignoredGaps,
   type LocalDate,
   localDate,
   originKey,
@@ -109,6 +110,43 @@ describe("Para lançar: account movements", () => {
     ).toEqual([]);
   });
 
+  it("corrects a raise on the salary alone when the bank debits the deductions apart", () => {
+    // The class paid on salary day is no deduction: the raise is 1.200, not 1.200 plus the class.
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-29": {
+        entrada: cell(600000, [item(600000, "Salário", null)]),
+        saida: cell(53200, [
+          item(30000, "Previdência", "investimento"),
+          item(23200, "Aulas", "contas"),
+        ]),
+      },
+    });
+    // The pension as planned, then grown with the salary.
+    for (const pension of [-30000, -36000]) {
+      const items = queue({
+        ledger: days,
+        today: d("2026-10-30"),
+        movements: [mov("2026-10-29", 720000, "SALARIO"), mov("2026-10-29", pension, "PREV")],
+      });
+      const salary = items.find((i) => i.kind === "entrada");
+      expect(salary?.options.map((o) => o.draft)).toEqual([
+        {
+          type: "fix",
+          line: {
+            date: "2026-10-29",
+            column: "entrada",
+            section: null,
+            description: "Salário",
+            amount: 600000,
+          },
+          amount: 720000,
+          date: "2026-10-29",
+          description: "Salário",
+        },
+      ]);
+    }
+  });
+
   it("corrects a planned salary that came different, offering the deduction instead", () => {
     const days = ledger("2026-10-01", 92, 0, {
       "2026-10-29": {
@@ -185,6 +223,115 @@ describe("Para lançar: account movements", () => {
     ]);
   });
 
+  it("moves a planned line the bank moved days before, with the same value, while its day is ahead", () => {
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-24": { entrada: cell(30000, [item(30000, "Casa", null)]) },
+      "2026-10-25": { saida: cell(15050, [item(15050, "Luz", "contas")]) },
+    });
+    const items = queue({
+      ledger: days,
+      movements: [
+        mov("2026-10-18", 30000, "PIX RECEBIDO MARIA EXEMPLO"),
+        mov("2026-10-19", -15050, "DEBITO CONTA LUZ"),
+      ],
+    });
+    expect(items.map((i) => [i.kind, i.date, i.options])).toEqual([
+      [
+        "entrada",
+        "2026-10-18",
+        [
+          {
+            label: "",
+            draft: {
+              type: "fix",
+              line: {
+                date: "2026-10-24",
+                column: "entrada",
+                section: null,
+                description: "Casa",
+                amount: 30000,
+              },
+              amount: 30000,
+              date: "2026-10-18",
+              description: "Casa",
+            },
+          },
+        ],
+      ],
+      [
+        "conta",
+        "2026-10-19",
+        [
+          {
+            label: "",
+            draft: {
+              type: "fix",
+              line: {
+                date: "2026-10-25",
+                column: "saida",
+                section: "contas",
+                description: "Luz",
+                amount: 15050,
+              },
+              amount: 15050,
+              date: "2026-10-19",
+              description: "Luz",
+            },
+          },
+        ],
+      ],
+    ]);
+  });
+
+  it("leaves a same-value line alone when paid on its day, late, once its day passed, or a card's", () => {
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-12": { entrada: cell(30000, [item(30000, "Casa", null)]) },
+      "2026-10-16": { saida: cell(15050, [item(15050, "Luz", "contas")]) },
+      "2026-10-19": { saida: cell(7000, [item(7000, "Fone", "contas")]) },
+      "2026-10-22": {
+        entrada: cell(40000, [item(40000, "Banco Gio", null)]),
+        saida: cell(40000, [item(40000, "Banco Gio", "cartoes")]),
+      },
+    });
+    expect(
+      queue({
+        ledger: days,
+        movements: [
+          mov("2026-10-10", 30000, "PIX RECEBIDO MARIA EXEMPLO"),
+          mov("2026-10-17", -15050, "DEBITO CONTA LUZ"),
+          mov("2026-10-19", -7000, "DEBITO FONE"),
+          mov("2026-10-18", 40000, "PIX RECEBIDO GIO EXEMPLO"),
+          mov("2026-10-18", -40000, "PIX QR CODE BANCO GIO"),
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it("does not take a planned bill someone else always gets for a payment to another origin", () => {
+    // The class is a Pix to the teacher every month; a purchase of near value is no class.
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-01": { saida: cell(23200, [item(23200, "Aulas", "contas")]) },
+      "2026-10-15": { saida: cell(23200, [item(23200, "Aulas", "contas")]) },
+    });
+    const items = queue({
+      ledger: days,
+      movements: [
+        mov("2026-10-01", -23200, "PIX ENVIADO - DES  Ana Exemplo Souza  01/10 - DOCTO: 1"),
+        mov("2026-10-17", -23391, "PIX QR CODE ESTATICO - DES: PIX Marketplace  17/10"),
+      ],
+    });
+    expect(items.map((i) => [i.kind, i.options[0]?.draft?.type])).toEqual([["diario", "new"]]);
+    // The teacher paid from another bank, whose text is different, still is the class.
+    const [same] = queue({
+      ledger: days,
+      movements: [
+        mov("2026-10-01", -23200, "PIX ENVIADO - DES  Ana Exemplo Souza  01/10 - DOCTO: 1"),
+        mov("2026-10-17", -23391, "Pix enviado Ana Exemplo Souza"),
+      ],
+    });
+    expect(same).toMatchObject({ kind: "conta", date: "2026-10-17" });
+  });
+
   it("does not take a planned bill for a payment the sheet already names as something else", () => {
     // The same person gets a ride paid each month; a bill of near value is planned that week.
     const days = ledger("2026-10-01", 92, 0, {
@@ -245,6 +392,128 @@ describe("Para lançar: account movements", () => {
       kind: "guardar",
       options: [{ draft: { kind: "reserva", amount: 50000 } }],
     });
+  });
+});
+
+describe("Para lançar: a bill that came by e-mail", () => {
+  const light = {
+    biller: "Lumina",
+    due: d("2026-11-15"),
+    total: cents(18760),
+    arrived: d("2026-10-17"),
+  };
+  // The sheet calls the light "Luz"; the bank paid last month's to Lumina.
+  const days = ledger("2026-10-01", 92, 0, {
+    "2026-10-15": { saida: cell(16420, [item(16420, "Luz", "contas")]) },
+    "2026-11-15": { saida: cell(15000, [item(15000, "Luz", "contas")]) },
+  });
+  const lastMonth = mov("2026-10-16", -16420, "PIX QR LUMINA DISTRIBUIDORA");
+
+  it("sets the line the sheet plans for it to the bill's value, before it is paid", () => {
+    const items = queue({ ledger: days, movements: [lastMonth], mailed: [light] });
+    expect(items).toEqual([
+      {
+        key: "mail:lumina:2026-11-15:18760",
+        kind: "conta",
+        date: "2026-11-15",
+        bank: [{ date: "2026-11-15", amount: -18760, description: "Conta Lumina por e-mail" }],
+        options: [
+          {
+            label: "",
+            draft: {
+              type: "fix",
+              line: {
+                date: "2026-11-15",
+                column: "saida",
+                section: "contas",
+                description: "Luz",
+                amount: 15000,
+              },
+              amount: 18760,
+              date: "2026-11-15",
+              description: "Luz",
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("finds the line by the biller's name too, on a day near the due day", () => {
+    const phone = { biller: "Fonix", due: d("2026-12-01"), arrived: d("2026-10-19") };
+    const planned = ledger("2026-10-01", 92, 0, {
+      "2026-12-03": { saida: cell(5990, [item(5990, "Conta Fonix", "contas")]) },
+    });
+    const [i] = queue({ ledger: planned, mailed: [{ ...phone, total: cents(6250) }] });
+    expect(i).toMatchObject({
+      date: "2026-12-03",
+      options: [{ draft: { type: "fix", amount: 6250, date: "2026-12-03" } }],
+    });
+    // Already the bill's value: nothing to do.
+    expect(queue({ ledger: planned, mailed: [{ ...phone, total: cents(5990) }] })).toEqual([]);
+  });
+
+  it("adds the bill on its due day, under the sheet's name for it, when nothing is planned", () => {
+    const unplanned = ledger("2026-10-01", 92, 0, {
+      "2026-10-15": { saida: cell(16420, [item(16420, "Luz", "contas")]) },
+    });
+    const [i] = queue({ ledger: unplanned, movements: [lastMonth], mailed: [light] });
+    expect(i).toMatchObject({ kind: "conta", date: "2026-11-15" });
+    expect(i?.options[0]?.draft).toEqual({
+      type: "new",
+      kind: "conta",
+      amount: 18760,
+      date: "2026-11-15",
+      description: "Luz",
+    });
+  });
+
+  it("leaves it to the bank once the bill is paid or its due day passed", () => {
+    // Paid early: the payment corrects the line, the e-mail adds nothing.
+    const paid = queue({
+      ledger: days,
+      movements: [lastMonth, mov("2026-10-18", -18760, "PIX QR LUMINA DISTRIBUIDORA")],
+      mailed: [light],
+    });
+    expect(paid.map((i) => i.key)).toEqual(["mov:2026-10-18--18760"]);
+    expect(
+      queue({ ledger: days, today: d("2026-11-16"), movements: [lastMonth], mailed: [light] }),
+    ).toEqual([]);
+  });
+
+  it("knows the bill paid when the bank calls the biller something else", () => {
+    const phone = {
+      biller: "Fonix",
+      due: d("2026-10-25"),
+      total: cents(6250),
+      arrived: d("2026-10-15"),
+    };
+    const planned = (value: number) =>
+      ledger("2026-10-01", 92, 0, {
+        "2026-10-25": { saida: cell(value, [item(value, "Conta Fonix", "contas")]) },
+      });
+    const at = { today: d("2026-10-26"), mailed: [{ ...phone, due: d("2026-10-27") }] };
+    // Launched from the e-mail, then paid to the carrier's company name: the line matches.
+    const launched = queue({
+      ...at,
+      ledger: planned(6250),
+      movements: [mov("2026-10-25", -6250, "PIX TELECOM BRASIL SA")],
+    });
+    expect(launched).toEqual([]);
+    // Not launched: the payment of the bill's exact value corrects the line, alone.
+    const exact = queue({
+      ...at,
+      ledger: planned(5990),
+      movements: [mov("2026-10-25", -6250, "PIX TELECOM BRASIL SA")],
+    });
+    expect(exact.map((i) => i.key)).toEqual(["mov:2026-10-25--6250"]);
+    // Paid with a fine: still one item for the line, the bank's.
+    const late = queue({
+      ...at,
+      ledger: planned(5990),
+      movements: [mov("2026-10-26", -6400, "PIX TELECOM BRASIL SA")],
+    });
+    expect(late.map((i) => i.key)).toEqual(["mov:2026-10-26--6400"]);
   });
 });
 
@@ -506,7 +775,7 @@ describe("Para lançar: card bills", () => {
       queue({
         ledger: drift,
         lines: [line("Banco Gio", 15000, "2026-12")],
-        decided: new Set(["card:banco gio:2026-12-12=15000"]),
+        decided: new Set(["card:banco gio:2026-12-12=15000>15000"]),
       }),
     ).toHaveLength(1);
     expect(fixed?.options).toHaveLength(1);
@@ -527,6 +796,153 @@ describe("Para lançar: card bills", () => {
           amount: 25000,
         },
       ],
+    });
+  });
+});
+
+describe("Para lançar: a card bill the owner ignored", () => {
+  // Sheet: Visa 410,00 on Nov 10. The bank shows 450,00: 40,00 of it the owner says is not real
+  // (a credit the feed left out), so he ignores the item.
+  const days = ledger("2026-10-01", 130, 0, {
+    "2026-11-10": { saida: cell(41000, [item(41000, "Visa")]) },
+  });
+  const line = (amount: number, over = {}) => ({
+    card: "Visa",
+    amount: cents(amount),
+    billMonth: "2026-11",
+    description: "LOJA",
+    installment: null,
+    installments: null,
+    ...over,
+  });
+  const before = [line(45000, { date: d("2026-10-05") })];
+  const [first] = queue({ ledger: days, lines: before });
+  const ignored = new Set([first?.key ?? ""]);
+
+  it("keeps the sheet's number while the bank has nothing new", () => {
+    expect(first?.key).toBe("card:visa:2026-11-10=41000>45000");
+    expect(queue({ ledger: days, lines: before, ignored })).toEqual([]);
+    expect(ignoredGaps(ignored)).toEqual(new Map([["visa|2026-11-10", 4000]]));
+  });
+
+  it("adds only what the bank got since, and shows just those purchases", () => {
+    const now = [...before, line(1500, { date: d("2026-10-18"), description: "PADARIA" })];
+    const [i] = queue({ ledger: days, lines: now, ignored });
+    expect(i?.options[0]?.draft).toMatchObject({ bills: [{ was: 41000, amount: 42500 }] });
+    expect(i?.purchases).toEqual([
+      {
+        due: "2026-11-10",
+        exact: true,
+        total: 1500,
+        lines: [expect.objectContaining({ description: "PADARIA" })],
+      },
+    ]);
+    // Launched, the sheet has it: nothing left. Ignored again, the 15,00 stays out too.
+    const launched = ledger("2026-10-01", 130, 0, {
+      "2026-11-10": { saida: cell(42500, [item(42500, "Visa")]) },
+    });
+    expect(queue({ ledger: launched, lines: now, ignored })).toEqual([]);
+    const twice = new Set([...ignored, i?.key ?? ""]);
+    expect(queue({ ledger: days, lines: now, ignored: twice })).toEqual([]);
+  });
+
+  it("follows the bank's total once the bill closes", () => {
+    const closed = [{ cards: ["Visa"], billMonth: "2026-11", total: cents(41500) }];
+    const [i] = queue({ ledger: days, lines: before, closed, ignored });
+    expect(i?.options[0]?.draft).toMatchObject({ bills: [{ was: 41000, amount: 41500 }] });
+  });
+});
+
+describe("Para lançar: someone paying a card back bit by bit", () => {
+  // Her card's November bill is paid back on its due day; she sends money as she gets paid.
+  const plan = (over = {}) =>
+    ledger("2026-10-01", 130, 0, {
+      "2026-11-12": {
+        saida: cell(200000, [item(200000, "Banco Gio")]),
+        entrada: cell(200000, [item(200000, "Banco Gio", null)]),
+      },
+      ...over,
+    });
+  const payback = {
+    date: "2026-11-12",
+    column: "entrada",
+    section: null,
+    description: "Banco Gio",
+    amount: 200000,
+  };
+  const fromGio = (date: string, amount: number) =>
+    mov(date, amount, `PIX RECEBIDO - REM: Gio Exemplo Souza ${date.slice(8)}/10 - DOCTO: 1`);
+  const cardLine = (amount: number) => ({
+    card: "Banco Gio",
+    amount: cents(amount),
+    billMonth: "2026-11",
+    description: "LOJA",
+    installment: null,
+    installments: null,
+  });
+
+  it("takes her Pix as part of the next payback: an Entrada named after the card, and the payback goes down", () => {
+    const [i] = queue({ ledger: plan(), movements: [fromGio("2026-10-18", 60000)] });
+    expect(i).toMatchObject({ kind: "entrada", date: "2026-10-18" });
+    expect(i?.options).toEqual([
+      {
+        label: "Reembolso adiantado",
+        draft: {
+          type: "advance",
+          amount: 60000,
+          date: "2026-10-18",
+          description: "Banco Gio",
+          payback,
+        },
+      },
+      {
+        label: "Entrada nova",
+        draft: {
+          type: "new",
+          kind: "entrada",
+          amount: 60000,
+          date: "2026-10-18",
+          description: "PIX RECEBIDO - REM: Gio Exemplo Souza 18",
+        },
+      },
+    ]);
+  });
+
+  it("offers it first to whoever paid that card back before, whatever the name", () => {
+    const days = plan({ "2026-10-05": { entrada: cell(10000, [item(10000, "Banco Gio", null)]) } });
+    const ana = (date: string, amount: number) =>
+      mov(date, amount, `PIX RECEBIDO - REM: Ana Exemplo Souza ${date.slice(8)}/10 - DOCTO: 1`);
+    const [i] = queue({
+      ledger: days,
+      movements: [ana("2026-10-05", 10000), ana("2026-10-18", 20000)],
+    });
+    expect(i?.options.map((o) => [o.label, o.draft?.type])).toEqual([
+      ["Reembolso adiantado", "advance"],
+      ["Entrada nova", "new"],
+    ]);
+  });
+
+  it("leaves someone else's Pix, or one bigger than the payback ahead, as a plain Entrada", () => {
+    const other = mov("2026-10-18", 60000, "PIX RECEBIDO - REM: Maria Exemplo Silva 18/10");
+    for (const m of [other, fromGio("2026-10-18", 250000)]) {
+      const [i] = queue({ ledger: plan(), movements: [m] });
+      expect(i?.options.map((o) => o.draft?.type)).toEqual(["new"]);
+    }
+  });
+
+  it("counts what came ahead: the payback is the bill minus it, also when the bill grows", () => {
+    const paid = plan({
+      "2026-10-18": { entrada: cell(60000, [item(60000, "Banco Gio", null)]) },
+      "2026-11-12": {
+        saida: cell(200000, [item(200000, "Banco Gio")]),
+        entrada: cell(140000, [item(140000, "Banco Gio", null)]),
+      },
+    });
+    expect(queue({ ledger: paid, lines: [cardLine(200000)] })).toEqual([]);
+    const [grew] = queue({ ledger: paid, lines: [cardLine(210000)] });
+    expect(grew?.options[0]?.draft).toMatchObject({
+      bills: [{ was: 200000, amount: 210000 }],
+      also: [{ line: { amount: 140000 }, amount: 150000 }],
     });
   });
 });
@@ -632,6 +1048,47 @@ describe("placeDraft", () => {
       },
     ]);
   });
+  it("puts money that came ahead on its day and takes it off the payback, never below zero", () => {
+    const payback = {
+      date: d("2026-11-12"),
+      column: "entrada" as const,
+      section: null,
+      description: "Banco Gio",
+      amount: cents(200000),
+    };
+    const ahead = (amount: number) =>
+      placeDraft(
+        {
+          type: "advance",
+          amount: cents(amount),
+          date: d("2026-10-18"),
+          description: "Banco Gio",
+          payback,
+        },
+        [visa, gio],
+      );
+    expect(ahead(60000)).toEqual([
+      {
+        date: "2026-10-18",
+        column: "entrada",
+        section: null,
+        description: "Banco Gio",
+        target: "line",
+        amount: 60000,
+      },
+      {
+        date: "2026-11-12",
+        column: "entrada",
+        section: null,
+        description: "Banco Gio",
+        target: "line",
+        was: 200000,
+        amount: 140000,
+      },
+    ]);
+    expect(ahead(250000)[1]).toMatchObject({ was: 200000, amount: 0 });
+  });
+
   it("sets each card bill and its reimbursement", () => {
     const ps = placeDraft(
       {
@@ -675,6 +1132,7 @@ describe("saldo bate", () => {
       bank: 100000,
       diff: 0,
       stale: ["Banco B"],
+      waiting: [],
     });
     expect(saldoCheck(days, today, [at(today, 101836)])?.diff).toBe(1836);
     expect(saldoCheck(days, today, [])).toBeNull();
@@ -683,5 +1141,107 @@ describe("saldo bate", () => {
   it("leaves out what moved today, which yesterday's Saldo cannot have yet", () => {
     // The account paid its yield this morning: the balance has it, yesterday's Saldo does not.
     expect(saldoCheck(days, today, [{ ...at(today, 100439), today: cents(439) }])?.diff).toBe(0);
+  });
+
+  // The class is planned on payday, the 17th, and paid by Pix a few days later.
+  const planned = ledger("2026-10-01", 30, 100000, {
+    "2026-10-17": { saida: cell(23200, [item(23200, "Aulas Inglês", "contas")]) },
+    "2026-10-18": { entrada: cell(30000, [item(30000, "Despesas de Casa", null)]) },
+  });
+
+  it("names the planned lines of the last days the bank has not moved yet, when they are the gap", () => {
+    // The sheet took the class out on the 17th; the money is still in the account.
+    const s = saldoCheck(
+      planned,
+      today,
+      [at(today, 130000)],
+      [mov("2026-10-18", 30000, "PIX RECEBIDO GIO")],
+    );
+    expect(s?.diff).toBe(23200);
+    expect(s?.waiting).toEqual([
+      { date: "2026-10-17", column: "saida", description: "Aulas Inglês", amount: 23200 },
+    ]);
+    // Neither came in nor went out yet: both, a Saída and an Entrada.
+    expect(
+      saldoCheck(planned, today, [at(today, 100000)], [])?.waiting.map((w) => w.description),
+    ).toEqual(["Aulas Inglês", "Despesas de Casa"]);
+  });
+
+  it("names a planned line the bank only moved today, after the day it checks", () => {
+    // The Pix for the class left this morning: at the end of yesterday the money was still there.
+    const s = saldoCheck(
+      planned,
+      today,
+      [{ ...at(today, 106800), today: cents(-23200) }],
+      [mov("2026-10-18", 30000, "PIX RECEBIDO GIO"), mov(today, -23200, "PIX ENVIADO PROFESSOR")],
+    );
+    expect(s?.diff).toBe(23200);
+    expect(s?.waiting).toEqual([
+      { date: "2026-10-17", column: "saida", description: "Aulas Inglês", amount: 23200 },
+    ]);
+  });
+
+  it("names nothing when the bank already moved the line or the lines do not make the gap", () => {
+    const paid = [
+      mov("2026-10-18", 30000, "PIX RECEBIDO GIO"),
+      mov("2026-10-17", -23200, "PIX ENVIADO PROFESSOR"),
+    ];
+    // Both moved: a gap of R$ 5 is something else.
+    expect(saldoCheck(planned, today, [at(today, 107300)], paid)).toMatchObject({
+      diff: 500,
+      waiting: [],
+    });
+    // Nothing moved, and R$ 100 is neither line.
+    expect(saldoCheck(planned, today, [at(today, 116800)], [])?.waiting).toEqual([]);
+    expect(saldoCheck(days, today, [at(today, 100000)], [])?.waiting).toEqual([]);
+  });
+
+  // The bills are due on a Sunday and Monday is a holiday: the bank only pays them on Tuesday.
+  const billsDue = ledger("2026-10-01", 30, 200000, {
+    "2026-10-17": { saida: cell(23200, [item(23200, "Aulas Inglês", "contas")]) },
+    "2026-10-19": {
+      saida: cell(80000, [item(50000, "Visa", "cartoes"), item(30000, "Banco Gio", "cartoes")]),
+    },
+  });
+
+  it("names a card bill the bank has not paid yet, as that card's bill", () => {
+    const s = saldoCheck(billsDue, today, [at(today, 200000)], []);
+    expect(s?.diff).toBe(103200);
+    expect(s?.waiting).toEqual([
+      { date: "2026-10-17", column: "saida", description: "Aulas Inglês", amount: 23200 },
+      { date: "2026-10-19", column: "saida", description: "Fatura Visa", amount: 50000 },
+      { date: "2026-10-19", column: "saida", description: "Fatura Banco Gio", amount: 30000 },
+    ]);
+    // One bill paid ahead with its own debit: only the other one is still waiting.
+    expect(
+      saldoCheck(
+        billsDue,
+        today,
+        [at(today, 150000)],
+        [mov("2026-10-16", -50000, "PAGAMENTO FATURA VISA")],
+      )?.waiting.map((w) => w.description),
+    ).toEqual(["Aulas Inglês", "Fatura Banco Gio"]);
+  });
+
+  it("does not take a bill the bank already paid, even in one debit for two cards, as the gap", () => {
+    const paid = [
+      mov("2026-10-17", -23200, "PIX ENVIADO PROFESSOR"),
+      mov("2026-10-19", -80000, "GASTOS CARTAO DE CREDITO"),
+    ];
+    // R$ 500 more in the bank is the Visa bill's amount, but that bill is paid: something else.
+    expect(saldoCheck(billsDue, today, [at(today, 146800)], paid)).toMatchObject({
+      diff: 50000,
+      waiting: [],
+    });
+  });
+
+  it("leaves a line older than a week alone: by then the plan did not happen", () => {
+    const old = ledger("2026-10-01", 30, 100000, {
+      "2026-10-05": { saida: cell(23200, [item(23200, "Aulas Inglês", "contas")]) },
+    });
+    expect(saldoCheck(old, today, [at(today, 100000)], [])).toMatchObject({
+      diff: 23200,
+      waiting: [],
+    });
   });
 });

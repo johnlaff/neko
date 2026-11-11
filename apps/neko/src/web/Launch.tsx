@@ -10,7 +10,15 @@ import {
 import type { BankView, IgnoredItem } from "../shared/types.ts";
 import { ApiError, api, once, reasonOf, used } from "./api.ts";
 import { CategoryIcon } from "./CategoryIcon.tsx";
-import { bankLineName, bankText, money, readAtLabel, shortDate, toCents } from "./format.ts";
+import {
+  bankLineName,
+  bankText,
+  money,
+  readAtLabel,
+  shortDate,
+  toCents,
+  waitingText,
+} from "./format.ts";
 import {
   IconCard,
   IconCheck,
@@ -311,7 +319,7 @@ const HOW: readonly { kind: EntryKind; label: string }[] = [
 
 const PARCELS = [1, 2, 3, 6, 10, 12];
 
-type Editable = Extract<Draft, { type: "new" } | { type: "fix" }>;
+type Editable = Extract<Draft, { type: "new" } | { type: "fix" } | { type: "advance" }>;
 
 const reais = (c: number) => (c / 100).toFixed(2).replace(".", ",");
 
@@ -381,7 +389,7 @@ export const EntryForm = ({
   const build = (): Draft | null => {
     if (!ok || amount === null) return null;
     const common = { amount: amount as Cents, date: date as LocalDate, description: name.trim() };
-    if (draft?.type === "fix") return { ...draft, ...common };
+    if (draft?.type === "fix" || draft?.type === "advance") return { ...draft, ...common };
     if (card) return { type: "new", kind: "cartao", card, installments: count, ...common };
     return { type: "new", kind: (draft?.kind ?? how) as EntryKind, ...common };
   };
@@ -802,10 +810,12 @@ const Saldo = ({ bank, writing }: { bank: BankView; writing: boolean }) => {
   const [fixing, setFixing] = useState(false);
   if (!s) return null;
   const even = s.diff === 0;
+  // Only the bank being late with planned lines: nothing to launch, so nothing to fix either.
+  const waiting = s.waiting.length > 0;
   return (
     <div className="q-saldo">
-      <p className={`q-verdict${even ? " even" : ""}`}>
-        {even ? (
+      <p className={`q-verdict${even || waiting ? " even" : ""}`}>
+        {even || waiting ? (
           <>
             <IconCheck />
             Tudo lançado
@@ -828,6 +838,7 @@ const Saldo = ({ bank, writing }: { bank: BankView; writing: boolean }) => {
         Conferido até o fim de {shortDate(s.date)}
         {even ? ": bate com o banco." : "."}
       </p>
+      {waiting && <p className="hint">{waitingText(s.waiting)}</p>}
       {s.stale.length > 0 && (
         <p className="hint">Sem atualizar hoje: {s.stale.join(", ")}. O saldo pode estar velho.</p>
       )}

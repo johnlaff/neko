@@ -493,6 +493,7 @@
     "bank": 2353747,
     "diff": 569500,
     "stale": [],
+    "waiting": [],
     "draft": {
       "type": "new",
       "kind": "entrada",

@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import dev.johnlaff.neko.data.SaldoWaiting
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
@@ -34,6 +35,24 @@ object Format {
     }
 
     fun days(n: Int): String = if (n == 1) "1 dia" else "$n dias"
+
+    /**
+     * Under the Saldo, the planned lines the bank has not moved yet: "Aulas Inglês (R$ 232,00, 29
+     * out) ainda não saiu do banco." Word for word with the site (web/format.ts waitingText).
+     */
+    fun waitingText(waiting: List<SaldoWaiting>): String {
+        val names = waiting.map { "${it.description} (${money(it.amount)}, ${shortDate(it.date)})" }
+        val list = if (names.size > 1) "${names.dropLast(1).joinToString(", ")} e ${names.last()}" else names.firstOrNull().orEmpty()
+        val out = waiting.all { it.column == "saida" }
+        val into = waiting.all { it.column == "entrada" }
+        val verb = when {
+            waiting.size == 1 -> if (out) "saiu do" else "entrou no"
+            out -> "saíram do"
+            into -> "entraram no"
+            else -> "passaram pelo"
+        }
+        return "$list ainda não $verb banco."
+    }
 
     private val smallWords = setOf("a", "as", "o", "os", "e", "de", "da", "das", "do", "dos", "em", "na", "no", "para")
 

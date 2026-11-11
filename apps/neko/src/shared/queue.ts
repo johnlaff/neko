@@ -219,11 +219,18 @@ const noteOf = (item: QueueItem): string => {
         ? "A fatura fechou com outro valor no banco."
         : "O banco já tem compras que a planilha não tem.";
     case "entrada":
+      if (draft?.type === "advance")
+        return "Parte do reembolso da fatura chegou antes do dia: o reembolso planejado baixa junto.";
       return draft?.type === "fix"
         ? "Entrou um valor diferente do previsto."
         : // The box under it says "Linha nova na planilha" and the line says Entrada: nothing to add.
           "";
     case "conta":
+      // A biller's e-mail (engine `MailedConta`), before any money moved.
+      if (item.key.startsWith("mail:"))
+        return draft?.type === "fix"
+          ? "A conta chegou por e-mail com outro valor."
+          : "A conta chegou por e-mail e a planilha ainda não tem.";
       return "Paga com outro valor ou em outro dia.";
     case "guardar":
       return "Você guardou dinheiro e a planilha não tem.";
@@ -302,23 +309,29 @@ export const queueView = (
 
 /** "Saldo bate", and the entry that would close the difference. */
 export interface SaldoView extends SaldoCheck {
-  /** Launches the difference on that day, as Entrada or Saída; the owner names it. */
+  /**
+   * Launches the difference on that day, as Entrada or Saída; the owner names it. None when the
+   * difference is only planned lines the bank has not moved yet: launching it would count them twice.
+   */
   readonly draft: Draft | null;
 }
 
-export const saldoView = (s: SaldoCheck | null | undefined): SaldoView | null =>
-  s
-    ? {
-        ...s,
-        draft:
-          s.diff === 0
-            ? null
-            : {
-                type: "new",
-                kind: s.diff > 0 ? "entrada" : "saida",
-                amount: cents(Math.abs(s.diff)),
-                date: s.date,
-                description: "Diferença do banco",
-              },
-      }
-    : null;
+export const saldoView = (s: SaldoCheck | null | undefined): SaldoView | null => {
+  if (!s) return null;
+  // A projection kept from before the bank's late lines were named has none.
+  const waiting = s.waiting ?? [];
+  return {
+    ...s,
+    waiting,
+    draft:
+      s.diff === 0 || waiting.length > 0
+        ? null
+        : {
+            type: "new",
+            kind: s.diff > 0 ? "entrada" : "saida",
+            amount: cents(Math.abs(s.diff)),
+            date: s.date,
+            description: "Diferença do banco",
+          },
+  };
+};

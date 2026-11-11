@@ -4,12 +4,15 @@ import {
   billChecks,
   type ClosedBill,
   linesBehind,
+  MATCH_DAYS,
   matchMovements,
   originKey,
+  originOf,
+  party,
   type SheetLine,
 } from "./bank.ts";
 import { type CardConfig, normalizeName } from "./cards.ts";
-import { addDays, diffDays, type LocalDate } from "./date.ts";
+import { addDays, clampedDay, diffDays, type LocalDate, parts } from "./date.ts";
 import {
   type EntryInput,
   type EntryKind,
@@ -46,6 +49,7 @@ export interface LineRef {
  * - `card`: one card's bills set to the bank's totals.
  * - `forecast`: the Diário previsto of these days becomes `value` (0 takes it away). Days whose
  *   Diário the owner wrote are left as they are.
+ * - `advance`: part of a planned payback came early (see the Draft).
  */
 export type Draft =
   | ({ readonly type: "new" } & EntryInput)
@@ -70,6 +74,17 @@ export type Draft =
       readonly type: "forecast";
       readonly value: Cents;
       readonly days: readonly LocalDate[];
+    }
+  | {
+      /**
+       * Money someone sends ahead of the planned payback of the card they use: an Entrada named
+       * after the card on its day, and `payback` goes down by as much (never below zero).
+       */
+      readonly type: "advance";
+      readonly amount: Cents;
+      readonly date: LocalDate;
+      readonly description: string;
+      readonly payback: LineRef;
     };
 
 /** A draft that becomes a few cell changes; the Diário previsto has its own writer. */
@@ -155,8 +170,22 @@ export interface QueueInput {
   readonly savedOrigins: ReadonlySet<string>;
   /** Keys already launched or ignored. */
   readonly decided: ReadonlySet<string>;
+  /** The ignored ones: on an open card bill, what the bank had above the sheet then stays out. */
+  readonly ignored?: ReadonlySet<string>;
   /** The Diário previsto, when the owner turned it on: its value per day. */
   readonly forecast?: Cents | null;
+  /** Bills that came by e-mail before they are paid. */
+  readonly mailed?: readonly MailedConta[];
+}
+
+/** A bill the biller e-mailed (light, phone): its value and due day, known before it is paid. */
+export interface MailedConta {
+  /** Who sent it, as its e-mail names it: what the bank or the sheet also call it. */
+  readonly biller: string;
+  readonly due: LocalDate;
+  readonly total: Cents;
+  /** The day the e-mail came: a payment to the biller from then on is this bill's. */
+  readonly arrived: LocalDate;
 }
 
 /** How close a planned line's value must be for a movement to stand for it: a quarter. */
@@ -219,6 +248,18 @@ export const placeDraft = (draft: CellDraft, cards: readonly CardConfig[]): Plac
         ),
       ...(draft.also ?? []).map((a) => lineChange(a.line, a.amount)),
     ]);
+  if (draft.type === "advance")
+    return withEconomia([
+      {
+        date: draft.date,
+        column: "entrada",
+        section: draft.payback.section,
+        description: draft.description.replace(/\s+/g, " ").trim(),
+        target: "line",
+        amount: draft.amount,
+      },
+      lineChange(draft.payback, cents(Math.max(0, draft.payback.amount - draft.amount))),
+    ]);
   const { line } = draft;
   const description = draft.description.replace(/\s+/g, " ").trim();
   if (draft.date === line.date && normalizeName(description) === normalizeName(line.description))
@@ -256,6 +297,29 @@ const newDraft = (m: BankMovement, kind: EntryKind, description: string): Draft 
   description,
 });
 
+/** A card item's key: the card (normalized) and each bill it moves, from the sheet's value to its. */
+const CARD_KEY = /^card:(.+?):(\d{4}-\d{2}-\d{2}=-?\d+>-?\d+(?:,\d{4}-\d{2}-\d{2}=-?\d+>-?\d+)*)/;
+
+/**
+ * Ignoring a card item says the bank's rise on those bills is not real (a credit the feed left
+ * out, a charge the bank will cancel): per `card|due`, how much of the bank's total to leave out.
+ * Ignored again later, the new rise adds to it.
+ */
+export const ignoredGaps = (keys: Iterable<string>): Map<string, Cents> => {
+  const out = new Map<string, Cents>();
+  for (const key of keys) {
+    const [, card, bills] = CARD_KEY.exec(key) ?? [];
+    if (!card || !bills) continue;
+    for (const bill of bills.split(",")) {
+      const [due = "", values = ""] = bill.split("=");
+      const [was = 0, amount = 0] = values.split(">").map(Number);
+      const at = `${card}|${due}`;
+      out.set(at, cents((out.get(at) ?? 0) + amount - was));
+    }
+  }
+  return out;
+};
+
 export const buildQueue = (input: QueueInput): QueueItem[] => {
   const { ledger, today } = input;
   const days = new Set(ledger.map((r) => r.date));
@@ -273,6 +337,51 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     if (line.description !== "") names.set(originKey(movement.description), line.description);
   const nameOf = (m: BankMovement) =>
     names.get(originKey(m.description)) ?? lineName(m.description);
+  // Who already pays each planned name: a line always paid to the teacher is not taken for a
+  // purchase of near value somewhere else.
+  const payers = new Map<string, Set<string>>();
+  for (const { movement, line } of matching.pairs) {
+    const name = normalizeName(line.description);
+    payers.set(name, (payers.get(name) ?? new Set()).add(originOf(movement.description)));
+  }
+  const othersPay = (l: SheetLine, m: BankMovement) =>
+    payers.get(normalizeName(l.description))?.has(originOf(m.description)) === false;
+
+  // Someone else's card is paid back by an Entrada of the same name on the due day: one line.
+  // Money they send before it is an Entrada of that name too, and the payback is what is left.
+  const others = new Set(input.othersCards.map(normalizeName));
+  const isPayback = (l: SheetLine) =>
+    l.column === "entrada" && others.has(normalizeName(l.description));
+  // Who already paid a card back: the next Pix from them is a payback first.
+  const paysBack = new Set(
+    matching.pairs.filter((p) => isPayback(p.line)).map((p) => originOf(p.movement.description)),
+  );
+  // Or a person whose name starts like a word of the card's: "Gio" in "Banco Gio".
+  const looksLike = (card: string, m: BankMovement) => {
+    const words = normalizeName(card)
+      .split(" ")
+      .filter((w) => w.length >= 3);
+    return (party(m.description) ?? "").split(" ").some((p) => words.some((w) => p.startsWith(w)));
+  };
+  // The next payback still planned after the money came: what an early Pix pays part of.
+  const paybackAhead = (m: BankMovement) =>
+    matching.free
+      .filter(
+        (l) =>
+          isPayback(l) &&
+          l.date > m.date &&
+          l.amount >= m.amount &&
+          isCardDue(l) &&
+          (paysBack.has(originOf(m.description)) || looksLike(l.description, m)),
+      )
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
+  const isCardDue = (l: SheetLine) =>
+    ledger
+      .find((r) => r.date === l.date)
+      ?.saida.items.some(
+        (i) =>
+          isCardSection(i.section) && normalizeName(i.description) === normalizeName(l.description),
+      ) ?? false;
 
   const items: QueueItem[] = [];
   const push = (item: QueueItem) => {
@@ -284,23 +393,68 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   const bankOf = (...ms: BankMovement[]) =>
     ms.map((m) => ({ date: m.date, amount: m.amount, description: m.description }));
   const inWindow = (m: BankMovement) => m.date >= input.since;
+  const movKey = (m: BankMovement) =>
+    `mov:${m.id ?? `${m.account}|${m.date}|${m.amount}|${m.description}`}`;
+
+  // Moved by the bank days before the planned day, with the same value: the Saldo is off until
+  // that day, so the planned line moves to the bank's day while that day is still ahead. Not a
+  // card's bill or its payback, whose lines stay on the due day.
+  for (const { movement: m, line } of matching.pairs) {
+    if (
+      !inWindow(m) ||
+      savings(m.account) ||
+      m.date >= line.date ||
+      line.date < today ||
+      !days.has(m.date) ||
+      line.column === "diario" ||
+      line.section === "reserva" ||
+      isCardSection(line.section) ||
+      (line.column === "entrada" && others.has(normalizeName(line.description)))
+    )
+      continue;
+    push({
+      key: movKey(m),
+      kind: line.column === "entrada" ? "entrada" : "conta",
+      date: m.date,
+      bank: bankOf(m),
+      options: [
+        {
+          label: "",
+          draft: {
+            type: "fix",
+            line: ref(line),
+            amount: cents(Math.abs(m.amount)),
+            date: m.date,
+            description: line.description,
+          },
+        },
+      ],
+    });
+  }
 
   for (const m of matching.unmatched) {
     if (!inWindow(m) || savings(m.account)) continue;
-    const key = `mov:${m.id ?? `${m.account}|${m.date}|${m.amount}|${m.description}`}`;
+    const key = movKey(m);
     const bank = bankOf(m);
 
     if (m.amount > 0) {
-      // A planned income: the salary arrives net of the deductions planned on its day.
-      const deductions = (date: LocalDate) =>
-        free.filter((f) => f.l.date === date && f.l.column === "saida");
+      // A planned income: the salary arrives net of the deductions planned on its day, or whole
+      // when the bank debits them apart (a class paid that day is no deduction): the closer one.
+      const planned = (f: (typeof free)[number]) => {
+        const cuts = free.filter((d) => d.l.date === f.l.date && d.l.column === "saida");
+        const net = f.l.amount + cuts.reduce((a, d) => a + d.l.amount, 0);
+        return Math.abs(m.amount - net) <= Math.abs(m.amount - f.l.amount)
+          ? { cuts, net }
+          : { cuts: [], net: f.l.amount };
+      };
       const found = free
         .filter(
           (f) =>
             !f.used &&
             f.l.column === "entrada" &&
+            !othersPay(f.l, m) &&
             Math.abs(diffDays(f.l.date, m.date)) <= 7 &&
-            near(f.l.amount - deductions(f.l.date).reduce((a, d) => a - d.l.amount, 0), m.amount),
+            near(planned(f).net, m.amount),
         )
         .sort(
           (a, b) => Math.abs(diffDays(a.l.date, m.date)) - Math.abs(diffDays(b.l.date, m.date)),
@@ -308,9 +462,8 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
       const pick = found[0];
       if (pick) {
         pick.used = true;
-        const cuts = deductions(pick.l.date);
+        const { cuts, net } = planned(pick);
         for (const c of cuts) c.used = true;
-        const net = pick.l.amount + cuts.reduce((a, d) => a + d.l.amount, 0);
         const diff = m.amount - net;
         // Exactly the salary minus its deductions: nothing to launch.
         if (diff === 0 && pick.l.date === m.date) continue;
@@ -350,12 +503,28 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
         });
         continue;
       }
+      const plain = newDraft(m, "entrada", nameOf(m));
+      const back = party(m.description) === null ? undefined : paybackAhead(m);
       push({
         key,
         kind: "entrada",
         date: m.date,
         bank,
-        options: [{ label: "", draft: newDraft(m, "entrada", nameOf(m)) }],
+        options: back
+          ? [
+              {
+                label: "Reembolso adiantado",
+                draft: {
+                  type: "advance",
+                  amount: cents(m.amount),
+                  date: m.date,
+                  description: back.description,
+                  payback: ref(back),
+                },
+              },
+              { label: "Entrada nova", draft: plain },
+            ]
+          : [{ label: "", draft: plain }],
       });
       continue;
     }
@@ -380,6 +549,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
           f.l.column === "saida" &&
           f.l.section !== "reserva" &&
           (known === undefined || sharesWord(known, f.l.description)) &&
+          !othersPay(f.l, m) &&
           Math.abs(diffDays(f.l.date, m.date)) <= 7 &&
           near(f.l.amount, m.amount),
       )
@@ -420,6 +590,71 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
       date: m.date,
       bank,
       options: [{ label: "", draft: newDraft(m, "diario", nameOf(m)) }],
+    });
+  }
+
+  // A bill that came by e-mail and is not paid yet: the line the sheet plans for it takes its
+  // value, so the Saldo ahead is right before the money moves; with none planned, it goes on its
+  // due day. Once the bank shows the payment, or the day passes, the bank says what happened.
+  for (const b of input.mailed ?? []) {
+    const words = new Set(
+      originKey(b.biller)
+        .split(" ")
+        .filter((w) => w.length >= 3),
+    );
+    const named = (text: string) =>
+      originKey(text)
+        .split(" ")
+        .some((w) => words.has(w));
+    // What the sheet calls the bills paid to this biller before, the latest last.
+    const called = matching.pairs
+      .filter((p) => p.line.column === "saida" && p.line.description !== "")
+      .filter((p) => named(p.movement.description))
+      .map((p) => p.line)
+      .sort((x, y) => x.date.localeCompare(y.date))
+      .map((l) => l.description);
+    const theirs = new Set(called.map(normalizeName));
+    const planned = (l: SheetLine) =>
+      l.column === "saida" &&
+      !isCardSection(l.section) &&
+      l.section !== "reserva" &&
+      (named(l.description) || theirs.has(normalizeName(l.description))) &&
+      Math.abs(diffDays(l.date, b.due)) <= MATCH_DAYS;
+    // Paid since the e-mail came: to the biller by name, of the bill's exact value, or matched to
+    // the line planned for it (the bank may call the biller something else).
+    const paid =
+      input.movements.some(
+        (m) =>
+          m.amount < 0 && m.date >= b.arrived && (named(m.description) || m.amount === -b.total),
+      ) || matching.pairs.some((p) => p.movement.date >= b.arrived && planned(p.line));
+    if (b.due < today || paid) continue;
+    const line = matching.free
+      .filter(planned)
+      .sort((x, y) => Math.abs(diffDays(x.date, b.due)) - Math.abs(diffDays(y.date, b.due)))[0];
+    if (line && -line.amount === b.total) continue;
+    // A payment already corrects that line: one item for it, the bank's.
+    const fixed = (d: Draft | null) =>
+      d?.type === "fix" &&
+      line !== undefined &&
+      d.line.date === line.date &&
+      d.line.column === line.column &&
+      d.line.description === line.description;
+    if (items.some((i) => i.options.some((o) => fixed(o.draft)))) continue;
+    const description = line?.description ?? called.at(-1) ?? b.biller;
+    const date = line?.date ?? b.due;
+    push({
+      key: `mail:${normalizeName(b.biller)}:${b.due}:${b.total}`,
+      kind: "conta",
+      date,
+      bank: [{ date: b.due, amount: cents(-b.total), description: `Conta ${b.biller} por e-mail` }],
+      options: [
+        {
+          label: "",
+          draft: line
+            ? { type: "fix", line: ref(line), amount: b.total, date, description }
+            : { type: "new", kind: "conta", amount: b.total, date, description },
+        },
+      ],
     });
   }
 
@@ -496,8 +731,21 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   }
 
   // Card bills: the line follows the bank's total, up always, down once the bill closed.
-  const others = new Set(input.othersCards.map(normalizeName));
-  // Someone else's card is paid back by an Entrada of the same name on the due day: one line.
+  // What someone sent for a bill before its due day, since the previous one: the payback is the rest.
+  const ahead = (card: string, due: LocalDate) => {
+    const { year, month, day } = parts(due);
+    const from = clampedDay(year, month - 1, day);
+    return add(
+      ZERO,
+      ...ledger
+        .filter((r) => r.date > from && r.date < due)
+        .flatMap((r) => r.entrada.items)
+        .filter((i) => normalizeName(i.description) === normalizeName(card))
+        .map((i) => i.amount),
+    );
+  };
+  const rest = (card: string, due: LocalDate, bill: Cents) =>
+    cents(Math.max(0, bill - ahead(card, due)));
   const payback = (card: string, due: LocalDate) => {
     if (!others.has(normalizeName(card))) return undefined;
     const lines = ledger
@@ -507,13 +755,23 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   };
   const byCard = new Map<string, { due: LocalDate; was: Cents; amount: Cents }[]>();
   const onBill = new Map<string, readonly BankCardLine[]>();
-  for (const c of billChecks(ledger, input.cards, input.lines, today, input.closed)) {
+  const gaps = ignoredGaps(input.ignored ?? []);
+  for (const c of billChecks(
+    ledger,
+    input.cards,
+    input.lines,
+    today,
+    input.closed,
+    undefined,
+    gaps,
+  )) {
     // The same rule that marks the bill on Faturas, so every warning there has its item here.
     const moves = c.disagrees;
-    const amount = moves ? c.bank : c.sheet;
+    // The bank's total, less what the owner ignored on this open bill.
+    const amount = moves ? add(c.sheet, c.gap) : c.sheet;
     // A payback that differs from its bill is worth fixing even when the bill itself is right.
     const back = payback(c.card, c.due);
-    if (!moves && (!back || back.amount === amount)) continue;
+    if (!moves && (!back || back.amount === rest(c.card, c.due, amount))) continue;
     const bills = byCard.get(c.card) ?? [];
     bills.push({ due: c.due, was: c.sheet, amount });
     byCard.set(c.card, bills);
@@ -526,7 +784,8 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     // The payback follows the whole bill, not just the change: Gio pays back what her card spent.
     const also = bills.flatMap((b) => {
       const one = payback(card, b.due);
-      return one && one.amount !== b.amount
+      const left = rest(card, b.due, b.amount);
+      return one && one.amount !== left
         ? [
             {
               line: {
@@ -536,7 +795,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
                 description: one.description,
                 amount: one.amount,
               },
-              amount: b.amount,
+              amount: left,
             },
           ]
         : [];
@@ -560,7 +819,7 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     });
     push({
       // A payback left behind after "Só a fatura" is a new item, not the bill already decided.
-      key: `card:${normalizeName(card)}:${bills.map((b) => `${b.due}=${b.amount}`).join(",")}${billChanges ? "" : ":reembolso"}`,
+      key: `card:${normalizeName(card)}:${bills.map((b) => `${b.due}=${b.was}>${b.amount}`).join(",")}${billChanges ? "" : ":reembolso"}`,
       kind: "cartao",
       date: first.due,
       bank: [],
@@ -618,6 +877,16 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   );
 };
 
+/** A planned Entrada or Saída the sheet already counts and the bank has not moved yet. */
+export interface SaldoWaiting {
+  readonly date: LocalDate;
+  readonly column: "entrada" | "saida";
+  /** As in the sheet; a card's bill reads "Fatura" and the card. */
+  readonly description: string;
+  /** As in the sheet, positive. */
+  readonly amount: Cents;
+}
+
 /** Yesterday's Saldo in the sheet against the money in the owner's accounts at the bank. */
 export interface SaldoCheck {
   readonly date: LocalDate;
@@ -627,7 +896,74 @@ export interface SaldoCheck {
   readonly diff: Cents;
   /** Banks not read today, whose balance may be old. */
   readonly stale: readonly string[];
+  /** The lines that are the whole difference, when it is only the bank being late; else none. */
+  readonly waiting: readonly SaldoWaiting[];
 }
+
+/** How many planned lines are tried together to make up the difference. */
+const WAITING_MAX = 10;
+
+/**
+ * Planned lines of the last MATCH_DAYS days up to `date` that no movement stands for yet, whose
+ * sum is the difference: a class planned on payday and paid by Pix days later leaves the money
+ * in the bank meanwhile, and so does a card bill due on a weekend or holiday. The fewest lines
+ * that make it up win.
+ */
+const waitingLines = (
+  ledger: Ledger,
+  movements: readonly BankMovement[],
+  today: LocalDate,
+  date: LocalDate,
+  diff: Cents,
+): SaldoWaiting[] => {
+  if (diff === 0) return [];
+  // What the bank moved after `date` was still in the account then: a class paid today was
+  // waiting yesterday.
+  const moved = movements.filter((m) => diffDays(m.date, date) >= 0);
+  // Bill payments never pair with a sheet line, so a card's bill stays free once paid too: it is
+  // paid when a debit within MATCH_DAYS is its amount, or all that day's bills in one go.
+  const billPaid = (l: SheetLine) => {
+    const day = ledger.find((r) => r.date === l.date)?.saida.items ?? [];
+    const allBills = cents(
+      -add(ZERO, ...day.filter((i) => isCardSection(i.section)).map((i) => i.amount)),
+    );
+    return moved.some(
+      (m) =>
+        m.amount < 0 &&
+        Math.abs(diffDays(l.date, m.date)) <= MATCH_DAYS &&
+        (m.amount === l.amount || m.amount === allBills),
+    );
+  };
+  const lines = matchMovements(ledger, moved, today)
+    .free.filter(
+      (l) =>
+        l.column !== "diario" &&
+        !(isCardSection(l.section) && billPaid(l)) &&
+        l.section !== "reserva" &&
+        diffDays(l.date, date) >= 0 &&
+        diffDays(l.date, date) < MATCH_DAYS,
+    )
+    .slice(-WAITING_MAX);
+  const bits = (n: number) => n.toString(2).replaceAll("0", "").length;
+  const masks = Array.from({ length: 2 ** lines.length - 1 }, (_, i) => i + 1).sort(
+    (a, b) => bits(a) - bits(b) || a - b,
+  );
+  for (const mask of masks) {
+    const pick = lines.filter((_, i) => mask & (1 << i));
+    // A Saída the bank has not paid yet leaves more in the bank than the sheet says.
+    if (pick.reduce((s, l) => s - l.amount, 0) === diff)
+      return pick.map((l) => ({
+        date: l.date,
+        column: l.column === "entrada" ? "entrada" : "saida",
+        description:
+          isCardSection(l.section) && !/^fatura\b/i.test(l.description)
+            ? `Fatura ${l.description}`
+            : l.description,
+        amount: cents(Math.abs(l.amount)),
+      }));
+  }
+  return [];
+};
 
 export const saldoCheck = (
   ledger: Ledger,
@@ -639,16 +975,19 @@ export const saldoCheck = (
     /** What the account moved today: in the balance, not yet in yesterday's Saldo. */
     readonly today?: Cents;
   }[],
+  movements: readonly BankMovement[] = [],
 ): SaldoCheck | null => {
   const date = addDays(today, -1);
   const sheet = ledger.find((r) => r.date === date)?.saldo;
   if (sheet === null || sheet === undefined || balances.length === 0) return null;
   const bank = add(ZERO, ...balances.map((b) => sub(b.balance, b.today ?? ZERO)));
+  const diff = sub(bank, sheet);
   return {
     date,
     sheet,
     bank,
-    diff: sub(bank, sheet),
+    diff,
     stale: [...new Set(balances.filter((b) => b.readOn !== today).map((b) => b.label))],
+    waiting: waitingLines(ledger, movements, today, date, diff),
   };
 };

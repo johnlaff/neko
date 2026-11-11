@@ -164,7 +164,50 @@ describe("bills: what the bank already knows against what the sheet expects", ()
       ]);
     });
 
-    it("says nothing when neither adds up, rather than guess each card's share", () => {
+    const holder = (lines: BankCardLine[], total: number) =>
+      billChecks(shared, [visa, gio], lines, today, [
+        { ...closed[0]!, total: cents(total), holder: "Visa" },
+      ]).map((c) => [c.card, c.bank, c.gap]);
+    // A purchase on the bill before, so the feed already ran when this bill's cycle began (Oct 3).
+    const before = line(5000, "2026-10", { date: localDate("2026-09-20") });
+
+    it("puts what the bank's lines miss on the holder's card when neither adds up", () => {
+      // The feed left out 10,00 the bill has: the holder answers for the bill, so it goes there.
+      expect(
+        holder(
+          [before, line(31000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })],
+          42000,
+        ),
+      ).toEqual([
+        ["Visa", 32000, 2000],
+        ["Visa Gio", 10000, 0],
+      ]);
+      // A credit the feed left out lowers the holder's part the same way.
+      expect(
+        holder(
+          [before, line(31000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })],
+          39000,
+        ),
+      ).toEqual([
+        ["Visa", 29000, -1000],
+        ["Visa Gio", 10000, 0],
+      ]);
+    });
+
+    it("says nothing when the feed began midway through the bill's cycle", () => {
+      // Linked on Oct 25: the few lines it has are no split, the holder would take nearly all.
+      expect(
+        holder(
+          [
+            line(31000, "2026-11", { date: localDate("2026-10-26") }),
+            line(10000, "2026-11", { card: "Visa Gio", date: localDate("2026-10-27") }),
+          ],
+          42000,
+        ),
+      ).toEqual([]);
+    });
+
+    it("says nothing when neither adds up and no card is the holder's", () => {
       expect(
         gaps([line(31000, "2026-11"), line(10000, "2026-11", { card: "Visa Gio" })], 42000),
       ).toEqual([]);
@@ -247,6 +290,26 @@ describe("bills: what the bank already knows against what the sheet expects", ()
     );
     expect(checks).toMatchObject([{ due: "2026-10-10", bank: 1000, disagrees: false }]);
     expect(checks[0]?.lines.map((l) => l.description)).toEqual(["PADARIA"]);
+  });
+
+  it("reads a bill already due where the sheet wrote it, off the due day", () => {
+    // Paid late: the sheet carries Oct's 10,00 on Oct 13. Nov is still to pay: its due day only.
+    const late = ledger("2026-10-01", 92, 0, {
+      "2026-10-13": { saida: cell(1000, [item(1000, "Visa")]) },
+      "2026-11-17": { saida: cell(2000, [item(2000, "Visa")]) },
+    });
+    const checks = billChecks(
+      late,
+      [visa],
+      [line(1000, "2026-10"), line(2000, "2026-11")],
+      localDate("2026-10-20"),
+      [{ cards: ["Visa"], billMonth: "2026-10", total: cents(1000) }],
+      localDate("2026-06-01"),
+    );
+    expect(checks.map((c) => [c.due, c.sheet, c.gap])).toEqual([
+      ["2026-10-10", 1000, 0],
+      ["2026-11-10", 0, 2000],
+    ]);
   });
 
   it("leaves out bills already due and cards the sheet does not know", () => {

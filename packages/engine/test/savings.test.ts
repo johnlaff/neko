@@ -92,4 +92,43 @@ describe("project → saving", () => {
     // November has neither diário nor a card bill: its balances would make the saving too big.
     expect(project(l, localDate("2026-10-05"), settings).saving).toBeNull();
   });
+
+  const itau = { name: "Itau", dueDay: 10, closingDay: 3, closingEstimated: false };
+  const gio = { name: "Gio", dueDay: 12, closingDay: 5, closingEstimated: false };
+
+  it("keeps back what the ceiling still lets the bills ahead take", () => {
+    const l = ledger("2026-10-01", 92, 2_000_00, {
+      "2026-10-20": { entrada: cell(3_000_00, [item(3_000_00, "Salário")]) },
+      "2026-11-10": { saida: cell(500_00, [item(500_00, "Itau")]) },
+      "2026-12-10": { saida: cell(500_00, [item(500_00, "Itau")]) },
+    });
+    const today = localDate("2026-10-05");
+    // The sheet alone: lowest 4.000 on 10/12, so 3.500 to save.
+    expect(project(l, today, { ...settings, cards: [itau] }).saving?.amount).toBe(3_500_00);
+    // With a 1.500 ceiling each of those bills still takes 1.000: 2.000 at the lowest.
+    const s = project(l, today, { ...settings, cards: [itau], cycleBudget: cents(1_500_00) });
+    expect(s.saving).toMatchObject({
+      amount: 1_500_00,
+      lowest: 2_000_00,
+      lowestDate: "2026-12-10",
+    });
+  });
+
+  it("holds nothing back for bills already past the ceiling or someone else's card", () => {
+    const l = ledger("2026-10-01", 92, 2_000_00, {
+      "2026-10-20": { entrada: cell(3_000_00, [item(3_000_00, "Salário")]) },
+      "2026-11-10": { saida: cell(2_000_00, [item(2_000_00, "Itau")]) },
+      "2026-12-10": { saida: cell(500_00, [item(500_00, "Itau")]) },
+      "2026-12-12": { saida: cell(800_00, [item(800_00, "Gio")]) },
+    });
+    const s = project(l, localDate("2026-10-05"), {
+      ...settings,
+      cards: [itau, gio],
+      othersCards: ["Gio"],
+      cycleBudget: cents(1_500_00),
+    });
+    // November is over the ceiling already; December's own bill takes 1.000 more, Gio's nothing:
+    // the sheet's 1.700 on 12/12 is 700.
+    expect(s.saving).toMatchObject({ lowest: 700_00, lowestDate: "2026-12-12" });
+  });
 });

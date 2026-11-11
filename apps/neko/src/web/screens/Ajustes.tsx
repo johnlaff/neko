@@ -189,11 +189,11 @@ const Form = ({
           {previsto === null && (
             <label className="setting">
               <span className="label">
-                Teto das faturas
+                Teto do mês
                 <span className={shows("budget", badMoney(v.budget)) ? "sub error" : "sub"}>
                   {shows("budget", badMoney(v.budget))
                     ? "Use um valor como 2.500,00"
-                    : "Faturas do mês que vem, todos os seus cartões"}
+                    : "Cartões e Pix, sem as contas da planilha"}
                 </span>
               </span>
               <span className="affix">

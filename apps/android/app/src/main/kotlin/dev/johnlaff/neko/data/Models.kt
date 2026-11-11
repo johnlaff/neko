@@ -128,7 +128,10 @@ data class QueueItem(
 @Serializable
 data class BillPurchases(val due: String, val exact: Boolean, val lines: List<BankLine>, val total: Long = 0)
 
-/** `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. */
+/**
+ * `diff` is bank − sheet; `draft` launches it on `date`, named by the owner. `waiting`: the planned
+ * lines that are the whole difference, when the bank only has not moved them yet (no draft then).
+ */
 @Serializable
 data class SaldoView(
     val date: String,
@@ -136,8 +139,13 @@ data class SaldoView(
     val bank: Long,
     val diff: Long,
     val stale: List<String> = emptyList(),
+    val waiting: List<SaldoWaiting> = emptyList(),
     val draft: JsonObject? = null,
 )
+
+/** A planned Entrada or Saída the sheet already counts and the bank has not moved yet (engine queue.ts). */
+@Serializable
+data class SaldoWaiting(val date: String, val column: String, val description: String, val amount: Long)
 
 /** What a launch or an undo did (worker/writer.ts CommitResult). */
 @Serializable
@@ -198,7 +206,7 @@ data class CanSpend(
     val pace: String,
     /**
      * "cycle": the usual card's bill. "month": with the Diário previsto on, cards and Pix against it.
-     * "cards": next month's bills on all the owner's cards against their ceiling.
+     * "cards": next month's bills on all the owner's cards and this month's Pix against the ceiling.
      */
     val mode: String = "cycle",
     /** In month mode, how many days without spending bring the month back to the Diário. */
@@ -210,6 +218,9 @@ data class CanSpend(
     val left: Long,
     /** In cards mode, the last mark of the ceiling reached: 0, 50, 75 or 100. */
     val used: Int = 0,
+    /** In cards mode, `accumulated` in its two parts: next month's bills and this month's Pix. */
+    val bills: Long = 0,
+    val pix: Long = 0,
 )
 
 @Serializable
@@ -284,6 +295,28 @@ data class Reminder(val title: String, val body: String, val url: String, val ta
 
 @Serializable
 data class RemindersView(val morning: Reminder? = null, val evening: Reminder? = null)
+
+/**
+ * POST /api/statement: the bank's bill PDF read and kept, with the lines it added to what Open
+ * Finance sent; or why it was not kept (`mismatch`, `unreadable`, `account`, `paused`).
+ */
+@Serializable
+data class StatementAnswer(
+    val read: Boolean,
+    val due: String? = null,
+    val cards: Int = 0,
+    val lines: Int = 0,
+    val added: List<StatementLine> = emptyList(),
+    val reason: String? = null,
+    val problems: List<StatementProblem> = emptyList(),
+    val pausedUntil: String? = null,
+)
+
+@Serializable
+data class StatementLine(val card: String, val description: String, val amount: Long)
+
+@Serializable
+data class StatementProblem(val card: String? = null, val printed: Long, val read: Long)
 
 /** GET /api/mia: whether Mia is on and how much of the month's cap is spent (specs/004-mia). */
 @Serializable

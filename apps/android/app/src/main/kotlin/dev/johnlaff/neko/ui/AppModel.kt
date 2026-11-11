@@ -21,6 +21,7 @@ import dev.johnlaff.neko.data.MiaAsk
 import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MiaStatus
 import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.data.StatementAnswer
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.data.UserSettings
@@ -321,6 +322,29 @@ class AppModel(
         override suspend fun keepPrevisto() {
             neko.api.keepPrevisto()
             readToday(shown = false, after = true)
+        }
+    }
+
+    /** Faturas › "Ler a fatura do banco", kept here: leaving the screen during the read loses nothing. */
+    val statement = StatementRead()
+
+    /** Reads the bank's bill PDF (base64); a kept read shows on the bills at once. */
+    fun readStatement(pdf: String) {
+        if (statement.reading) return
+        statement.reading = true
+        statement.answer = null
+        statement.failed = null
+        viewModelScope.launch {
+            try {
+                val answer = neko.api.readStatement(pdf)
+                statement.answer = answer
+                if (answer.read) read(Tab.Faturas, shown = false, after = true)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                statement.failed = reasonOf(e)
+            } finally {
+                statement.reading = false
+            }
         }
     }
 

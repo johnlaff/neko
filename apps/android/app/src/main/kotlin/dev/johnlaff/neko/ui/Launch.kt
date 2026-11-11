@@ -743,12 +743,14 @@ private fun Saldo(s: SaldoView, v: TodayView, launcher: Launcher?, onLaunched: (
     val l = LocalLedger.current
     var fixing by rememberSaveable { mutableStateOf(false) }
     val even = s.diff == 0L
+    // Only the bank being late with planned lines: nothing to launch, so nothing to fix either.
+    val settled = even || s.waiting.isNotEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (even) Icon(CheckIcon, contentDescription = null, tint = l.pos, modifier = Modifier.size(22.dp))
+            if (settled) Icon(CheckIcon, contentDescription = null, tint = l.pos, modifier = Modifier.size(22.dp))
             Text(
-                if (even) "Tudo lançado" else "${if (s.diff > 0) "Faltam" else "Sobram"} ${money(kotlin.math.abs(s.diff))} na planilha",
-                color = if (even) l.pos else l.warn,
+                if (settled) "Tudo lançado" else "${if (s.diff > 0) "Faltam" else "Sobram"} ${money(kotlin.math.abs(s.diff))} na planilha",
+                color = if (settled) l.pos else l.warn,
                 style = MaterialTheme.typography.headlineSmall,
             )
         }
@@ -763,6 +765,8 @@ private fun Saldo(s: SaldoView, v: TodayView, launcher: Launcher?, onLaunched: (
             }
         }
         Text("Conferido até o fim de ${shortDate(s.date)}${if (even) ": bate com o banco." else "."}", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        if (s.waiting.isNotEmpty())
+            Text(Format.waitingText(s.waiting), color = l.muted, style = MaterialTheme.typography.bodyMedium)
         if (s.stale.isNotEmpty())
             Text("Sem atualizar hoje: ${s.stale.joinToString(", ")}. O saldo pode estar velho.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
         val draft = s.draft

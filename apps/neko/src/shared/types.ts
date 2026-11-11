@@ -223,6 +223,38 @@ export interface BanksResponse {
   }[];
 }
 
+/**
+ * POST /api/statement: the bank's bill PDF read and kept, with the lines it added to what Open
+ * Finance sent; or why it was not kept.
+ */
+export type StatementAnswer =
+  | {
+      readonly read: true;
+      readonly due: string;
+      readonly cards: number;
+      readonly lines: number;
+      readonly added: readonly {
+        readonly card: string;
+        readonly description: string;
+        readonly amount: number;
+      }[];
+    }
+  | {
+      readonly read: false;
+      /**
+       * `mismatch`: a card's lines do not make the total it prints (`problems` says which);
+       * `unreadable`: no read came out (a password or a damaged file); `account`: no linked card
+       * account has these card numbers; `paused`: the month's AI budget is spent.
+       */
+      readonly reason: "mismatch" | "unreadable" | "account" | "paused";
+      readonly problems?: readonly {
+        readonly card: string | null;
+        readonly printed: number;
+        readonly read: number;
+      }[];
+      readonly pausedUntil?: string;
+    };
+
 /** GET /api/mia: whether Mia is on and how much of the month's cap is spent. */
 export interface MiaStatus {
   readonly ligada: boolean;

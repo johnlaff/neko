@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  addDays,
   cents,
   inferCards,
   isCardItem,
@@ -40,10 +41,11 @@ const read = () => {
 
 describe.runIf(available)("the real sheet", () => {
   const { today, ledger, projection } = available ? read() : ({} as ReturnType<typeof read>);
-  it("reads both year tabs, one row per day", () => {
-    expect(ledger).toHaveLength(365 + 365);
+  it("reads every year tab, one row per day", () => {
     expect(ledger[0]?.date).toBe("2025-01-01");
-    expect(ledger.at(-1)?.date).toBe("2026-12-31");
+    expect(ledger.at(-1)?.date.endsWith("-12-31")).toBe(true);
+    for (const [i, row] of ledger.entries())
+      if (i > 0) expect(row.date, row.date).toBe(addDays(ledger[i - 1]?.date ?? row.date, 1));
   });
   it("has no health issues: every note adds up and every saldo follows the chain", () => {
     expect(projection.health).toEqual([]);

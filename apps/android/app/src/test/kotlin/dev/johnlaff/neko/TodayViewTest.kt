@@ -129,13 +129,13 @@ class TodayViewTest {
         assertEquals(true, t.days.first().income)
     }
 
-    @Test fun widgetLeadsWithWhatStillFitsUnderTheCardsCeiling() {
+    @Test fun widgetLeadsWithWhatStillFitsUnderTheMonthsCeiling() {
         val cards = view.canSpend!!.copy(mode = "cards", budget = 350_000, accumulated = 100_000, left = 250_000, used = 0, pace = "on-pace", due = "2026-11-30")
         val t = widgetText(view.copy(canSpend = cards))
         assertEquals("Ainda cabem", t.caption)
         assertEquals(dev.johnlaff.neko.ui.Format.money(250_000), t.figure)
-        assertEquals("nas faturas de novembro", t.footer)
-        assertEquals("Faturas", t.billLabel)
+        assertEquals("em cartões e Pix", t.footer)
+        assertEquals("Cartões e Pix", t.billLabel)
         val past = cards.copy(accumulated = 210_000, left = 0, overBy = 10_000, used = 100, pace = "over")
         assertEquals("Passou do teto", widgetText(view.copy(canSpend = past)).caption)
     }

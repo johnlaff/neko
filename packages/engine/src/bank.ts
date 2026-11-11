@@ -26,6 +26,8 @@ export interface BankCardLine {
   readonly installments: number | null;
   /** The day of the charge, as the bank dates it; absent in data read before it was kept. */
   readonly date?: LocalDate;
+  /** Only on the bank's own bill: the feed left it out (statement.ts). */
+  readonly fromStatement?: boolean;
 }
 
 /** One future bill: what the bank already has on it and what the sheet expects. */
@@ -37,7 +39,10 @@ export interface BillCheck {
   /** Of those, the parcels of earlier purchases. */
   readonly parcels: Cents;
   readonly sheet: Cents;
-  /** bank − sheet: positive means the sheet expects less than is already committed. */
+  /**
+   * bank − sheet: positive means the sheet expects less than is already committed. On an open
+   * bill, less what the owner already ignored on it (`ignoredGaps`).
+   */
   readonly gap: Cents;
   /** The bank closed this bill: its amount is final. */
   readonly closed: boolean;
@@ -60,7 +65,12 @@ export interface ClosedBill {
   /** Due month, `YYYY-MM`. */
   readonly billMonth: string;
   readonly total: Cents;
+  /** The holder's card among `cards`: it answers for what the bank's lines leave out. */
+  readonly holder?: string;
 }
+
+const isHolder = (b: ClosedBill, card: CardConfig) =>
+  b.holder !== undefined && normalizeName(b.holder) === normalizeName(card.name);
 
 /** A card account also shows the payment of the previous bill; that is not a charge. */
 const PAYMENT = /\bpagamento|\bpagto|\bpgto/i;
@@ -132,7 +142,9 @@ export const OPEN_BILL_MIN = 100;
  * Each bill still to come, per card the sheet knows: the bank's sum, with the parcels still owed,
  * against the sheet's line on the due day. A bill already due is history and stays out, unless
  * `since` asks for the ones due from that day on (to show what the bank had on them; they never
- * disagree). One past the sheet's last tab stays out too.
+ * disagree). One past the sheet's last tab stays out too. `ignored`, by `card|due` (normalized
+ * card name), is what the owner said an open bill has that is not real: only what the bank adds
+ * after it counts. A closed bill's total is final and needs none of it.
  */
 export const billChecks = (
   ledger: Ledger,
@@ -141,6 +153,7 @@ export const billChecks = (
   today: LocalDate,
   closed: readonly ClosedBill[] = [],
   since?: LocalDate,
+  ignored: ReadonlyMap<string, Cents> = new Map(),
 ): BillCheck[] => {
   const byCard = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const groups = new Map<string, { card: CardConfig; month: string; lines: BankCardLine[] }>();
@@ -154,7 +167,17 @@ export const billChecks = (
   }
   // A closed bill counts by its total, even when the bank listed only part of it. Shared by a
   // holder and additional cards, the total says nothing of each one's share: the sheet's split
-  // stands when its sum is the total, the bank's lines when theirs is, and otherwise neither.
+  // stands when its sum is the total, the bank's lines when theirs is, and otherwise each card
+  // keeps its lines and the holder's card takes the rest, as a reconciliation adjustment would.
+  // Without a known holder, neither. Nor when the feed began midway through the bill's cycle: its
+  // few lines are no split, and the holder would take nearly the whole bill.
+  const firstSeen = new Map<string, LocalDate>();
+  for (const l of lines) {
+    const key = normalizeName(l.card);
+    if (!l.date || isParcel(l) || isCardPayment(l)) continue;
+    const seen = firstSeen.get(key);
+    if (seen === undefined || l.date < seen) firstSeen.set(key, l.date);
+  }
   const totals = new Map<string, Cents>();
   const unsure = new Set<string>();
   const closedKeys = new Set<string>();
@@ -166,16 +189,32 @@ export const billChecks = (
       const key = `${normalizeName(card.name)}|${b.billMonth}`;
       closedKeys.add(key);
       const [y = 0, m = 0] = b.billMonth.split("-").map(Number);
-      const sheet = billOnSheet(ledger, card, cycleForDueMonth(card, y, m).due);
+      const { due } = cycleForDueMonth(card, y, m);
+      const sheet = billOnSheet(ledger, card, due, due <= today);
       if (!groups.has(key)) groups.set(key, { card, month: b.billMonth, lines: [] });
-      return [{ key, sheet, lines: sum(groups.get(key)?.lines ?? []) }];
+      const seen = firstSeen.get(normalizeName(card.name));
+      // A purchase dated on or before the cycle's start: the feed saw the whole cycle.
+      const covered = seen !== undefined && seen <= cycleForDueMonth(card, y, m).start;
+      return [
+        {
+          key,
+          sheet,
+          lines: sum(groups.get(key)?.lines ?? []),
+          holder: isHolder(b, card),
+          covered,
+        },
+      ];
     });
     const [only] = shared;
+    const lines = add(ZERO, ...shared.map((c) => c.lines));
+    const holder = shared.find((c) => c.holder);
     if (shared.length === 1 && only) totals.set(only.key, b.total);
     else if (add(ZERO, ...shared.map((c) => c.sheet ?? ZERO)) === b.total)
       for (const c of shared) totals.set(c.key, c.sheet ?? ZERO);
-    else if (add(ZERO, ...shared.map((c) => c.lines)) !== b.total)
-      for (const c of shared) unsure.add(c.key);
+    else if (lines === b.total) continue;
+    else if (holder && shared.some((c) => c.covered))
+      totals.set(holder.key, add(holder.lines, sub(b.total, lines)));
+    else for (const c of shared) unsure.add(c.key);
   }
   const out: BillCheck[] = [];
   for (const [key, { card, month, lines: ls }] of groups) {
@@ -187,10 +226,11 @@ export const billChecks = (
     if (past && (since === undefined || due < since)) continue;
     const bank = totals.get(key) ?? sum(ls);
     const parcels = add(ZERO, ...ls.filter(isParcel).map((l) => l.amount));
-    const sheet = billOnSheet(ledger, card, due);
+    const sheet = billOnSheet(ledger, card, due, past);
     if (sheet === null) continue;
-    const gap = sub(bank, sheet);
     const closed = closedKeys.has(key);
+    const off = closed ? ZERO : (ignored.get(`${normalizeName(card.name)}|${due}`) ?? ZERO);
+    const gap = sub(sub(bank, off), sheet);
     out.push({
       card: card.name,
       due,
@@ -374,7 +414,7 @@ export interface Matching {
  * Who a Pix or TED went to or came from, as the bank writes it after "Pix enviado" or "Pix
  * recebido"; null for anything else, or for a name too short to tell people apart.
  */
-const party = (description: string): string | null => {
+export const party = (description: string): string | null => {
   const m = normalizeName(description).match(
     /^(?:pix|ted|transferencia)\s+(?:enviad[oa]|recebid[oa])\s+(?:-\s*(?:des|rem):?\s+)?([a-z ]+)/,
   );
@@ -390,6 +430,10 @@ const self = (description: string): string | null => {
   const [first, second, third] = party(description)?.split(" ") ?? [];
   return third ? `${first} ${second} ${third[0]}` : null;
 };
+
+/** Who a movement is with: the person of a Pix however each bank writes it, else its text. */
+export const originOf = (description: string): string =>
+  self(description) ?? originKey(description);
 
 /**
  * The bank's account movements against the sheet. A movement matches a sheet line of the same

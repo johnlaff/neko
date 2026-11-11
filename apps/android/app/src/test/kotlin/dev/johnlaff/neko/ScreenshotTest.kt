@@ -19,6 +19,8 @@ import dev.johnlaff.neko.data.json
 import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MonthsView
+import dev.johnlaff.neko.data.StatementAnswer
+import dev.johnlaff.neko.data.StatementLine
 import dev.johnlaff.neko.ui.AjustesScreen
 import dev.johnlaff.neko.ui.RemindersSwitch
 import dev.johnlaff.neko.ui.LockScreen
@@ -29,6 +31,7 @@ import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.MiaChat
 import dev.johnlaff.neko.ui.MiaScreen
 import dev.johnlaff.neko.ui.SaveState
+import dev.johnlaff.neko.ui.StatementRead
 import dev.johnlaff.neko.ui.Simulator
 import dev.johnlaff.neko.ui.ScreenState
 import dev.johnlaff.neko.ui.LoginScreen
@@ -89,8 +92,16 @@ class ScreenshotTest {
     private fun banked(file: String) =
         File("src/test/resources/$file").readText().replace("Cartão Azul", "Nubank").replace("Cartão Verde", "Itaú")
 
+    // With the bank's bill PDF option under the cards, after a read that brought two lines.
     @Test fun logosFaturasLight() = shot("logos-faturas-light", night = false, scrollTo = "Cartões") {
-        FaturasScreen(ScreenState(json.decodeFromString(InvoicesView.serializer(), banked("invoices.json"))), {}, {})
+        val read = StatementAnswer(
+            read = true, due = "2026-10-12", cards = 2, lines = 23,
+            added = listOf(StatementLine("Nubank", "AJUSTE A CREDITO", -15990), StatementLine("Itaú", "PET SHOP CENTRO", 7566)),
+        )
+        FaturasScreen(
+            ScreenState(json.decodeFromString(InvoicesView.serializer(), banked("invoices.json"))), {}, {},
+            statement = StatementRead(read),
+        )
     }
 
     @Test fun logosMesDark() = shot("logos-mes-dark", night = true, scrollTo = "Para onde foi") {
@@ -151,6 +162,15 @@ class ScreenshotTest {
         HojeScreen(TodayState(view.copy(canSpend = cycle, previsto = null)), {}, {})
     }
 
+    @Test fun tetoHojeLight() = shot("teto-hoje-light", night = false) {
+        // The month's ceiling: next month's bills and this month's Pix under it.
+        val teto = view.canSpend!!.copy(
+            mode = "cards", pace = "on-pace", budget = 250_000, budgetSource = "configured",
+            accumulated = 60_000, bills = 45_000, pix = 15_000, left = 190_000, overBy = 0, used = 0, due = "2026-11-30",
+        )
+        HojeScreen(TodayState(view.copy(canSpend = teto, previsto = null)), {}, {})
+    }
+
     @Test fun proximosDark() = shot("proximos-dark", night = true, scrollTo = "Próximos 7 dias") {
         HojeScreen(TodayState(view), {}, {})
     }
@@ -179,6 +199,17 @@ class ScreenshotTest {
 
     @Test fun saldoHojeDark() = shot("saldo-hoje-dark", night = true, scrollTo = "Para lançar") {
         HojeScreen(TodayState(view.copy(queue = emptyList())), {}, {}, launcher = Fakes.launcher)
+    }
+
+    // A class the sheet planned and the bank has not paid yet: nothing to launch, the line named.
+    @Test fun saldoEsperandoLight() = shot("saldo-esperando-light", night = false, scrollTo = "Para lançar") {
+        val saldo = view.saldo!!.let {
+            it.copy(
+                bank = it.sheet + 23_200, diff = 23_200, draft = null,
+                waiting = listOf(dev.johnlaff.neko.data.SaldoWaiting("2026-10-04", "saida", "Aulas de inglês", 23_200)),
+            )
+        }
+        HojeScreen(TodayState(view.copy(queue = emptyList(), saldo = saldo)), {}, {}, launcher = Fakes.launcher)
     }
 
     @Test fun lancarDark() = shot("lancar-dark", night = true) {
