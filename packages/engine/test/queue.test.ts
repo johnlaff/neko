@@ -332,6 +332,25 @@ describe("Para lançar: account movements", () => {
     expect(same).toMatchObject({ kind: "conta", date: "2026-10-17" });
   });
 
+  it("corrects a planned bill far below the real one when the sheet already names this payee so", () => {
+    // Last month's tuition was launched as paid; this month's is planned at an old, lower value.
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-10-10": { saida: cell(43060, [item(43060, "Faculdade", "contas")]) },
+      "2026-11-10": { saida: cell(31212, [item(31212, "Faculdade", "contas")]) },
+    });
+    const items = queue({
+      ledger: days,
+      today: d("2026-11-10"),
+      movements: [
+        mov("2026-10-10", -43060, "PIX QR CODE DINAMICO - DES: FACULDADE X 10/10"),
+        mov("2026-11-10", -43060, "PIX QR CODE DINAMICO - DES: FACULDADE X 10/11"),
+      ],
+    });
+    expect(items.map((i) => [i.date, i.kind, i.options[0]?.draft])).toMatchObject([
+      ["2026-11-10", "conta", { type: "fix", amount: 43060, description: "Faculdade" }],
+    ]);
+  });
+
   it("does not take a planned bill for a payment the sheet already names as something else", () => {
     // The same person gets a ride paid each month; a bill of near value is planned that week.
     const days = ledger("2026-10-01", 92, 0, {
