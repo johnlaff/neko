@@ -241,6 +241,24 @@ describe("Ainda cabem with the Diário previsto", () => {
     });
   });
 
+  it("counts the month's unplanned Pix with the bills under the same ceiling", () => {
+    const p = project(ledger("2026-10-01", 92, 0), today, {
+      ...settings,
+      cycleBudget: cents(380000),
+      cardsSpent: cents(200000),
+      pixSpent: cents(95000),
+    });
+    expect(p.canSpend).toMatchObject({
+      mode: "cards",
+      budget: 380000,
+      accumulated: 295000,
+      bills: 200000,
+      pix: 95000,
+      left: 85000,
+      used: 75,
+    });
+  });
+
   it("marks 50, 75 and 100% of the ceiling, and nothing left past it", () => {
     expect(
       [0, 49_99, 50_00, 74_99, 75_00, 99_99, 100_00, 130_00].map((s) =>

@@ -1,6 +1,7 @@
 import { checkBalances } from "./balance.ts";
 import { type Fixed, monthFixed, monthOutflows, type Outflow, UNITEMIZED } from "./breakdown.ts";
 import {
+  billLines,
   billOnSheet,
   type CardConfig,
   type Cycle,
@@ -17,7 +18,7 @@ import type { CellRef, Ledger, NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, divFloor, mul, sub, ZERO } from "./money.ts";
 import { type MonthRecap, monthRecap } from "./recap.ts";
 import { type Reserve, reserve, type YearTotals, yearTotals } from "./reserve.ts";
-import { type Saving, saveable } from "./savings.ts";
+import { ceilingHeld, type Saving, saveable } from "./savings.ts";
 import { type DayMove, type ThermoDay, thermometer } from "./thermometer.ts";
 
 export interface Settings {
@@ -26,9 +27,9 @@ export interface Settings {
   /** Card whose cycle sets the pace in "Ainda cabem". Null: the card with the largest bills. */
   readonly usualCard: string | null;
   /**
-   * The ceiling for the owner's bills due next month (all his cards, not someone else's). With the
-   * bank (`cardsSpent`) Hoje shows what still fits on those bills; without it, the usual card's
-   * cycle. Null: diário × days in the cycle.
+   * The month's ceiling: the owner's bills due next month (all his cards, not someone else's) and
+   * this month's Pix the sheet did not plan. With the bank (`cardsSpent`, `pixSpent`) Hoje shows
+   * what still fits; without it, the usual card's cycle. Null: diário × days in the cycle.
    */
   readonly cycleBudget: Cents | null;
   /**
@@ -36,6 +37,8 @@ export interface Settings {
    * subscriptions (`cardsBillSpend`). Null without a bank.
    */
   readonly cardsSpent?: Cents | null;
+  /** Pix, debit and cash this month that nothing in the sheet planned (`variableSpend`). */
+  readonly pixSpent?: Cents | null;
   readonly cards: readonly CardConfig[];
   /** Cards someone else pays (e.g. a partner's card): left out of your spending pace. */
   readonly othersCards: readonly string[];
@@ -97,6 +100,9 @@ export interface CanSpend {
   readonly daysBehind: number;
   /** `cards`: the last mark of the ceiling the month reached, for the 50/75/100% warnings. */
   readonly used?: 0 | 50 | 75 | 100;
+  /** `cards`: `accumulated` in its two parts, next month's bills and this month's Pix. */
+  readonly bills?: Cents;
+  readonly pix?: Cents;
 }
 
 /** The last of 50%, 75% and 100% of the ceiling that the spending reached; 0 below half. */
@@ -433,7 +439,6 @@ const invoiceMonths = (
   others: ReadonlySet<string>,
   reimbursed: ReadonlySet<NoteItem>,
 ): InvoiceMonth[] => {
-  const byDate = new Map(ledger.map((r) => [r.date, r]));
   const { year, month } = parts(today);
   const out: InvoiceMonth[] = [];
   for (let k = -INVOICE_MONTHS_BACK; k <= INVOICE_MONTHS_AHEAD; k++) {
@@ -443,9 +448,10 @@ const invoiceMonths = (
     let known = false;
     for (const card of cards) {
       const cycle = cycleForDueMonth(card, y, m);
-      const amount = billOnSheet(ledger, card, cycle.due);
-      if (amount === null) continue;
+      const items = billLines(ledger, card, cycle.due, cycle.due <= today);
+      if (items === null) continue;
       known = true;
+      const amount = add(ZERO, ...items.map((i) => i.amount));
       if (amount === 0) continue;
       const key = normalizeName(card.name);
       const state = billState(cycle, today);
@@ -456,12 +462,7 @@ const invoiceMonths = (
         state,
         closesInDays: state === "open" ? diffDays(today, cycle.closing) + 1 : 0,
         closingEstimated: card.closingEstimated,
-        reimbursed:
-          byDate
-            .get(cycle.due)
-            ?.saida.items.some(
-              (it) => reimbursed.has(it) && normalizeName(it.description) === key,
-            ) ?? false,
+        reimbursed: items.some((it) => reimbursed.has(it)),
         others: others.has(key),
       });
     }
@@ -546,13 +547,14 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       daysBehind: paceGap < 0 ? Math.ceil(-paceGap / previsto.value) : 0,
     };
   } else if (settings.cycleBudget !== null && settings.cardsSpent != null) {
-    // Next month's bills on all the owner's cards: what the bank already put on them against the
-    // ceiling. Parcels and subscriptions sit on a bill from the start, so there is no even pace:
-    // the dot stands where the bills are.
+    // Next month's bills on all the owner's cards and this month's unplanned Pix: what the bank
+    // already shows against the ceiling. Parcels and subscriptions sit on a bill from the start, so
+    // there is no even pace: the dot stands where the spending is.
     const { year, month, day } = parts(today);
     const monthDays = daysInMonth(year, month);
     const budget = settings.cycleBudget;
-    const spent = settings.cardsSpent;
+    const pix = settings.pixSpent ?? ZERO;
+    const spent = add(settings.cardsSpent, pix);
     const daysLeft = monthDays - day + 1;
     const closing = ymd(year, month, monthDays);
     const next = parts(addDays(closing, 1));
@@ -571,6 +573,8 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       paceGap: ZERO,
       daysBehind: 0,
       used: ceilingMark(spent, budget),
+      bills: settings.cardsSpent,
+      pix,
     };
   } else if (usualView) {
     const cycleDays = diffDays(usualView.cycle.start, usualView.cycle.closing);
@@ -599,7 +603,7 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     let cycle = usualView.cycle;
     for (let i = 0; i < HISTORY_BILLS; i++) {
       cycle = cycleContaining(usualView.card, cycle.start);
-      const amount = billOnSheet(ledger, usualView.card, cycle.due);
+      const amount = billOnSheet(ledger, usualView.card, cycle.due, cycle.due <= today);
       if (amount === null) break;
       history.unshift({ due: cycle.due, amount });
     }
@@ -705,7 +709,15 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       ),
       ownIncome: add(
         m.ownIncome,
-        without(row.entrada, (i) => through.has(i) || paybacks.has(i) || isSavingItem(i)),
+        without(
+          row.entrada,
+          (i) =>
+            through.has(i) ||
+            paybacks.has(i) ||
+            // What someone sends for the card they use, ahead or on the due day, in any amount.
+            others.has(normalizeName(i.description)) ||
+            isSavingItem(i),
+        ),
       ),
       committed: add(m.committed, without(row.saida, paidBack)),
     };
@@ -787,6 +799,20 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
 
   const unplanned = firstUnplannedMonth(months, today);
   const plannedUntil = unplanned && ymd(unplanned.year, unplanned.month, 1);
+  const held =
+    settings.cycleBudget === null
+      ? () => ZERO
+      : ceilingHeld(
+          months.map((m) => ({
+            month: `${m.year}-${String(m.month).padStart(2, "0")}`,
+            amount: add(
+              ZERO,
+              ...m.outflows.filter((o) => o.kind === "card" && !o.others).map((o) => o.amount),
+            ),
+          })),
+          today,
+          settings.cycleBudget,
+        );
 
   const view: Omit<Projection, "insights"> = {
     today,
@@ -816,13 +842,14 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     health: [...sheetHealth(ledger), ...missingBills(ledger, settings.cards, today)].sort((a, b) =>
       a.date.localeCompare(b.date),
     ),
-    // Past a month with no spending on the sheet the balances are too rosy to save from.
+    // Past a month with no spending on the sheet the balances are too rosy to save from, and the
+    // bills ahead still take what the ceiling lets them.
     saving: saveable(
       ledger
         .filter((row) => row.date >= today && (plannedUntil === null || row.date < plannedUntil))
         .map((row) => ({
           date: row.date,
-          balance: sheetBalance(row.date),
+          balance: sub(sheetBalance(row.date), held(row.date)),
           income: row.entrada.amount,
         })),
     ),

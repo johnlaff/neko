@@ -163,6 +163,22 @@ describe("credit mode projection", () => {
     expect(nov).toMatchObject({ livingCost: 3500_00, committed: 3800_00, ownIncome: 5000_00 });
   });
 
+  it("money someone sends for the card they use is not income, sent ahead or on the due day", () => {
+    // Her card's bill of R$ 900 is paid back R$ 400 ahead and R$ 500 on the due day.
+    const l = ledger("2026-10-01", 92, 10_000_00, {
+      "2026-11-03": { entrada: cell(400_00, [item(400_00, "Azul", null)]) },
+      "2026-11-05": { entrada: cell(5000_00, [item(5000_00, "Salário", null)]) },
+      "2026-11-12": {
+        entrada: cell(500_00, [item(500_00, "Azul", null)]),
+        saida: cell(900_00, [item(900_00, "Azul")]),
+      },
+    });
+    const nov = project(l, today, settings({ cards: [visa], othersCards: ["Azul"] })).months.find(
+      (m) => m.month === 11,
+    );
+    expect(nov).toMatchObject({ ownIncome: 5000_00 });
+  });
+
   it("a resgate, an Entrada under Reserva:, takes back from what was kept", () => {
     // R$ 500 kept on the 6th, R$ 200 drawn back on the 20th: the month kept R$ 300, and the
     // money drawn back is not a cost of living.
@@ -399,6 +415,23 @@ describe("bills by month, all cards", () => {
     expect(p.invoiceMonth).toBe("2026-11");
     // September only: April is out of the window and the empty months are left out.
     expect(p.invoicesAverage).toBe(700_00);
+  });
+
+  it("finds a bill already due where it was paid: late, or early, on another day", () => {
+    const paid = ledger("2026-08-01", 120, 10_000_00, {
+      "2026-09-04": { saida: cell(40_00, [item(40_00, "Verde")]) },
+      // 14 days before Sep 10 and 17 after Aug 10: September's bill, paid early.
+      "2026-08-27": { saida: cell(700_00, [item(700_00, "Visa")]) },
+      "2026-10-10": { saida: cell(800_00, [item(800_00, "Visa")]) },
+    });
+    const q = project(paid, today, settings({ cards: [visa, verdeLate] }));
+    const sep = q.invoices.find((m) => m.month === "2026-09");
+    expect(sep?.cards.map((c) => [c.card, c.amount, c.state])).toEqual([
+      ["Verde", 40_00, "due"],
+      ["Visa", 700_00, "due"],
+    ]);
+    expect(q.invoices.find((m) => m.month === "2026-08")?.total).toBe(0);
+    expect(q.invoices.find((m) => m.month === "2026-10")?.total).toBe(800_00);
   });
 
   it("marks a bill that closed and is not due yet", () => {

@@ -26,6 +26,12 @@ export interface Env {
   NEKO_WRITER_SERVICE_ACCOUNT_JSON?: string;
   /** Key of the Console workspace "mia" (US$ 80 limit); absent, Mia stays off. */
   ANTHROPIC_API_KEY?: string;
+  /** Bearer token of the script that sends the bank's bill PDF from the owner's e-mail. */
+  STATEMENT_INBOX_TOKEN?: string;
+  /** Passwords the banks lock the bill PDF with, comma-separated; absent, a locked bill is not read. */
+  STATEMENT_PDF_PASSWORDS?: string;
+  /** Domains of the billers whose e-mailed bills fatura@ keeps (light, phone), comma-separated. */
+  BILL_SENDERS?: string;
   /** Workers rate limiting for sign-in routes; absent in tests and local dev. */
   AUTH_LIMIT?: RateLimit;
 }

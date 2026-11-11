@@ -19,20 +19,6 @@ export interface Reminder {
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const shortDate = (iso: string) =>
   `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]}`;
-const FULL_MONTHS = [
-  "janeiro",
-  "fevereiro",
-  "março",
-  "abril",
-  "maio",
-  "junho",
-  "julho",
-  "agosto",
-  "setembro",
-  "outubro",
-  "novembro",
-  "dezembro",
-];
 const days = (n: number) => (n === 1 ? "1 dia" : `${n} dias`);
 /**
  * Only the balance going red earns a line in the push; the rest waits in the app. A bill's line
@@ -175,9 +161,8 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
           tag: "morning",
         };
   }
-  // With a ceiling for the cards: what still fits this month, and the mark of it already used.
+  // With the month's ceiling (cards and Pix): what still fits, and the mark of it already used.
   if (cs.mode === "cards") {
-    const bills = `faturas de ${FULL_MONTHS[Number(cs.due.slice(5, 7)) - 1]}`;
     const used =
       cs.used === 75 || cs.used === 50
         ? `Você já usou ${cs.used === 75 ? "75%" : "metade"} do teto de ${money(cs.budget)}.`
@@ -185,15 +170,15 @@ export const morningMessage = (data: ProjectionResponse): Reminder | null => {
     const body = (start: string) => `${start}${rest}`.trim();
     return cs.overBy > 0
       ? {
-          title: `As ${bills} passaram ${money(cs.overBy)} do teto`,
+          title: `Cartões e Pix passaram ${money(cs.overBy)} do teto`,
           body: body(used),
           url: "/",
           tag: "morning",
         }
       : cs.used === 100
-        ? { title: `As ${bills} chegaram ao teto`, body: body(used), url: "/", tag: "morning" }
+        ? { title: "Cartões e Pix chegaram ao teto", body: body(used), url: "/", tag: "morning" }
         : {
-            title: `Ainda cabem ${money(cs.left)} nas ${bills}`,
+            title: `Ainda cabem ${money(cs.left)} no teto do mês`,
             body: body(used),
             url: "/",
             tag: "morning",
