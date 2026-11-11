@@ -21,6 +21,7 @@ import {
 import { entries, queue } from "./entries.ts";
 import type { AppEnv, Env } from "./env.ts";
 import { receiveEmail } from "./inbox.ts";
+import { beginSignIn, refreshBanks, signInReminder } from "./meupluggy.ts";
 import {
   askMia,
   CAP_MICRO_USD,
@@ -45,7 +46,6 @@ import {
   HOOK_HEADER,
   hookSync,
   pluggy,
-  refreshAll,
   sameSecret,
   syncAll,
   WebhookEvent,
@@ -403,14 +403,50 @@ app.put("/banks", async (c) => {
   return c.json({ ok: true });
 });
 
-/** Atualizar agora, from Para lançar: the banks are read now instead of at the next cron. */
+/**
+ * Atualizar: Meu Pluggy reads every bank now (with the owner's session there, meupluggy.ts) and
+ * this waits for it, then reads them here. Signed out, the banks are only read, and signIn says
+ * the owner should sign in again.
+ */
 app.post("/banks/refresh", async (c) => {
-  if (!configured(c.env)) return c.json({ ok: false });
-  const failed = await refreshAll(c.env.DB, pluggy(c.env, fetch), todayIn(new Date()));
-  return c.json({ ok: failed === 0 });
+  if (!configured(c.env)) return c.json({ ok: false, signIn: false });
+  const asked = await askMeuPluggy(c.env, false);
+  const failed = await syncAll(c.env.DB, pluggy(c.env, fetch), todayIn(new Date()));
+  return c.json({
+    ok: asked === "refreshed" && failed === 0,
+    signIn: asked === "signed-out" || asked === "expired",
+  });
 });
 
-/** Reads every linked bank and makes sure Pluggy knows where to send news. */
+/** Entrar no Meu Pluggy: starts a sign-in; the app opens the page this returns. */
+app.post("/banks/meu-pluggy", async (c) => {
+  try {
+    return c.json({ url: await beginSignIn(c.env.DB, c.env, fetch) });
+  } catch (error) {
+    console.error("meu pluggy sign-in failed", error);
+    Sentry.captureException(error);
+    return c.json({ error: "Não consegui abrir o Meu Pluggy. Tente mais tarde." }, 502);
+  }
+});
+
+/**
+ * Asks Meu Pluggy to refresh every bank; a failure there never stops the read that follows. A
+ * scheduled refresh that finds the session over says so once, by push.
+ */
+const askMeuPluggy = async (env: Env, scheduled: boolean) => {
+  const asked = await refreshBanks(env.DB, env, fetch).catch((error) => {
+    console.error("meu pluggy refresh failed", error);
+    Sentry.captureException(error);
+    return "failed" as const;
+  });
+  if (scheduled && asked === "expired") await sendReminder(env, signInReminder);
+  return asked;
+};
+
+/**
+ * 06:00 and 21:00 (and right after a sign-in): Meu Pluggy reads every bank, then Neko reads them
+ * all and makes sure Pluggy knows where to send news.
+ */
 const bankSync = async (env: Env) => {
   if (!configured(env)) return;
   const api = pluggy(env, fetch);
@@ -420,6 +456,7 @@ const bankSync = async (env: Env) => {
   } catch (error) {
     console.error("pluggy webhook setup failed", error);
   }
+  await askMeuPluggy(env, true);
   const failed = await syncAll(env.DB, api, todayIn(new Date()));
   if (failed > 0) Sentry.captureMessage(`bank sync: ${failed} bank(s) failed`);
 };
@@ -593,7 +630,7 @@ app.delete("/push/subscription", async (c) => {
 /** Crons run in UTC; São Paulo is UTC−3 all year. */
 const MORNING = "0 11 * * *"; // 08:00
 const EVENING = "0 0 * * *"; // 21:00
-const BANKS = "0 9 * * *"; // 06:00, after Meu Pluggy's daily refresh and before "ainda cabem"
+const BANKS = "0 9 * * *"; // 06:00, before "ainda cabem"
 
 /** Errors go to Sentry when SENTRY_DSN is set; without it the SDK stays off. */
 const sentry = (env: Env) => ({
@@ -611,9 +648,14 @@ site.route("/", app);
 
 export default Sentry.withSentry(sentry, {
   fetch: site.fetch,
-  /** fatura@ on the Neko domain: the bank's bill PDF, read like one sent from Faturas. */
-  async email(message, env) {
-    await receiveEmail(message, env);
+  /**
+   * fatura@ on the Neko domain: the bank's bill PDF, read like one sent from Faturas, and Meu
+   * Pluggy's sign-in link, after which the banks are refreshed at once.
+   */
+  async email(message, env, ctx) {
+    await receiveEmail(message, env, takeStatement, new Date(), {
+      signedIn: () => ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error))),
+    });
   },
   /**
    * 08:00 in São Paulo: refresh the projection, record the day's point in the forecast history
@@ -621,10 +663,13 @@ export default Sentry.withSentry(sentry, {
    */
   async scheduled(event, env, ctx) {
     if (event.cron === BANKS) {
-      // A safety net for webhooks Pluggy gave up on (it tries three times).
+      // Fresh banks for the morning, and a safety net for webhooks Pluggy gave up on.
       ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error)));
       return;
     }
+    // 21:00, when the reminder asks to log the day: Para lançar shows today's purchases.
+    if (event.cron === EVENING)
+      ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error)));
     const run = async () => {
       // Housekeeping does not depend on the sheet: a failed read must not let the cache grow.
       if (event.cron === MORNING)

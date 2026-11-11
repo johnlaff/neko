@@ -146,7 +146,7 @@ export interface InvoicesView {
   readonly average: number | null;
   /** Longest wait first; empty with a single card of your own, where there is nothing to pick. */
   readonly buyToday: readonly BuyGroup[];
-  /** Last bank read; null with no bank linked. */
+  /** How fresh the bank numbers are (see BankView.syncedAt); null with no bank linked. */
   readonly bank: { readonly syncedAt: string | null } | null;
   /** Monthly charges found on the bank, with the owner's marks to cancel; null with none. */
   readonly subscriptions: SubscriptionsView | null;
