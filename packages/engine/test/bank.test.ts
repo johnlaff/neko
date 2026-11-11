@@ -503,4 +503,38 @@ describe("what moved today, before comparing with yesterday's Saldo", () => {
       movedToday(days, today, [m("2026-10-15", -12580, "Pagamento de fatura Cartão de crédito")]),
     ).toBe(-12580);
   });
+
+  // A loan parcel the sheet took out on the 11th, with the Pix that covered it.
+  const loan = ledger("2026-10-01", 20, 0, {
+    "2026-10-11": {
+      entrada: cell(40000, [item(40000, "Parcela da moto", null)]),
+      saida: cell(40000, [item(40000, "Parcela da moto", "contas")]),
+    },
+  });
+
+  it("leaves out a movement the sheet already took out on an earlier day", () => {
+    // The bank listed the parcel on the 11th, then dated it today: the balance already lacks it.
+    expect(
+      movedToday(loan, today, [
+        m("2026-10-11", 40000, "PIX RECEBIDO - REM: FULANO"),
+        m("2026-10-15", -40000, "PARCELA OPER CREDITO - CONTR 1"),
+      ]),
+    ).toBe(0);
+  });
+
+  it("counts it when an older movement already answers for that sheet line", () => {
+    expect(
+      movedToday(loan, today, [
+        m("2026-10-11", -40000, "PARCELA OPER CREDITO - CONTR 1"),
+        m("2026-10-15", -40000, "PARCELA OPER CREDITO - CONTR 1"),
+      ]),
+    ).toBe(-40000);
+  });
+
+  it("matches against every account's movements, counting only this account's", () => {
+    const parcel = { ...m("2026-10-15", -40000, "PARCELA OPER CREDITO"), account: "a" };
+    const other = { ...m("2026-10-11", -40000, "Pagamento de conta"), account: "b" };
+    // In account b, the older payment took the sheet line: today's parcel is new money moving.
+    expect(movedToday(loan, today, [parcel], [parcel, other])).toBe(-40000);
+  });
 });
