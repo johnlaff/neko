@@ -409,6 +409,16 @@ data class Mia2Grafico(
     val nota: String? = null,
 )
 
+/** A number of her board: a short label, the value in reais, checked, and where it came from. */
+@Serializable
+data class Mia2Numero(
+    val rotulo: String,
+    val valor: Double,
+    val nota: String? = null,
+    val tela: String? = null,
+    val mes: String? = null,
+)
+
 /** One line of her answer as it streams (the site's Mia2Line); `t` says which fields it carries. */
 @Serializable
 data class Mia2Line(
@@ -417,6 +427,7 @@ data class Mia2Line(
     val texto: String? = null,
     val valores: Map<String, Mia2Valor>? = null,
     val grafico: Mia2Grafico? = null,
+    val numeros: List<Mia2Numero>? = null,
     val motivo: String? = null,
 )
 
