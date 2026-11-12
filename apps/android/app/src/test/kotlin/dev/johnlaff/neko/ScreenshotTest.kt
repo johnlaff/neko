@@ -11,7 +11,9 @@ import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performScrollToNode
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.johnlaff.neko.data.Saving
@@ -148,6 +150,17 @@ class ScreenshotTest {
             s.copy(reached = s.steps.size - 1, next = twelve, missing = twelve.amount - six.amount),
             null,
         )
+    }
+
+    /** "Como funciona" is pulled up over the gap above it: a touch near its top edge still opens it. */
+    @Test fun reservaToggleTop() {
+        org.robolectric.RuntimeEnvironment.setQualifiers("+notnight")
+        compose.setContent {
+            NekoTheme { dev.johnlaff.neko.ui.ReservePanel(months.reserve!!, months.steps!!, null) }
+        }
+        compose.onNodeWithText(dev.johnlaff.neko.ui.Learn.RESERVE_MORE)
+            .performTouchInput { click(androidx.compose.ui.geometry.Offset(centerX, 2f)) }
+        compose.onNodeWithText(dev.johnlaff.neko.ui.Learn.RESERVE_RULE).assertExists()
     }
 
     /** A closed month keeps its wins: September 2025 ended in the blue and first covered a month. */
