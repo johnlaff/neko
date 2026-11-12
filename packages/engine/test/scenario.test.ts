@@ -117,6 +117,37 @@ describe("simulate", () => {
     expect(r.months.map((m) => m.endSheet - m.endSim)).toEqual([400_00, 800_00, 1_200_00]);
   });
 
+  it("with a pace, a purchase inside it changes nothing and only what goes past it counts", () => {
+    const due = localDate("2026-11-10");
+    const buy = (amount: number) =>
+      run(
+        { pace: "teto", changes: [{ kind: "compra", amount: cents(amount), count: 1 }] },
+        1_500_00,
+        due,
+      ).months.map((m) => m.endSim);
+    // November's own bill is 500 of a 1.500 ceiling: a 600 purchase still fits.
+    expect(buy(600_00)).toEqual([5_000_00, 3_500_00, 2_000_00]);
+    // 1.600 goes 600 past it: November and December end 600 lower.
+    expect(buy(1_600_00)).toEqual([5_000_00, 2_900_00, 1_400_00]);
+  });
+
+  it("tells what a purchase's first parcel leaves of Ainda cabem", () => {
+    const p = project(sheet(), today, { ...settings, cards: [itau] });
+    const cs = { budget: cents(1_500_00), accumulated: cents(500_00), due: "2026-11-10" };
+    const r = simulate(
+      {
+        today,
+        months: p.months,
+        due: localDate("2026-11-10"),
+        ceiling: null,
+        canSpend: cs as never,
+      },
+      { pace: "planilha", changes: [{ kind: "compra", amount: cents(900_00), count: 3 }] },
+    );
+    expect(r.cycle).toEqual({ remaining: 700_00, due: "2026-11-10" });
+    expect(run({ pace: "planilha", changes: [] }).cycle).toBeNull();
+  });
+
   it("refuses a purchase without a card to put it on", () => {
     expect(() =>
       run({ pace: "planilha", changes: [{ kind: "compra", amount: cents(100_00), count: 1 }] }),

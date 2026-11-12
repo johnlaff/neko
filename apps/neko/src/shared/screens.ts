@@ -455,6 +455,7 @@ export const scenarioView = (
       months: r.projection.months,
       due: r.projection.cards.find((c) => c.usual)?.cycle.due ?? null,
       ceiling,
+      canSpend: r.projection.canSpend,
     },
     scenario,
   );
