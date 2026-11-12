@@ -206,6 +206,7 @@ describe("scenario view", () => {
   it("tells the screen the sheet's last day, the usual card and the paces it allows", () => {
     const r = scenarioView(fixture, null, { changes: [] });
     expect(r.today).toBe(fixture.projection.today);
+    expect(r.readAt).toBe(fixture.sheet.readAt);
     expect(r.end).toBe(r.days.at(-1)?.date);
     expect(r.end).toBe("2026-12-31");
     expect(r.card).toBe("Cartão Azul");

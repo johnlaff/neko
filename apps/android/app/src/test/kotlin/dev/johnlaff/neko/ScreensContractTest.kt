@@ -2,6 +2,7 @@ package dev.johnlaff.neko
 
 import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.InstallmentSimulation
+import dev.johnlaff.neko.data.ScenarioView
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MonthsView
@@ -127,6 +128,20 @@ class ScreensContractTest {
         assertEquals(3, v.parcels.size)
         assertEquals(60_000L, v.parcels.sumOf { it.amount })
         assertEquals(null, v.firstNegative)
+    }
+
+    @Test fun scenario() {
+        val v = json.decodeFromString<ScenarioView>(text("scenario.json"))
+        assertEquals("teto", v.pace)
+        assertEquals(listOf("planilha", "teto", "media"), v.paces)
+        assertEquals("Cartão Azul", v.card)
+        assertEquals(v.days.last().date, v.end)
+        assertEquals(v.months.last().endSim, v.days.last().sim)
+        assertEquals(null, v.firstNegative)
+        // What the changes did, against the same pace without them, and what each pace spends.
+        assertEquals(true, v.base != null && v.base.end > v.months.last().endSim)
+        assertEquals(300_000L, v.spends.teto)
+        assertEquals(true, v.readAt.isNotEmpty())
     }
 
     @Test fun ajustes() {

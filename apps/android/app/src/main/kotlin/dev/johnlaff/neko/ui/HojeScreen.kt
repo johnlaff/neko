@@ -75,10 +75,8 @@ fun HojeScreen(
     state: TodayState,
     onRefresh: () -> Unit,
     onAjustes: () -> Unit,
-    simulate: Simulate? = null,
-    simulatorOpen: Boolean = false,
-    /** Grows each time the "Simular" shortcut is used: opens the simulator again. */
-    simulateAsk: Int = 0,
+    /** Opens Simular, its own screen; null hides the button. */
+    onSimular: (() -> Unit)? = null,
     /** The widget's "N para lançar" was tapped: bring Para lançar into view, then `onQueueShown`. */
     bringQueue: Boolean = false,
     onQueueShown: () -> Unit = {},
@@ -93,7 +91,6 @@ fun HojeScreen(
     /** Counts a tap for Ajustes › Uso do Neko: "lancar", "simular", "calculo". */
     onUse: (String) -> Unit = {},
 ) {
-    var simulating by rememberSaveable { mutableStateOf(simulatorOpen) }
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
     // What Conferência's last tap hid: kept here, so the panel stays to bring them back.
     var hidPoints by rememberSaveable { mutableStateOf<List<String>?>(null) }
@@ -103,18 +100,11 @@ fun HojeScreen(
     // A stale widget count can open Hoje with nothing waiting: the ask ends there, not on a later read.
     val nothingWaiting = !state.loading && state.view?.let { it.queue == null } == true
     LaunchedEffect(bringQueue, nothingWaiting) { if (bringQueue && nothingWaiting) onQueueShown() }
-    LaunchedEffect(simulateAsk) {
-        if (simulateAsk > 0) {
-            simulating = true
-            onUse("simular")
-        }
-    }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh, miaTopic = "hoje") { v ->
         item { Hero(v, onUse) }
-        val cs = v.canSpend.takeIf { simulate != null }
         // Writing on, Lançar opens the form here; off, it opens today's row in the sheet.
         val writes = v.writing && launcher != null
-        if (v.todayUrl != null || cs != null || writes) {
+        if (v.todayUrl != null || onSimular != null || writes) {
             item {
                 // Both buttons take the taller one's height when large text wraps a label.
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -122,9 +112,9 @@ fun HojeScreen(
                         launching = !launching
                         if (launching) onUse("lancar")
                     } else v.todayUrl?.let { url -> LancarButton(url, Modifier.weight(1f)) { onUse("lancar") } }
-                    if (cs != null) SimulateButton(simulating, Modifier.weight(1f)) {
-                        simulating = !simulating
-                        if (simulating) onUse("simular")
+                    if (onSimular != null) SimulateButton(Modifier.weight(1f)) {
+                        onUse("simular")
+                        onSimular()
                     }
                 }
             }
@@ -134,7 +124,6 @@ fun HojeScreen(
                 EntryForm(launcher, v.today, { launching = false }, { undoText = "Lançado na planilha"; undo = it }, cards = v.entryCards)
             }
         }
-        if (cs != null && simulate != null && simulating) item { Simulator(cs, simulate) }
         // What asks for a tap comes right after Lançar, as on the site: the sheet's points (none when
         // all is well), then what the bank found. What to know follows.
         if (v.issues.isNotEmpty() || hidPoints != null) item { Conference(v, review, hidPoints) { hidPoints = it } }
@@ -337,15 +326,15 @@ private fun LancarButton(modifier: Modifier = Modifier, open: Boolean? = null, o
 }
 
 @Composable
-private fun SimulateButton(open: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun SimulateButton(modifier: Modifier, onClick: () -> Unit) {
     val l = LocalLedger.current
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().fillMaxHeight().heightIn(min = 48.dp).semantics { stateDescription = if (open) "Aberto" else "Fechado" },
+        modifier = modifier.fillMaxWidth().fillMaxHeight().heightIn(min = 48.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (open) l.muted else l.border),
+        border = androidx.compose.foundation.BorderStroke(1.dp, l.border),
         shape = RoundedCornerShape(10.dp),
-    ) { Text("Simular compra", style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center) }
+    ) { Text("Simular", style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center) }
 }
 
 @Composable

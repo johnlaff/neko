@@ -23,6 +23,13 @@ object Format {
         return "${sign}R$\u00A0$reais,${(a % 100).toString().padStart(2, '0')}"
     }
 
+    /** Whole reais, for what has not happened (Simular): `R$ 12.400`, rounded as the site does. */
+    fun roundMoney(cents: Long): String {
+        val r = Math.round(cents / 100.0)
+        val reais = abs(r).toString().reversed().chunked(3).joinToString(".").reversed()
+        return "${if (r < 0) "−" else ""}R$\u00A0$reais"
+    }
+
     /** `+R$ 10,00` or `−R$ 10,00`; no sign at zero. */
     fun signed(cents: Long, sign: Char): String = if (cents == 0L) money(0) else "$sign${money(abs(cents))}"
 
@@ -33,6 +40,10 @@ object Format {
         val d = LocalDate.parse(iso)
         return "${d.dayOfMonth} ${monthName(d.monthValue).take(3)}"
     }
+
+    /** `15 nov`, or `10 fev 2027` outside today's year. */
+    fun dayLabel(iso: String, today: String): String =
+        if (iso.take(4) == today.take(4)) shortDate(iso) else "${shortDate(iso)} ${iso.take(4)}"
 
     fun days(n: Int): String = if (n == 1) "1 dia" else "$n dias"
 
