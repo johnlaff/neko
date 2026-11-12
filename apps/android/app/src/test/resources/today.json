@@ -84,6 +84,14 @@
     "leftAtLowest": 51048,
     "until": "2026-12-31"
   },
+  "savingStep": {
+    "step": {
+      "amount": 1854576,
+      "months": 3
+    },
+    "index": 3,
+    "missing": 0
+  },
   "issues": [],
   "issuesInWindow": 0,
   "readAt": "2026-10-05T11:00:00.000Z",

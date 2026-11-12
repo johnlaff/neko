@@ -31,6 +31,8 @@ import {
   type PhoneTrust,
   paceMonthly,
   type Reserve,
+  type ReserveSteps,
+  reserveSteps,
   type Saving,
   type ScenarioResult,
   simulate,
@@ -372,6 +374,8 @@ export interface MonthsView {
   readonly saving: Saving | null;
   /** The emergency reserve; null before a month closed. */
   readonly reserve: Reserve | null;
+  /** The reserve in steps, up to the method's 6 and 12 months; null without a reserve. */
+  readonly steps: ReserveSteps | null;
   /** The Economia tab, one entry per year. */
   readonly years: readonly YearTotals[];
   /** Warnings that live here, not on Hoje: all on today's month, each also on its own. */
@@ -423,6 +427,7 @@ export const monthsView = (r: ProjectionResponse): MonthsView => {
     months,
     saving: p.saving,
     reserve: p.reserve ?? null,
+    steps: p.reserve ? reserveSteps(p.reserve) : null,
     years: p.years ?? [],
     warnings: (p.insights ?? []).filter(inMes),
   };

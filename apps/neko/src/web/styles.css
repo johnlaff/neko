@@ -1880,7 +1880,7 @@ fieldset.chip-radios {
   color: var(--pos);
 }
 .reserve > .meter {
-  margin: 4px 0 12px;
+  margin: 8px 0;
   height: 6px;
 }
 .reserve > .meter > span {
@@ -1889,6 +1889,13 @@ fieldset.chip-radios {
 .reserve > .note {
   margin: 12px 0 0;
   font-size: 0.875rem;
+}
+/* The steps, then the method's rule: one note in two short paragraphs */
+.reserve > .note > p {
+  margin: 0;
+}
+.reserve > .note > p + p {
+  margin-top: 4px;
 }
 @keyframes grow-x {
   from {
@@ -2887,6 +2894,21 @@ main.mia-page form.mia-form > input {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   margin-right: 4px;
+}
+/* The next step, right under its meter: the one line to act on, and what to do under it */
+.panel.reserve > .reserve-next {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.panel.reserve > .reserve-next > p {
+  margin: 0;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.panel.reserve > .reserve-next > p:first-child {
+  font-size: 0.9375rem;
+  font-weight: 550;
 }
 /* Faturas: the usual card's bank mark before its name, smaller than a row's */
 .panel-head > h2.with-mark {

@@ -62,6 +62,7 @@ import dev.johnlaff.neko.data.CanSpend
 import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.data.Saving
+import dev.johnlaff.neko.data.SavingStep
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.UpcomingDay
 import dev.johnlaff.neko.ui.Format.days
@@ -129,7 +130,7 @@ fun HojeScreen(
         if (v.issues.isNotEmpty() || hidPoints != null) item { Conference(v, review, hidPoints) { hidPoints = it } }
         if (v.queue != null) item { ParaLancar(v, launcher, bringQueue, onQueueShown) { undoText = if (it.startsWith(IGNORED)) "Ignorado" else "Lançado na planilha"; undo = it } }
         // On payday, what to save comes next: pay yourself first. The Worker sends it on its day only.
-        v.saving?.let { s -> item { SaveCard(s) { onMonth(s.date.take(7)) } } }
+        v.saving?.let { s -> item { SaveCard(s, v.savingStep) { onMonth(s.date.take(7)) } } }
         // A wide window's second column, as on the site: what to know. Hoje keeps three fixed panels
         // (the dial, Para lançar, the next 7 days); the rest shows only on the day it matters.
         column()
@@ -464,13 +465,14 @@ private fun ShareButton(title: String, lines: List<String>, label: String) {
 }
 
 @Composable
-private fun SaveCard(s: Saving, onMonth: () -> Unit) {
+private fun SaveCard(s: Saving, step: SavingStep?, onMonth: () -> Unit) {
     val l = LocalLedger.current
     // A panel of its own on the payday, as on the site: nothing is wrong on a day to save.
     Panel {
         PanelHead("Dia de guardar")
         Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text("Na conta, dá para guardar ${money(s.amount)} hoje", style = MaterialTheme.typography.titleMedium)
+            step?.let { Text(Learn.saveStepText(it), color = l.text, style = MaterialTheme.typography.bodyMedium) }
             Text("Depois de guardar, menor saldo até ${shortDate(s.until)}: ${money(s.leftAtLowest)}", color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
         TextAction("Ver no mês ›", onMonth, color = l.accent)

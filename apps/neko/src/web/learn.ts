@@ -1,4 +1,6 @@
+import type { ReserveStep, ReserveSteps, SavingStep } from "@neko/engine";
 import type { DailySource } from "../shared/types.ts";
+import { roundMoney } from "./format.ts";
 
 /**
  * What Neko teaches, in its own words: one tip per screen the first time it has data, and the
@@ -108,15 +110,66 @@ export const dailySourceText = (source: DailySource) =>
 /** Mês's reserve panel, in the same words on the site and the app (ui/Learn.kt). */
 export const RESERVE = {
   title: "Reserva de emergência",
-  rule: "O método pede de 6 a 12 meses do custo de vida, guardados onde dá para sacar na hora.",
-  empty: "Só contam como guardado as linhas de Saída sob o título Reserva nas notas.",
+  rule: "O método pede de 6 a 12 meses, guardados onde dá para sacar na hora.",
+  empty: "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas.",
+  nothing: "Nada guardado ainda",
+  done: "Reserva completa",
+  minimum: "Já tem os 6 meses que o método pede",
 } as const;
 
-/** Tenths of a month as "1,6 mês" or "2 meses". */
-export const coveredLabel = (tenths: number) => {
-  const n = tenths / 10;
-  const s = Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ",");
-  return `${s} ${n >= 2 ? "meses" : "mês"}`;
+/** A goal's distance in whole reais, rounded up: the goal is a multiple of an average. */
+const upToReal = (cents: number) => roundMoney(Math.ceil(cents / 100) * 100);
+
+const months = (n: number) => `${n} ${n === 1 ? "mês" : "meses"} de custo de vida`;
+
+/** A step as a goal: "os primeiros R$ 3.000" or "3 meses de custo de vida". */
+export const stepGoal = (s: ReserveStep) =>
+  s.months === null ? `os primeiros ${roundMoney(s.amount)}` : months(s.months);
+
+/** Over the meter: which step is being climbed, out of all of them. */
+export const stepsMeta = (s: ReserveSteps, kept: number) =>
+  !s.next
+    ? RESERVE.done
+    : kept > 0
+      ? `Degrau ${s.reached + 1} de ${s.steps.length}`
+      : RESERVE.nothing;
+
+/** True once the method's minimum of 6 months is kept: from there on 12 is his call. */
+const minimumKept = (s: ReserveSteps) => s.steps[s.reached - 1]?.months === 6;
+
+/** Under the meter, in bold: how far the next step is. */
+export const stepLine = (s: ReserveSteps, kept: number) => {
+  const last = s.steps.at(-1);
+  if (!s.next) return `Já passou de ${last ? stepGoal(last) : ""}`;
+  if (minimumKept(s)) return RESERVE.minimum;
+  if (kept > 0) return `Faltam ${upToReal(s.missing)} para ${stepGoal(s.next)}`;
+  return `Primeiro degrau: ${s.next.months === null ? roundMoney(s.next.amount) : stepGoal(s.next)}`;
+};
+
+/** Under that, muted, when there is one: how to start, or what 12 months would still need. */
+export const stepHint = (s: ReserveSteps, kept: number) =>
+  kept <= 0
+    ? RESERVE.empty
+    : s.next && minimumKept(s)
+      ? `Para 12 meses, faltam ${upToReal(s.missing)}.`
+      : null;
+
+/** The steps in one line, before the method's rule. */
+export const stepsRule = (s: ReserveSteps) => {
+  const n = s.steps.flatMap((x) => (x.months === null ? [] : [x.months]));
+  const list = `${n.slice(0, -1).join(", ")} e ${n.at(-1)} meses de custo de vida`;
+  const first = s.steps[0];
+  return first?.months === null
+    ? `Degraus: ${roundMoney(first.amount)}, depois ${list}.`
+    : `Degraus: ${list}.`;
+};
+
+/** Hoje's payday card: what saving it all does to the reserve. */
+export const saveStepText = (s: SavingStep) => {
+  if (s.missing > 0) return `Com isso, faltam ${upToReal(s.missing)} para ${stepGoal(s.step)}`;
+  if (s.step.months === null) return `Com isso, a reserva chega a ${roundMoney(s.step.amount)}`;
+  if (s.step.months === 6) return "Com isso, a reserva chega a 6 meses, o mínimo do método";
+  return `Com isso, a reserva chega a ${months(s.step.months)}`;
 };
 
 export const costLabel = (months: number) =>

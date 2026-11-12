@@ -23,6 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import dev.johnlaff.neko.data.ReserveStep
+import dev.johnlaff.neko.data.ReserveSteps
+import dev.johnlaff.neko.data.SavingStep
 
 /**
  * What Neko teaches, in its own words, word for word with the site (web/learn.ts): one tip per
@@ -92,13 +95,63 @@ object Learn {
 
     /** Mês's reserve panel, word for word with the site (web/learn.ts RESERVE). */
     const val RESERVE_TITLE = "Reserva de emergência"
-    const val RESERVE_RULE = "O método pede de 6 a 12 meses do custo de vida, guardados onde dá para sacar na hora."
-    const val RESERVE_EMPTY = "Só contam como guardado as linhas de Saída sob o título Reserva nas notas."
+    const val RESERVE_RULE = "O método pede de 6 a 12 meses, guardados onde dá para sacar na hora."
+    const val RESERVE_EMPTY = "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas."
+    const val RESERVE_NOTHING = "Nada guardado ainda"
+    const val RESERVE_DONE = "Reserva completa"
+    const val RESERVE_MINIMUM = "Já tem os 6 meses que o método pede"
 
-    /** Tenths of a month as "1,6 mês" or "2 meses". */
-    fun coveredLabel(tenths: Int): String {
-        val n = if (tenths % 10 == 0) "${tenths / 10}" else "${tenths / 10},${tenths % 10}"
-        return "$n ${if (tenths >= 20) "meses" else "mês"}"
+    /** A goal's distance in whole reais, rounded up: the goal is a multiple of an average. */
+    private fun upToReal(cents: Long) = Format.roundMoney((cents + 99) / 100 * 100)
+
+    private fun months(n: Int) = "$n ${if (n == 1) "mês" else "meses"} de custo de vida"
+
+    /** A step as a goal: "os primeiros R$ 3.000" or "3 meses de custo de vida". */
+    fun stepGoal(s: ReserveStep): String = s.months?.let(::months) ?: "os primeiros ${Format.roundMoney(s.amount)}"
+
+    /** Over the meter: which step is being climbed, out of all of them. */
+    fun stepsMeta(s: ReserveSteps, kept: Long) = when {
+        s.next == null -> RESERVE_DONE
+        kept > 0 -> "Degrau ${s.reached + 1} de ${s.steps.size}"
+        else -> RESERVE_NOTHING
+    }
+
+    /** True once the method's minimum of 6 months is kept: from there on 12 is his call. */
+    private fun minimumKept(s: ReserveSteps) = s.steps.getOrNull(s.reached - 1)?.months == 6
+
+    /** Under the meter, in bold: how far the next step is. */
+    fun stepLine(s: ReserveSteps, kept: Long): String {
+        val next = s.next ?: return "Já passou de ${s.steps.lastOrNull()?.let(::stepGoal) ?: ""}"
+        if (minimumKept(s)) return RESERVE_MINIMUM
+        if (kept > 0) return "Faltam ${upToReal(s.missing)} para ${stepGoal(next)}"
+        return "Primeiro degrau: ${if (next.months == null) Format.roundMoney(next.amount) else stepGoal(next)}"
+    }
+
+    /** Under that, muted, when there is one: how to start, or what 12 months would still need. */
+    fun stepHint(s: ReserveSteps, kept: Long): String? = when {
+        kept <= 0 -> RESERVE_EMPTY
+        s.next != null && minimumKept(s) -> "Para 12 meses, faltam ${upToReal(s.missing)}."
+        else -> null
+    }
+
+    /** The steps in one line, before the method's rule. */
+    fun stepsRule(s: ReserveSteps): String {
+        val n = s.steps.mapNotNull { it.months }
+        val list = "${n.dropLast(1).joinToString(", ")} e ${n.lastOrNull()} meses de custo de vida"
+        val first = s.steps.firstOrNull()
+        return if (first != null && first.months == null) "Degraus: ${Format.roundMoney(first.amount)}, depois $list."
+        else "Degraus: $list."
+    }
+
+    /** Hoje's payday card: what saving it all does to the reserve. */
+    fun saveStepText(s: SavingStep): String {
+        val m = s.step.months
+        return when {
+            s.missing > 0 -> "Com isso, faltam ${upToReal(s.missing)} para ${stepGoal(s.step)}"
+            m == null -> "Com isso, a reserva chega a ${Format.roundMoney(s.step.amount)}"
+            m == 6 -> "Com isso, a reserva chega a 6 meses, o mínimo do método"
+            else -> "Com isso, a reserva chega a ${months(m)}"
+        }
     }
 
     fun costLabel(months: Int) =

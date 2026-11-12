@@ -349,9 +349,15 @@ test("Hoje shows one warning at a time and leaves the months ahead to Mês", asy
   // The payday's saving is a panel of its own, not one more warning.
   const save = page.getByRole("region", { name: "Dia de guardar" });
   await expect(save).toContainText("Na conta, dá para guardar R$ 11.200,00 hoje");
+  // What saving it all does to the reserve: R$ 16.800 kept plus R$ 11.200 passes 3 months of cost.
+  await expect(save).toContainText("Com isso, a reserva chega a 3 meses de custo de vida");
   await expect(page.getByRole("list", { name: "Avisos" }).getByText(/guardar/)).toHaveCount(0);
   // Mês warns of it on today's month, and the warning opens the month it is about.
   await page.getByRole("link", { name: "Mês" }).first().click();
+  // The reserve climbs in steps: the one being climbed and what it still needs.
+  const reserve = page.getByRole("region", { name: "Reserva de emergência" });
+  await expect(reserve).toContainText("Degrau 3 de 5");
+  await expect(reserve).toContainText("Faltam R$ 1.746 para 3 meses de custo de vida");
   const warnings = page.getByRole("list", { name: "Avisos" });
   await warnings.getByText("Novembro gasta mais do que entra").click();
   await expect(page.getByRole("heading", { name: "Novembro 2026" })).toBeVisible();

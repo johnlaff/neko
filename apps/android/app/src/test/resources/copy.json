@@ -57,8 +57,11 @@
     },
     "reserve": {
       "title": "Reserva de emergência",
-      "rule": "O método pede de 6 a 12 meses do custo de vida, guardados onde dá para sacar na hora.",
-      "empty": "Só contam como guardado as linhas de Saída sob o título Reserva nas notas."
+      "rule": "O método pede de 6 a 12 meses, guardados onde dá para sacar na hora.",
+      "empty": "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas.",
+      "nothing": "Nada guardado ainda",
+      "done": "Reserva completa",
+      "minimum": "Já tem os 6 meses que o método pede"
     },
     "totals": {
       "saved": "Guardado",
@@ -321,22 +324,267 @@
         "500 dias de planilha em dia."
       ]
     ],
-    "covered": [
+    "steps": [
       [
-        6,
-        "0,6 mês"
+        {
+          "steps": [
+            {
+              "amount": 300000,
+              "months": null
+            },
+            {
+              "amount": 600000,
+              "months": 1
+            },
+            {
+              "amount": 1800000,
+              "months": 3
+            },
+            {
+              "amount": 3600000,
+              "months": 6
+            },
+            {
+              "amount": 7200000,
+              "months": 12
+            }
+          ],
+          "reached": 0,
+          "next": {
+            "amount": 300000,
+            "months": null
+          },
+          "missing": 300000
+        },
+        0,
+        "Nada guardado ainda",
+        "Primeiro degrau: R$ 3.000",
+        "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas.",
+        "Degraus: R$ 3.000, depois 1, 3, 6 e 12 meses de custo de vida."
       ],
       [
-        10,
-        "1 mês"
+        {
+          "steps": [
+            {
+              "amount": 300000,
+              "months": null
+            },
+            {
+              "amount": 600000,
+              "months": 1
+            },
+            {
+              "amount": 1800000,
+              "months": 3
+            },
+            {
+              "amount": 3600000,
+              "months": 6
+            },
+            {
+              "amount": 7200000,
+              "months": 12
+            }
+          ],
+          "reached": 0,
+          "next": {
+            "amount": 300000,
+            "months": null
+          },
+          "missing": 200000
+        },
+        100000,
+        "Degrau 1 de 5",
+        "Faltam R$ 2.000 para os primeiros R$ 3.000",
+        null,
+        "Degraus: R$ 3.000, depois 1, 3, 6 e 12 meses de custo de vida."
       ],
       [
-        16,
-        "1,6 mês"
+        {
+          "steps": [
+            {
+              "amount": 300000,
+              "months": null
+            },
+            {
+              "amount": 600000,
+              "months": 1
+            },
+            {
+              "amount": 1800000,
+              "months": 3
+            },
+            {
+              "amount": 3600000,
+              "months": 6
+            },
+            {
+              "amount": 7200000,
+              "months": 12
+            }
+          ],
+          "reached": 3,
+          "next": {
+            "amount": 3600000,
+            "months": 6
+          },
+          "missing": 1600000
+        },
+        2000000,
+        "Degrau 4 de 5",
+        "Faltam R$ 16.000 para 6 meses de custo de vida",
+        null,
+        "Degraus: R$ 3.000, depois 1, 3, 6 e 12 meses de custo de vida."
       ],
       [
-        20,
-        "2 meses"
+        {
+          "steps": [
+            {
+              "amount": 300000,
+              "months": null
+            },
+            {
+              "amount": 600000,
+              "months": 1
+            },
+            {
+              "amount": 1800000,
+              "months": 3
+            },
+            {
+              "amount": 3600000,
+              "months": 6
+            },
+            {
+              "amount": 7200000,
+              "months": 12
+            }
+          ],
+          "reached": 4,
+          "next": {
+            "amount": 7200000,
+            "months": 12
+          },
+          "missing": 3200000
+        },
+        4000000,
+        "Degrau 5 de 5",
+        "Já tem os 6 meses que o método pede",
+        "Para 12 meses, faltam R$ 32.000.",
+        "Degraus: R$ 3.000, depois 1, 3, 6 e 12 meses de custo de vida."
+      ],
+      [
+        {
+          "steps": [
+            {
+              "amount": 250000,
+              "months": 1
+            },
+            {
+              "amount": 750000,
+              "months": 3
+            },
+            {
+              "amount": 1500000,
+              "months": 6
+            },
+            {
+              "amount": 3000000,
+              "months": 12
+            }
+          ],
+          "reached": 0,
+          "next": {
+            "amount": 250000,
+            "months": 1
+          },
+          "missing": 250000
+        },
+        0,
+        "Nada guardado ainda",
+        "Primeiro degrau: 1 mês de custo de vida",
+        "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas.",
+        "Degraus: 1, 3, 6 e 12 meses de custo de vida."
+      ],
+      [
+        {
+          "steps": [
+            {
+              "amount": 300000,
+              "months": null
+            },
+            {
+              "amount": 400000,
+              "months": 1
+            },
+            {
+              "amount": 1200000,
+              "months": 3
+            },
+            {
+              "amount": 2400000,
+              "months": 6
+            },
+            {
+              "amount": 4800000,
+              "months": 12
+            }
+          ],
+          "reached": 5,
+          "next": null,
+          "missing": 0
+        },
+        5000000,
+        "Reserva completa",
+        "Já passou de 12 meses de custo de vida",
+        null,
+        "Degraus: R$ 3.000, depois 1, 3, 6 e 12 meses de custo de vida."
+      ]
+    ],
+    "saveStep": [
+      [
+        {
+          "step": {
+            "amount": 300000,
+            "months": null
+          },
+          "index": 1,
+          "missing": 120000
+        },
+        "Com isso, faltam R$ 1.200 para os primeiros R$ 3.000"
+      ],
+      [
+        {
+          "step": {
+            "amount": 300000,
+            "months": null
+          },
+          "index": 1,
+          "missing": 0
+        },
+        "Com isso, a reserva chega a R$ 3.000"
+      ],
+      [
+        {
+          "step": {
+            "amount": 600000,
+            "months": 1
+          },
+          "index": 2,
+          "missing": 0
+        },
+        "Com isso, a reserva chega a 1 mês de custo de vida"
+      ],
+      [
+        {
+          "step": {
+            "amount": 2400000,
+            "months": 6
+          },
+          "index": 4,
+          "missing": 0
+        },
+        "Com isso, a reserva chega a 6 meses, o mínimo do método"
       ]
     ],
     "cost": [
