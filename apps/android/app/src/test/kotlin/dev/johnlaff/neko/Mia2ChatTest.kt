@@ -110,6 +110,23 @@ class Mia2ChatTest {
         assertEquals(false, chat.held)
     }
 
+    @Test fun parouKeepsAHeldQuestionInTheFieldUnsent() {
+        val chat = Mia2Chat()
+        val talk = Talk { flow { kotlinx.coroutines.awaitCancellation() } }
+        runBlocking {
+            chat.ask("Quanto ainda cabe?", this, talk)
+            // She has started answering.
+            kotlinx.coroutines.yield()
+            chat.typed = "E a fatura de dezembro?"
+            chat.held = true
+            chat.stop(this, talk)
+        }
+        assertEquals(listOf("Quanto ainda cabe?"), talk.asked.map { it.pergunta })
+        assertEquals("E a fatura de dezembro?", chat.typed)
+        assertEquals(false, chat.held)
+        assertEquals("parou", chat.turns.single().end)
+    }
+
     @Test fun aStoppedAnswerIsAskedAgainInPlace() = runBlocking {
         val chat = Mia2Chat()
         chat.turns = listOf(dev.johnlaff.neko.ui.Mia2Turno(0, "Oi", listOf(Mia2Texto("m1", "Ainda cabem R$ 1.240", null)), "parou"))
