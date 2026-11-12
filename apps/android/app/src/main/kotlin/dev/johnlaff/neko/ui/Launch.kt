@@ -167,9 +167,9 @@ internal fun reasonOf(e: Throwable): String = when {
 }
 
 /** `2026-10-03` ↔ `03/10/2026`, the way a date is typed here. */
-private fun typedDate(iso: String) = "${iso.substring(8, 10)}/${iso.substring(5, 7)}/${iso.take(4)}"
+internal fun typedDate(iso: String) = "${iso.substring(8, 10)}/${iso.substring(5, 7)}/${iso.take(4)}"
 
-private fun isoDate(typed: String, year: String): String? {
+internal fun isoDate(typed: String, year: String): String? {
     val m = Regex("""^(\d{1,2})/(\d{1,2})(?:/(\d{4}))?$""").find(typed.trim()) ?: return null
     val (d, mo, y) = m.destructured
     return runCatching {

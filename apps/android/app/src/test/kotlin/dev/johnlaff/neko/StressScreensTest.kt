@@ -14,7 +14,7 @@ import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
 import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.SaveState
-import dev.johnlaff.neko.ui.Simulator
+import dev.johnlaff.neko.ui.SimularScreen
 import dev.johnlaff.neko.ui.ScreenState
 import dev.johnlaff.neko.ui.Tab
 import java.io.File
@@ -76,11 +76,11 @@ class StressScreensTest {
     private fun path(name: String) = "screenshots/stress/$name.png"
 
     @Test fun hoje() = compose.shot(path("hoje"), night = true, Device.SmallLargeText, Tab.Hoje) {
-        HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
+        HojeScreen(ScreenState(today), {}, {}, onSimular = {})
     }
 
     @Test fun hojeHugeText() = compose.shot(path("hoje-200"), night = false, Device.HugeText, Tab.Hoje) {
-        HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
+        HojeScreen(ScreenState(today), {}, {}, onSimular = {})
     }
 
     @Test fun ajustesHugeText() = compose.shot(path("ajustes-200"), night = true, Device.HugeText, Tab.Ajustes) {
@@ -88,7 +88,11 @@ class StressScreensTest {
     }
 
     @Test fun simular() = compose.shot(path("simular"), night = true, Device.SmallLargeText) {
-        Simulator(today.canSpend!!, Fakes.simulate, startTyped = "600,00", startCount = 3)
+        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
+    }
+
+    @Test fun simularHugeText() = compose.shot(path("simular-200"), night = false, Device.HugeText) {
+        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
     }
 
     @Test fun faturas() = compose.shot(path("faturas"), night = true, Device.SmallLargeText, Tab.Faturas) {
@@ -101,7 +105,7 @@ class StressScreensTest {
 
     // A wide window: the rail level with the title and the panels in two columns, as on the site.
     @Test fun hojeTablet() = compose.shot(path("hoje-tablet"), night = true, Device.Tablet, Tab.Hoje) {
-        HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
+        HojeScreen(ScreenState(today), {}, {}, onSimular = {})
     }
 
     @Test fun faturasTablet() = compose.shot(path("faturas-tablet"), night = true, Device.Tablet, Tab.Faturas) {
@@ -119,7 +123,7 @@ class StressScreensTest {
     // Hoje with Mia on: her mark and name beside the title.
     @Test fun hojeMia() = compose.shot(path("hoje-mia"), night = false, Device.SmallLargeText, Tab.Hoje) {
         androidx.compose.runtime.CompositionLocalProvider(dev.johnlaff.neko.ui.LocalMia provides Fakes.miaEntry) {
-            HojeScreen(ScreenState(today), {}, {}, Fakes.simulate)
+            HojeScreen(ScreenState(today), {}, {}, onSimular = {})
         }
     }
 

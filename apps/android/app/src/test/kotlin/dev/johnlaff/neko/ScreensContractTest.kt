@@ -2,6 +2,7 @@ package dev.johnlaff.neko
 
 import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.InstallmentSimulation
+import dev.johnlaff.neko.data.ScenarioView
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MiaReply
 import dev.johnlaff.neko.data.MonthsView
@@ -127,6 +128,29 @@ class ScreensContractTest {
         assertEquals(3, v.parcels.size)
         assertEquals(60_000L, v.parcels.sumOf { it.amount })
         assertEquals(null, v.firstNegative)
+    }
+
+    @Test fun scenario() {
+        val v = json.decodeFromString<ScenarioView>(text("scenario.json"))
+        assertEquals("teto", v.pace)
+        assertEquals(listOf("planilha", "teto", "media"), v.paces)
+        assertEquals("Cartão Azul", v.card)
+        assertEquals(v.days.last().date, v.end)
+        assertEquals(v.months.last().endSim, v.days.last().sim)
+        assertEquals(null, v.firstNegative)
+        // What the changes did, against the same pace without them, and what each pace spends.
+        assertEquals(true, v.effect != null && v.effect.end < 0)
+        // Each change on its own: the purchase's parcels the ceiling holds, the dates the sheet reaches.
+        assertEquals(2, v.effects.size)
+        assertEquals(true, v.effects[0].inPace != null && v.effects[0].counted == v.effects[0].of)
+        assertEquals("2026-11-01", v.paceFrom)
+        assertEquals(emptyList<Int>(), v.refused)
+        assertEquals(listOf("2026-11", "2026-12"), v.full)
+        // A best case (bills take the whole ceiling) offers nothing to save.
+        assertEquals(null, v.saving)
+        assertEquals(true, v.canSpend?.due?.isNotEmpty())
+        assertEquals(300_000L, v.spends.teto)
+        assertEquals(true, v.readAt.isNotEmpty())
     }
 
     @Test fun ajustes() {

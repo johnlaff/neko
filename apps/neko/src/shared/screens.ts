@@ -1,12 +1,16 @@
 import {
   add,
+  addDays,
   type BillCheck,
   type BillState,
   billState,
+  type CanSpend,
   type CardConfig,
   type Cents,
+  type Change,
   cents,
   cycleForDueMonth,
+  daysInMonth,
   diffDays,
   type Fixed,
   fixedOf,
@@ -23,15 +27,20 @@ import {
   outflowTrend,
   owedOnBills,
   ownerKey,
+  type Pace,
   type PhoneTrust,
+  paceMonthly,
   type Reserve,
   type Saving,
+  type ScenarioResult,
+  simulate,
   simulateInstallments,
   sub,
   type ThermoDay,
   type TrendPoint,
   type Win,
   type YearTotals,
+  ymd,
   ZERO,
 } from "@neko/engine";
 import { inMes, legacyPerDay } from "./today.ts";
@@ -434,6 +443,111 @@ export const simulateView = (
   return {
     ...sim,
     cycle: { ...sim.cycle, perDay: legacyPerDay(sim.cycle.remaining, cs.daysLeft) },
+  };
+};
+
+/** Simular's answer, with what the screen needs around it to ask the next one. */
+export interface ScenarioView extends ScenarioResult {
+  readonly today: LocalDate;
+  /** When the sheet was read: the answer is only as fresh as that. */
+  readonly readAt: string;
+  /** The sheet's last day: nothing past it to simulate on. */
+  readonly end: LocalDate;
+  /** The usual card a purchase goes on, and the bill its first parcel lands on; null without one. */
+  readonly card: string | null;
+  readonly due: LocalDate | null;
+  /** The paces this sheet and Ajustes allow, in the order they are offered. */
+  readonly paces: readonly Pace[];
+  /** What the ceiling and the last months' average spend a month, side by side; null without one. */
+  readonly spends: { readonly teto: Cents | null; readonly media: Cents | null };
+  /**
+   * The first day the pace's spending counts, the start of next month: before it the sheet holds
+   * the month, after it the pace is an assumption. Null for the sheet as it is.
+   */
+  readonly paceFrom: LocalDate | null;
+  /**
+   * The changes the engine refused (a day already gone, a purchase with no card), by their place
+   * in the ask: the answer leaves them out and `effects` follows the others, in order.
+   */
+  readonly refused: readonly number[];
+  /** Hoje's "Ainda cabem", as a purchase's own figure reads it, and the bill it measures. */
+  readonly canSpend: Pick<CanSpend, "mode" | "left" | "overBy" | "due"> | null;
+}
+
+/** The ceiling needs Ajustes › Teto do mês; the average needs a full month before today. */
+const paceSpends = (r: ProjectionResponse, ceiling: Cents | null) => {
+  const p = r.projection;
+  let media: Cents | null = null;
+  try {
+    media = paceMonthly("media", p.months, p.today, null);
+  } catch {
+    media = null;
+  }
+  return { teto: ceiling, media };
+};
+
+/**
+ * Simular: the sheet's balances under a pace and what-ifs (engine `simulate`). Nothing is saved:
+ * the same answer for the site, the Android app and Mia, computed on every ask. Without a pace,
+ * or with one this sheet does not allow, it is the ceiling when there is one (the owner's own plan
+ * for the months ahead), else the sheet as it is.
+ */
+export const scenarioView = (
+  r: ProjectionResponse,
+  ceiling: Cents | null,
+  ask: { readonly pace?: Pace | undefined; readonly changes: readonly Change[] },
+): ScenarioView => {
+  const p = r.projection;
+  const usual = p.cards.find((c) => c.usual) ?? null;
+  const spends = paceSpends(r, ceiling);
+  const paces: Pace[] = [
+    "planilha",
+    ...(spends.teto === null ? [] : ["teto" as const]),
+    ...(spends.media === null ? [] : ["media" as const]),
+  ];
+  const pace =
+    ask.pace && paces.includes(ask.pace) ? ask.pace : paces.includes("teto") ? "teto" : "planilha";
+  const last = p.months.at(-1);
+  const lastDay = last?.days.at(-1)?.day;
+  const input = {
+    today: p.today,
+    months: p.months,
+    due: usual?.cycle.due ?? null,
+    ceiling,
+    canSpend: p.canSpend,
+  };
+  const run = (changes: readonly Change[]) => simulate(input, { pace, changes });
+  // One change the engine refuses never takes the others with it: the answer without it, named.
+  let refused: number[] = [];
+  let result: ScenarioResult;
+  try {
+    result = run(ask.changes);
+  } catch (e) {
+    if (!(e instanceof RangeError) || ask.changes.length === 0) throw e;
+    refused = ask.changes.flatMap((c, i) => {
+      try {
+        run([c]);
+        return [];
+      } catch {
+        return [i];
+      }
+    });
+    result = run(ask.changes.filter((_, i) => !refused.includes(i)));
+  }
+  const cs = p.canSpend;
+  const [y, m] = p.today.split("-").map(Number) as [number, number];
+  return {
+    ...result,
+    today: p.today,
+    readAt: r.sheet.readAt,
+    end: last && lastDay ? ymd(last.year, last.month, lastDay) : p.today,
+    card: usual?.card.name ?? null,
+    due: usual?.cycle.due ?? null,
+    paces,
+    spends,
+    paceFrom: result.monthly === null ? null : addDays(ymd(y, m, daysInMonth(y, m)), 1),
+    refused,
+    canSpend: cs ? { mode: cs.mode, left: cs.left, overBy: cs.overBy, due: cs.due } : null,
   };
 };
 

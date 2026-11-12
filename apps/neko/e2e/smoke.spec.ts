@@ -29,7 +29,7 @@ const API: Record<string, unknown> = {
       { event: "hoje", label: "Hoje", count: 31 },
       { event: "faturas", label: "Faturas", count: 6 },
     ],
-    taps: [{ event: "simular", label: "Simular compra", count: 0 }],
+    taps: [{ event: "simular", label: "Simular", count: 0 }],
     notices: [
       { event: "notificacao_manha", label: "Contas e teto", count: 3 },
       { event: "notificacao_noite", label: "Lançar o dia", count: 8 },
@@ -470,6 +470,72 @@ test("with the month's ceiling, Hoje shows what still fits for cards and Pix", a
   expect(errors).toEqual([]);
 });
 
+test("Simular opens apart from Hoje, moves only copies of the balances and forgets them", async ({
+  page,
+}) => {
+  const errors = await open(page, "/");
+  await page.getByRole("link", { name: "Simular" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Simular" })).toBeFocused();
+  await expect(page.getByText("Nada aqui é salvo")).toBeVisible();
+  // No ceiling in Ajustes: the sheet as it is, or the last months' average.
+  await expect(page.getByRole("radio", { name: "Só a planilha" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "Teto" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Ajustes" }).first()).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /^Só com a planilha, o menor saldo é/ }),
+  ).toBeVisible();
+  // C adds a purchase, as the add button's title says.
+  await page.keyboard.press("c");
+  await expect(page.getByRole("textbox", { name: /Compra no Cartão Azul/ })).toBeFocused();
+  await page.keyboard.type("600");
+  // The parcels are one radio group: the arrows move the choice inside it.
+  await page.getByRole("radio", { name: "2×", exact: true }).click();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("radio", { name: "3×" })).toBeChecked();
+  await expect(page.getByText("1ª parcela em 12 out")).toBeVisible();
+  // On a chip a letter is still a shortcut: S adds a Saída.
+  await page.keyboard.press("s");
+  await expect(page.getByRole("textbox", { name: /Saída/ })).toBeFocused();
+  await page.keyboard.type("50000");
+  // In the red, the answer says when, and how deep it goes.
+  await expect(
+    page.getByRole("heading", {
+      name: /^Só com a planilha, fica negativo em 5 out e chega a −R\$\s[\d.]+/,
+    }),
+  ).toBeVisible();
+  // Each what-if's own effect, in reais, without remembering the number from before.
+  await expect(page.getByText(/^As mudanças tiram R\$\s[\d.]+ do menor saldo/)).toBeVisible();
+  // A typo says so at once; a stray Esc steps out of the field and never wipes the what-ifs.
+  await page.getByRole("button", { name: "Entrada", exact: true }).click();
+  await page.keyboard.type("1,500.50");
+  await expect(page.getByText("Use um valor como 1.500,00.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("heading", { level: 1, name: "Simular" })).toBeFocused();
+  await expect(page.getByText("Esc de novo sai e apaga as mudanças.")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /Entrada/ })).toHaveValue("1,500.50");
+  await page.getByRole("button", { name: "Tirar entrada" }).click();
+  await expect(page.getByRole("textbox", { name: /Saída/ })).toBeFocused();
+  // Taken out by mistake, it comes back as it was, until the next change.
+  await page.getByRole("button", { name: "Desfazer" }).click();
+  await expect(page.getByRole("textbox", { name: /Entrada/ })).toHaveValue("1,500.50");
+  await expect(page.getByRole("textbox", { name: /Entrada/ })).toBeFocused();
+  await page.getByRole("button", { name: "Tirar entrada" }).click();
+  await expect(page.getByText("Entrada removida.")).toBeVisible();
+  await expect(page.getByRole("figure").getByText("Simulação")).toBeVisible();
+  await page.getByText("Mês a mês").click();
+  await expect(page.getByRole("columnheader", { name: "Planilha" })).toBeVisible();
+  await page.screenshot({ path: "test-results/simular.png", fullPage: true });
+  // Leaving forgets it: back on Hoje, and a new visit starts clean.
+  await page.getByRole("button", { name: "Voltar" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Hoje" })).toBeVisible();
+  await page.getByRole("link", { name: "Simular" }).click();
+  await expect(
+    page.getByRole("heading", { name: /^Só com a planilha, o menor saldo é/ }),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test("Lançar à mão asks the value, how it was paid and the name, then offers Desfazer", async ({
   page,
 }) => {
@@ -488,6 +554,37 @@ test("Lançar à mão asks the value, how it was paid and the name, then offers 
   await expect(page.getByRole("button", { name: "Desfazer" })).toBeVisible();
   await expect(form).toBeHidden();
   expect(errors).toEqual([]);
+});
+
+test("Simular keeps the what-ifs while Ajustes is read again, and lands on the new answer", async ({
+  page,
+}) => {
+  await open(page, "about:blank");
+  let fail = true;
+  await page.route("**/api/settings", async (route) => {
+    if (!fail)
+      return route.fulfill({ json: { ...(API["/api/settings"] as object), cycleBudget: 300_000 } });
+    // Slow enough to see "Tentando…" before it fails again, on a busy machine too.
+    await new Promise((done) => setTimeout(done, 500));
+    return route.fulfill({ status: 500, json: { error: "indisponível" } });
+  });
+  await page.goto("/simular");
+  await expect(page.getByText("Não consegui ler o teto em Ajustes")).toBeVisible();
+  await page.keyboard.press("c");
+  await page.keyboard.type("600");
+  // Failing again keeps the row, and the keys stay on the button.
+  const retry = page.getByRole("button", { name: /^(Tentar de novo|Tentando…)$/ });
+  await retry.click();
+  await expect(retry).toHaveText("Tentando…");
+  await expect(retry).toHaveText("Tentar de novo");
+  await expect(retry).toBeFocused();
+  await expect(page.getByRole("textbox", { name: /Compra/ })).toHaveValue("600");
+  // Read at last: the ceiling joins the paces, the row is still there, the keys on the answer.
+  fail = false;
+  await retry.click();
+  await expect(page.locator("#sim-verdict")).toBeFocused();
+  await expect(page.getByRole("radio", { name: "Teto" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /Compra/ })).toHaveValue("600");
 });
 
 test("Lançar com a Mia fills the form from one sentence, and only Lançar writes", async ({
@@ -569,7 +666,7 @@ test("Neko counts the screens it shows, and Ajustes tells what was used", async 
   await usage.getByText("Aberto em 12 dos últimos 30 dias").click();
   await expect(usage).toContainText("OndeNo app Android10 dias");
   await expect(usage).toContainText("TelasHoje31 vezes");
-  await expect(usage).toContainText("BotõesSimular compraNunca");
+  await expect(usage).toContainText("BotõesSimularNunca");
   await expect(usage).toContainText(
     "Notificações tocadasContas e teto3 vezesLançar o dia8 vezesAvisosNunca",
   );

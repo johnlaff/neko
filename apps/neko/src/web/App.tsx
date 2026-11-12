@@ -35,6 +35,7 @@ const screens = {
   faturas: () => import("./screens/Faturas.tsx"),
   mes: () => import("./screens/Mes.tsx"),
   ajustes: () => import("./screens/Ajustes.tsx"),
+  simular: () => import("./screens/Simular.tsx"),
 };
 const prefetchScreens = () => {
   const run = () => {
@@ -77,12 +78,23 @@ const TITLES: Record<string, string> = {
  * the tabs, R read again, L Lançar, arrows the month, M Mia, Esc out of her), so the hint and the action never drift.
  * Never while typing in a field or with a dialog open.
  */
-const isTyping = (t: EventTarget | null) =>
-  t instanceof HTMLElement &&
-  (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
+/** A chip (radio or checkbox) only takes arrows and space: a letter or a digit is a shortcut there. */
+const isTyping = (t: EventTarget | null, key: string) => {
+  if (!(t instanceof HTMLElement)) return false;
+  if (t instanceof HTMLInputElement && ["radio", "checkbox"].includes(t.type))
+    return key.length !== 1 || key === " ";
+  return t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName);
+};
 const onShortcut = (e: KeyboardEvent) => {
   // A widget that used the key itself (the Mês calendar's arrows) keeps it.
-  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.repeat || isTyping(e.target))
+  if (
+    e.defaultPrevented ||
+    e.ctrlKey ||
+    e.metaKey ||
+    e.altKey ||
+    e.repeat ||
+    isTyping(e.target, e.key)
+  )
     return;
   if (document.querySelector("dialog[open]")) return;
   const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
@@ -170,10 +182,10 @@ const Shell = () => {
     window.addEventListener("keydown", onShortcut);
     return () => window.removeEventListener("keydown", onShortcut);
   }, []);
-  // Mia's screen is the whole page: her own bar on top, the question field where the dock was.
-  if (path === "/mia")
+  // Mia's and Simular's screens are the whole page, with their own bar on top and no dock.
+  if (path === "/mia" || path === "/simular")
     return (
-      <main className="mia-page">
+      <main className={path === "/mia" ? "mia-page" : "sim-page"}>
         <Fragment key={hidden ? "hidden" : "shown"}>
           <Outlet />
         </Fragment>
@@ -240,6 +252,11 @@ const routeTree = rootRoute.addChildren([
     component: lazyRouteComponent(screens.ajustes, "Ajustes"),
   }),
   miaRoute,
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/simular",
+    component: lazyRouteComponent(screens.simular, "Simular"),
+  }),
 ]);
 // A screen that breaks says so in the app's words and offers a way out, not a stack trace.
 function ScreenError({ error, reset }: { error: unknown; reset: () => void }) {
@@ -275,7 +292,7 @@ window.addEventListener("unhandledrejection", (e) => {
 
 const TAB_ORDER = ["/", "/faturas", "/mes", "/ajustes"];
 router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
-  // Mia's screen sits past the tabs: opening it goes forward, leaving it goes back.
+  // Mia's and Simular's screens sit past the tabs: opening one goes forward, leaving it goes back.
   const place = (path: string) => {
     const i = TAB_ORDER.indexOf(path);
     return i === -1 ? TAB_ORDER.length : i;

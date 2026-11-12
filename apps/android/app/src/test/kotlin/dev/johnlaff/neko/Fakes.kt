@@ -3,7 +3,6 @@ package dev.johnlaff.neko
 import dev.johnlaff.neko.data.Device
 import dev.johnlaff.neko.data.HistoryPoint
 import dev.johnlaff.neko.data.HistoryView
-import dev.johnlaff.neko.data.InstallmentSimulation
 import dev.johnlaff.neko.data.json
 import dev.johnlaff.neko.data.BankAccount
 import dev.johnlaff.neko.data.BankCard
@@ -42,7 +41,7 @@ object Fakes {
         ),
         taps = listOf(
             UsageCount("lancar", "Lançar", 9),
-            UsageCount("simular", "Simular compra", 0),
+            UsageCount("simular", "Simular", 0),
             UsageCount("calculo", "Como calculei", 1),
             UsageCount("ler", "Ler a planilha de novo", 4),
         ),
@@ -87,11 +86,20 @@ object Fakes {
         ),
     )
 
-    /** What the Worker answers for R$ 600,00 in 3x on the e2e fixture (written by screens.test.ts). */
-    val simulation: InstallmentSimulation =
-        json.decodeFromString(InstallmentSimulation.serializer(), File("src/test/resources/simulate.json").readText())
+    /**
+     * What the Worker answers Simular on the e2e fixture at a R$ 3.000 ceiling, with R$ 600,00 in
+     * 3x and R$ 1.500 out on the 20th for two months (written by screens.test.ts).
+     */
+    val scenario: dev.johnlaff.neko.data.ScenarioView =
+        json.decodeFromString(dev.johnlaff.neko.data.ScenarioView.serializer(), File("src/test/resources/scenario.json").readText())
 
-    val simulate: suspend (Long, Int) -> InstallmentSimulation? = { _, _ -> simulation }
+    /** The lines that answer is for, as typed on the screen. */
+    val scenarioRows = listOf(
+        dev.johnlaff.neko.ui.SimRow(0, "compra", "600,00", 3),
+        dev.johnlaff.neko.ui.SimRow(1, "saida", "1.500,00", 2, "20/10/2026"),
+    )
+
+    val askScenario: suspend (dev.johnlaff.neko.data.ScenarioBody) -> dev.johnlaff.neko.data.ScenarioView = { scenario }
 
     /** Launches nothing: the prints only draw Para lançar and Lançar à mão. */
     val launcher = object : dev.johnlaff.neko.ui.Launcher {
