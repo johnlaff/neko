@@ -16,6 +16,7 @@ import {
   runTurn,
   SESSION_CAP_CENTS,
   stopTurn,
+  verdictOf,
 } from "../src/worker/mia2.ts";
 import { raiseNotice, recentNotices } from "../src/worker/notices.ts";
 import {
@@ -686,6 +687,96 @@ describe("mia2 routes", () => {
  * The Android app reads her answer from this file in its unit tests (Mia2ChatTest), so both sides
  * agree on the lines. UPDATE_CONTRACT=1 rewrites it after an intended change.
  */
+describe("mia2 posso comprar", () => {
+  const verdict = {
+    veredito: "aperta",
+    motivos: ["num mês das parcelas, as faturas com a parcela chegam ao teto"],
+    compra: { valor: 600, meio: "cartao", cartao: "Azul", parcelas: 3, valor_da_parcela: 200 },
+    teto_por_mes: 3800,
+    meses_sem_folga: [{ mes: "2026-12", faturas_com_a_parcela: 3904.32 }],
+  };
+
+  it("shows the Neko's verdict above her words, once a purchase, and again after a redo", async () => {
+    const api = fakeApi({
+      streams: [
+        [
+          toolUse("u1", "posso_comprar", { valor: 600, parcelas: 3 }),
+          toolResult("u1", verdict),
+          message(
+            "m1",
+            "Em dezembro, as faturas chegam a R$ 3.904,32, e você gasta R$ 50 por dia.",
+          ),
+          idle("end_turn"),
+          // Redone: she asks again the same purchase, and one at once.
+          toolUse("u2", "posso_comprar", { valor: 600, parcelas: 3 }),
+          toolResult("u2", verdict),
+          toolUse("u3", "posso_comprar", { valor: 600 }),
+          toolResult("u3", {
+            ...verdict,
+            veredito: "cabe",
+            compra: { ...verdict.compra, parcelas: 1 },
+          }),
+          message("m2", "Em dezembro, as faturas chegam a **R$ 3.904,32**."),
+          idle("end_turn"),
+        ],
+      ],
+    });
+    const lines = await turn(api, sqliteD1(), {
+      pergunta: "Posso comprar uma cadeira de R$ 600 em 3x?",
+    });
+    const shown = lines.filter((l) => l.t !== "status" && l.t !== "parcial");
+    expect(shown.map((l) => l.t)).toEqual([
+      "sessao",
+      "veredito",
+      "mensagem",
+      "refazendo",
+      "veredito",
+      "veredito",
+      "mensagem",
+      "fim",
+    ]);
+    expect(shown[1]).toEqual({
+      t: "veredito",
+      id: "r-u1",
+      veredito: "aperta",
+      valor: 600,
+      parcelas: 3,
+      meio: "cartao",
+      cartao: "Azul",
+    });
+    expect(shown[5]).toMatchObject({ veredito: "cabe", parcelas: 1 });
+    expect(lines).toContainEqual({ t: "status", texto: "Conferindo a compra…" });
+  });
+
+  it("shows no verdict from an answer that is not posso_comprar's", () => {
+    expect(verdictOf("x", JSON.stringify({ veredito: "cabe" }))).toBeNull();
+    expect(verdictOf("x", "Não dá para conferir: no card")).toBeNull();
+  });
+
+  it("writes the lines the app reads", async () => {
+    const api = fakeApi({
+      streams: [
+        [
+          toolUse("u1", "posso_comprar", { valor: 600, parcelas: 3 }),
+          toolResult("u1", verdict),
+          message("m1", "Em dezembro, as faturas com a parcela passam do teto de **R$ 3.800**."),
+          idle("end_turn"),
+        ],
+      ],
+    });
+    const lines = await turn(api, sqliteD1(), {
+      pergunta: "Posso comprar uma cadeira de R$ 600 em 3x?",
+    });
+    const text = `${lines.map((l) => JSON.stringify(l)).join("\n")}\n`;
+    const path = join(
+      import.meta.dirname,
+      "../../android/app/src/test/resources/mia2-compra.ndjson",
+    );
+    if (process.env.UPDATE_CONTRACT) writeFileSync(path, text);
+    expect(readFileSync(path, "utf8")).toBe(text);
+  });
+});
+
 describe("mia2 android contract", () => {
   it("matches the lines the app reads", async () => {
     const api = fakeApi({

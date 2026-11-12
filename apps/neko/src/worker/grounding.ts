@@ -29,6 +29,7 @@ const TOOL_TELA: Record<string, Tela> = {
   resumo_meses: "mes",
   dias_do_mes: "mes",
   simular: "simular",
+  posso_comprar: "simular",
 };
 
 const MONTH = /^\d{4}-\d{2}$/;

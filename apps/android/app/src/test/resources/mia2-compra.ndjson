@@ -1,0 +1,6 @@
+{"t":"status","texto":"Abrindo a conversa…"}
+{"t":"sessao","id":"sesn_0000000001"}
+{"t":"status","texto":"Conferindo a compra…"}
+{"t":"veredito","id":"r-u1","veredito":"aperta","valor":600,"parcelas":3,"meio":"cartao","cartao":"Azul"}
+{"t":"mensagem","id":"m1","texto":"Em dezembro, as faturas com a parcela passam do teto de **R$ 3.800**.","valores":{"R$ 3.800":{"conferido":true,"tela":"simular"}}}
+{"t":"fim"}

@@ -429,6 +429,13 @@ data class Mia2Line(
     val grafico: Mia2Grafico? = null,
     val numeros: List<Mia2Numero>? = null,
     val motivo: String? = null,
+    /** `veredito`: the Neko's verdict on a purchase ("cabe", "aperta", "nao_cabe") and the purchase it checked. */
+    val veredito: String? = null,
+    val valor: Double? = null,
+    val parcelas: Int? = null,
+    val meio: String? = null,
+    /** The card it went on, the main one when she was not told; none in Pix. */
+    val cartao: String? = null,
 )
 
 /**
