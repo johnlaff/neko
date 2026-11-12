@@ -1,200 +1,283 @@
 import { buildPushPayload, type VapidKeys } from "@block65/webcrypto-web-push";
-import { addDays, formatBRL, sub, ZERO } from "@neko/engine";
+import {
+  add,
+  addDays,
+  type Cents,
+  formatBRL,
+  type LocalDate,
+  sub,
+  type UpcomingItem,
+  weekday,
+  ZERO,
+} from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import { sheetCellUrl } from "../shared/sheet.ts";
+import { bankText } from "../shared/text.ts";
 import type { ProjectionResponse } from "../shared/types.ts";
-import { winText } from "../shared/wins.ts";
 import { IDLE_DAYS } from "./auth.ts";
 import type { Env } from "./env.ts";
 
+/**
+ * What Neko notifies (specs/002, "Notificações"): at most a morning and an evening message, each
+ * only when there is something to do, plus the rare alert. Facts in the sheet's and the bank's
+ * own numbers, never a forecast and never a scolding.
+ */
 export interface Reminder {
   readonly title: string;
   readonly body: string;
-  /** Opened when the notification is tapped. */
+  /** Opened when the notification is tapped: "/" is Hoje, PARA_LANCAR its Para lançar. */
   readonly url: string;
   /** Same tag replaces the previous notification instead of stacking. */
-  readonly tag: "morning" | "evening" | "alert";
+  readonly tag: "morning" | "evening" | "alert" | "ceiling";
 }
+
+/** Hoje, scrolled to Para lançar: the web reads the hash, the Android app its own action. */
+export const PARA_LANCAR = "/#para-lancar";
 
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const shortDate = (iso: string) =>
   `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]}`;
-const days = (n: number) => (n === 1 ? "1 dia" : `${n} dias`);
-/**
- * Only the balance going red earns a line in the push; the rest waits in the app. A bill's line
- * already says when the red day is its due day.
- */
-const redDay = (p: ProjectionResponse["projection"]) => {
-  const red = (p.insights ?? []).find((i) => i.kind === "goes-negative");
-  if (red?.kind !== "goes-negative") return "";
-  if (!red.already && dueBills(p).some((b) => b.date === red.start)) return "";
-  return red.already
-    ? " O saldo está negativo."
-    : ` O saldo fica negativo em ${shortDate(red.start)}.`;
-};
-/** On payday, the method's saving (see engine `saveable`) is the one thing worth doing first. */
-const savingDay = (p: ProjectionResponse["projection"]) =>
-  p.saving && p.saving.date === p.today ? ` Hoje dá para guardar ${money(p.saving.amount)}.` : "";
-const MONTH_NAMES = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-];
-/** On the 1st, the month that just closed earns one line when it achieved something. */
-const winsDay = (p: ProjectionResponse["projection"]) => {
-  const r = p.recap;
-  const first = r?.wins[0];
-  if (!r || !first || !p.today.endsWith("-01")) return "";
-  return ` ${MONTH_NAMES[r.month - 1]} fechou: ${winText(first).replace(/^./, (c) => c.toLowerCase())}.`;
-};
-/** Sunday morning: the week that just closed, as a fact, only when something was logged. */
-const weekDay = ({ projection: p, habit }: ProjectionResponse) =>
-  habit?.lastWeek && habit.week[0]?.date === p.today
-    ? ` Semana passada: ${habit.lastWeek} de 7 dias lançados.`
-    : "";
-/**
- * The morning after the run reached a mark or passed its best, one line says so: the card on
- * Hoje celebrates it too, but the push is where a habit app earns the next day.
- */
-const markDay = ({ habit }: ProjectionResponse) => {
-  if (!habit || habit.editedToday) return "";
-  if (habit.milestone) return ` Ontem você chegou a ${habit.milestone} dias seguidos de planilha.`;
-  if (habit.record) return ` Ontem foi seu novo recorde: ${habit.record + 1} dias seguidos.`;
-  return "";
-};
 // Intl puts a non-breaking space after R$; a plain space reads the same in a notification.
-const money = (c: Parameters<typeof formatBRL>[0]) => formatBRL(c).replace(/\s/g, " ");
+const money = (c: Cents) => formatBRL(c).replace(/\s/g, " ");
+/** "a, b e c", as a sentence lists things. */
+const listOf = (items: readonly string[]) =>
+  items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} e ${items.at(-1)}`;
 
-const closingText = (cs: { closing: string; daysLeft: number }) =>
-  cs.daysLeft === 1
-    ? "A fatura fecha hoje."
-    : `A fatura fecha em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`;
-
-/** Days ahead a card bill is announced, besides its own day: time to move money if needed. */
-const DUE_AHEAD = 2;
+type Projection = ProjectionResponse["projection"];
 
 /** The sheet's balance at the end of a day; null outside the months it has. */
-const balanceOn = (p: ProjectionResponse["projection"], date: string) =>
+const balanceOn = (p: Projection, date: string) =>
   p.months
     ?.find((m) => m.year === Number(date.slice(0, 4)) && m.month === Number(date.slice(5, 7)))
     // Missing on projections cached before the termômetro existed.
     ?.days?.find((d) => d.day === Number(date.slice(8, 10)))?.balance ?? null;
 
-/**
- * Card bills due today or in DUE_AHEAD days. A late bill costs a fee, interest and IOF, and the
- * sheet cannot tell whether it was paid, so the warning comes before, never after. When the
- * sheet's balance at the end of the day goes below zero, the day's last bill says how much the
- * account misses to pay them: a reminder of the bill alone moves the problem into the overdraft
- * (Medina, 2021). With the money there, the line stays short.
- */
-const dueBills = (p: ProjectionResponse["projection"]) => {
-  const due = (p.upcoming ?? []).filter(
-    (u) => u.kind === "card" && (u.date === p.today || u.date === addDays(p.today, DUE_AHEAD)),
-  );
-  return due.map((u, i) => {
-    const balance = due[i + 1]?.date === u.date ? null : balanceOn(p, u.date);
-    return {
-      date: u.date,
-      title:
-        u.date === p.today
-          ? `Hoje vence a fatura do ${u.description}`
-          : `A fatura do ${u.description} vence em ${shortDate(u.date)}`,
-      text: `${money(u.amount)}.${
-        balance !== null && balance < 0
-          ? ` Para pagar, faltam ${money(sub(ZERO, balance))} na conta.`
-          : ""
-      }`,
-    };
-  });
+/** What leaves the account on a day, as the sheet names it: bills and card bills. */
+const dueOn = (p: Projection, date: string) =>
+  (p.upcoming ?? []).filter((u) => u.kind !== "income" && u.date === date);
+const billName = (u: UpcomingItem) =>
+  u.kind === "card" ? `fatura do ${u.description}` : u.description;
+const billText = (u: UpcomingItem) => `${billName(u)} ${money(u.amount)}`;
+/** How much the account misses at the end of a day, when the sheet's balance goes below zero. */
+const shortOn = (p: Projection, date: string): Cents | null => {
+  const balance = balanceOn(p, date);
+  return balance !== null && balance < 0 ? sub(ZERO, balance) : null;
 };
-const dueDay = (p: ProjectionResponse["projection"]) =>
-  dueBills(p)
-    .map((b) => ` ${b.title}: ${b.text}`)
-    .join("");
 
 /**
- * 08:00: what still fits, never an amount per day (the diário is an average): on the usual card's
- * cycle, in the month against the Diário previsto, or on all the cards under a ceiling.
+ * One reason for the morning message: its own title and body when it leads, one line when it
+ * follows a more urgent one.
+ */
+interface Part {
+  readonly title: string;
+  readonly body: string;
+  readonly line: string;
+  readonly url: string;
+}
+
+/**
+ * Every bill the sheet has for today, cards or not: in one morning the owner asked which bills to
+ * pay, and two of five were not cards. When the day's balance ends below zero, the message says
+ * how much the account misses to pay them, since a reminder of the bill alone moves the problem
+ * into the overdraft (Medina, 2021).
+ */
+const billsPart = (p: Projection): Part | null => {
+  const due = dueOn(p, p.today);
+  const [first] = due;
+  if (!first) return null;
+  const short = shortOn(p, p.today);
+  const missing = short === null ? "" : `Para pagar, faltam ${money(short)} na conta.`;
+  const total = due.reduce((sum, u) => add(sum, u.amount), ZERO);
+  const url = due.every((u) => u.kind === "card") ? "/faturas" : "/";
+  return due.length === 1
+    ? {
+        title: `Vence hoje: ${billName(first)}, ${money(first.amount)}`,
+        body: missing,
+        line: `Vence hoje: ${billText(first)}.${missing ? ` ${missing}` : ""}`,
+        url,
+      }
+    : {
+        title: `Vencem hoje ${due.length} contas: ${money(total)}`,
+        body: `${listOf(due.map(billText))}.${missing ? ` ${missing}` : ""}`,
+        line: `Vencem hoje ${listOf(due.map(billText))}.${missing ? ` ${missing}` : ""}`,
+        url,
+      };
+};
+
+/** "hoje", "amanhã" or "em 12 nov", for a day from today on. */
+const whenFrom = (today: string, date: string) =>
+  date === today
+    ? "hoje"
+    : date === addDays(today as LocalDate, 1)
+      ? "amanhã"
+      : `em ${shortDate(date)}`;
+
+/**
+ * A card bill the bank debits from one account, more than that account has: the money may sit in
+ * another account, so the Saldo says nothing. The move to make, from two days before the due day.
+ */
+const transferPart = (data: ProjectionResponse): Part | null => {
+  const today = data.projection.today;
+  const sentences = (data.bank?.transfers ?? []).map((t) => {
+    const [one, ...more] = t.bills;
+    const last = t.bills.reduce((at, b) => (b.due > at ? b.due : at), today);
+    const when = whenFrom(today, last);
+    const what =
+      one && more.length === 0
+        ? `A fatura do ${one.card}, ${money(one.amount)}, sai dessa conta ${when}`
+        : `As faturas ${listOf(t.bills.map((b) => `do ${b.card} ${money(b.amount)}`))} saem dessa conta ${t.bills.every((b) => b.due === last) ? when : `até ${when.replace(/^em /, "")}`}`;
+    return {
+      title: `Transfira ${money(t.amount)} para a conta ${t.to}`,
+      body: `${what}, e ela tem ${money(t.balance)}.`,
+    };
+  });
+  const [first] = sentences;
+  if (!first) return null;
+  const all = sentences.map((x) => `${x.title}. ${x.body}`);
+  return {
+    title: first.title,
+    body: [first.body, ...all.slice(1)].join(" "),
+    line: all.join(" "),
+    url: "/faturas",
+  };
+};
+
+/** Days ahead the balance going red is announced: time to move money before the bill. */
+const RED_AHEAD = 2;
+
+/**
+ * The balance below zero now, or within RED_AHEAD days. Further ahead it waits on Hoje: it is not
+ * today's to do, and the same warning every morning stops being read (Yancey and Settles, 2020).
+ * Today's bills already say what the account misses, so they make this one redundant.
+ */
+const redPart = (p: Projection): Part | null => {
+  const red = (p.insights ?? []).find((i) => i.kind === "goes-negative");
+  if (red?.kind !== "goes-negative") return null;
+  const billsSayIt = dueOn(p, p.today).length > 0 && shortOn(p, p.today) !== null;
+  if (red.already) {
+    if (billsSayIt) return null;
+    const short = shortOn(p, p.today);
+    const body = short === null ? "" : `No fim de hoje, faltam ${money(short)} na conta.`;
+    return { title: "O saldo está negativo", body, line: "O saldo está negativo.", url: "/" };
+  }
+  if (red.start > addDays(p.today, RED_AHEAD)) return null;
+  if (red.start === p.today && billsSayIt) return null;
+  const when = red.start === p.today ? "hoje" : `em ${shortDate(red.start)}`;
+  const short = shortOn(p, red.start);
+  const due = dueOn(p, red.start);
+  const body = [
+    short === null ? "" : `Faltam ${money(short)} na conta nesse dia.`,
+    due.length === 0 ? "" : `Vence${due.length > 1 ? "m" : ""}: ${listOf(due.map(billText))}.`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return {
+    title: `O saldo fica negativo ${when}`,
+    body,
+    line: `O saldo fica negativo ${when}.${body ? ` ${body}` : ""}`,
+    url: "/",
+  };
+};
+
+/** On payday, the method's saving (see engine `saveable`) is the one thing worth doing first. */
+const savingPart = (p: Projection): Part | null => {
+  const s = p.saving;
+  if (!s || s.date !== p.today) return null;
+  return {
+    title: `Hoje dá para guardar ${money(s.amount)}`,
+    body: `Depois de guardar, o menor saldo até ${shortDate(s.until)} fica em ${money(s.leftAtLowest)}.`,
+    line: `Hoje dá para guardar ${money(s.amount)}.`,
+    url: "/",
+  };
+};
+
+/** The ceiling's marks worth a message, once each in a month (see notices.ts `ceilingNews`). */
+export type CeilingNews = 75 | 100;
+
+/**
+ * The month's ceiling crossed 75% or 100%, said when the bank brings the purchase that crossed
+ * it: a nudge at the moment of spending changes more than one the next morning (Atalay 2025).
+ */
+export const ceilingReminder = (p: Projection, news: CeilingNews): Reminder | null => {
+  const cs = p.canSpend;
+  if (cs?.mode !== "cards") return null;
+  if (news === 75)
+    return {
+      title: "Cartões e Pix passaram de 75% do teto",
+      body: `Ainda cabem ${money(cs.left)} até o fim do mês.`,
+      url: "/",
+      tag: "ceiling",
+    };
+  return {
+    title:
+      cs.overBy > 0
+        ? `Cartões e Pix passaram ${money(cs.overBy)} do teto`
+        : "Cartões e Pix chegaram ao teto",
+    body: `O teto do mês é ${money(cs.budget)}.`,
+    url: "/",
+    tag: "ceiling",
+  };
+};
+
+/**
+ * Sunday: the week that just closed, as facts. What cards and Pix took against the week before
+ * (comparing with one's own past spending lowers it, Levi and Benartzi), and the days logged.
+ */
+const weekPart = ({ projection: p, habit, week }: ProjectionResponse): Part | null => {
+  if (weekday(p.today as LocalDate) !== 0) return null;
+  const logged = habit?.lastWeek ? `${habit.lastWeek} de 7 dias lançados` : null;
+  if (!week) {
+    if (!logged) return null;
+    return {
+      title: `Semana passada: ${logged}`,
+      body: "",
+      line: `Semana passada: ${logged}.`,
+      url: "/",
+    };
+  }
+  const diff = week.previous === null ? null : sub(week.total, week.previous);
+  const versus =
+    diff === null
+      ? null
+      : diff < 0
+        ? `${money(sub(ZERO, diff))} a menos que na semana anterior`
+        : diff > 0
+          ? `${money(diff)} a mais que na semana anterior`
+          : "o mesmo que na semana anterior";
+  const spent = `${money(week.total)} em cartões e Pix`;
+  const body = [versus, logged]
+    .filter((x): x is string => x !== null)
+    .map((x) => `${x.charAt(0).toUpperCase()}${x.slice(1)}.`)
+    .join(" ");
+  return {
+    title: `Semana passada: ${spent}`,
+    body,
+    line: `Semana passada: ${[spent, versus, logged].filter(Boolean).join(", ")}.`,
+    url: "/",
+  };
+};
+
+/**
+ * 08:00, only when there is something to do, the most urgent in the title: bills due today, money
+ * to move into the account a bill is debited from, the balance going red, payday's saving, and on
+ * Sunday the week. The ceiling speaks when the bank brings the purchase (`ceilingReminder`). What
+ * still fits lives on the widget and Hoje, where it is seen without an interruption.
  */
 export const morningMessage = (data: ProjectionResponse): Reminder | null => {
   const p = data.projection;
-  const cs = p.canSpend;
-  if (!cs) {
-    const [first, ...rest] = dueBills(p);
-    if (!first) return null;
-    return {
-      title: first.title,
-      body: `${first.text}${rest.map((b) => ` ${b.title}: ${b.text}`).join("")}`,
-      url: "/faturas",
-      tag: "morning",
-    };
-  }
-  const rest = `${dueDay(p)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`;
-  // With the Diário previsto on, the pace is the month's, cards and Pix together.
-  if (cs.mode === "month") {
-    const left =
-      cs.daysLeft === 1 ? "O mês acaba hoje." : `Até o fim do mês, faltam ${days(cs.daysLeft)}.`;
-    const behind =
-      cs.daysBehind > 0
-        ? ` O mês está ${money(sub(cs.accumulated, cs.paceExpected))} acima do previsto até ontem. Uns ${days(cs.daysBehind)} sem gastar e você volta ao previsto.`
-        : "";
-    return cs.overBy > 0
-      ? {
-          title: `O mês passou ${money(cs.overBy)} do Diário previsto`,
-          body: `${left}${rest}`,
-          url: "/",
-          tag: "morning",
-        }
-      : {
-          title: `Ainda cabem ${money(cs.left)} no mês`,
-          body: `${left}${behind}${rest}`,
-          url: "/",
-          tag: "morning",
-        };
-  }
-  // With the month's ceiling (cards and Pix): what still fits, and the mark of it already used.
-  if (cs.mode === "cards") {
-    const used =
-      cs.used === 75 || cs.used === 50
-        ? `Você já usou ${cs.used === 75 ? "75%" : "metade"} do teto de ${money(cs.budget)}.`
-        : `Teto de ${money(cs.budget)}.`;
-    const body = (start: string) => `${start}${rest}`.trim();
-    return cs.overBy > 0
-      ? {
-          title: `Cartões e Pix passaram ${money(cs.overBy)} do teto`,
-          body: body(used),
-          url: "/",
-          tag: "morning",
-        }
-      : cs.used === 100
-        ? { title: "Cartões e Pix chegaram ao teto", body: body(used), url: "/", tag: "morning" }
-        : {
-            title: `Ainda cabem ${money(cs.left)} no teto do mês`,
-            body: body(used),
-            url: "/",
-            tag: "morning",
-          };
-  }
-  if (cs.overBy > 0)
-    return {
-      title: `O ${cs.card} passou ${money(sub(cs.accumulated, cs.budget))} do plano do ciclo`,
-      body: `${closingText(cs)}${dueDay(p)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
-      url: "/",
-      tag: "morning",
-    };
+  const parts = [
+    billsPart(p),
+    transferPart(data),
+    redPart(p),
+    savingPart(p),
+    weekPart(data),
+  ].filter((x): x is Part => x !== null);
+  const [lead, ...rest] = parts;
+  if (!lead) return null;
   return {
-    title: `Ainda cabem ${money(cs.left)} no ${cs.card}`,
-    body: `${cs.daysLeft === 1 ? "A fatura fecha hoje." : `Até a fatura fechar em ${shortDate(cs.closing)}. Faltam ${days(cs.daysLeft)}.`}${dueDay(p)}${redDay(p)}${savingDay(p)}${winsDay(p)}${weekDay(data)}${markDay(data)}`,
-    url: "/",
+    title: lead.title,
+    body: [lead.body, ...rest.map((r) => r.line)].filter(Boolean).join(" "),
+    url: lead.url,
     tag: "morning",
   };
 };
@@ -204,43 +287,52 @@ const streakLine = (streak: number) => (streak >= 2 ? ` Você está há ${streak
 
 /**
  * When yesterday went without a change, tonight's edit is what mends it, and the nudge leads with
- * that: a run that can be repaired keeps people going.
+ * that: a run that can be repaired keeps people going (Silverman and Barasch, 2023).
  */
 const mendLine = (streak: number) =>
   `Ontem ficou sem lançar. Lance hoje e a sequência de ${streak} ${streak === 1 ? "dia" : "dias"} continua.`;
 
+/** Items named in the evening message; the rest are counted. */
+const NAMED = 3;
+
 /**
- * 21:00: the habit nudge, silent once anything was done to the sheet today (a launch from Neko
- * counts). With writing on it opens Para lançar; off, today's row in the sheet.
+ * The evening, at the owner's hour: what waits in Para lançar, by count and name, opening right
+ * on it. With the queue empty, a nudge to log the day, quiet once the sheet changed today. With
+ * writing off, nothing can be launched from Neko, so the nudge opens today's row in the sheet.
  */
 export const eveningMessage = ({
   projection: p,
   sheet,
   habit,
   writing,
-}: ProjectionResponse): Reminder | null =>
-  p.todayLogged || habit?.editedToday
-    ? null
-    : {
-        title: "Lançou os gastos de hoje?",
-        body: habit?.atRisk
-          ? mendLine(habit.streak)
-          : `${writing ? "Abre o Neko para lançar o dia" : `Abre a planilha direto no dia ${shortDate(p.today)}`}.${streakLine(habit?.streak ?? 0)}`,
-        url:
-          !writing && p.todayRef
-            ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
-            : "/",
-        tag: "evening",
-      };
-
-/**
- * Both of today's reminders, for the Android app: it shows them on its own at 08:00 and 21:00
- * from the phone, so they arrive without a browser subscription. Null means nothing to say.
- */
-export const remindersView = (data: ProjectionResponse) => ({
-  morning: morningMessage(data),
-  evening: eveningMessage(data),
-});
+  bank,
+}: ProjectionResponse): Reminder | null => {
+  const queue = writing ? (bank?.queue ?? []) : [];
+  const streak = habit?.streak ?? 0;
+  const run = habit?.atRisk ? ` ${mendLine(streak)}` : streakLine(streak);
+  if (queue.length > 0) {
+    const names = queue.slice(0, NAMED).map((i) => bankText(i.title));
+    const more = queue.length - names.length;
+    return {
+      title: `${queue.length} para lançar`,
+      body: `${listOf(more > 0 ? [...names, `mais ${more}`] : names)}.${run}`,
+      url: PARA_LANCAR,
+      tag: "evening",
+    };
+  }
+  if (p.todayLogged || habit?.editedToday) return null;
+  return {
+    title: "Lançou o dia?",
+    body: habit?.atRisk
+      ? mendLine(streak)
+      : `${writing ? "Abre o Neko para lançar o dia" : `Abre a planilha direto no dia ${shortDate(p.today)}`}.${run}`,
+    url:
+      !writing && p.todayRef
+        ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
+        : "/",
+    tag: "evening",
+  };
+};
 
 export const vapidKeys = (env: Env): VapidKeys | null =>
   env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY

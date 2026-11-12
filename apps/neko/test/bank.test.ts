@@ -9,6 +9,7 @@ import {
   bankView,
   loadBank,
 } from "../src/worker/bank.ts";
+import { PHONE_RELEASED } from "../src/worker/phone.ts";
 import { sqliteD1 } from "./d1.ts";
 
 // Invented bank: ids, names and amounts are made up (public repo).
@@ -147,6 +148,129 @@ describe("bank rows to the engine", () => {
   });
 });
 
+describe("a card purchase the phone read from the bank app", () => {
+  // The linked bank whose label names the phone's bank; its only card account. Read on the 8th.
+  const linked: BankRows = {
+    ...rows,
+    itemRows: [{ item_id: "i", label: "Banco Inter", synced_at: "2026-10-08T09:00:00.000Z" }],
+    accounts: [
+      { id: "conta", type: "BANK", item_id: "i" },
+      { id: "cartao", type: "CREDIT", item_id: "i" },
+    ],
+    txns: [],
+  };
+  const seen = {
+    id: "phone-0001",
+    bank: "Inter" as const,
+    amount: 4590,
+    last4: "2222",
+    merchant: "LIVRARIA",
+    at: "2026-10-06T15:00:00.000Z",
+  };
+  /** Three reads of the bank's app that the bank brought, the same days: the app is trusted. */
+  const proven = (bank: "Inter" | "Bradesco", last4: string) => {
+    const days = ["2026-09-20", "2026-09-21", "2026-09-22"];
+    return {
+      phone: days.map((d, i) => ({
+        ...seen,
+        id: `phone-${bank}-${i}`,
+        bank,
+        last4,
+        amount: 1000 * (i + 1),
+        at: `${d}T15:00:00.000Z`,
+      })),
+      txns: days.map((d, i) =>
+        txn({ account_id: "cartao", date: d, amount: 1000 * (i + 1), card_number: last4 }),
+      ),
+    };
+  };
+  const trusted = proven("Inter", "2222");
+  const both = new Set(["Inter", "Bradesco"]);
+  const read = (phone: (typeof seen)[], txns: BankRows["txns"] = [], released = both) =>
+    bankInput(
+      { ...linked, txns: [...trusted.txns, ...txns], phone: [...trusted.phone, ...phone] },
+      map,
+      cards,
+      released,
+    );
+
+  it("lands on its card's bill by the cycle, by its last digits or else the account's card", () => {
+    expect(read([seen]).provisional).toEqual([
+      {
+        card: "Visa Gio",
+        amount: 4590,
+        billMonth: "2026-11",
+        description: "LIVRARIA",
+        installment: null,
+        installments: null,
+        date: "2026-10-06",
+      },
+    ]);
+    expect(read([{ ...seen, last4: null }]).provisional).toMatchObject([
+      { card: "Visa", amount: 4590 },
+    ]);
+    expect(read([seen]).phoneTrust).toEqual([
+      { bank: "Inter", judged: 3, matched: 3, trusted: true },
+    ]);
+  });
+
+  it("only learns while no bank app is released, as now", () => {
+    const learning = read([seen], [], PHONE_RELEASED);
+    expect(PHONE_RELEASED.size).toBe(0);
+    expect(learning.provisional).toEqual([]);
+    expect(learning.phoneTrust).toEqual([{ bank: "Inter", judged: 3, matched: 3, trusted: false }]);
+  });
+
+  it("waits for the bank while the bank has not confirmed that app's reads", () => {
+    const learning = bankInput({ ...linked, phone: [seen] }, map, cards, both);
+    expect(learning.provisional).toEqual([]);
+    expect(learning.phoneTrust).toEqual([{ bank: "Inter", judged: 0, matched: 0, trusted: false }]);
+  });
+
+  it("steps aside once the bank brings the same charge", () => {
+    const brought = txn({
+      account_id: "cartao",
+      date: "2026-10-07",
+      amount: 4590,
+      card_number: "2222",
+    });
+    expect(read([seen], [brought]).provisional).toEqual([]);
+    expect(read([seen], [brought]).lines).toHaveLength(4);
+  });
+
+  it("stops counting the app when the bank, read days later, never brought one", () => {
+    // Read on the 1st; the bank, read on the 8th, has no such charge.
+    const wrong = { ...seen, id: "phone-0000", amount: 9990, at: "2026-10-01T15:00:00.000Z" };
+    expect(read([wrong, seen]).provisional).toEqual([]);
+    expect(read([wrong, seen]).phoneTrust).toEqual([
+      { bank: "Inter", judged: 4, matched: 3, trusted: false },
+    ]);
+  });
+
+  it("counts one purchase both bank apps told once", () => {
+    const twin = { ...seen, id: "phone-0002", last4: null, at: "2026-10-06T15:01:00.000Z" };
+    expect(read([twin, seen]).provisional).toMatchObject([{ card: "Visa Gio", amount: 4590 }]);
+  });
+
+  it("finds its card by digits the bank already brought, whatever the bank's label", () => {
+    const bradesco = proven("Bradesco", "7777");
+    const other = { ...seen, bank: "Bradesco" as const, last4: "7777" };
+    expect(
+      bankInput(
+        { ...linked, txns: bradesco.txns, phone: [...bradesco.phone, other] },
+        map,
+        cards,
+        both,
+      ).provisional,
+    ).toMatchObject([{ card: "Visa", amount: 4590 }]);
+  });
+
+  it("is left out when no linked bank is the phone's", () => {
+    const other = { ...seen, bank: "Bradesco" as const, last4: "9999" };
+    expect(bankInput({ ...linked, phone: [other] }, map, cards).phoneTrust).toEqual([]);
+  });
+});
+
 describe("a card outside Open Finance, by its closing e-mail", () => {
   // Closes on the 25th, due on the 2nd; no bank feed at all.
   const nu: CardConfig = {
@@ -249,6 +373,14 @@ describe("bank tables", () => {
     const read = await loadBank(db as never);
     expect(read).toMatchObject({ items: 1, syncedAt: "2026-10-08T09:00:00Z", txns: [] });
     expect(bankVersion(read)).not.toBe("none");
+  });
+
+  it("are as fresh as the bank Meu Pluggy read longest ago, not as Neko's last read", async () => {
+    const db = sqliteD1();
+    db.sqlite.exec(`INSERT INTO bank_item (item_id, label, synced_at, bank_updated_at) VALUES
+      ('a', 'Banco A', '2026-10-08T09:00:00Z', '2026-10-08T01:25:00Z'),
+      ('b', 'Banco B', '2026-10-08T09:00:00Z', '2026-10-08T01:18:00Z')`);
+    expect((await loadBank(db as never))?.syncedAt).toBe("2026-10-08T01:18:00Z");
   });
 
   it("change version with any decision or bank value, not just a count", () => {
@@ -428,5 +560,45 @@ describe("Saldo against the bank", () => {
       localDate("2026-10-08"),
     );
     expect(view?.saldo).toMatchObject({ date: "2026-10-07", sheet: 100000, bank: 100000, diff: 0 });
+  });
+});
+
+describe("money to move before the bank debits a bill", () => {
+  // The bank debited last month's bill from its own account, so it debits this one there too.
+  const debiting: BankRows = {
+    items: 1,
+    syncedAt: "2026-11-10T09:00:00.000Z",
+    itemRows: [{ item_id: "i", label: "Banco Azul", synced_at: "2026-11-10T09:00:00.000Z" }],
+    accounts: [
+      { id: "conta", type: "BANK", item_id: "i", balance: 100000 },
+      { id: "cartao", type: "CREDIT", item_id: "i" },
+    ],
+    txns: [txn({ date: "2026-10-14", amount: -140000, description: "GASTOS CARTAO DE CREDITO" })],
+    bills: [],
+  };
+
+  it("is the bill, holder and additional card together, less what the account has", async () => {
+    const { cell, item, ledger } = await import("../../../packages/engine/test/builders.ts");
+    const days = ledger("2026-10-01", 92, 500000, {
+      "2026-11-12": { saida: cell(150000, [item(120000, "Visa"), item(30000, "Visa Gio")]) },
+    });
+    const view = bankView(
+      debiting,
+      days,
+      cards,
+      UserSettings.parse({ bankCards: map }),
+      localDate("2026-11-10"),
+    );
+    expect(view?.transfers).toEqual([
+      {
+        to: "Banco Azul",
+        amount: 50000,
+        balance: 100000,
+        bills: [
+          { card: "Visa", due: "2026-11-12", amount: 120000 },
+          { card: "Visa Gio", due: "2026-11-12", amount: 30000 },
+        ],
+      },
+    ]);
   });
 });

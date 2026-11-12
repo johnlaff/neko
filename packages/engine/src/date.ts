@@ -49,3 +49,21 @@ export const clampedDay = (year: number, month: number, day: number): LocalDate 
 /** Today's civil date in São Paulo for a given instant. Only the shell calls this. */
 export const todayIn = (instant: Date, timeZone = TIME_ZONE): LocalDate =>
   localDate(new Intl.DateTimeFormat("en-CA", { timeZone }).format(instant));
+
+/** The hour (0 to 23) and minute on São Paulo's clock at an instant. Only the shell calls this. */
+export const clockIn = (instant: Date, timeZone = TIME_ZONE) => {
+  const at = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instant);
+  const part = (type: "hour" | "minute") => Number(at.find((p) => p.type === type)?.value);
+  return { hour: part("hour"), minute: part("minute") };
+};
+
+/** Day of the week, 0 = Sunday. */
+export const weekday = (d: LocalDate): number => new Date(`${d}T00:00:00Z`).getUTCDay();
+
+/** The Sunday that starts `d`'s week: the method's weeks, like the streak's, run Sunday to Saturday. */
+export const weekStart = (d: LocalDate): LocalDate => addDays(d, -weekday(d));

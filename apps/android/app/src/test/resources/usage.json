@@ -51,5 +51,22 @@
       "label": "Ler a planilha de novo",
       "count": 0
     }
+  ],
+  "notices": [
+    {
+      "event": "notificacao_manha",
+      "label": "Contas e teto",
+      "count": 0
+    },
+    {
+      "event": "notificacao_noite",
+      "label": "Lançar o dia",
+      "count": 0
+    },
+    {
+      "event": "notificacao_aviso",
+      "label": "Avisos",
+      "count": 0
+    }
   ]
 }

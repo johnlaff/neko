@@ -8,6 +8,7 @@ import {
   cents,
   isFreeDiario,
   isOnlyForecast,
+  lastWeekSpend,
   localDate,
   matchMovements,
   monthsSince,
@@ -108,6 +109,53 @@ describe("variableSpend", () => {
       d("2026-10-20"),
     );
     expect(spend).toEqual({ cards: 5000 + 30000 - 1000, pix: 2500, total: 36500 });
+  });
+
+  it("adds up the last whole week, Sunday to Saturday, and the one before, without others' purchases", () => {
+    // Sunday 15/11: last week is 08/11 to 14/11, the one before 01/11 to 07/11.
+    const input = spendInput({
+      today: d("2026-11-15"),
+      lines: [
+        buy("2026-10-20", 1000),
+        buy("2026-11-02", 4000),
+        buy("2026-11-08", 5000),
+        buy("2026-11-14", 2500),
+        // Today's purchase belongs to the new week.
+        buy("2026-11-15", 9900),
+        // Marked as the brother's: he pays it back.
+        buy("2026-11-10", 7000, { description: "ACADEMIA" }),
+      ],
+      movements: [
+        mov("2026-10-20", 500000, "SALARIO"),
+        mov("2026-11-09", -1500, "PIX PADARIA"),
+        mov("2026-11-03", -500, "PIX CAFE"),
+      ],
+    });
+    const marks = [{ key: "visa|academia|7000|2026-11-10", person: "Irmão" }];
+    expect(lastWeekSpend(input, marks)).toEqual({
+      from: "2026-11-08",
+      to: "2026-11-14",
+      total: 5000 + 2500 + 1500,
+      previous: 4000 + 500,
+    });
+    // Any day of the week looks back at the same closed week.
+    expect(lastWeekSpend({ ...input, today: d("2026-11-21") }, marks)?.from).toBe("2026-11-08");
+  });
+
+  it("says nothing of a week the bank does not cover", () => {
+    const recent = spendInput({
+      today: d("2026-11-15"),
+      lines: [buy("2026-11-04", 4000)],
+      movements: [mov("2026-11-04", -500, "PIX CAFE")],
+    });
+    // The week before last is only partly there: no comparison.
+    expect(lastWeekSpend(recent)).toMatchObject({ total: 0, previous: null });
+    const newer = spendInput({
+      today: d("2026-11-15"),
+      lines: [buy("2026-11-10", 4000)],
+      movements: [],
+    });
+    expect(lastWeekSpend(newer)).toBeNull();
   });
 
   it("suggests a day's value from the last 90 days, rounded up to reais", () => {

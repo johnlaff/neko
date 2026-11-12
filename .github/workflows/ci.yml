@@ -24,7 +24,9 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
-      - run: pnpm --filter @neko/app exec playwright install --with-deps chromium
+      # The runner image already has Chromium's libraries. --with-deps also apt-gets extra fonts
+      # from Ubuntu's mirrors, so an outage there (2026-11-11) failed runs before any test.
+      - run: pnpm --filter @neko/app exec playwright install chromium
       - run: pnpm --filter @neko/app e2e
 
   # The entry writer against Google, on the "Neko Teste" sheet (specs/005-lancamentos, Fase 1).

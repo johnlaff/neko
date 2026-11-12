@@ -22,6 +22,8 @@ import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.StatementAnswer
 import dev.johnlaff.neko.data.StatementLine
 import dev.johnlaff.neko.ui.AjustesScreen
+import dev.johnlaff.neko.ui.PurchasesSwitch
+import dev.johnlaff.neko.data.PhoneTrust
 import dev.johnlaff.neko.ui.RemindersSwitch
 import dev.johnlaff.neko.ui.LockScreen
 import dev.johnlaff.neko.ui.LockSwitch
@@ -139,7 +141,7 @@ class ScreenshotTest {
     }
 
     @Test fun ajustesDark() = shot("ajustes-dark", night = true) {
-        AjustesScreen(ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true), launcher = Fakes.launcher)
+        AjustesScreen(ScreenState(ajustes.copy(phone = listOf(PhoneTrust("Bradesco", judged = 3, matched = 3), PhoneTrust("Inter")))), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices, LockSwitch(on = true), launcher = Fakes.launcher, purchases = PurchasesSwitch(on = true, last = "R$ 45,90 em Livraria Central"))
     }
 
     // The Diário previsto (specs/005-lancamentos, Fase 3): the value with the bank's suggestion,

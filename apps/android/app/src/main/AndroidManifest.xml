@@ -55,6 +55,18 @@
                 android:resource="@xml/today_widget_info" />
         </receiver>
 
+        <!-- Avisos de compra: reads only the bank apps' purchase notices, once the owner allows it
+             in Android's settings (purchases/Purchases.kt). -->
+        <service
+            android:name=".purchases.PurchaseListener"
+            android:exported="true"
+            android:label="@string/purchases_listener"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".tile.LancarTile"
             android:exported="true"

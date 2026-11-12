@@ -23,6 +23,7 @@ import {
   outflowTrend,
   owedOnBills,
   ownerKey,
+  type PhoneTrust,
   type Reserve,
   type Saving,
   simulateInstallments,
@@ -146,7 +147,7 @@ export interface InvoicesView {
   readonly average: number | null;
   /** Longest wait first; empty with a single card of your own, where there is nothing to pick. */
   readonly buyToday: readonly BuyGroup[];
-  /** Last bank read; null with no bank linked. */
+  /** How fresh the bank numbers are (see BankView.syncedAt); null with no bank linked. */
   readonly bank: { readonly syncedAt: string | null } | null;
   /** Monthly charges found on the bank, with the owner's marks to cancel; null with none. */
   readonly subscriptions: SubscriptionsView | null;
@@ -444,6 +445,8 @@ export interface AjustesView {
   readonly dailyAuto: number;
   /** The Diário previsto; null from a Worker that predates it. */
   readonly previsto: PrevistoView | null;
+  /** Avisos de compra: how each bank app's reads fared against the bank (Android only). */
+  readonly phone: readonly PhoneTrust[];
 }
 
 export const ajustesView = (r: ProjectionResponse, settings: UserSettings): AjustesView => ({
@@ -451,4 +454,5 @@ export const ajustesView = (r: ProjectionResponse, settings: UserSettings): Ajus
   cards: r.cardsKnown,
   dailyAuto: r.projection.dailyForecast,
   previsto: r.previsto ?? null,
+  phone: r.bank?.phone ?? [],
 });

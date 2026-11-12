@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   USAGE,
   USAGE_APPS,
+  USAGE_NOTICES,
   USAGE_SCREENS,
   USAGE_TAPS,
   type UsageApp,
@@ -64,5 +65,6 @@ export const usageSummary = async (db: D1Database, today: LocalDate): Promise<Us
     web: days("web"),
     screens: counts(USAGE_SCREENS),
     taps: counts(USAGE_TAPS),
+    notices: counts(USAGE_NOTICES),
   };
 };

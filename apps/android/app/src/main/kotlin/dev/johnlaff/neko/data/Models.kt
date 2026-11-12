@@ -289,12 +289,74 @@ data class TodayIssue(val issue: HealthIssue, val url: String)
 @Serializable
 data class Me(val email: String? = null)
 
-/** One reminder as GET /api/reminders sends it (worker/push.ts): `url` "/" opens the app. */
+/**
+ * One message as GET /api/reminders sends it (worker/push.ts): `url` "/" opens Hoje,
+ * "/#para-lancar" its Para lançar, "/faturas" Faturas, and a full address the sheet.
+ */
 @Serializable
 data class Reminder(val title: String, val body: String, val url: String, val tag: String)
 
+/** An alert born on the server (worker/notices.ts), shown once per `id`. */
 @Serializable
-data class RemindersView(val morning: Reminder? = null, val evening: Reminder? = null)
+data class Notice(
+    val id: String,
+    val title: String,
+    val body: String,
+    val url: String = "/",
+    /** "ceiling" for the ceiling crossing a mark, which goes with the bills; "alert" otherwise. */
+    val tag: String = "alert",
+)
+
+/** Today's two messages, the evening hour chosen in Ajustes, and the alerts still standing. */
+@Serializable
+data class RemindersView(
+    val morning: Reminder? = null,
+    val evening: Reminder? = null,
+    /** Absent from a Worker that predates the choice: the old fixed 21:00. */
+    val eveningHour: Int = 21,
+    val notices: List<Notice> = emptyList(),
+)
+
+@Serializable
+data class NoticesView(val notices: List<Notice> = emptyList())
+
+@Serializable
+data class EveningHourView(val eveningHour: Int)
+
+/**
+ * A card purchase read from a bank app's notification (purchases/PurchaseText.kt), as POST
+ * /api/purchases takes it: nothing of the notice but these.
+ */
+@Serializable
+data class PhonePurchase(
+    /** The phone's key for the notice, so the same one is kept once. */
+    val id: String,
+    val bank: String,
+    val amount: Long,
+    val last4: String?,
+    val merchant: String,
+    /** When the bank notified, as an ISO instant. */
+    val at: String,
+)
+
+/**
+ * A bank app's notice of a purchase or a card, word for word (PurchaseText.keep), as POST
+ * /api/purchases/notice takes it: read or not, it shows how the bank words its notices.
+ */
+@Serializable
+data class BankNotice(
+    /** The phone's key for the notice, so the same one is kept once. */
+    val id: String,
+    /** The bank app's package. */
+    val app: String,
+    val bank: String,
+    val title: String,
+    val text: String,
+    /** When the bank notified, as an ISO instant. */
+    val at: String,
+    /** Whether a purchase was taken from it. */
+    val read: Boolean,
+)
 
 /**
  * POST /api/statement: the bank's bill PDF read and kept, with the lines it added to what Open
