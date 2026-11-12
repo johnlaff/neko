@@ -498,6 +498,19 @@ describe("what moved today, before comparing with yesterday's Saldo", () => {
     ).toBe(0);
   });
 
+  it("leaves out a card bill the bank only scheduled for today", () => {
+    // Due today: the bank lists the automatic debit as pending before it takes the money.
+    const due = ledger("2026-10-01", 20, 0, {
+      "2026-10-15": { saida: cell(565655, [item(565655, "Bradesco João")]) },
+    });
+    const bill = {
+      ...m("2026-10-15", -565655, "GASTOS CARTAO DE CREDITO - DOCTO: 1"),
+      pending: true,
+    };
+    expect(movedToday(due, today, [bill])).toBe(0);
+    expect(movedToday(due, today, [{ ...bill, pending: false }])).toBe(-565655);
+  });
+
   it("keeps a bill paid today that the sheet takes out today", () => {
     expect(
       movedToday(days, today, [m("2026-10-15", -12580, "Pagamento de fatura Cartão de crédito")]),
