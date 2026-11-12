@@ -110,6 +110,7 @@ export const dailySourceText = (source: DailySource) =>
 /** Mês's reserve panel, in the same words on the site and the app (ui/Learn.kt). */
 export const RESERVE = {
   title: "Reserva de emergência",
+  more: "Como funciona",
   rule: "O método pede de 6 a 12 meses, guardados onde dá para sacar na hora.",
   empty: "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas.",
   nothing: "Nada guardado ainda",

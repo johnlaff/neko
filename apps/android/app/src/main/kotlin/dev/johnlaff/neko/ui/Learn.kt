@@ -95,6 +95,7 @@ object Learn {
 
     /** Mês's reserve panel, word for word with the site (web/learn.ts RESERVE). */
     const val RESERVE_TITLE = "Reserva de emergência"
+    const val RESERVE_MORE = "Como funciona"
     const val RESERVE_RULE = "O método pede de 6 a 12 meses, guardados onde dá para sacar na hora."
     const val RESERVE_EMPTY = "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas."
     const val RESERVE_NOTHING = "Nada guardado ainda"

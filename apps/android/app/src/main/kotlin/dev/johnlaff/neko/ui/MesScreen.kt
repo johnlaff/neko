@@ -128,12 +128,14 @@ private fun Warnings(warnings: List<Insight>, shown: String, current: String?, o
 }
 
 /**
- * The method's emergency reserve, climbed in steps as on the site: what the sheet shows as kept,
- * how far the next step is, the cost of living behind it and the year's Economia (the sheet's tab).
+ * The method's emergency reserve, climbed in steps as on the site. At a glance: what the sheet
+ * shows as kept and how far the next step is. Behind "Como funciona": the steps, the cost of living
+ * behind them, the year's Economia (the sheet's tab), how to start and the method's rule.
  */
 @Composable
 internal fun ReservePanel(r: Reserve, s: ReserveSteps, year: YearTotals?) {
     val l = LocalLedger.current
+    var more by rememberSaveable { mutableStateOf(false) }
     Panel {
         PanelHead(Learn.RESERVE_TITLE) {
             Text(Learn.stepsMeta(s, r.kept), color = l.muted, style = MaterialTheme.typography.labelLarge)
@@ -151,26 +153,28 @@ internal fun ReservePanel(r: Reserve, s: ReserveSteps, year: YearTotals?) {
         // Display only: kept over the next step, so a step reached is never back at zero.
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Meter(s.next?.let { if (it.amount <= 0) 0f else r.kept.toFloat() / it.amount } ?: 1f, color = l.accent)
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    Learn.stepLine(s, r.kept),
-                    color = l.text,
-                    style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
-                )
+            Text(
+                Learn.stepLine(s, r.kept),
+                color = l.text,
+                style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
+            )
+        }
+        // The toggle and what it opens sit together: closed, the panel spends no gap on it.
+        Column {
+            TextAction(Learn.RESERVE_MORE, { more = !more }, open = more)
+            Reveal(more) {
+                Text(Learn.stepsRule(s), color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LedgerLine(Learn.costLabel(r.costMonths), money(r.cost))
+                    if (year != null && year.saved > 0) {
+                        LedgerLine("Guardado em ${year.year}", money(year.saved))
+                    }
+                }
                 Learn.stepHint(s, r.kept)?.let {
                     Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"))
                 }
+                Text(Learn.RESERVE_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
             }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            LedgerLine(Learn.costLabel(r.costMonths), money(r.cost))
-            if (year != null && year.saved > 0) {
-                LedgerLine("Guardado em ${year.year}", money(year.saved))
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(Learn.stepsRule(s), color = l.muted, style = MaterialTheme.typography.bodyMedium)
-            Text(Learn.RESERVE_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

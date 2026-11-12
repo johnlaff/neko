@@ -244,8 +244,9 @@ const Outflows = ({
 };
 
 /**
- * The method's emergency reserve, climbed in steps: what the sheet shows as kept, how far the
- * next step is, the cost of living behind it and the year's Economia (the sheet's tab).
+ * The method's emergency reserve, climbed in steps. At a glance: what the sheet shows as kept and
+ * how far the next step is. Behind "Como funciona": the steps, the cost of living behind them, the
+ * year's Economia (the sheet's tab), how to start and the method's rule.
  */
 const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined }) => {
   const s = reserveSteps(r);
@@ -267,24 +268,26 @@ const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined })
           style={{ width: `${s.next ? Math.min(100, (r.kept / s.next.amount) * 100) : 100}%` }}
         />
       </span>
-      <div className="reserve-next">
-        <p>{stepLine(s, r.kept)}</p>
-        {hint && <p className="muted">{hint}</p>}
-      </div>
-      <dl className="ledger">
-        <dt>{costLabel(r.costMonths)}</dt>
-        <dd>{money(r.cost)}</dd>
-        {year && year.saved > 0 && (
-          <>
-            <dt>Guardado em {year.year}</dt>
-            <dd>{money(year.saved)}</dd>
-          </>
-        )}
-      </dl>
-      <div className="muted note">
+      <p className="reserve-next">{stepLine(s, r.kept)}</p>
+      <details className="formula">
+        <summary>
+          <IconChevron />
+          {RESERVE.more}
+        </summary>
         <p>{stepsRule(s)}</p>
+        <dl className="ledger">
+          <dt>{costLabel(r.costMonths)}</dt>
+          <dd>{money(r.cost)}</dd>
+          {year && year.saved > 0 && (
+            <>
+              <dt>Guardado em {year.year}</dt>
+              <dd>{money(year.saved)}</dd>
+            </>
+          )}
+        </dl>
+        {hint && <p>{hint}</p>}
         <p>{RESERVE.rule}</p>
-      </div>
+      </details>
     </section>
   );
 };
