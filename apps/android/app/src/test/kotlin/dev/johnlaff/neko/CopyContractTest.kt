@@ -1,6 +1,8 @@
 package dev.johnlaff.neko
 
 import dev.johnlaff.neko.data.HealthIssue
+import dev.johnlaff.neko.data.ReserveSteps
+import dev.johnlaff.neko.data.SavingStep
 import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.data.SaldoWaiting
 import dev.johnlaff.neko.data.Win
@@ -14,6 +16,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -60,6 +63,9 @@ class CopyContractTest {
         assertEquals(reserve.str("title"), Learn.RESERVE_TITLE)
         assertEquals(reserve.str("rule"), Learn.RESERVE_RULE)
         assertEquals(reserve.str("empty"), Learn.RESERVE_EMPTY)
+        assertEquals(reserve.str("nothing"), Learn.RESERVE_NOTHING)
+        assertEquals(reserve.str("done"), Learn.RESERVE_DONE)
+        assertEquals(reserve.str("minimum"), Learn.RESERVE_MINIMUM)
 
         val totals = l.obj("totals")
         assertEquals(totals.str("saved"), Learn.SAVED)
@@ -94,7 +100,17 @@ class CopyContractTest {
             assertEquals(want.s, Learn.streakLabel(n.jsonPrimitive.int, atRisk.jsonPrimitive.boolean))
         }
         l.cases("milestone").forEach { (m, want) -> assertEquals(want.s, Learn.milestone(m.jsonPrimitive.int)) }
-        l.cases("covered").forEach { (t, want) -> assertEquals(want.s, Learn.coveredLabel(t.jsonPrimitive.int)) }
+        l.cases("steps").forEach { c ->
+            val s = json.decodeFromJsonElement(ReserveSteps.serializer(), c[0])
+            val k = c[1].jsonPrimitive.long
+            assertEquals(c[2].s, Learn.stepsMeta(s, k))
+            assertEquals(c[3].s, Learn.stepLine(s, k))
+            assertEquals(c[4].jsonPrimitive.contentOrNull, Learn.stepHint(s, k))
+            assertEquals(c[5].s, Learn.stepsRule(s))
+        }
+        l.cases("saveStep").forEach { (step, want) ->
+            assertEquals(want.s, Learn.saveStepText(json.decodeFromJsonElement(SavingStep.serializer(), step)))
+        }
         l.cases("cost").forEach { (m, want) -> assertEquals(want.s, Learn.costLabel(m.jsonPrimitive.int)) }
         l.cases("result").forEach { (down, want) -> assertEquals(want.s, Learn.resultNote(down.jsonPrimitive.boolean)) }
         l.cases("dailySource").forEach { (s, want) -> assertEquals(want.s, Copy.dailySource(s.s)) }

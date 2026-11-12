@@ -5,12 +5,13 @@ import {
   type HealthIssue,
   type Insight,
   type Saving,
+  type SavingStep,
   type UpcomingDay,
 } from "@neko/engine";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { HEALTH_DAYS, inMes, issueKey, saveToday } from "../../shared/today.ts";
+import { HEALTH_DAYS, inMes, issueKey, saveStep, saveToday } from "../../shared/today.ts";
 import { AlertList, insightView, issueText } from "../Alerts.tsx";
 import { api, type ProjectionResponse, used } from "../api.ts";
 import { Board } from "../Board.tsx";
@@ -38,7 +39,7 @@ import {
   IconReceipt,
 } from "../icons.tsx";
 import { LaunchToast, ManualLaunch, ParaLancar } from "../Launch.tsx";
-import { CARDS_COME_FROM, dailySourceText, HINTS } from "../learn.ts";
+import { CARDS_COME_FROM, dailySourceText, HINTS, saveStepText } from "../learn.ts";
 import { PrevistoReview } from "../Previsto.tsx";
 import { Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
@@ -74,13 +75,14 @@ const Insights = ({ items }: { items: readonly Insight[] }) => {
  * the proof that the account still holds. Neko never moves money, so it only says how much fits.
  * A panel of its own, not a warning: nothing is wrong on a day to save.
  */
-const SaveCard = ({ save }: { save: Saving }) => (
+const SaveCard = ({ save, step }: { save: Saving; step: SavingStep | null }) => (
   <section className="panel save" aria-labelledby="h-save">
     <div className="panel-head">
       <h2 id="h-save">Dia de guardar</h2>
     </div>
     <p className="save-text">
       <strong>Na conta, dá para guardar {money(save.amount)} hoje</strong>
+      {step && <span className="save-step">{saveStepText(step)}</span>}
       <span className="muted">
         Depois de guardar, menor saldo até <span className="nowrap">{shortDate(save.until)}</span>:{" "}
         {money(save.leftAtLowest)}
@@ -503,7 +505,7 @@ export const Hoje = () => (
               // What to know follows.
               conference: issues.length > 0 && <Conference issues={issues} sheet={sheet} />,
               queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
-              save: save && <SaveCard save={save} />,
+              save: save && <SaveCard save={save} step={saveStep(save, p.reserve)} />,
               streak: showsStreak(habit) && <Streak habit={habit} />,
               previsto: <PrevistoReview previsto={previsto} writing={writing ?? false} />,
               // Over the plan, the red figure already says the bill is high: no second card.

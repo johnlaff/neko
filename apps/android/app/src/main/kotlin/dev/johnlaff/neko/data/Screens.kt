@@ -196,6 +196,8 @@ data class MonthsView(
     val saving: Saving? = null,
     /** The emergency reserve; null before a month closed. */
     val reserve: Reserve? = null,
+    /** The reserve in steps, up to the method's 6 and 12 months; null without a reserve. */
+    val steps: ReserveSteps? = null,
     /** The sheet's Economia tab, one entry per year. */
     val years: List<YearTotals> = emptyList(),
     /** Warnings that live here, not on Hoje: all on today's month, each also on its own. */
@@ -212,6 +214,23 @@ data class Reserve(
     val kept: Long,
     val coveredTenths: Int,
 )
+
+/** A step on the way to the reserve: `months` is null for the first one, a plain amount. */
+@Serializable
+data class ReserveStep(val amount: Long, val months: Int? = null)
+
+/** The steps (engine reserve.ts): how many are kept, the next one and what it still needs. */
+@Serializable
+data class ReserveSteps(
+    val steps: List<ReserveStep>,
+    val reached: Int,
+    val next: ReserveStep? = null,
+    val missing: Long,
+)
+
+/** What the payday saving does to the steps: the step reached, or the next one and what it needs. */
+@Serializable
+data class SavingStep(val step: ReserveStep, val index: Int, val missing: Long)
 
 @Serializable
 data class YearTotals(val year: Int, val entrada: Long, val saved: Long, val savedShare: Int? = null)

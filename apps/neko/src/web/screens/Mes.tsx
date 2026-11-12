@@ -9,6 +9,7 @@ import {
   type Outflow,
   outflowTrend,
   type Reserve,
+  reserveSteps,
   type TrendPoint,
   type YearTotals,
 } from "@neko/engine";
@@ -25,7 +26,16 @@ import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney, Columns, ItemName } from "../Figures.tsx";
 import { capitalize, money, monthName, shortDate, signed } from "../format.ts";
 import { IconCard, IconChevron, IconChevronLeft, IconReceipt, IconRepeat } from "../icons.tsx";
-import { costLabel, coveredLabel, RESERVE, resultNote, TOTALS } from "../learn.ts";
+import {
+  costLabel,
+  RESERVE,
+  resultNote,
+  stepHint,
+  stepLine,
+  stepsMeta,
+  stepsRule,
+  TOTALS,
+} from "../learn.ts";
 import { Thermo } from "../Thermo.tsx";
 import { WithProjection } from "../useProjection.tsx";
 import { Wins } from "../Wins.tsx";
@@ -234,44 +244,50 @@ const Outflows = ({
 };
 
 /**
- * The method's emergency reserve: cost of living times 6 to 12 months, against what the sheet
- * shows as kept, plus the year's Economia (the sheet's tab of the same name).
+ * The method's emergency reserve, climbed in steps: what the sheet shows as kept, how far the
+ * next step is, the cost of living behind it and the year's Economia (the sheet's tab).
  */
-const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined }) => (
-  <section className="panel reserve">
-    <div className="panel-head">
-      <h2>{RESERVE.title}</h2>
-      <span className="meta">
-        {r.kept > 0 ? `${coveredLabel(r.coveredTenths)} de 6` : "Nada guardado ainda"}
-      </span>
-    </div>
-    {r.kept > 0 && (
-      <p className="reserve-kept">
-        <strong>{money(r.kept)}</strong> guardados na planilha
-      </p>
-    )}
-    {/* Display only: kept over the 6-month goal, full past it. */}
-    <span className="meter" aria-hidden="true">
-      <span style={{ width: `${Math.min(100, (r.kept / r.min) * 100)}%` }} />
-    </span>
-    <dl className="ledger">
-      <dt>{costLabel(r.costMonths)}</dt>
-      <dd>{money(r.cost)}</dd>
-      <dt>Meta de 6 meses</dt>
-      <dd>{money(r.min)}</dd>
-      {year && year.saved > 0 && (
-        <>
-          <dt>
-            Em {year.year}
-            {year.savedShare !== null && ` · ${year.savedShare}% das entradas`}
-          </dt>
-          <dd>{money(year.saved)}</dd>
-        </>
+const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined }) => {
+  const s = reserveSteps(r);
+  const hint = stepHint(s, r.kept);
+  return (
+    <section className="panel reserve" aria-labelledby="h-reserve">
+      <div className="panel-head">
+        <h2 id="h-reserve">{RESERVE.title}</h2>
+        <span className="meta">{stepsMeta(s, r.kept)}</span>
+      </div>
+      {r.kept > 0 && (
+        <p className="reserve-kept">
+          <strong>{money(r.kept)}</strong> guardados na planilha
+        </p>
       )}
-    </dl>
-    <p className="muted note">{r.kept > 0 ? RESERVE.rule : `${RESERVE.rule} ${RESERVE.empty}`}</p>
-  </section>
-);
+      {/* Display only: kept over the next step, so a step reached is never back at zero. */}
+      <span className="meter" aria-hidden="true">
+        <span
+          style={{ width: `${s.next ? Math.min(100, (r.kept / s.next.amount) * 100) : 100}%` }}
+        />
+      </span>
+      <div className="reserve-next">
+        <p>{stepLine(s, r.kept)}</p>
+        {hint && <p className="muted">{hint}</p>}
+      </div>
+      <dl className="ledger">
+        <dt>{costLabel(r.costMonths)}</dt>
+        <dd>{money(r.cost)}</dd>
+        {year && year.saved > 0 && (
+          <>
+            <dt>Guardado em {year.year}</dt>
+            <dd>{money(year.saved)}</dd>
+          </>
+        )}
+      </dl>
+      <div className="muted note">
+        <p>{stepsRule(s)}</p>
+        <p>{RESERVE.rule}</p>
+      </div>
+    </section>
+  );
+};
 
 export const Mes = () => {
   // The month on screen lives in the URL: a warning can link to it and reload keeps it.

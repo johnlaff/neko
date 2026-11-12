@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { type Cents, cents, type ReserveMonth, reserve, yearTotals } from "../src/index.ts";
+import {
+  type Cents,
+  cents,
+  type Reserve,
+  type ReserveMonth,
+  reserve,
+  reserveSteps,
+  savingStep,
+  yearTotals,
+} from "../src/index.ts";
 
 const c = (n: number): Cents => cents(n);
 const month = (
@@ -102,5 +111,93 @@ describe("yearTotals", () => {
 
   it("has no share without income", () => {
     expect(yearTotals([], 2026).savedShare).toBeNull();
+  });
+});
+
+describe("reserveSteps", () => {
+  const kept = (cost: number, saved: number): Reserve => ({
+    cost: c(cost),
+    costMonths: 3,
+    min: c(cost * 6),
+    max: c(cost * 12),
+    kept: c(saved),
+    coveredTenths: Math.floor((saved * 10) / cost),
+  });
+
+  it("starts with a step near enough for one payday, then 1, 3, 6 and 12 months of cost", () => {
+    const s = reserveSteps(kept(6000_00, 0));
+    expect(s.steps).toEqual([
+      { amount: 3000_00, months: null },
+      { amount: 6000_00, months: 1 },
+      { amount: 18000_00, months: 3 },
+      { amount: 36000_00, months: 6 },
+      { amount: 72000_00, months: 12 },
+    ]);
+    expect(s).toMatchObject({
+      reached: 0,
+      next: { amount: 3000_00, months: null },
+      missing: 3000_00,
+    });
+  });
+
+  it("goes to the next step once one is kept, exactly at its amount too", () => {
+    expect(reserveSteps(kept(6000_00, 3400_00))).toMatchObject({
+      reached: 1,
+      next: { months: 1 },
+      missing: 2600_00,
+    });
+    expect(reserveSteps(kept(6000_00, 6000_00))).toMatchObject({ reached: 2, next: { months: 3 } });
+  });
+
+  it("leaves the first step out when one month of cost is already within it", () => {
+    const s = reserveSteps(kept(2500_00, 0));
+    expect(s.steps.map((x) => x.months)).toEqual([1, 3, 6, 12]);
+    expect(s.next).toEqual({ amount: 2500_00, months: 1 });
+  });
+
+  it("has no next step past 12 months", () => {
+    expect(reserveSteps(kept(4000_00, 50000_00))).toMatchObject({
+      reached: 5,
+      next: null,
+      missing: 0,
+    });
+  });
+
+  describe("savingStep", () => {
+    it("says what is still missing for the next step after saving", () => {
+      expect(savingStep(kept(6000_00, 0), c(1800_00))).toEqual({
+        step: { amount: 3000_00, months: null },
+        index: 1,
+        missing: 1200_00,
+      });
+    });
+
+    it("names the highest step the saving reaches", () => {
+      expect(savingStep(kept(6000_00, 1000_00), c(5500_00))).toEqual({
+        step: { amount: 6000_00, months: 1 },
+        index: 2,
+        missing: 0,
+      });
+    });
+
+    it("has nothing to say past the last step", () => {
+      expect(savingStep(kept(4000_00, 50000_00), c(1000_00))).toBeNull();
+    });
+
+    it("stops pushing once the method's 6 months are kept, unless it reaches 12", () => {
+      expect(savingStep(kept(4000_00, 26000_00), c(1000_00))).toBeNull();
+      expect(savingStep(kept(4000_00, 46000_00), c(3000_00))).toEqual({
+        step: { amount: 48000_00, months: 12 },
+        index: 5,
+        missing: 0,
+      });
+    });
+
+    it("names the 6 months when the saving reaches them", () => {
+      expect(savingStep(kept(4000_00, 22000_00), c(3000_00))).toMatchObject({
+        step: { months: 6 },
+        missing: 0,
+      });
+    });
   });
 });

@@ -16454,6 +16454,36 @@
     "kept": 1680000,
     "coveredTenths": 27
   },
+  "steps": {
+    "steps": [
+      {
+        "amount": 300000,
+        "months": null
+      },
+      {
+        "amount": 618192,
+        "months": 1
+      },
+      {
+        "amount": 1854576,
+        "months": 3
+      },
+      {
+        "amount": 3709152,
+        "months": 6
+      },
+      {
+        "amount": 7418304,
+        "months": 12
+      }
+    ],
+    "reached": 2,
+    "next": {
+      "amount": 1854576,
+      "months": 3
+    },
+    "missing": 174576
+  },
   "years": [
     {
       "year": 2025,

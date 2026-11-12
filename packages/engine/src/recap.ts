@@ -2,6 +2,7 @@ import type { LocalDate } from "./date.ts";
 import { parts } from "./date.ts";
 import { add, type Cents, sub, ZERO } from "./money.ts";
 import type { MonthView } from "./projection.ts";
+import { RESERVE_STEP_MONTHS } from "./reserve.ts";
 
 /**
  * The month that just closed, in a few lines, during the first days of the next one: the
@@ -12,8 +13,8 @@ import type { MonthView } from "./projection.ts";
 /** Days into the new month the recap stays on Hoje. */
 export const RECAP_DAYS = 7;
 
-/** Months of living cost the reserve can reach: a first month, then the method's 3, 6 and 12. */
-export const RESERVE_MARKS = [1, 3, 6, 12] as const;
+/** Months of living cost the reserve can reach: the steps of reserve.ts, each one a win. */
+export const RESERVE_MARKS = RESERVE_STEP_MONTHS;
 /** The low end of the method's 20–30% of the income kept. */
 export const KEPT_GOAL = 20;
 /** Living months a closed month must follow before its share kept can be called a record. */
