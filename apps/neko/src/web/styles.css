@@ -3258,7 +3258,7 @@ details.mia-chart-table th[scope="row"] {
   height: 14px;
   flex: none;
 }
-/* Reserva: what is kept leads; the method's numbers follow in a short ledger. */
+/* Reserva: what is kept leads, then the meter and the next step; the rest waits in "Como funciona". */
 .panel.reserve > p.reserve-kept {
   margin: 4px 0 0;
   color: var(--muted);
@@ -3272,12 +3272,19 @@ details.mia-chart-table th[scope="row"] {
   letter-spacing: -0.01em;
   margin-right: 4px;
 }
-/* The next step, right under its meter: the one line to act on */
-.panel.reserve > p.reserve-next {
+/* The next step, right under its meter: the one line to act on, and past 6 months what 12 need */
+.panel.reserve > .reserve-next {
+  display: grid;
+  gap: 2px;
+}
+.panel.reserve > .reserve-next > p {
   margin: 0;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.panel.reserve > .reserve-next > p:first-child {
   font-size: 0.9375rem;
   font-weight: 550;
-  font-variant-numeric: tabular-nums;
 }
 /* Faturas: the usual card's bank mark before its name, smaller than a row's */
 .panel-head > h2.with-mark {
