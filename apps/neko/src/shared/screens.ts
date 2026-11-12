@@ -447,6 +447,8 @@ export const simulateView = (
 /** Simular's answer, with what the screen needs around it to ask the next one. */
 export interface ScenarioView extends ScenarioResult {
   readonly today: LocalDate;
+  /** When the sheet was read: the answer is only as fresh as that. */
+  readonly readAt: string;
   /** The sheet's last day: nothing past it to simulate on. */
   readonly end: LocalDate;
   /** The usual card a purchase goes on, and the bill its first parcel lands on; null without one. */
@@ -509,6 +511,7 @@ export const scenarioView = (
   return {
     ...result,
     today: p.today,
+    readAt: r.sheet.readAt,
     end: last && lastDay ? ymd(last.year, last.month, lastDay) : p.today,
     card: usual?.card.name ?? null,
     due: usual?.cycle.due ?? null,

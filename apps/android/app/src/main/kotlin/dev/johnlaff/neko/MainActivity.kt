@@ -63,6 +63,7 @@ import dev.johnlaff.neko.ui.RemindersSwitch
 import dev.johnlaff.neko.ui.PurchasesSwitch
 import dev.johnlaff.neko.purchases.Purchases
 import dev.johnlaff.neko.ui.Session
+import dev.johnlaff.neko.ui.SimularScreen
 import dev.johnlaff.neko.ui.Tab
 
 class MainActivity : ComponentActivity() {
@@ -73,8 +74,6 @@ class MainActivity : ComponentActivity() {
     private var lockOn by mutableStateOf(false)
     /** A shortcut asked for this place; taken once. */
     private var request by mutableStateOf<Launch?>(null)
-    /** Bumped by each "Simular" shortcut, so a second tap opens the simulator again. */
-    private var simulateAsk by mutableIntStateOf(0)
     /** The widget's "N para lançar" was tapped and Hoje has not shown Para lançar yet. */
     private var queuePending by mutableStateOf(false)
     /** A month a warning on Hoje asked Mês to open; taken once. */
@@ -96,6 +95,8 @@ class MainActivity : ComponentActivity() {
                 var tab by rememberSaveable { mutableStateOf(Tab.Hoje) }
                 // Mia's own screen, over the tabs and without the dock, as the site's /mia.
                 var miaOpen by rememberSaveable { mutableStateOf(false) }
+                // Simular's own screen, the same way (the site's /simular); closing it forgets it all.
+                var simOpen by rememberSaveable { mutableStateOf(false) }
                 // A tab reached from one of Mia's answers: back returns to her, as the site's history does.
                 var fromMia by rememberSaveable { mutableStateOf(false) }
                 // The tab Mia was opened from, so her first questions are about it.
@@ -132,7 +133,8 @@ class MainActivity : ComponentActivity() {
                     miaOpen = false
                     fromMia = false
                     go(r.tab)
-                    if (r.simulate) simulateAsk++
+                    simOpen = r.simulate
+                    if (r.simulate) model.used("simular")
                     if (r.queue) queuePending = true
                     request = null
                 }
@@ -141,6 +143,7 @@ class MainActivity : ComponentActivity() {
                     if (session == Session.SignedOut) {
                         tab = Tab.Hoje
                         miaOpen = false
+                        simOpen = false
                     }
                 }
                 // Coming back to the app after a while reads the sheet again, silently, like the site does.
@@ -172,8 +175,9 @@ class MainActivity : ComponentActivity() {
                         go(Tab.Hoje)
                     }
                 }
-                // Registered last, so on Mia's screen back closes her first.
+                // Registered last, so on Mia's or Simular's screen back closes it first.
                 BackHandler(enabled = session == Session.SignedIn && miaOpen) { closeMia() }
+                BackHandler(enabled = session == Session.SignedIn && simOpen) { simOpen = false }
                 BoxWithConstraints(Modifier.fillMaxSize().background(LocalLedger.current.bg)) {
                     val rail = maxWidth >= RAIL_FROM
                     when (session) {
@@ -204,13 +208,21 @@ class MainActivity : ComponentActivity() {
                                 open()
                                 fromMia = true
                             }
-                            // Mia's screen slides in from past the tabs and back out, as on the site.
+                            // Mia's and Simular's screens slide in from past the tabs and back out, as on the site.
+                            val over = when {
+                                miaOpen -> "mia"
+                                simOpen -> "simular"
+                                else -> "tabs"
+                            }
+                            val side = { o: String -> if (o == "tabs") Tab.Hoje else Tab.Ajustes }
                             AnimatedContent(
-                                miaOpen,
-                                transitionSpec = { tabChange(if (initialState) Tab.Ajustes else Tab.Hoje, if (targetState) Tab.Ajustes else Tab.Hoje, shift) },
-                                label = "mia",
-                            ) { inMia ->
-                            if (inMia) {
+                                over,
+                                transitionSpec = { tabChange(side(initialState), side(targetState), shift) },
+                                label = "over",
+                            ) { place ->
+                            if (place == "simular") {
+                                SimularScreen(model::scenario, onBack = { simOpen = false }, onAjustes = { simOpen = false; go(Tab.Ajustes) })
+                            } else if (place == "mia") {
                                 MiaScreen(
                                     mia, model::askMia, model.miaChat, model.viewModelScope,
                                     onBack = closeMia,
@@ -226,8 +238,8 @@ class MainActivity : ComponentActivity() {
                                     Tab.Hoje -> {
                                         val today by model.today.collectAsStateWithLifecycle()
                                         HojeScreen(
-                                            today, model::refresh, { go(Tab.Ajustes) }, model::simulate,
-                                            simulateAsk = simulateAsk,
+                                            today, model::refresh, { go(Tab.Ajustes) },
+                                            onSimular = { simOpen = true },
                                             bringQueue = queuePending,
                                             onQueueShown = { queuePending = false },
                                             review = model::review,

@@ -19,14 +19,17 @@ const axisMoney = (cents: number) => {
   return `${cents < 0 ? "−" : ""}${k.toLocaleString("pt-BR")} mil`;
 };
 
-/** About four round steps that cover the range, zero always one of them. */
+/** About four round steps that cover the whole range, so no line runs off the top; zero is one. */
 const ticksFor = (lo: number, hi: number): number[] => {
   const span = Math.max(hi - lo, 100_000);
   const raw = span / 4;
   const mag = 10 ** Math.floor(Math.log10(raw));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
   const out: number[] = [];
-  for (let v = Math.floor(lo / step) * step; v <= hi + step / 2; v += step) out.push(v);
+  for (let v = Math.floor(lo / step) * step; ; v += step) {
+    out.push(v);
+    if (v >= hi) break;
+  }
   return out;
 };
 

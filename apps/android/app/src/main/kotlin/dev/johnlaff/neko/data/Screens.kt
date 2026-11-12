@@ -390,3 +390,70 @@ data class Parcel(val due: String, val amount: Long)
 
 @Serializable
 data class MonthEnd(val year: Int, val month: Int, val end: Long, val date: String? = null)
+
+/**
+ * POST /api/scenario: Simular (shared/screens.ts scenarioView). The sheet's balances under a pace
+ * for the day to day and a few what-ifs; nothing is saved, and every answer is asked again.
+ */
+@Serializable
+data class ScenarioView(
+    /** "planilha", "teto" or "media": the one this answer used. */
+    val pace: String,
+    /** What each month ahead spends in the scenario; null for the sheet as it is. */
+    val monthly: Long? = null,
+    val days: List<ScenarioDay> = emptyList(),
+    val months: List<ScenarioMonth> = emptyList(),
+    val lowest: ScenarioPoint? = null,
+    val firstNegative: ScenarioPoint? = null,
+    val saving: Saving? = null,
+    /** "Ainda cabem" once the purchases' first parcels are on it; null without a purchase. */
+    val cycle: SimulatedCycle? = null,
+    /** The same pace without the changes, so a what-if shows its own effect; null without changes. */
+    val base: ScenarioBase? = null,
+    val today: String,
+    /** When the sheet was read: the answer is only as fresh as that. */
+    val readAt: String = "",
+    /** The sheet's last day: nothing past it to simulate on. */
+    val end: String,
+    /** The usual card a purchase goes on, and the bill its first parcel lands on. */
+    val card: String? = null,
+    val due: String? = null,
+    /** The paces this sheet and Ajustes allow, in order. */
+    val paces: List<String> = listOf("planilha"),
+    /** What the ceiling and the last months' average spend a month; null without one. */
+    val spends: ScenarioSpends = ScenarioSpends(),
+    val canSpend: ScenarioCanSpend? = null,
+)
+
+@Serializable
+data class ScenarioBase(val lowest: Long, val end: Long)
+
+@Serializable
+data class ScenarioSpends(val teto: Long? = null, val media: Long? = null)
+
+@Serializable
+data class ScenarioDay(val date: String, val sheet: Long, val sim: Long)
+
+@Serializable
+data class ScenarioMonth(val year: Int, val month: Int, val endSheet: Long, val endSim: Long)
+
+@Serializable
+data class ScenarioPoint(val date: String, val balance: Long)
+
+/** Hoje's "Ainda cabem" as a purchase's own figure reads it. */
+@Serializable
+data class ScenarioCanSpend(val mode: String, val left: Long, val overBy: Long)
+
+/** What Simular asks: a pace (null for the default) and the what-ifs typed so far. */
+@Serializable
+data class ScenarioBody(val pace: String? = null, val changes: List<ScenarioChange> = emptyList())
+
+/** A purchase (`count` parcels) or money in or out (`date`, repeated `months` months). */
+@Serializable
+data class ScenarioChange(
+    val kind: String,
+    val amount: Long,
+    val count: Int? = null,
+    val date: String? = null,
+    val months: Int? = null,
+)
