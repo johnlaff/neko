@@ -299,6 +299,17 @@ export interface Mia2Grafico {
   readonly nota?: string | undefined;
 }
 
+/** One number of the board Mia shows: a short label over a value in reais, checked like her text. */
+export interface Mia2Numero {
+  readonly rotulo: string;
+  readonly valor: number;
+  readonly nota?: string | undefined;
+  /** The screen it was read from, to lead back to it. */
+  readonly tela?: "hoje" | "faturas" | "mes" | "simular" | undefined;
+  /** `AAAA-MM`, on Mês. */
+  readonly mes?: string | undefined;
+}
+
 /**
  * One line of POST /api/mia2's answer (NDJSON), in the order things happen. The text of a message
  * comes first in pieces (`parcial`, each the whole text so far), then whole (`mensagem`), with its
@@ -316,6 +327,8 @@ export type Mia2Line =
       readonly valores: Readonly<Record<string, Mia2Valor>>;
     }
   | { readonly t: "grafico"; readonly id: string; readonly grafico: Mia2Grafico }
+  /** Two to four numbers side by side, label over value, every one checked. */
+  | { readonly t: "numeros"; readonly id: string; readonly numeros: readonly Mia2Numero[] }
   /** A number did not check: what this question showed so far gives way to a new answer. */
   | { readonly t: "refazendo" }
   | { readonly t: "fim" }

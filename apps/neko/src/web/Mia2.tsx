@@ -1,10 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
 import { Fragment, type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { Mia2Grafico, Mia2Line, Mia2Valor } from "../shared/types.ts";
+import type { Mia2Grafico, Mia2Line, Mia2Numero, Mia2Valor } from "../shared/types.ts";
 import { ApiError, api } from "./api.ts";
 import { BrandMark } from "./BrandMark.tsx";
-import { HIDDEN_MONEY, monthName, shortDate } from "./format.ts";
+import { HIDDEN_MONEY, money, monthName, shortDate } from "./format.ts";
 import { IconChevron, IconChevronLeft } from "./icons.tsx";
 import {
   type MiaTopic,
@@ -17,7 +17,9 @@ import {
   useSeconds,
 } from "./Mia.tsx";
 import { MiaChart } from "./MiaChart.tsx";
+import { paceCut, paceStep, WORD_FADE_MS } from "./miaPace.ts";
 import { useValuesHidden } from "./privacy.ts";
+import { mixNumber, useMorph } from "./useMorph.ts";
 
 /** Questions that show what she does now: sums, charts, the future as a simulation. */
 const MIA2_TOPICS: Record<MiaTopic, readonly string[]> = {
@@ -52,7 +54,8 @@ type Part =
       /** Null while the text is still coming: its values are not checked yet. */
       readonly valores: Readonly<Record<string, Mia2Valor>> | null;
     }
-  | { readonly k: "grafico"; readonly id: string; readonly grafico: Mia2Grafico };
+  | { readonly k: "grafico"; readonly id: string; readonly grafico: Mia2Grafico }
+  | { readonly k: "numeros"; readonly id: string; readonly numeros: readonly Mia2Numero[] };
 
 interface Turn {
   readonly n: number;
@@ -120,9 +123,18 @@ const putText = (
     : { ...t, parts: t.parts.map((p, i) => (i === at ? part : p)) };
 };
 
+/**
+ * Her texts and boards already shown in full, by turn and piece: they never come word by word
+ * again, not after Desfazer nor coming back to the screen. A new conversation, or a question asked
+ * again in its place, starts them over.
+ */
+const seenParts = new Set<string>();
+
 const ask = async (pergunta: string, onLimit: () => void) => {
   if (chat.pending) return;
   const n = (chat.turns.at(-1)?.n ?? -1) + 1;
+  for (const k of seenParts)
+    if (chat.turns.length === 0 || k.startsWith(`${n}:`)) seenParts.delete(k);
   const controller = new AbortController();
   reading = controller;
   setChat({
@@ -152,6 +164,12 @@ const ask = async (pergunta: string, onLimit: () => void) => {
         return patch(n, (t) => ({
           ...t,
           parts: [...t.parts, { k: "grafico", id: l.id, grafico: l.grafico }],
+        }));
+      case "numeros":
+        setChat({ status: null });
+        return patch(n, (t) => ({
+          ...t,
+          parts: [...t.parts, { k: "numeros", id: l.id, numeros: l.numeros }],
         }));
       case "refazendo":
         return patch(n, (t) => ({ ...t, parts: [] }));
@@ -260,6 +278,22 @@ const Value = ({
 
 const NOT_CHECKED: Mia2Valor = { conferido: false };
 
+/** Words of a piece of her text as it arrives, each keyed by where it starts in the line. */
+const words = (s: string, from: number): ReactNode[] => {
+  let at = from;
+  return s.split(/(\s+)/).map((w) => {
+    const k = at;
+    at += w.length;
+    return w === "" || /^\s+$/.test(w) ? (
+      w
+    ) : (
+      <span key={`w${k}`} className="mia-w">
+        {w}
+      </span>
+    );
+  });
+};
+
 const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** One line of her text: **bold**, and each R$ value as she wrote it, checked or not. */
@@ -269,6 +303,7 @@ const Inline = ({
   hidden,
   note,
   stopped,
+  fade,
 }: {
   text: string;
   valores: Readonly<Record<string, Mia2Valor>> | null;
@@ -276,20 +311,34 @@ const Inline = ({
   note?: string | undefined;
   /** The text of an answer stopped before the check: its values carry the unchecked mark. */
   stopped: boolean;
+  /** Still arriving: each word is its own piece, fading in as it comes. */
+  fade: boolean;
 }) => {
   const keys = Object.keys(valores ?? {}).sort((a, b) => b.length - a.length);
-  // While the text is still coming, any R$ is plain (and hidden when values are).
+  // While the text is still coming, any R$ is plain (and hidden when values are). Like the checked
+  // keys, it takes no space before it, so a value keeps its place when it is checked.
   const money =
     keys.length > 0
       ? new RegExp(`(${keys.map(literal).join("|")})`, "g")
-      : /([−-]?\s?R\$\s?[−-]?\s?[\d.,]*\d)/g;
+      : /((?:[−-]\s?)?R\$\s?[−-]?\s?[\d.,]*\d)/g;
+  // A word keeps its place (its key) as more words come after it, so only new words fade in.
+  let at = 0;
   const pieces = (s: string, bold: boolean, key: string): ReactNode[] =>
     s.split(money).map((piece, i) => {
       const k = `${key}-${i}`;
-      if (i % 2 === 0) return <Fragment key={k}>{piece}</Fragment>;
+      const from = at;
+      at += piece.length;
+      if (i % 2 === 0) return <Fragment key={k}>{fade ? words(piece, from) : piece}</Fragment>;
       const v = valores?.[piece] ?? (stopped ? NOT_CHECKED : undefined);
       const node = <Value key={k} texto={piece} v={v} hidden={hidden} note={note} />;
-      return bold ? <strong key={k}>{node}</strong> : node;
+      const value = bold ? <strong key={k}>{node}</strong> : node;
+      return fade ? (
+        <span key={`v${from}`} className="mia-w">
+          {value}
+        </span>
+      ) : (
+        value
+      );
     });
   return (
     <>
@@ -311,6 +360,7 @@ const Rich = ({
   lead,
   note,
   stopped,
+  fade,
 }: {
   texto: string;
   valores: Readonly<Record<string, Mia2Valor>> | null;
@@ -319,6 +369,7 @@ const Rich = ({
   lead: boolean;
   note?: string | undefined;
   stopped: boolean;
+  fade: boolean;
 }) => {
   const blocks: { list: boolean; lines: string[] }[] = [];
   // A bold still being written shows plain until it closes.
@@ -356,6 +407,7 @@ const Rich = ({
                     hidden={hidden}
                     note={note}
                     stopped={stopped}
+                    fade={fade}
                   />
                 </li>
               ))}
@@ -373,6 +425,7 @@ const Rich = ({
                     hidden={hidden}
                     note={note}
                     stopped={stopped}
+                    fade={fade}
                   />
                 </Fragment>
               ))}
@@ -390,8 +443,9 @@ const sourcesOf = (t: Turn) => {
     { key: string; tela: "faturas" | "mes"; mes?: string | undefined; label: string }
   >();
   for (const p of t.parts) {
-    if (p.k !== "texto") continue;
-    for (const v of Object.values(p.valores ?? {})) {
+    const values =
+      p.k === "texto" ? Object.values(p.valores ?? {}) : p.k === "numeros" ? p.numeros : [];
+    for (const v of values.map((x) => ({ conferido: true, ...x }))) {
       if (!v.conferido || (v.tela !== "faturas" && v.tela !== "mes")) continue;
       const key = `${v.tela}:${v.mes ?? ""}`;
       if (seen.has(key)) continue;
@@ -420,25 +474,198 @@ const stoppedValues = (t: Turn) =>
   t.end === "parou" &&
   t.parts.some((p) => p.k === "texto" && p.valores === null && MONEY.test(p.texto));
 
+/**
+ * A number of her board, counting up from zero as it arrives, as the Neko's figures do (an answer
+ * already read shows still). Plain, not a link: where it came from is in the ways out under it.
+ */
+const Figure = ({ x, count, hidden }: { x: Mia2Numero; count: boolean; hidden: boolean }) => {
+  const cents = Math.round(x.valor * 100);
+  const { from, to, e } = useMorph(cents, String(cents), mixNumber, count ? 0 : undefined);
+  // Hidden, a value says nothing, not even its sign. A screen reader hears the value, never the count.
+  return (
+    <div>
+      <dt>{x.rotulo}</dt>
+      <dd className={cents < 0 && !hidden ? "neg" : undefined}>
+        {hidden ? (
+          HIDDEN_MONEY
+        ) : (
+          <>
+            <span aria-hidden="true">{money(Math.round(mixNumber(from, to, e)))}</span>
+            <span className="sr-only">{money(cents)}</span>
+          </>
+        )}
+      </dd>
+      {x.nota && <dd className="fig-note">{x.nota}</dd>}
+    </div>
+  );
+};
+
+/** Her board: two to four numbers side by side, a short label over each, every one checked. */
+const Board = ({
+  id,
+  numeros,
+  count,
+  hidden,
+}: {
+  id: string;
+  numeros: readonly Mia2Numero[];
+  count: boolean;
+  hidden: boolean;
+}) => {
+  useEffect(() => {
+    seenParts.add(id);
+  }, [id]);
+  return (
+    <dl className="figures mia-numbers">
+      {numeros.map((x, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: one board, in the order she gave
+        <Figure key={i} x={x} count={count} hidden={hidden} />
+      ))}
+    </dl>
+  );
+};
+
+/** Her texts still showing word by word: what comes after an answer waits for them. */
+const moving = new Set<string>();
+const movers = new Set<() => void>();
+let moved = 0;
+const move = (key: string, on: boolean) => {
+  if (on === moving.has(key)) return;
+  if (on) moving.add(key);
+  else moving.delete(key);
+  moved++;
+  for (const f of movers) f();
+};
+/** Renders again whenever a text starts or stops moving; `moving` then says which. */
+const useMoving = () =>
+  useSyncExternalStore(
+    (f) => {
+      movers.add(f);
+      return () => movers.delete(f);
+    },
+    () => moved,
+  );
+
+/**
+ * Her text at reading pace: as it arrives, whole words show at a steady flow and fade in
+ * (miaPace.ts). `paced` false shows it all at once: an answer already read, a stopped one, or
+ * when the system asks for less motion. `fading` stays on until the last word has faded in.
+ */
+const usePaced = (key: string, texto: string, done: boolean, paced: boolean) => {
+  const [shown, setShown] = useState(paced ? 0 : texto.length);
+  const [fading, setFading] = useState(paced);
+  const pos = useRef(0);
+  useEffect(() => {
+    if (!paced) return setShown(texto.length);
+    let frame = 0;
+    let last = 0;
+    const tick = (now: number) => {
+      const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
+      last = now;
+      pos.current = paceStep(pos.current, texto.length, dt);
+      setShown(paceCut(texto, pos.current, done));
+      if (pos.current < texto.length) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [texto, done, paced]);
+  const settled = !paced || (done && shown >= texto.length);
+  useEffect(() => {
+    if (!settled) {
+      move(key, true);
+      return setFading(true);
+    }
+    // What comes after (a chart, a note, the ways out) waits for the last word to fade in, so it
+    // lands once, all together, and nothing moves under the thumb after.
+    const timer = setTimeout(
+      () => {
+        if (paced) seenParts.add(key);
+        setFading(false);
+        move(key, false);
+      },
+      paced ? WORD_FADE_MS : 0,
+    );
+    return () => clearTimeout(timer);
+  }, [key, settled, paced]);
+  useEffect(() => () => move(key, false), [key]);
+  return { shown: paced ? shown : texto.length, fading: fading && paced };
+};
+
+const lessMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** One text of hers, shown at reading pace; what goes under it waits until it is all there. */
+const PacedText = ({
+  id,
+  texto,
+  done,
+  paced,
+  children,
+  ...rich
+}: {
+  id: string;
+  texto: string;
+  done: boolean;
+  paced: boolean;
+  children: ReactNode;
+} & Omit<Parameters<typeof Rich>[0], "texto" | "fade">) => {
+  const { shown, fading } = usePaced(id, texto, done, paced);
+  return (
+    <>
+      <Rich texto={texto.slice(0, shown)} fade={fading} {...rich} />
+      {!fading && children}
+    </>
+  );
+};
+
 /** Her answer's pieces, each text followed by the note on its values that came from nowhere. */
-const Answer = ({ t, working, hidden }: { t: Turn; working: boolean; hidden: boolean }) => {
+const Answer = ({
+  t,
+  working,
+  hidden,
+  paced,
+}: {
+  t: Turn;
+  working: boolean;
+  hidden: boolean;
+  /** Asked here and now: her words come at reading pace (not an answer already read). */
+  paced: boolean;
+}) => {
+  useMoving();
   const first = t.parts.find((p) => p.k === "texto")?.id;
   const stoppedNote = stoppedValues(t) ? `mia-stopped-${t.n}` : undefined;
-  return t.parts.map((p) => {
+  // Her pieces come in order: a chart, or her next text, waits for the words before it.
+  const shown = t.parts.findIndex((p) => moving.has(`${t.n}:${p.id}`));
+  return t.parts.slice(0, shown < 0 ? undefined : shown + 1).map((p) => {
     if (p.k === "grafico") return <MiaChart key={p.id} grafico={p.grafico} />;
+    const id = `${t.n}:${p.id}`;
+    if (p.k === "numeros")
+      return (
+        <Board
+          key={p.id}
+          id={id}
+          numeros={p.numeros}
+          count={paced && !seenParts.has(id)}
+          hidden={hidden}
+        />
+      );
     const stopped = t.end === "parou" && p.valores === null;
-    const loose = working ? [] : unchecked(p);
+    // Her values are checked once her text is whole: the note may show then, with what follows.
+    const loose = unchecked(p);
     const note = stopped ? stoppedNote : loose.length > 0 ? `mia-note-${t.n}-${p.id}` : undefined;
     return (
-      <Fragment key={p.id}>
-        <Rich
-          texto={p.texto}
-          valores={p.valores}
-          hidden={hidden}
-          lead={p.id === first}
-          note={note}
-          stopped={stopped}
-        />
+      <PacedText
+        key={p.id}
+        id={id}
+        texto={p.texto}
+        done={p.valores !== null || !working}
+        // Parar keeps what she wrote, all of it, at once; what was shown once stays shown.
+        paced={paced && t.end !== "parou" && !seenParts.has(id)}
+        valores={p.valores}
+        hidden={hidden}
+        lead={p.id === first}
+        note={note}
+        stopped={stopped}
+      >
         {loose.length > 0 && (
           <p className="mia-note warn" id={note}>
             {hidden ? (
@@ -461,7 +688,7 @@ const Answer = ({ t, working, hidden }: { t: Turn; working: boolean; hidden: boo
             nos números do Neko. Confira antes de usar.
           </p>
         )}
-      </Fragment>
+      </PacedText>
     );
   });
 };
@@ -491,6 +718,12 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const input = useRef<HTMLInputElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const seconds = useSeconds(pending?.since);
+  /** Questions asked while the screen is open: only their answers move; the rest were read. */
+  const [here] = useState(() => new Set<number>());
+  if (pending) here.add(pending.n);
+  const [still] = useState(lessMotion);
+  useMoving();
+  const showing = moving.size > 0;
   useKeyboardResizes();
   useEffect(() => {
     if (chat.turns.length === 0) title.current?.focus({ preventScroll: true });
@@ -505,14 +738,15 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     last.current?.scrollIntoView({ block: "start", behavior: smooth() });
     if (document.activeElement === document.body) body.current?.focus({ preventScroll: true });
   }, [pending]);
-  // A finished answer takes the focus to be read, where it is (no jump), while the owner is still
-  // here. Typing the next question, or just after Parar, the field keeps it (the keyboard stays up):
-  // the answer is announced instead, and a question sent while she answered goes now.
-  const finished = pending === null ? turns.length : -1;
   const typedNow = useRef(typed);
   typedNow.current = typed;
   const heldNow = useRef(held);
   heldNow.current = held;
+  // A finished answer, all on screen (her last words shown, not only arrived), takes the focus to
+  // be read, where it is (no jump), while the owner is still here. Typing the next question, or just
+  // after Parar, the field keeps it (the keyboard stays up): the answer is announced instead, and a
+  // question sent while she answered goes now, so it rises under the bar with nothing landing above.
+  const finished = pending === null && !showing ? turns.length : -1;
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per finished answer
   useEffect(() => {
     if (finished <= 0) return;
@@ -570,7 +804,9 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const starters = mia2Starters(topic).filter(notAsked(asked));
   const full = turns.at(-1)?.end === "cheia";
   const next =
-    turns.length === 0 || typed.trim() || pending || resting || full ? [] : mia2Next(asked, topic);
+    turns.length === 0 || typed.trim() || pending || showing || resting || full
+      ? []
+      : mia2Next(asked, topic);
 
   return (
     <>
@@ -638,16 +874,24 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
             {turns.map((t, i) => {
               const newest = i === turns.length - 1;
               const working = pending?.n === t.n;
-              const sources = newest && !working ? sourcesOf(t) : [];
+              const sources = newest && !working && !showing ? sourcesOf(t) : [];
+              // What she is doing shines while she does it; while she writes, the dots say more
+              // is coming.
+              const label = doing ?? (t.parts.length > 0 ? "" : miaWaiting(seconds));
               return (
-                <li key={t.n} ref={newest ? last : undefined} tabIndex={newest ? -1 : undefined}>
+                <li
+                  key={t.n}
+                  ref={newest ? last : undefined}
+                  tabIndex={newest ? -1 : undefined}
+                  className={here.has(t.n) ? "fresh" : undefined}
+                >
                   <p className="mia-q">{t.pergunta}</p>
-                  <Answer t={t} working={working} hidden={hidden} />
+                  <Answer t={t} working={working} hidden={hidden} paced={here.has(t.n) && !still} />
                   {working && (
                     <div className="mia-wait">
-                      <span className="mia-dots" aria-hidden="true" />
-                      <p className="mia-status" aria-live="polite">
-                        {doing ?? (t.parts.length > 0 ? "" : miaWaiting(seconds))}
+                      {!label && <span className="mia-dots" aria-hidden="true" />}
+                      <p className={label ? "mia-status shine" : "mia-status"} aria-live="polite">
+                        {label}
                       </p>
                     </div>
                   )}

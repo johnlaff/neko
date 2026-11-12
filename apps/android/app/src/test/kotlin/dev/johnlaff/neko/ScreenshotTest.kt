@@ -314,6 +314,29 @@ class ScreenshotTest {
         )
     }
 
+    // A summary: one sentence, then her board of numbers. Typed and ready, Enviar reads in its ink.
+    @Test fun mia2ResumoDark() = shot("mia2-resumo-dark", night = true) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Resumo().apply { typed = "E a fatura de dezembro?" },
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2ResumoLight() = shot("mia2-resumo-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Resumo(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
     @Test fun mia2VaziaLight() = shot("mia2-vazia-light", night = false) {
         dev.johnlaff.neko.ui.Mia2Screen(
             dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),

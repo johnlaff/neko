@@ -665,11 +665,11 @@ private fun Figure(label: String, cents: Long?, notes: List<String>, modifier: M
     }
 }
 
-/** Cents counting to [target] from where they were, and from zero the first time. */
+/** Cents counting to [target] from where they were, and from zero the first time when [fromZero]. */
 @Composable
-private fun counted(target: Long): Long {
-    var from by remember { mutableStateOf(0L) }
-    var to by remember { mutableStateOf(0L) }
+internal fun counted(target: Long, fromZero: Boolean = true): Long {
+    var from by remember { mutableStateOf(if (fromZero) 0L else target) }
+    var to by remember { mutableStateOf(if (fromZero) 0L else target) }
     val e = remember { Animatable(1f) }
     LaunchedEffect(target) {
         from += ((to - from) * e.value).roundToLong()

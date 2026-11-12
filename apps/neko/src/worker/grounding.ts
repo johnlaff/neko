@@ -134,8 +134,11 @@ const find = (seen: Seen, cents: number, exact: boolean): Source | null => {
   return null;
 };
 
-/** Whether a chart's value (reais) came from somewhere, with the same rounding allowance. */
-export const seenValue = (seen: Seen, reais: number) => {
+/** Where a chart's or a board's value (reais) came from, with the same rounding allowance. */
+export const sourceOf = (seen: Seen, reais: number): Source | null => {
   const cents = Math.round(Math.abs(reais) * 100);
-  return find(seen, cents, cents % 100 !== 0) !== null;
+  return find(seen, cents, cents % 100 !== 0);
 };
+
+/** Whether a chart's value (reais) came from somewhere. */
+export const seenValue = (seen: Seen, reais: number) => sourceOf(seen, reais) !== null;
