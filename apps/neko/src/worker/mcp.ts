@@ -3,6 +3,8 @@ import {
   type Cents,
   type Change,
   cents,
+  type EntryInput,
+  entryFromMia,
   localDate,
   MAX_CHANGES,
   MAX_INSTALLMENTS,
@@ -19,9 +21,10 @@ import type { ProjectionResponse } from "../shared/types.ts";
 /**
  * Mia 2's window on Neko: the sheet, the bills, the reserve, Para lançar and Simular as MCP tools,
  * for the agent that holds the token (Model Context Protocol, both the 2026-07-28 stateless era
- * and the 2025 one). Read only: nothing here writes to the sheet, to D1 or anywhere else. Unlike
- * Mia 1's tools, values go out in reais, so the agent can chart and reason over them; every number
- * it shows must still come from a tool.
+ * and the 2025 one). Nothing here writes to the sheet: all tools read, except propor_lancamento,
+ * which leaves an entry in Para lançar for the owner to launch or ignore. Unlike Mia 1's tools,
+ * values go out in reais, so the agent can chart and reason over them; every number it shows must
+ * still come from a tool.
  */
 
 /** What every tool reads: the projection and the ceiling of Ajustes. */
@@ -115,6 +118,69 @@ const toChange = (m: z.infer<typeof SimulateInput>["mudancas"][number]): Change 
         months: m.meses,
       };
 
+/** An entry the owner asked Mia to launch, in Mia 1's words (engine `entryFromMia`). */
+const ProposeInput = z.object({
+  tipo: z
+    .enum(["pix", "entrada", "conta", "cartao"])
+    .describe(
+      "pix: gasto do dia a dia no Pix ou no débito (vai para o Diário). entrada: dinheiro que entrou. conta: conta paga, como luz ou aluguel. cartao: compra num cartão.",
+    ),
+  valor: Reais.describe("Valor em reais; numa compra parcelada, o total."),
+  nome: z.string().trim().min(1).max(80).describe("Nome curto, como o dono escreve na planilha."),
+  dia: Day.optional().describe("Dia do gasto ou da compra. Sem dia: hoje."),
+  cartao: z
+    .string()
+    .max(60)
+    .optional()
+    .describe("Só em cartao: o nome do cartão, como a ferramenta faturas mostra."),
+  parcelas: z.number().int().min(1).max(MAX_INSTALLMENTS).optional().describe("Só em cartao."),
+});
+
+/** Leaves one entry in Para lançar; the owner launches or ignores it there. */
+export type Propose = (entry: EntryInput) => Promise<void>;
+
+const proposeTool = async (
+  d: McpData,
+  input: z.infer<typeof ProposeInput>,
+  propose: Propose,
+): Promise<CallToolResult> => {
+  const today = d.data.projection.today;
+  // The cards Lançar à mão offers: the ones whose closing day is known.
+  const cards = d.data.cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name);
+  const e = entryFromMia({ ...input, dia: input.dia ?? today }, today, cards);
+  if (!e?.kind)
+    return refuse(
+      cards.length > 0
+        ? `Não conheço esse cartão. Os cartões: ${cards.join(", ")}.`
+        : "Não há cartão com fechamento conhecido para lançar.",
+    );
+  if (e.amount === undefined || e.date === undefined || e.description === undefined)
+    return refuse("Falta o valor, o dia ou o nome, ou o dia está longe demais de hoje.");
+  const month = e.date.slice(0, 7);
+  if (!d.data.projection.months.some((m) => keyOf(m) === month))
+    return refuse(`A planilha não tem o mês ${month}.`);
+  const entry: EntryInput = {
+    kind: e.kind,
+    amount: e.amount,
+    date: e.date,
+    description: e.description,
+    ...(e.card ? { card: e.card } : {}),
+    ...(e.installments ? { installments: e.installments } : {}),
+  };
+  await propose(entry);
+  return answer({
+    em_para_lancar: true,
+    lancamento: {
+      tipo: input.tipo,
+      valor: reais(entry.amount),
+      dia: entry.date,
+      nome: entry.description,
+      ...(entry.card ? { cartao: entry.card, parcelas: entry.installments ?? 1 } : {}),
+    },
+    planilha: "Ainda não mudou: muda quando o dono tocar em Lançar.",
+  });
+};
+
 const point = (p: { date: string; balance: number } | null) =>
   p && { data: p.date, saldo: reais(p.balance) };
 
@@ -173,8 +239,11 @@ const simulateTool = (d: McpData, input: z.infer<typeof SimulateInput>): CallToo
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } as const;
 
-/** One server with every tool, over the data `load` reads once, on the first call that needs it. */
-export const nekoServer = (load: () => Promise<McpData>): McpServer => {
+/**
+ * One server with every tool, over the data `load` reads once, on the first call that needs it.
+ * Without `propose`, propor_lancamento is left out and every tool only reads.
+ */
+export const nekoServer = (load: () => Promise<McpData>, propose?: Propose): McpServer => {
   let cached: Promise<McpData> | null = null;
   const data = () => {
     cached ??= load();
@@ -184,7 +253,7 @@ export const nekoServer = (load: () => Promise<McpData>): McpServer => {
     { name: "neko", version: "1.0.0" },
     {
       instructions:
-        "Neko lê a planilha de finanças do dono (método da Escola do Breno) e responde em reais. Tudo aqui só lê: nada muda a planilha. Os meses futuros têm só o que já está lançado; para ver um futuro com gasto do dia a dia, use simular.",
+        "Neko lê a planilha de finanças do dono (método da Escola do Breno) e responde em reais. Nada aqui muda a planilha: propor_lancamento só deixa um lançamento em Para lançar, e ele entra na planilha quando o dono toca em Lançar. Os meses futuros têm só o que já está lançado; para ver um futuro com gasto do dia a dia, use simular.",
     },
   );
   const engine = (name: string, title: string, description: string, input?: z.ZodObject) =>
@@ -345,11 +414,28 @@ export const nekoServer = (load: () => Promise<McpData>): McpServer => {
     },
   );
 
+  if (propose)
+    server.registerTool(
+      "propor_lancamento",
+      {
+        title: "Propor um lançamento",
+        description:
+          "Deixa um lançamento em Para lançar, quando o dono pede para lançar algo que contou: um gasto no Pix, uma entrada, uma conta paga ou uma compra no cartão. A planilha não muda: o dono confere e toca em Lançar, ou ignora. Um lançamento por chamada.",
+        inputSchema: ProposeInput,
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+      },
+      async (input) => proposeTool(await data(), input, propose),
+    );
+
   return server;
 };
 
 /** One MCP request, answered by a fresh server (the transport keeps nothing between requests). */
-export const serveMcp = (request: Request, load: () => Promise<McpData>): Promise<Response> =>
-  createMcpHandler(() => nekoServer(load), {
+export const serveMcp = (
+  request: Request,
+  load: () => Promise<McpData>,
+  propose?: Propose,
+): Promise<Response> =>
+  createMcpHandler(() => nekoServer(load, propose), {
     onerror: (e) => console.error("mcp", e),
   }).fetch(request);
