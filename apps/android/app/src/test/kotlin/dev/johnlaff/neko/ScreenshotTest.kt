@@ -11,7 +11,9 @@ import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performScrollToNode
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.johnlaff.neko.data.Saving
@@ -122,7 +124,8 @@ class ScreenshotTest {
 
     @Test fun mesDark() = shot("mes-dark", night = true) { MesScreen(ScreenState(months), Fakes.history) {} }
 
-    @Test fun mesReserva() = shot("mes-reserva-dark", night = true) {
+    /** On the way, "Como funciona" opened: the steps, the cost of living and the method's rule. */
+    @Test fun mesReserva() = shot("mes-reserva-dark", night = true, tap = "Como funciona") {
         dev.johnlaff.neko.ui.ReservePanel(months.reserve!!, months.steps!!, months.years.lastOrNull())
     }
 
@@ -135,6 +138,29 @@ class ScreenshotTest {
             s.copy(reached = 0, next = first, missing = first.amount),
             null,
         )
+    }
+
+    /** Past the method's 6 months: the meter climbs to 12 and the line under it says how far. */
+    @Test fun mesReservaSeis() = shot("mes-reserva-seis-light", night = false) {
+        val s = months.steps!!
+        val six = s.steps[s.steps.size - 2]
+        val twelve = s.steps.last()
+        dev.johnlaff.neko.ui.ReservePanel(
+            months.reserve!!.copy(kept = six.amount),
+            s.copy(reached = s.steps.size - 1, next = twelve, missing = twelve.amount - six.amount),
+            null,
+        )
+    }
+
+    /** "Como funciona" is pulled up over the gap above it: a touch near its top edge still opens it. */
+    @Test fun reservaToggleTop() {
+        org.robolectric.RuntimeEnvironment.setQualifiers("+notnight")
+        compose.setContent {
+            NekoTheme { dev.johnlaff.neko.ui.ReservePanel(months.reserve!!, months.steps!!, null) }
+        }
+        compose.onNodeWithText(dev.johnlaff.neko.ui.Learn.RESERVE_MORE)
+            .performTouchInput { click(androidx.compose.ui.geometry.Offset(centerX, 2f)) }
+        compose.onNodeWithText(dev.johnlaff.neko.ui.Learn.RESERVE_RULE).assertExists()
     }
 
     /** A closed month keeps its wins: September 2025 ended in the blue and first covered a month. */

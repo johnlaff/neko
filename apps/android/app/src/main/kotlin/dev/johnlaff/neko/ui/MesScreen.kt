@@ -25,6 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -128,12 +129,17 @@ private fun Warnings(warnings: List<Insight>, shown: String, current: String?, o
 }
 
 /**
- * The method's emergency reserve, climbed in steps as on the site: what the sheet shows as kept,
- * how far the next step is, the cost of living behind it and the year's Economia (the sheet's tab).
+ * The method's emergency reserve, climbed in steps as on the site. At a glance: what the sheet
+ * shows as kept and how far the next step is. Behind "Como funciona": how to start, the steps, the
+ * cost of living behind them, the year's Economia (the sheet's tab) and the method's rule.
  */
 @Composable
 internal fun ReservePanel(r: Reserve, s: ReserveSteps, year: YearTotals?) {
     val l = LocalLedger.current
+    var more by rememberSaveable { mutableStateOf(false) }
+    val hint = Learn.stepHint(s, r.kept)
+    // Shown only when it adds something: with everything kept this year it repeats the total.
+    val yearSaved = year?.takeIf { it.saved > 0 && it.saved != r.kept }
     Panel {
         PanelHead(Learn.RESERVE_TITLE) {
             Text(Learn.stepsMeta(s, r.kept), color = l.muted, style = MaterialTheme.typography.labelLarge)
@@ -148,29 +154,49 @@ internal fun ReservePanel(r: Reserve, s: ReserveSteps, year: YearTotals?) {
                 style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
             )
         }
-        // Display only: kept over the next step, so a step reached is never back at zero.
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Meter(s.next?.let { if (it.amount <= 0) 0f else r.kept.toFloat() / it.amount } ?: 1f, color = l.accent)
+            if (r.kept > 0) {
+                // Display only: kept over the next step, so a step reached is never back at zero.
+                Meter(
+                    s.next?.let { if (it.amount <= 0) 0f else r.kept.toFloat() / it.amount } ?: 1f,
+                    color = l.accent,
+                    height = 6.dp,
+                )
+            }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     Learn.stepLine(s, r.kept),
                     color = l.text,
                     style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
                 )
-                Learn.stepHint(s, r.kept)?.let {
-                    Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"))
+                // Past 6 months the meter climbs to 12: the line under it says so.
+                if (r.kept > 0 && hint != null) {
+                    Text(hint, color = l.muted, style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"))
                 }
             }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            LedgerLine(Learn.costLabel(r.costMonths), money(r.cost))
-            if (year != null && year.saved > 0) {
-                LedgerLine("Guardado em ${year.year}", money(year.saved))
+        // As the site's summary (margin -10px): the 48dp target overlaps the gaps around it, so the
+        // words sit as close to the line above as they do there.
+        Column(
+            Modifier.layout { m, c ->
+                val p = m.measure(c)
+                val top = 10.dp.roundToPx()
+                val bottom = if (more) 0 else top
+                layout(p.width, p.height - top - bottom) { p.place(0, -top) }
+            },
+        ) {
+            TextAction(Learn.RESERVE_MORE, { more = !more }, open = more)
+            Reveal(more) {
+                if (r.kept <= 0 && hint != null) {
+                    Text(hint, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                }
+                Text(Learn.stepsRule(s), color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LedgerLine(Learn.costLabel(r.costMonths), money(r.cost))
+                    yearSaved?.let { LedgerLine("Guardado em ${it.year}", money(it.saved)) }
+                }
+                Text(Learn.RESERVE_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
             }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(Learn.stepsRule(s), color = l.muted, style = MaterialTheme.typography.bodyMedium)
-            Text(Learn.RESERVE_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

@@ -2,6 +2,7 @@ import { normalizeName } from "./cards.ts";
 import type { LocalDate } from "./date.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
 import type { MonthView, Projection } from "./projection.ts";
+import { reserveSteps } from "./reserve.ts";
 
 /**
  * Mia's tools (specs/004-mia): the model picks one, the engine answers. Every amount goes out as a
@@ -361,6 +362,7 @@ export const runMiaTool = (p: Projection, name: string, input: unknown, book: Re
     case "reserva": {
       const r = p.reserve;
       if (!r) return err("Ainda não há um mês fechado para medir a reserva.");
+      const s = reserveSteps(r);
       const m = (c: number, rotulo: string, tipo: RefKind = "total") =>
         book.money(c, { tipo, rotulo, tela: "mes" });
       return {
@@ -370,6 +372,13 @@ export const runMiaTool = (p: Projection, name: string, input: unknown, book: Re
         meta_maxima: m(r.max, "Reserva máxima"),
         guardado: m(r.kept, "Reserva guardada", "saldo"),
         meses_de_custo_cobertos: `${Math.floor(r.coveredTenths / 10)},${r.coveredTenths % 10}`,
+        // The steps Mês climbs: R$ 3.000, then 1, 3, 6 and 12 months of the cost of living.
+        degraus_alcancados: `${s.reached} de ${s.steps.length}`,
+        proximo_degrau: s.next && {
+          valor: m(s.next.amount, "Próximo degrau da reserva"),
+          meses_de_custo: s.next.months,
+        },
+        falta_para_o_proximo: s.next && m(s.missing, "Falta para o próximo degrau"),
       };
     }
     default:
