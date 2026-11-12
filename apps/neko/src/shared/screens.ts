@@ -3,8 +3,10 @@ import {
   type BillCheck,
   type BillState,
   billState,
+  type CanSpend,
   type CardConfig,
   type Cents,
+  type Change,
   cents,
   cycleForDueMonth,
   diffDays,
@@ -23,10 +25,11 @@ import {
   outflowTrend,
   owedOnBills,
   ownerKey,
+  type Pace,
   type PhoneTrust,
+  paceMonthly,
   type Reserve,
   type Saving,
-  type Scenario,
   type ScenarioResult,
   simulate,
   simulateInstallments,
@@ -35,6 +38,7 @@ import {
   type TrendPoint,
   type Win,
   type YearTotals,
+  ymd,
   ZERO,
 } from "@neko/engine";
 import { inMes, legacyPerDay } from "./today.ts";
@@ -440,25 +444,79 @@ export const simulateView = (
   };
 };
 
+/** Simular's answer, with what the screen needs around it to ask the next one. */
+export interface ScenarioView extends ScenarioResult {
+  readonly today: LocalDate;
+  /** The sheet's last day: nothing past it to simulate on. */
+  readonly end: LocalDate;
+  /** The usual card a purchase goes on, and the bill its first parcel lands on; null without one. */
+  readonly card: string | null;
+  readonly due: LocalDate | null;
+  /** The paces this sheet and Ajustes allow, in the order they are offered. */
+  readonly paces: readonly Pace[];
+  /** What the ceiling and the last months' average spend a month, side by side; null without one. */
+  readonly spends: { readonly teto: Cents | null; readonly media: Cents | null };
+  /** Hoje's "Ainda cabem", as a purchase's own figure reads it. */
+  readonly canSpend: Pick<CanSpend, "mode" | "left" | "overBy"> | null;
+}
+
+/** The ceiling needs Ajustes › Teto do mês; the average needs a full month before today. */
+const paceSpends = (r: ProjectionResponse, ceiling: Cents | null) => {
+  const p = r.projection;
+  let media: Cents | null = null;
+  try {
+    media = paceMonthly("media", p.months, p.today, null);
+  } catch {
+    media = null;
+  }
+  return { teto: ceiling, media };
+};
+
 /**
  * Simular: the sheet's balances under a pace and what-ifs (engine `simulate`). Nothing is saved:
- * the same answer for the screen and for Mia, computed on every ask.
+ * the same answer for the site, the Android app and Mia, computed on every ask. Without a pace,
+ * or with one this sheet does not allow, it is the ceiling when there is one (the owner's own plan
+ * for the months ahead), else the sheet as it is.
  */
 export const scenarioView = (
   r: ProjectionResponse,
   ceiling: Cents | null,
-  scenario: Scenario,
-): ScenarioResult =>
-  simulate(
+  ask: { readonly pace?: Pace | undefined; readonly changes: readonly Change[] },
+): ScenarioView => {
+  const p = r.projection;
+  const usual = p.cards.find((c) => c.usual) ?? null;
+  const spends = paceSpends(r, ceiling);
+  const paces: Pace[] = [
+    "planilha",
+    ...(spends.teto === null ? [] : ["teto" as const]),
+    ...(spends.media === null ? [] : ["media" as const]),
+  ];
+  const pace =
+    ask.pace && paces.includes(ask.pace) ? ask.pace : paces.includes("teto") ? "teto" : "planilha";
+  const last = p.months.at(-1);
+  const lastDay = last?.days.at(-1)?.day;
+  const result = simulate(
     {
-      today: r.projection.today,
-      months: r.projection.months,
-      due: r.projection.cards.find((c) => c.usual)?.cycle.due ?? null,
+      today: p.today,
+      months: p.months,
+      due: usual?.cycle.due ?? null,
       ceiling,
-      canSpend: r.projection.canSpend,
+      canSpend: p.canSpend,
     },
-    scenario,
+    { pace, changes: ask.changes },
   );
+  const cs = p.canSpend;
+  return {
+    ...result,
+    today: p.today,
+    end: last && lastDay ? ymd(last.year, last.month, lastDay) : p.today,
+    card: usual?.card.name ?? null,
+    due: usual?.cycle.due ?? null,
+    paces,
+    spends,
+    canSpend: cs ? { mode: cs.mode, left: cs.left, overBy: cs.overBy } : null,
+  };
+};
 
 export interface AjustesView {
   readonly settings: UserSettings;

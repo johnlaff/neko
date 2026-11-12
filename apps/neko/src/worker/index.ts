@@ -8,7 +8,6 @@ import {
   MAX_INSTALLMENTS,
   MAX_REPEAT,
   normalizeName,
-  type Scenario,
   todayIn,
 } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
@@ -630,7 +629,8 @@ app.get("/simulate", async (c) => {
 
 const Money = z.number().int().positive().max(100_000_000_00);
 const ScenarioBody = z.object({
-  pace: z.enum(["planilha", "teto", "media"]),
+  // Left out, the ceiling when there is one, else the sheet as it is.
+  pace: z.enum(["planilha", "teto", "media"]).optional(),
   changes: z
     .array(
       z.discriminatedUnion("kind", [
@@ -663,15 +663,16 @@ app.post("/scenario", async (c) => {
   ]);
   const ceiling = settings.cycleBudget === null ? null : cents(settings.cycleBudget);
   try {
-    const scenario: Scenario = {
-      pace: body.data.pace,
-      changes: body.data.changes.map((ch) =>
-        ch.kind === "compra"
-          ? { ...ch, amount: cents(ch.amount) }
-          : { ...ch, amount: cents(ch.amount), date: localDate(ch.date) },
-      ),
-    };
-    return c.json(scenarioView(data, ceiling, scenario));
+    return c.json(
+      scenarioView(data, ceiling, {
+        pace: body.data.pace,
+        changes: body.data.changes.map((ch) =>
+          ch.kind === "compra"
+            ? { ...ch, amount: cents(ch.amount) }
+            : { ...ch, amount: cents(ch.amount), date: localDate(ch.date) },
+        ),
+      }),
+    );
   } catch (e) {
     if (e instanceof RangeError) return c.json({ error: "unavailable", detail: e.message }, 422);
     throw e;

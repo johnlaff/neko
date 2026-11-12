@@ -89,6 +89,11 @@ export interface ScenarioResult {
   readonly saving: Saving | null;
   /** "Ainda cabem" once the purchases' first parcels are on it; null without a purchase. */
   readonly cycle: Simulation | null;
+  /**
+   * The same pace without the changes, so a what-if shows its own effect and nobody has to
+   * remember the number from before; null without changes.
+   */
+  readonly base: { readonly lowest: Cents; readonly end: Cents } | null;
 }
 
 const key = (year: number, month: number) => year * 12 + month;
@@ -206,6 +211,9 @@ export const simulate = (input: ScenarioInput, scenario: Scenario): ScenarioResu
   // window Hoje's "Dia de guardar" reads, so both say the same with the ceiling and no change.
   const unplanned = firstUnplannedMonth(months, today);
   const until = unplanned && ymd(unplanned.year, unplanned.month, 1);
+  const alone =
+    scenario.changes.length > 0 ? simulate(input, { pace: scenario.pace, changes: [] }) : null;
+  const aloneEnd = alone?.months.at(-1);
   return {
     pace: scenario.pace,
     monthly,
@@ -234,5 +242,6 @@ export const simulate = (input: ScenarioInput, scenario: Scenario): ScenarioResu
         .filter((d) => until === null || d.date < until)
         .map((d) => ({ date: d.date, balance: d.sim, income: d.income })),
     ),
+    base: alone?.lowest && aloneEnd ? { lowest: alone.lowest.balance, end: aloneEnd.endSim } : null,
   };
 };
