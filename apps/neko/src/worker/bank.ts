@@ -29,6 +29,7 @@ import {
 import { queueView } from "../shared/queue.ts";
 import type { BankView, UserSettings } from "../shared/types.ts";
 import { loadPhonePurchases, PHONE_RELEASED, type PhonePurchase } from "./phone.ts";
+import { loadProposals, type ProposalRow, proposalsOf } from "./proposals.ts";
 
 /**
  * What was read from the banks, as the engine takes it (specs/003-open-finance). Only the mapping
@@ -124,6 +125,8 @@ export interface BankRows {
   readonly mailedContas?: readonly MailedContaRow[];
   /** Card purchases the phone read from the bank app; none before migration 0016. */
   readonly phone?: readonly PhonePurchase[];
+  /** What Mia proposed in a conversation; none before migration 0019. */
+  readonly proposals?: readonly ProposalRow[];
 }
 
 const last4 = (s: string | null) => (s ? s.replace(/\D/g, "").slice(-4) : null);
@@ -364,6 +367,7 @@ export const bankView = (
       total: cents(r.total),
       arrived: todayIn(new Date(r.read_at)),
     })),
+    proposals: proposalsOf(rows.proposals ?? []),
   });
   const queue = built.filter((i) => !ignored.has(i.key));
   const synced = (a: BankAccountRow) => labels.get(a.item_id ?? "")?.synced_at ?? null;
@@ -485,6 +489,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       mailedBills,
       mailedContas,
       phone,
+      proposals,
     ] = await Promise.all([
       db
         .prepare(
@@ -509,6 +514,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       loadMailedBills(db),
       loadMailedContas(db),
       loadPhonePurchases(db),
+      loadProposals(db),
     ]);
     return {
       items: items.n,
@@ -523,6 +529,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       mailedBills,
       mailedContas,
       phone,
+      proposals,
     };
   } catch (error) {
     console.error("bank tables unreadable", error);

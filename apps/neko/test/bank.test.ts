@@ -10,6 +10,7 @@ import {
   loadBank,
 } from "../src/worker/bank.ts";
 import { PHONE_RELEASED } from "../src/worker/phone.ts";
+import { loadProposals, saveProposal } from "../src/worker/proposals.ts";
 import { sqliteD1 } from "./d1.ts";
 
 // Invented bank: ids, names and amounts are made up (public repo).
@@ -358,6 +359,39 @@ describe("a light or phone bill, by the biller's e-mail", () => {
     );
     expect((await loadBank(db as never))?.mailedContas).toEqual([
       { biller: "Luzdovale", due_date: "2026-11-15", total: 18760, read_at: "t" },
+    ]);
+  });
+});
+
+describe("what Mia proposed in a conversation", () => {
+  it("waits in Para lançar as a new line, saying where it came from", async () => {
+    const { ledger } = await import("../../../packages/engine/test/builders.ts");
+    const db = sqliteD1();
+    const entry = { kind: "diario", amount: 5230, description: "Mercado", date: "2026-10-27" };
+    await saveProposal(db as never, entry as never, new Date("2026-10-27T15:00:00Z"));
+    // A row that no longer parses is left out, never guessed.
+    db.sqlite.exec(
+      "INSERT INTO mia_proposal (id, entry, created_at) VALUES ('bad', '{\"kind\":\"diario\"}', 't')",
+    );
+    const stored = await loadProposals(db as never);
+    expect(stored).toHaveLength(2);
+    const view = bankView(
+      { ...rows, txns: [], bills: [], proposals: stored },
+      ledger("2026-10-01", 92, 100000),
+      cards,
+      UserSettings.parse({ bankCards: map }),
+      localDate("2026-10-28"),
+    );
+    expect(view?.queue).toMatchObject([
+      {
+        key: `mia:${stored.find((r) => r.id !== "bad")?.id}`,
+        kind: "diario",
+        title: "Mercado",
+        bank: [],
+        adjustable: true,
+        note: "Veio da sua conversa com a Mia.",
+        options: [{ draft: { type: "new", ...entry } }],
+      },
     ]);
   });
 });

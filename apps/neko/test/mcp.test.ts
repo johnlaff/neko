@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cents } from "@neko/engine";
+import { cents, type EntryInput } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import type { ProjectionResponse } from "../src/shared/types.ts";
 import type { Env } from "../src/worker/env.ts";
@@ -149,6 +149,36 @@ describe("mcp", () => {
   it("refuses what it cannot read, as an error the agent can correct", async () => {
     expect((await call("mes", { mes: "1999-01" })).error).toBe(true);
     expect((await call("resumo_meses", { de: "2027-05", ate: "2026-01" })).error).toBe(true);
+  });
+
+  it("leaves an entry in Para lançar through propor_lancamento, never in the sheet", async () => {
+    const kept: EntryInput[] = [];
+    const propose = async (e: EntryInput) => {
+      kept.push(e);
+    };
+    const listed = await result(await serveMcp(modern("tools/list"), load, propose));
+    const tool = listed.tools.find((t: { name: string }) => t.name === "propor_lancamento");
+    expect(tool.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    const ask = async (args: Record<string, unknown>) => {
+      const r = await result(
+        await serveMcp(
+          modern("tools/call", { name: "propor_lancamento", arguments: args }, "propor_lancamento"),
+          load,
+          propose,
+        ),
+      );
+      return r.isError === true ? null : JSON.parse(r.content[0].text);
+    };
+    const today = fixture.projection.today;
+    expect(await ask({ tipo: "pix", valor: 52.3, nome: "Mercado" })).toMatchObject({
+      em_para_lancar: true,
+      lancamento: { tipo: "pix", valor: 52.3, dia: today, nome: "Mercado" },
+    });
+    expect(kept).toEqual([{ kind: "diario", amount: 5230, date: today, description: "Mercado" }]);
+    // A card it does not know, or a day far from today, is refused and nothing is kept.
+    expect(await ask({ tipo: "cartao", valor: 100, nome: "Tênis", cartao: "Outro" })).toBeNull();
+    expect(await ask({ tipo: "pix", valor: 10, nome: "Feira", dia: "1999-01-05" })).toBeNull();
+    expect(kept).toHaveLength(1);
   });
 
   it("is off without the secret and closed to a wrong token", async () => {
