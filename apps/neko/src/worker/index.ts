@@ -1,9 +1,14 @@
 import {
   type Cents,
+  cents,
   clockIn,
   historyDelta,
+  localDate,
+  MAX_CHANGES,
   MAX_INSTALLMENTS,
+  MAX_REPEAT,
   normalizeName,
+  type Scenario,
   todayIn,
 } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
@@ -13,7 +18,13 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
-import { ajustesView, invoicesView, monthsView, simulateView } from "../shared/screens.ts";
+import {
+  ajustesView,
+  invoicesView,
+  monthsView,
+  scenarioView,
+  simulateView,
+} from "../shared/screens.ts";
 import { todayView } from "../shared/today.ts";
 import type { BanksResponse, MiaStatus } from "../shared/types.ts";
 import { assetLinks } from "./android.ts";
@@ -171,6 +182,7 @@ app.use("/reminders/*", requireSession);
 app.use("/notices", requireSession);
 app.use("/history", requireSession);
 app.use("/simulate", requireSession);
+app.use("/scenario", requireSession);
 app.use("/settings", requireSession);
 app.use("/push/*", requireSession);
 app.use("/sessions", requireSession);
@@ -614,6 +626,56 @@ app.get("/simulate", async (c) => {
   const { amount, count } = Purchase.parse(c.req.query());
   const data = await getProjection(c.env, todayIn(new Date()));
   return c.json(simulateView(data, amount as Cents, count));
+});
+
+const Money = z.number().int().positive().max(100_000_000_00);
+const ScenarioBody = z.object({
+  pace: z.enum(["planilha", "teto", "media"]),
+  changes: z
+    .array(
+      z.discriminatedUnion("kind", [
+        z.object({
+          kind: z.literal("compra"),
+          amount: Money,
+          count: z.number().int().min(1).max(MAX_INSTALLMENTS),
+        }),
+        z.object({
+          kind: z.enum(["entrada", "saida"]),
+          amount: Money,
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          months: z.number().int().min(1).max(MAX_REPEAT),
+        }),
+      ]),
+    )
+    .max(MAX_CHANGES),
+});
+
+/**
+ * Simular (web and Android): the sheet's balances under a pace and what-ifs. Read only: nothing
+ * is stored, and the sheet is never touched.
+ */
+app.post("/scenario", async (c) => {
+  const body = ScenarioBody.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: "invalid" }, 400);
+  const [data, settings] = await Promise.all([
+    getProjection(c.env, todayIn(new Date())),
+    loadSettings(c.env.DB),
+  ]);
+  const ceiling = settings.cycleBudget === null ? null : cents(settings.cycleBudget);
+  try {
+    const scenario: Scenario = {
+      pace: body.data.pace,
+      changes: body.data.changes.map((ch) =>
+        ch.kind === "compra"
+          ? { ...ch, amount: cents(ch.amount) }
+          : { ...ch, amount: cents(ch.amount), date: localDate(ch.date) },
+      ),
+    };
+    return c.json(scenarioView(data, ceiling, scenario));
+  } catch (e) {
+    if (e instanceof RangeError) return c.json({ error: "unavailable", detail: e.message }, 422);
+    throw e;
+  }
 });
 
 /** Today's morning and evening messages, for the Android app to show itself (see notices.ts). */

@@ -18,7 +18,7 @@ import type { CellRef, Ledger, NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, divFloor, mul, sub, ZERO } from "./money.ts";
 import { type MonthRecap, monthRecap } from "./recap.ts";
 import { type Reserve, reserve, type YearTotals, yearTotals } from "./reserve.ts";
-import { ceilingHeld, type Saving, saveable } from "./savings.ts";
+import { ceilingHeld, ownCardBills, type Saving, saveable } from "./savings.ts";
 import { type DayMove, type ThermoDay, thermometer } from "./thermometer.ts";
 
 export interface Settings {
@@ -802,17 +802,7 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
   const held =
     settings.cycleBudget === null
       ? () => ZERO
-      : ceilingHeld(
-          months.map((m) => ({
-            month: `${m.year}-${String(m.month).padStart(2, "0")}`,
-            amount: add(
-              ZERO,
-              ...m.outflows.filter((o) => o.kind === "card" && !o.others).map((o) => o.amount),
-            ),
-          })),
-          today,
-          settings.cycleBudget,
-        );
+      : ceilingHeld(ownCardBills(months), today, settings.cycleBudget);
 
   const view: Omit<Projection, "insights"> = {
     today,

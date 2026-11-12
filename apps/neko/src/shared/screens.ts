@@ -26,6 +26,9 @@ import {
   type PhoneTrust,
   type Reserve,
   type Saving,
+  type Scenario,
+  type ScenarioResult,
+  simulate,
   simulateInstallments,
   sub,
   type ThermoDay,
@@ -436,6 +439,25 @@ export const simulateView = (
     cycle: { ...sim.cycle, perDay: legacyPerDay(sim.cycle.remaining, cs.daysLeft) },
   };
 };
+
+/**
+ * Simular: the sheet's balances under a pace and what-ifs (engine `simulate`). Nothing is saved:
+ * the same answer for the screen and for Mia, computed on every ask.
+ */
+export const scenarioView = (
+  r: ProjectionResponse,
+  ceiling: Cents | null,
+  scenario: Scenario,
+): ScenarioResult =>
+  simulate(
+    {
+      today: r.projection.today,
+      months: r.projection.months,
+      due: r.projection.cards.find((c) => c.usual)?.cycle.due ?? null,
+      ceiling,
+    },
+    scenario,
+  );
 
 export interface AjustesView {
   readonly settings: UserSettings;
