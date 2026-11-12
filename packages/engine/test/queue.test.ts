@@ -4,6 +4,7 @@ import {
   buildQueue,
   type CardConfig,
   cents,
+  type EntryInput,
   ignoredGaps,
   type LocalDate,
   localDate,
@@ -1262,5 +1263,52 @@ describe("saldo bate", () => {
       diff: 23200,
       waiting: [],
     });
+  });
+});
+
+describe("Para lançar: what Mia proposed", () => {
+  const entry = (over: Partial<EntryInput> = {}): EntryInput => ({
+    kind: "diario",
+    amount: cents(52_30),
+    description: "Mercado",
+    date: d("2026-10-18"),
+    ...over,
+  });
+
+  it("waits as a new line, launched as typed by hand, until the owner decides", () => {
+    const items = queue({ proposals: [{ id: "p1", entry: entry() }] });
+    expect(items).toEqual([
+      {
+        key: "mia:p1",
+        kind: "diario",
+        date: d("2026-10-18"),
+        bank: [],
+        options: [{ label: "", draft: { type: "new", ...entry() } }],
+      },
+    ]);
+    expect(
+      queue({ proposals: [{ id: "p1", entry: entry() }], decided: new Set(["mia:p1"]) }),
+    ).toEqual([]);
+  });
+
+  it("names the item by the line it makes: a card purchase, an Entrada, a bill", () => {
+    const kinds = queue({
+      proposals: [
+        { id: "a", entry: entry({ kind: "cartao", card: "Visa", installments: 3 }) },
+        { id: "b", entry: entry({ kind: "entrada", description: "Freela" }) },
+        { id: "c", entry: entry({ kind: "conta", description: "Luz" }) },
+      ],
+    }).map((i) => [i.key, i.kind]);
+    expect(kinds).toEqual([
+      ["mia:a", "cartao"],
+      ["mia:b", "entrada"],
+      ["mia:c", "conta"],
+    ]);
+  });
+
+  it("leaves out a day the sheet does not have", () => {
+    expect(queue({ proposals: [{ id: "p1", entry: entry({ date: d("2031-01-05") }) }] })).toEqual(
+      [],
+    );
   });
 });

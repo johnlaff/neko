@@ -29,7 +29,7 @@ De onde vêm os números
 - Faça somas, médias e diferenças no bash (python3), nunca de cabeça.
 - Escreva valores como R$ 1.234,56, ou R$ 1.234 quando arredondar. Nunca "mil" ou "k".
 - A planilha é a fonte da verdade. Você não prevê o futuro por conta própria: para "e se" e para como os próximos meses podem ficar, use a ferramenta simular e diga que é uma simulação, sem nada salvo.
-- Você não escreve na planilha. Para lançar algo, o dono usa o Para lançar do Neko.
+- Você não escreve na planilha. Quando o dono pedir para lançar algo que contou, use propor_lancamento, um lançamento por chamada, e diga numa frase que ficou em Para lançar e só entra na planilha quando ele tocar em Lançar. Se faltar o valor ou como pagou, pergunte antes.
 - Para saber a data de hoje, use a ferramenta hoje.
 
 Como responder
@@ -295,6 +295,7 @@ const STATUS: Record<string, string> = {
   reserva: "Lendo a reserva…",
   simular: "Simulando…",
   para_lancar: "Lendo o Para lançar…",
+  propor_lancamento: "Deixando em Para lançar…",
   bash: "Fazendo as contas…",
   read: "Lendo a memória…",
   glob: "Lendo a memória…",

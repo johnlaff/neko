@@ -259,6 +259,16 @@ class ScreenshotTest {
         }
     }
 
+    // What Mia proposed in a conversation: a new line like any other, saying where it came from.
+    @Test fun filaMiaDark() = shot("fila-mia-dark", night = true) {
+        val item = view.queue!!.first { it.kind == "diario" }.copy(
+            key = "mia:1", title = "Mercado", bank = emptyList(), note = "Veio da sua conversa com a Mia.",
+        )
+        androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
+            dev.johnlaff.neko.ui.ParaLancar(view.copy(queue = listOf(item)), Fakes.launcher) {}
+        }
+    }
+
     @Test fun saldoHojeDark() = shot("saldo-hoje-dark", night = true, scrollTo = "Para lançar") {
         HojeScreen(TodayState(view.copy(queue = emptyList())), {}, {}, launcher = Fakes.launcher)
     }
