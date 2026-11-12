@@ -8,6 +8,7 @@ import {
   ceilingNews,
   ceilingStep,
   checkCeiling,
+  checkSubscriptions,
   clearNotices,
   DEFAULT_EVENING,
   eveningJob,
@@ -141,6 +142,50 @@ describe("the ceiling, when the bank brings the purchase", () => {
   });
 });
 
+describe("a subscription out of its pattern", () => {
+  it("is said once, the day's in one message, opening Faturas", async () => {
+    const d = db();
+    const env = envWith(d);
+    const nova = {
+      kind: "nova",
+      key: "nova|suaacademia|15990|cartao azul",
+      description: "SUA ACADEMIA",
+      card: "Cartão Azul",
+      amount: 159_90,
+      before: null,
+      since: "2026-09-17",
+      date: "2026-10-17",
+    };
+    const subiu = {
+      kind: "subiu",
+      key: "subiu|netflixcom|4490|cartao azul",
+      description: "NETFLIX.COM",
+      card: "Cartão Azul",
+      amount: 44_90,
+      before: 39_90,
+      since: "2026-07-15",
+      date: "2026-10-17",
+    };
+    const data = (today: string, news: unknown[]) =>
+      ({
+        projection: { today },
+        bank: { subscriptions: { items: [], total: 0, toCancel: 0, news } },
+      }) as unknown as ProjectionResponse;
+    await checkSubscriptions(env, data("2026-10-18", [nova, subiu]));
+    await checkSubscriptions(env, data("2026-10-19", [nova, subiu]));
+    const notices = await recentNotices(d, new Date("2026-10-19T12:00:00Z"));
+    expect(notices).toEqual([
+      {
+        id: "assinatura:2026-10-18",
+        title: "Assinatura nova: Sua Academia, R$ 159,90 por mês",
+        body: "Cobrada no Cartão Azul em 17 set e 17 out. Não reconhece? Conteste no banco. Netflix.com subiu para R$ 44,90.",
+        url: "/faturas",
+        tag: "subscription",
+      },
+    ]);
+  });
+});
+
 describe("the evening hour", () => {
   it("is 21:00 until the owner picks another, and only one Ajustes offers", async () => {
     const d = db();
@@ -173,6 +218,20 @@ describe("GET /api/reminders", () => {
       eveningHour: 22,
       notices,
     });
+  });
+
+  it("leaves the week to Mia on a Sunday she summed it up", () => {
+    const data = {
+      projection: { today: "2026-11-15", todayLogged: true, upcoming: [], insights: [] },
+      sheet: { id: "s", tabs: {} },
+      week: { from: "2026-11-08", to: "2026-11-14", total: 812_40, previous: null },
+      habit: { lastWeek: 5 },
+    } as unknown as ProjectionResponse;
+    const mia = { id: "mia:2026-11-15", ...alert, tag: "mia" as const };
+    expect(remindersView(data, { eveningHour: 22, notices: [] }).morning?.title).toBe(
+      "Semana passada: R$ 812,40 em cartões e Pix",
+    );
+    expect(remindersView(data, { eveningHour: 22, notices: [mia] }).morning).toBeNull();
   });
 });
 

@@ -4,6 +4,7 @@ import {
   cardsBillSpend,
   cents,
   localDate,
+  subscriptionNews,
   subscriptions,
 } from "../src/index.ts";
 
@@ -128,6 +129,81 @@ describe("subscriptions", () => {
       [],
     );
     expect(r.items).toEqual([]);
+  });
+});
+
+describe("subscriptionNews", () => {
+  it("says a new subscription on its second charge, while it is news", () => {
+    const lines = [
+      line("2026-09-17", "SUA ACADEMIA", 159_90),
+      line("2026-10-17", "SUA ACADEMIA", 159_90),
+      // Running for months: not news.
+      line("2026-07-06", "EBN*SPOTIFY", 23_90),
+      line("2026-08-06", "EBN*SPOTIFY", 23_90),
+      line("2026-09-06", "EBN*SPOTIFY", 23_90),
+      line("2026-10-06", "EBN*SPOTIFY", 23_90),
+    ];
+    expect(subscriptionNews(lines, today, [])).toEqual([
+      {
+        kind: "nova",
+        key: "nova|suaacademia|15990|cartao azul",
+        description: "SUA ACADEMIA",
+        card: "Cartão Azul",
+        amount: 159_90,
+        before: null,
+        since: "2026-09-17",
+        date: "2026-10-17",
+      },
+    ]);
+    // A week on, it is old news.
+    expect(subscriptionNews(lines, localDate("2026-10-25"), [])).toEqual([]);
+  });
+
+  it("says a subscription went up when the next charge comes higher", () => {
+    const r = subscriptionNews(
+      [
+        line("2026-07-15", "NETFLIX.COM", 39_90),
+        line("2026-08-15", "NETFLIX.COM", 39_90),
+        line("2026-09-15", "NETFLIX.COM", 39_90),
+        line("2026-10-15", "NETFLIX.COM", 44_90),
+        // Down is not news, nor another card's plan of the same store.
+        line("2026-08-10", "YOUTUBEPREMIUM", 26_90),
+        line("2026-09-10", "YOUTUBEPREMIUM", 26_90),
+        line("2026-10-10", "YOUTUBEPREMIUM", 20_90),
+        line("2026-08-12", "TOTALPASS", 99_90, { card: "Cartão Verde" }),
+        line("2026-09-12", "TOTALPASS", 99_90, { card: "Cartão Verde" }),
+        line("2026-10-12", "TOTALPASS", 99_90, { card: "Cartão Verde" }),
+        line("2026-10-14", "TOTALPASS", 139_90),
+      ],
+      today,
+      [],
+    );
+    expect(r).toEqual([
+      {
+        kind: "subiu",
+        key: "subiu|netflixcom|4490|cartao azul",
+        description: "NETFLIX.COM",
+        card: "Cartão Azul",
+        amount: 44_90,
+        before: 39_90,
+        since: "2026-07-15",
+        date: "2026-10-15",
+      },
+    ]);
+  });
+
+  it("leaves out someone else's cards, one-off purchases and a higher bill a month apart by chance", () => {
+    const r = subscriptionNews(
+      [
+        line("2026-09-17", "NOVA ACADEMIA", 120_00, { card: "Cartão da Ana" }),
+        line("2026-10-17", "NOVA ACADEMIA", 120_00, { card: "Cartão da Ana" }),
+        line("2026-09-15", "OUTBACK", 135_34),
+        line("2026-10-15", "OUTBACK", 196_00),
+      ],
+      today,
+      ["Cartão da Ana"],
+    );
+    expect(r).toEqual([]);
   });
 });
 

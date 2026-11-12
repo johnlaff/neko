@@ -311,6 +311,29 @@ export const nekoServer = (load: () => Promise<McpData>, propose?: Propose): Mcp
   );
 
   server.registerTool(
+    "semana",
+    {
+      title: "Semana passada",
+      description:
+        "A última semana inteira, de domingo a sábado: o que cartões e Pix levaram, como o banco mostra e sem as compras de outras pessoas, a semana anterior para comparar e quantos dias foram lançados na planilha.",
+      inputSchema: z.object({}),
+      annotations: READ_ONLY,
+    },
+    async () => {
+      const { week, habit } = (await data()).data;
+      if (!week) return refuse("O banco não cobre a semana passada inteira.");
+      return answer({
+        de: week.from,
+        ate: week.to,
+        cartoes_e_pix: reais(week.total),
+        semana_anterior: week.previous === null ? null : reais(week.previous),
+        diferenca: week.previous === null ? null : reais(week.total - week.previous),
+        dias_lancados: habit?.lastWeek ?? null,
+      });
+    },
+  );
+
+  server.registerTool(
     "resumo_meses",
     {
       title: "Resumo de vários meses",

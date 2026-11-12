@@ -1,7 +1,7 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
 import { Fragment, type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { Mia2Grafico, Mia2Line, Mia2Numero, Mia2Valor } from "../shared/types.ts";
+import type { Mia2Grafico, Mia2Line, Mia2Numero, Mia2Rotina, Mia2Valor } from "../shared/types.ts";
 import { ApiError, api } from "./api.ts";
 import { BrandMark } from "./BrandMark.tsx";
 import { HIDDEN_MONEY, money, monthName, shortDate } from "./format.ts";
@@ -39,9 +39,15 @@ const same = (q: string) => q.toLowerCase().replace(/[\s?!.]+$/, "");
 const notAsked = (asked: readonly string[]) => (q: string) =>
   !asked.some((a) => same(a) === same(q));
 
-const mia2Next = (asked: readonly string[], topic: MiaTopic) =>
-  mia2Starters(topic)
-    .concat(Object.values(MIA2_TOPICS).flat())
+/** After her routine, what one asks next about that week or that month. */
+const ROUTINE_NEXT: Record<Mia2Rotina["tipo"], readonly string[]> = {
+  semana: ["Quanto vem nas próximas faturas?", "Este mês está melhor que o anterior?"],
+  mes: ["Como guardo mais este mês?", "Quais foram as maiores saídas do mês passado?"],
+};
+
+const mia2Next = (asked: readonly string[], topic: MiaTopic, rotina?: Mia2Rotina["tipo"]) =>
+  (rotina ? ROUTINE_NEXT[rotina] : [])
+    .concat(mia2Starters(topic), Object.values(MIA2_TOPICS).flat())
     .filter((q, i, all) => all.indexOf(q) === i)
     .filter(notAsked(asked))
     .slice(0, 2);
@@ -59,7 +65,10 @@ type Part =
 
 interface Turn {
   readonly n: number;
+  /** The owner's question, or the name of her routine. */
   readonly pergunta: string;
+  /** Hers, by herself (Sunday's week, the month closed): her routine's name stands for a question. */
+  readonly rotina?: Mia2Rotina["tipo"] | undefined;
   readonly parts: readonly Part[];
   /**
    * How it ended, when it did not simply end: stopped, conversation too long, she could not finish
@@ -228,10 +237,51 @@ const restart = () => {
   setChat({ ...EMPTY, limited: chat.limited, cleared: chat.turns.length > 0 ? chat : null });
 };
 
-/** Brings back the conversation "Nova conversa" cleared. */
+/**
+ * Brings back the conversation "Nova conversa" or her routine cleared. A swap: the one on screen
+ * goes to Desfazer in its turn, so a routine undone is not lost (it was already marked seen).
+ */
 const undoRestart = () => {
-  if (chat.cleared && !chat.pending) setChat({ ...chat.cleared, cleared: null });
+  if (!chat.cleared || chat.pending) return;
+  setChat({ ...chat.cleared, cleared: chat.turns.length > 0 ? { ...chat, cleared: null } : null });
 };
+const ROUTINE_SEEN = "neko.mia2.rotina";
+const routineSeen = (id: string) => {
+  try {
+    return localStorage.getItem(ROUTINE_SEEN) === id;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Her routine, the first time her screen opens after it came: it becomes the conversation (one
+ * that was open goes to Desfazer, as with "Nova conversa") and the next question goes on in it.
+ */
+const takeRoutine = (r: Mia2Rotina) => {
+  if (chat.pending || routineSeen(r.id)) return;
+  try {
+    localStorage.setItem(ROUTINE_SEEN, r.id);
+  } catch {
+    // Without storage it shows again next time, which is harmless.
+  }
+  const parts = r.partes.map(
+    (p): Part =>
+      p.t === "mensagem"
+        ? { k: "texto", id: p.id, texto: p.texto, valores: p.valores }
+        : p.t === "grafico"
+          ? { k: "grafico", id: p.id, grafico: p.grafico }
+          : { k: "numeros", id: p.id, numeros: p.numeros },
+  );
+  setChat({
+    ...EMPTY,
+    limited: chat.limited,
+    sessao: r.sessao,
+    turns: [{ n: 0, pergunta: r.titulo, rotina: r.tipo, parts, end: null }],
+    cleared: chat.turns.length > 0 ? chat : null,
+  });
+};
+
 /** How long Desfazer stays after "Nova conversa", as after a launch. */
 const UNDO_MS = 10_000;
 
@@ -722,6 +772,15 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const [here] = useState(() => new Set<number>());
   if (pending) here.add(pending.n);
   const [still] = useState(lessMotion);
+  const routine = useQuery({
+    queryKey: ["mia2-rotina"],
+    queryFn: api.mia2Rotina,
+    staleTime: 60_000,
+    enabled: status.data?.versao === 2,
+  });
+  useEffect(() => {
+    if (routine.data?.rotina) takeRoutine(routine.data.rotina);
+  }, [routine.data]);
   useMoving();
   const showing = moving.size > 0;
   useKeyboardResizes();
@@ -764,7 +823,8 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
       return;
     }
     if (!last.current) return;
-    if (here !== document.body && here !== input.current && !body.current?.contains(here)) return;
+    const ours = here === document.body || here === input.current || here === title.current;
+    if (!ours && !body.current?.contains(here)) return;
     last.current.focus({ preventScroll: true });
   }, [finished]);
   // Desfazer after "Nova conversa" stays a few seconds, as after a launch.
@@ -806,7 +866,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const next =
     turns.length === 0 || typed.trim() || pending || showing || resting || full
       ? []
-      : mia2Next(asked, topic);
+      : mia2Next(asked, topic, turns[0]?.rotina);
 
   return (
     <>
@@ -843,9 +903,15 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
             A Mia descansa até {shortDate(s.pausadaAte)}. Os números seguem nas telas.
           </p>
         )}
-        {cleared && turns.length === 0 && (
+        {cleared && (
           <div className="toast inline" role="status">
-            <span>Conversa apagada</span>
+            <span>
+              {turns.length === 0
+                ? "Conversa apagada"
+                : cleared.turns[0]?.rotina
+                  ? "Resumo da Mia fechado"
+                  : "Conversa anterior apagada"}
+            </span>
             <button type="button" className="ghost small" onClick={undo}>
               Desfazer
             </button>
@@ -885,7 +951,11 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                   tabIndex={newest ? -1 : undefined}
                   className={here.has(t.n) ? "fresh" : undefined}
                 >
-                  <p className="mia-q">{t.pergunta}</p>
+                  {t.rotina ? (
+                    <p className="mia-routine">{t.pergunta}</p>
+                  ) : (
+                    <p className="mia-q">{t.pergunta}</p>
+                  )}
                   <Answer t={t} working={working} hidden={hidden} paced={here.has(t.n) && !still} />
                   {working && (
                     <div className="mia-wait">
@@ -1014,9 +1084,10 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               }}
               onKeyDown={(e) => {
                 // ↑ in an empty field brings back the last question, to change and send again.
-                if (e.key === "ArrowUp" && !typed && !pending && turns.length > 0) {
+                const lastAsked = turns.at(-1);
+                if (e.key === "ArrowUp" && !typed && !pending && lastAsked && !lastAsked.rotina) {
                   e.preventDefault();
-                  return setTyped(turns.at(-1)?.pergunta ?? "");
+                  return setTyped(lastAsked.pergunta);
                 }
                 if (e.key !== "Escape") return;
                 e.preventDefault();

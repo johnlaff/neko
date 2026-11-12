@@ -293,6 +293,7 @@ const STATUS: Record<string, string> = {
   dias_do_mes: "Lendo os dias do mês…",
   faturas: "Lendo as faturas…",
   reserva: "Lendo a reserva…",
+  semana: "Lendo a semana…",
   simular: "Simulando…",
   para_lancar: "Lendo o Para lançar…",
   propor_lancamento: "Deixando em Para lançar…",

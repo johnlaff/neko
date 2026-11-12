@@ -52,10 +52,12 @@ import {
 } from "./mia.ts";
 import {
   checkCeiling,
+  checkSubscriptions,
   clearNotices,
   EVENING_HOURS,
   eveningJob,
   loadEveningHour,
+  miaSaid,
   pruneNotices,
   raiseNotice,
   recentNotices,
@@ -595,6 +597,42 @@ app.post("/mia2", async (c) => {
   });
 });
 
+/** Her latest routine while it is news (routines.ts): the app shows each once, then it is a chat. */
+app.get("/mia2/rotina", async (c) => {
+  if (!mia2On(c.env)) return c.json({ rotina: null });
+  const { loadRoutine } = await import("./routines.ts");
+  return c.json({ rotina: await loadRoutine(c.env.DB, todayIn(new Date())) });
+});
+
+/**
+ * Sunday's week and the 1st's month, by Mia herself (routines.ts), once the banks are fresh: her
+ * answer waits on the Mia screen and the phone is told. Any other day, and past the month's cap,
+ * nothing happens.
+ */
+const miaRoutine = async (env: Env) => {
+  const { ANTHROPIC_API_KEY: key, MIA_MCP_TOKEN: token, SITE_URL: site } = env;
+  const today = todayIn(new Date());
+  if (!key || !token || !site) return;
+  const routines = await import("./routines.ts");
+  if (!routines.routineFor(today)) return;
+  const spent = await spentThisMonth(env.DB, today);
+  if (spent >= CAP_MICRO_USD) return;
+  const [{ default: Anthropic }, { ensureSetup }] = await Promise.all([
+    import("@anthropic-ai/sdk"),
+    import("./mia2.ts"),
+  ]);
+  const client = new Anthropic({ apiKey: key });
+  await routines.runRoutine({
+    client,
+    db: env.DB,
+    today,
+    now: () => new Date(),
+    spentMicroUsd: spent,
+    setup: await ensureSetup(client, env.DB, site, token),
+    notify: (r) => raiseNotice(env, "mia", today, routines.routineReminder(r)),
+  });
+};
+
 /** Stop: her turn is interrupted; the open answer ends on its own and keeps what she said. */
 app.post("/mia2/parar", async (c) => {
   const { ANTHROPIC_API_KEY: key } = c.env;
@@ -871,7 +909,7 @@ app.delete("/push/subscription", async (c) => {
 
 /** Crons run in UTC; São Paulo is UTC−3 all year. */
 const MORNING = "0 11 * * *"; // 08:00
-const BANKS = "0 9 * * *"; // 06:00, before the morning message
+const BANKS = "0 9 * * *"; // 06:00, before the morning message; then Mia's routine (routines.ts)
 // The evening message comes at the owner's hour (19:00 to 23:00, Ajustes), with the banks read half
 // an hour before: each run checks the hour and does its part, or nothing.
 const EVENING_BANKS = "30 21-23,0-1 * * *"; // 18:30 to 22:30
@@ -914,8 +952,18 @@ export default Sentry.withSentry(sentry, {
    */
   async scheduled(event, env, ctx) {
     if (event.cron === BANKS) {
-      // Fresh banks for the morning, and a safety net for webhooks Pluggy gave up on.
-      ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error)));
+      // Fresh banks for the morning, and a safety net for webhooks Pluggy gave up on. Then a
+      // subscription out of its pattern is said, and, on Sunday and on the 1st, Mia's routine
+      // reads them.
+      const report = (error: unknown) => Sentry.captureException(error);
+      ctx.waitUntil(
+        bankSync(env)
+          .catch(report)
+          .then(async () => checkSubscriptions(env, await getProjection(env, todayIn(new Date()))))
+          .catch(report)
+          .then(() => miaRoutine(env))
+          .catch(report),
+      );
       return;
     }
     if (event.cron === EVENING_BANKS || event.cron === EVENING) {
@@ -947,7 +995,8 @@ export default Sentry.withSentry(sentry, {
       await clearNotices(env.DB, "planilha");
       if (event.cron === MORNING) {
         await backfillEdits(env).catch((error) => console.error("revision backfill failed", error));
-        const morning = morningMessage(data);
+        const weekSaid = miaSaid(await recentNotices(env.DB), data.projection.today);
+        const morning = morningMessage(data, { weekSaid });
         if (morning) await sendReminder(env, morning);
       } else {
         const evening = eveningMessage(data);

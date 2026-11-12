@@ -280,6 +280,9 @@ class Api(
         awaitClose { call.cancel() }
     }
 
+    /** Her latest routine (Sunday's week, the month closed), while it is news. */
+    suspend fun mia2Rotina(): Mia2Rotina? = json.decodeFromString<Mia2RotinaView>(call("/mia2/rotina")).rotina
+
     /** Stop: her turn is interrupted where it is; what she wrote stays. */
     suspend fun stopMia2(sessao: String) {
         call("/mia2/parar", buildJsonObject { put("sessao", sessao) }.asBody())

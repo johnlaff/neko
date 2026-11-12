@@ -431,6 +431,24 @@ data class Mia2Line(
     val motivo: String? = null,
 )
 
+/**
+ * What she left by herself (the site's Mia2Rotina): Sunday's week or the month just closed, the
+ * start of a conversation the owner can go on with. `partes` are her answer's lines, as streamed.
+ */
+@Serializable
+data class Mia2Rotina(
+    val id: String,
+    val tipo: String,
+    val titulo: String,
+    val dia: String,
+    val sessao: String,
+    val partes: List<Mia2Line>,
+)
+
+/** GET /api/mia2/rotina: her latest routine while it is news. */
+@Serializable
+data class Mia2RotinaView(val rotina: Mia2Rotina? = null)
+
 /** A question to Mia 2, in the conversation she opened (`sessao`) or in a new one. */
 @Serializable
 data class Mia2Ask(val pergunta: String, val sessao: String? = null)

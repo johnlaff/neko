@@ -3,7 +3,7 @@ import { join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import { localDate } from "@neko/engine";
 import { describe, expect, it } from "vitest";
-import type { Mia2Line } from "../src/shared/types.ts";
+import type { Mia2Line, Mia2Rotina } from "../src/shared/types.ts";
 import type { Env } from "../src/worker/env.ts";
 import worker from "../src/worker/index.ts";
 import { spentThisMonth } from "../src/worker/mia.ts";
@@ -17,6 +17,15 @@ import {
   SESSION_CAP_CENTS,
   stopTurn,
 } from "../src/worker/mia2.ts";
+import { raiseNotice, recentNotices } from "../src/worker/notices.ts";
+import {
+  loadRoutine,
+  ROUTINE_PROMPT,
+  routineFor,
+  routineReminder,
+  routineTitle,
+  runRoutine,
+} from "../src/worker/routines.ts";
 import { sqliteD1 } from "./d1.ts";
 
 const SITE = "https://neko.test";
@@ -494,6 +503,159 @@ describe("mia2 turn", () => {
     expect(await stopTurn(api.client, d1, "sesn_someoneelse")).toBe(false);
     expect(await stopTurn(api.client, d1, "sesn_0000000001")).toBe(true);
     expect(api.posted("/events").at(-1)?.body).toEqual({ events: [{ type: "user.interrupt" }] });
+  });
+});
+
+describe("mia2 routines", () => {
+  it("come on Sunday and on the 1st, the 1st winning when it is a Sunday", () => {
+    expect(routineFor(localDate("2026-11-15"))).toBe("semana");
+    expect(routineFor(localDate("2026-12-01"))).toBe("mes");
+    expect(routineFor(localDate("2027-08-01"))).toBe("mes");
+    expect(routineFor(localDate("2026-11-12"))).toBeNull();
+  });
+
+  it("ask her with no digits, which the check would take as the owner's numbers", () => {
+    for (const prompt of Object.values(ROUTINE_PROMPT)) expect(prompt).not.toMatch(/\d/);
+  });
+
+  const SUNDAY = localDate("2026-11-15");
+  const routine = async (api: ReturnType<typeof fakeApi>, today = SUNDAY) => {
+    const db = sqliteD1();
+    const d1 = db as unknown as D1Database;
+    const told: Mia2Rotina[] = [];
+    const r = await runRoutine({
+      client: api.client,
+      db: d1,
+      today,
+      now: () => new Date(`${today}T09:05:00Z`),
+      spentMicroUsd: 0,
+      setup: SETUP,
+      notify: async (x) => {
+        told.push(x);
+      },
+    });
+    return { r, told, d1 };
+  };
+
+  it("keep Sunday's answer for the Mia screen and tell the phone once", async () => {
+    const api = fakeApi({
+      streams: [
+        [
+          toolUse("u1", "semana", {}),
+          toolResult("u1", { cartoes_e_pix: 812.4, semana_anterior: 1020 }),
+          toolUse("u2", "hoje", {}),
+          toolResult("u2", { teto_do_mes: { ainda_cabem: 1460.1 } }),
+          message("m1", "A semana levou **R$ 812,40** em cartões e Pix, menos que a anterior."),
+          {
+            type: "agent.custom_tool_use",
+            id: "n1",
+            name: NUMBERS_TOOL,
+            input: {
+              itens: [
+                { rotulo: "Na semana", valor: 812.4 },
+                { rotulo: "Cabe no teto", valor: 1460.1 },
+              ],
+            },
+          },
+          idle("requires_action"),
+          idle("end_turn"),
+        ],
+      ],
+    });
+    const { r, told, d1 } = await routine(api);
+    const sent = api.posted("/events")[0]?.body as { events: { content: { text: string }[] }[] };
+    expect(sent.events[0]?.content[0]?.text).toBe(ROUTINE_PROMPT.semana);
+    expect(r).toMatchObject({
+      id: "semana:2026-11-15",
+      tipo: "semana",
+      titulo: "Semana de 8 a 14 nov",
+      dia: "2026-11-15",
+      sessao: "sesn_0000000001",
+    });
+    expect(r?.partes.map((p) => p.t)).toEqual(["mensagem", "numeros"]);
+    expect(told).toEqual([r]);
+    // GET /api/mia2/rotina, as the Android app reads it (Mia2ChatTest).
+    const view = `${JSON.stringify({ rotina: r }, null, 2)}\n`;
+    const path = join(import.meta.dirname, "../../android/app/src/test/resources/mia2-rotina.json");
+    if (process.env.UPDATE_CONTRACT) writeFileSync(path, view);
+    expect(readFileSync(path, "utf8")).toBe(view);
+    expect(await loadRoutine(d1, localDate("2026-11-21"))).toEqual(r);
+    // A week on, it is old news.
+    expect(await loadRoutine(d1, localDate("2026-11-22"))).toBeNull();
+  });
+
+  it("keep only the answer she redid, and nothing when she could not finish", async () => {
+    const redo = fakeApi({
+      streams: [
+        [
+          toolUse("u1", "semana", {}),
+          toolResult("u1", { cartoes_e_pix: 812.4 }),
+          message("m1", "A semana levou **R$ 9.999**."),
+          idle("end_turn"),
+          message("m2", "A semana levou **R$ 812,40**."),
+          idle("end_turn"),
+        ],
+      ],
+    });
+    const { r } = await routine(redo);
+    expect(r?.partes).toEqual([
+      {
+        t: "mensagem",
+        id: "m2",
+        texto: "A semana levou **R$ 812,40**.",
+        valores: { "R$ 812,40": { conferido: true, tela: "hoje" } },
+      },
+    ]);
+
+    const broken = fakeApi({
+      streams: [[message("m1", "A semana"), { type: "session.status_terminated", id: "t" }]],
+    });
+    const failed = await routine(broken);
+    expect(failed.r).toBeNull();
+    expect(failed.told).toEqual([]);
+    expect(await loadRoutine(failed.d1, SUNDAY)).toBeNull();
+  });
+
+  it("name the week by its days, and the month closed", () => {
+    expect(routineTitle("semana", localDate("2026-11-15"))).toBe("Semana de 8 a 14 nov");
+    expect(routineTitle("semana", localDate("2026-12-06"))).toBe("Semana de 29 nov a 5 dez");
+    expect(routineTitle("mes", localDate("2027-01-01"))).toBe("Fechamento de dezembro");
+  });
+
+  it("do nothing on other days", async () => {
+    const api = fakeApi();
+    const { r } = await routine(api, localDate("2026-11-12"));
+    expect(r).toBeNull();
+    expect(api.sent).toEqual([]);
+  });
+
+  it("tell the phone with her first sentence, plain, opening the Mia screen", async () => {
+    const r: Mia2Rotina = {
+      id: "mes:2026-12-01",
+      tipo: "mes",
+      titulo: "Fechamento de novembro",
+      dia: "2026-12-01",
+      sessao: "sesn_0000000001",
+      partes: [
+        {
+          t: "mensagem",
+          id: "m1",
+          texto: "Novembro fechou com **R$ 640** guardados, 9% das entradas.\n- Diário de R$ 92",
+          valores: {},
+        },
+      ],
+    };
+    const reminder = routineReminder(r);
+    expect(reminder).toEqual({
+      title: "A Mia fechou novembro",
+      body: "Novembro fechou com R$ 640 guardados, 9% das entradas.",
+      url: "/mia",
+      tag: "mia",
+    });
+    const d1 = sqliteD1() as unknown as D1Database;
+    const now = new Date("2026-12-01T09:06:00Z");
+    await raiseNotice({ DB: d1 } as unknown as Env, "mia", localDate("2026-12-01"), reminder, now);
+    expect(await recentNotices(d1, now)).toEqual([{ id: "mia:2026-12-01", ...reminder }]);
   });
 });
 

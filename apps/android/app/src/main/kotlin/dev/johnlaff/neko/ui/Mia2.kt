@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -95,6 +96,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import androidx.core.content.edit
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.ApiException
@@ -102,6 +104,7 @@ import dev.johnlaff.neko.data.Mia2Ask
 import dev.johnlaff.neko.data.Mia2Grafico
 import dev.johnlaff.neko.data.Mia2Line
 import dev.johnlaff.neko.data.Mia2Numero
+import dev.johnlaff.neko.data.Mia2Rotina
 import dev.johnlaff.neko.data.Mia2Valor
 import dev.johnlaff.neko.data.MiaStatus
 import dev.johnlaff.neko.ui.Format.shortDate
@@ -130,9 +133,16 @@ private fun same(q: String) = q.lowercase().replace(Regex("""[\s?!.]+$"""), "")
 
 fun mia2NotAsked(asked: List<String>): (String) -> Boolean = { q -> asked.none { same(it) == same(q) } }
 
-/** After an answer, two questions not asked yet. */
-fun mia2Next(asked: List<String>, topic: String = "hoje"): List<String> =
-    (mia2Starters(topic) + MIA2_TOPICS.values.flatten()).distinct().filter(mia2NotAsked(asked)).take(2)
+/** After her routine, what one asks next about that week or that month (the site's ROUTINE_NEXT). */
+private val ROUTINE_NEXT = mapOf(
+    "semana" to listOf("Quanto vem nas próximas faturas?", "Este mês está melhor que o anterior?"),
+    "mes" to listOf("Como guardo mais este mês?", "Quais foram as maiores saídas do mês passado?"),
+)
+
+/** After an answer, two questions not asked yet; after her routine, about its week or month first. */
+fun mia2Next(asked: List<String>, topic: String = "hoje", rotina: String? = null): List<String> =
+    (ROUTINE_NEXT[rotina].orEmpty() + mia2Starters(topic) + MIA2_TOPICS.values.flatten())
+        .distinct().filter(mia2NotAsked(asked)).take(2)
 
 /** A piece of her answer: text (values checked once it is whole), a chart or a board of numbers. */
 sealed interface Mia2Part {
@@ -147,13 +157,43 @@ data class Mia2Desenho(override val id: String, val grafico: Mia2Grafico) : Mia2
 /** Her board: two to four numbers side by side, every one checked by the Worker. */
 data class Mia2Numeros(override val id: String, val numeros: List<Mia2Numero>) : Mia2Part
 
-/** One question and her answer; `end` says how it ended when it did not simply end ("parou", "cheia", "falhou"). */
-data class Mia2Turno(val n: Int, val pergunta: String, val parts: List<Mia2Part> = emptyList(), val end: String? = null)
+/**
+ * One question and her answer; `end` says how it ended when it did not simply end ("parou", "cheia",
+ * "falhou"). A routine of hers has its name for a question and its kind in `rotina`.
+ */
+data class Mia2Turno(
+    val n: Int,
+    val pergunta: String,
+    val parts: List<Mia2Part> = emptyList(),
+    val end: String? = null,
+    val rotina: String? = null,
+)
 
-/** The Worker's two calls for her: the answer as it streams, and Stop. */
+/** The Worker's calls for her: the answer as it streams, Stop, and the routine she left by herself. */
 interface Mia2Talk {
     fun ask(ask: Mia2Ask): Flow<Mia2Line>
     suspend fun stop(sessao: String)
+    /** Her latest routine not shown yet, or null. */
+    suspend fun routine(): Mia2Rotina? = null
+    /** It was shown: it never takes the screen again. */
+    fun routineShown(id: String) {}
+}
+
+/** Which routine of hers took her screen last, so each does it once. */
+interface RoutineSeen {
+    var last: String?
+
+    class InMemory : RoutineSeen {
+        override var last: String? = null
+    }
+
+    /** In the app's preferences: one shown stays shown after the app is closed. */
+    class Stored(context: Context) : RoutineSeen {
+        private val prefs = context.getSharedPreferences("mia2", Context.MODE_PRIVATE)
+        override var last: String?
+            get() = prefs.getString("rotina", null)
+            set(value) = prefs.edit { putString("rotina", value) }
+    }
 }
 
 /**
@@ -296,13 +336,37 @@ class Mia2Chat {
         sessao = null
     }
 
-    /** Brings back the conversation "Nova conversa" cleared. */
+    /**
+     * Her routine becomes the conversation (one that was open goes to Desfazer, as with "Nova
+     * conversa"), and the next question goes on in it. Not while she answers.
+     */
+    fun takeRoutine(r: Mia2Rotina): Boolean {
+        if (pending != null) return false
+        val parts = r.partes.mapNotNull { p ->
+            when (p.t) {
+                "mensagem" -> Mia2Texto(p.id.orEmpty(), p.texto.orEmpty(), p.valores.orEmpty())
+                "grafico" -> p.grafico?.let { Mia2Desenho(p.id.orEmpty(), it) }
+                "numeros" -> p.numeros?.let { Mia2Numeros(p.id.orEmpty(), it) }
+                else -> null
+            }
+        }
+        cleared = if (turns.isEmpty()) null else sessao to turns
+        seen.clear()
+        sessao = r.sessao
+        turns = listOf(Mia2Turno(0, r.titulo, parts, rotina = r.tipo))
+        return true
+    }
+
+    /**
+     * Brings back the conversation "Nova conversa" or her routine cleared. A swap: the one on
+     * screen goes to Desfazer in its turn, so a routine undone is not lost (it was already seen).
+     */
     fun undoClear() {
         val (s, t) = cleared ?: return
         if (pending != null) return
+        cleared = if (turns.isEmpty()) null else sessao to turns
         sessao = s
         turns = t
-        cleared = null
     }
 }
 
@@ -457,6 +521,11 @@ fun Mia2Screen(
     val send = { q: String ->
         if (q.isNotBlank() && chat.pending == null) chat.ask(q.trim(), scope, talk)
     }
+    // Her routine, the first time her screen opens after it came.
+    LaunchedEffect(Unit) {
+        val r = runCatching { talk.routine() }.getOrNull() ?: return@LaunchedEffect
+        if (chat.takeRoutine(r)) talk.routineShown(r.id)
+    }
     // A question just sent shows at the top; the answer then grows under it, never scrolled away.
     LaunchedEffect(chat.pending) {
         val n = chat.pending ?: return@LaunchedEffect
@@ -485,7 +554,7 @@ fun Mia2Screen(
     val full = turns.lastOrNull()?.end == "cheia"
     val doing = chat.status ?: if (chat.pending?.let { n -> turns.firstOrNull { it.n == n }?.parts?.isEmpty() } == true) miaWaiting(seconds) else null
     val asked = turns.map { it.pergunta }
-    val next = if (turns.isEmpty() || resting || full || chat.typed.isNotBlank() || chat.pending != null || moving.isNotEmpty()) emptyList() else mia2Next(asked, topic)
+    val next = if (turns.isEmpty() || resting || full || chat.typed.isNotBlank() || chat.pending != null || moving.isNotEmpty()) emptyList() else mia2Next(asked, topic, turns.firstOrNull()?.rotina)
 
     Column(
         Modifier.fillMaxSize().background(l.bg).safeDrawingPadding().semantics { paneTitle = "Mia" },
@@ -525,7 +594,7 @@ fun Mia2Screen(
                     Text("A Mia descansa até ${shortDate(paused)}. Os números seguem nas telas.", color = l.muted)
                 }
                 val cleared = chat.cleared
-                if (cleared != null && turns.isEmpty()) item(key = "cleared") {
+                if (cleared != null) item(key = "cleared") {
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -534,7 +603,16 @@ fun Mia2Screen(
                             .semantics { liveRegion = LiveRegionMode.Polite },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Conversa apagada", Modifier.weight(1f), color = l.bg, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            when {
+                                turns.isEmpty() -> "Conversa apagada"
+                                cleared.second.firstOrNull()?.rotina != null -> "Resumo da Mia fechado"
+                                else -> "Conversa anterior apagada"
+                            },
+                            Modifier.weight(1f),
+                            color = l.bg,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                         TextAction("Desfazer", { chat.undoClear() }, l.bg)
                     }
                 }
@@ -682,7 +760,13 @@ private fun Mia2TurnItem(
     val at = t.parts.indexOfFirst { "${t.n}:${it.id}" in moving }
     val parts = if (at < 0) t.parts else t.parts.take(at + 1)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
+        // Her routine stands where a question would: its name (which week, which month), on her
+        // side, not a bubble.
+        if (t.rotina != null) Text(
+            t.pergunta,
+            color = l.muted,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+        ) else Text(
             t.pergunta,
             color = l.text,
             style = MaterialTheme.typography.bodyMedium,
