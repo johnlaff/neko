@@ -132,12 +132,19 @@ class Mia2ChatTest {
         assertNull(chat.cleared)
     }
 
-    @Test fun theMonthsCapTakesTheQuestionAway() = runBlocking {
+    @Test fun theMonthsCapKeepsTheQuestionForWhenSheIsBack() = runBlocking {
         val chat = Mia2Chat()
         chat.ask("Oi", this, Talk { listOf(Mia2Line("erro", motivo = "limite_mes")).asFlow() })
         coroutineContext.job.children.forEach { it.join() }
         assertTrue(chat.limited)
-        assertTrue(chat.turns.isEmpty())
+        assertEquals("descansa", chat.turns.single().end)
+    }
+
+    @Test fun aDroppedConnectionIsNotHerFailure() = runBlocking {
+        val chat = Mia2Chat()
+        chat.ask("Oi", this, Talk { flow { emit(Mia2Line("parcial", id = "m1", texto = "Ou")); throw java.io.IOException("reset") } })
+        coroutineContext.job.children.forEach { it.join() }
+        assertEquals("rede", chat.turns.single().end)
     }
 
     @Test fun aRedoStartsTheAnswerOver() {

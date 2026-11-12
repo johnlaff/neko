@@ -188,9 +188,9 @@ class Mia2Chat {
                     patch(n) { it.copy(end = "cheia") }
                     return true
                 }
-                // The month's cap: she rests, and the question goes with the answer she could not give.
+                // The month's cap: she rests until next month.
                 if (l.motivo == "limite_mes") limited = true
-                throw IOException(l.motivo ?: "falha")
+                throw Mia2Failed(l.motivo ?: "falha")
             }
         }
         return false
@@ -214,12 +214,13 @@ class Mia2Chat {
                 throw c
             } catch (e: Throwable) {
                 if (limited || (e is ApiException && e.status == 429)) {
-                    // The month's cap: she rests, and the question goes with the answer she could not give.
+                    // The month's cap: she rests, and the question stays to be asked when she is back.
                     limited = true
-                    turns = turns.filterNot { it.n == n }
+                    patch(n) { it.copy(parts = emptyList(), end = "descansa") }
                 } else {
-                    // The question stays where it was asked, with "Tentar de novo" under it; a half answer goes.
-                    patch(n) { it.copy(parts = emptyList(), end = "falhou") }
+                    // The question stays where it was asked, with "Tentar de novo" under it; a half answer
+                    // goes. She said she could not finish (falhou), or the connection dropped (rede).
+                    patch(n) { it.copy(parts = emptyList(), end = if (e is Mia2Failed) "falhou" else "rede") }
                 }
             } finally {
                 if (pending == n) {
@@ -251,7 +252,7 @@ class Mia2Chat {
     /** Asks again, in its place, a question that got no answer or whose answer was stopped. */
     fun retry(scope: CoroutineScope, talk: Mia2Talk) {
         val t = turns.lastOrNull() ?: return
-        if ((t.end != "falhou" && t.end != "parou") || pending != null) return
+        if (t.end !in setOf("falhou", "rede", "parou") || pending != null) return
         turns = turns.dropLast(1)
         ask(t.pergunta, scope, talk)
     }
@@ -272,6 +273,9 @@ class Mia2Chat {
         cleared = null
     }
 }
+
+/** Her own word that she could not finish an answer: the connection itself was fine. */
+class Mia2Failed(motivo: String) : IOException(motivo)
 
 /** A block of her text: a paragraph of lines, or a list. */
 data class Mia2Block(val list: Boolean, val lines: List<String>)
@@ -454,7 +458,7 @@ fun Mia2Screen(
                     Column(Modifier.padding(top = 56.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(miaTitle(topic), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
                         Text(
-                            "Ela lê o Neko, faz as contas e mostra gráficos. Não muda a planilha.",
+                            "Ela lê o Neko, faz as contas e mostra gráficos. Não muda a planilha. Valores sublinhados levam à tela de onde vieram.",
                             color = l.muted,
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
@@ -482,7 +486,7 @@ fun Mia2Screen(
                         )
                     }
                 }
-                if (chat.limited) item(key = "limited") {
+                if (chat.limited && turns.lastOrNull()?.end != "descansa") item(key = "limited") {
                     Text(
                         "A Mia descansa até o mês que vem. Os números seguem nas telas.",
                         color = l.muted,
@@ -619,10 +623,18 @@ private fun Mia2TurnItem(
             Note(if (mia2StoppedValues(t)) "Você parou esta resposta. Os valores não foram conferidos." else "Você parou esta resposta.")
             onRetry?.let { TextAction("Perguntar de novo", it, color = l.accent) }
         }
-        if (t.end == "falhou") {
+        if (t.end == "descansa") {
+            Text(
+                "A Mia descansa até o mês que vem. Os números seguem nas telas.",
+                color = l.muted,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        if (t.end == "falhou" || t.end == "rede") {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "A Mia não respondeu. Confira a internet e tente de novo.",
+                    if (t.end == "rede") "A Mia não respondeu. Confira a internet e tente de novo." else "A Mia não conseguiu terminar esta resposta. Tente de novo.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f, fill = false).semantics { liveRegion = LiveRegionMode.Polite },

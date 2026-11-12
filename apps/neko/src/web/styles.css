@@ -51,7 +51,7 @@
     --neg: #b0412b;
     --skeleton: #e9e6e0;
     --pill-active: color-mix(in oklch, var(--text) 9%, transparent);
-    --series-1: #2a7a4f;
+    --series-1: #2e8b57;
     --series-2: #4a63c9;
     --series-3: #c4571c;
   }
@@ -4617,4 +4617,19 @@ p.mia-held {
   margin: 0;
   color: var(--muted);
   font-size: 0.875rem;
+}
+/* Docked: no room beside the point on a narrow chart, so the readout covers the chart's head. */
+.mia-chart-tip.docked {
+  top: auto;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  white-space: normal;
+}
+/* The ways out sit right under the chart they follow, not a tap box away. */
+figure.mia-chart + p.mia-sources {
+  margin-top: -14px;
 }
