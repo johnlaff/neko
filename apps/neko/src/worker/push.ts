@@ -5,6 +5,7 @@ import {
   type Cents,
   formatBRL,
   type LocalDate,
+  type SubscriptionNews,
   sub,
   type UpcomingItem,
   weekday,
@@ -28,7 +29,7 @@ export interface Reminder {
   /** Opened when the notification is tapped: "/" is Hoje, PARA_LANCAR its Para lançar. */
   readonly url: string;
   /** Same tag replaces the previous notification instead of stacking. */
-  readonly tag: "morning" | "evening" | "alert" | "ceiling";
+  readonly tag: "morning" | "evening" | "alert" | "ceiling" | "mia" | "subscription";
 }
 
 /** Hoje, scrolled to Para lançar: the web reads the hash, the Android app its own action. */
@@ -220,6 +221,35 @@ export const ceilingReminder = (p: Projection, news: CeilingNews): Reminder | nu
 };
 
 /**
+ * A subscription out of its pattern (engine `subscriptionNews`), said the morning after the bank
+ * brings the charge: a new one, which may be a charge the owner does not know, or one that went
+ * up. Opens Faturas, where the subscriptions are.
+ */
+export const subscriptionReminder = (news: readonly SubscriptionNews[]): Reminder | null => {
+  const [first, ...rest] = news;
+  if (!first) return null;
+  const name = bankText(first.description);
+  const more = rest.map((n) =>
+    n.kind === "nova"
+      ? `Também nova: ${bankText(n.description)}, ${money(n.amount)}.`
+      : `${bankText(n.description)} subiu para ${money(n.amount)}.`,
+  );
+  const lead =
+    first.kind === "nova"
+      ? `Cobrada no ${first.card} em ${shortDate(first.since)} e ${shortDate(first.date)}. Não reconhece? Conteste no banco.`
+      : `Era ${money(first.before ?? first.amount)} no ${first.card}.`;
+  return {
+    title:
+      first.kind === "nova"
+        ? `Assinatura nova: ${name}, ${money(first.amount)} por mês`
+        : `${name} subiu para ${money(first.amount)}`,
+    body: [lead, ...more].join(" "),
+    url: "/faturas",
+    tag: "subscription",
+  };
+};
+
+/**
  * Sunday: the week that just closed, as facts. What cards and Pix took against the week before
  * (comparing with one's own past spending lowers it, Levi and Benartzi), and the days logged.
  */
@@ -260,17 +290,21 @@ const weekPart = ({ projection: p, habit, week }: ProjectionResponse): Part | nu
 /**
  * 08:00, only when there is something to do, the most urgent in the title: bills due today, money
  * to move into the account a bill is debited from, the balance going red, payday's saving, and on
- * Sunday the week. The ceiling speaks when the bank brings the purchase (`ceilingReminder`). What
- * still fits lives on the widget and Hoje, where it is seen without an interruption.
+ * Sunday the week, unless Mia's Sunday summary already said it. The ceiling speaks when the bank
+ * brings the purchase (`ceilingReminder`). What still fits lives on the widget and Hoje, where it
+ * is seen without an interruption.
  */
-export const morningMessage = (data: ProjectionResponse): Reminder | null => {
+export const morningMessage = (
+  data: ProjectionResponse,
+  { weekSaid = false }: { readonly weekSaid?: boolean } = {},
+): Reminder | null => {
   const p = data.projection;
   const parts = [
     billsPart(p),
     transferPart(data),
     redPart(p),
     savingPart(p),
-    weekPart(data),
+    weekSaid ? null : weekPart(data),
   ].filter((x): x is Part => x !== null);
   const [lead, ...rest] = parts;
   if (!lead) return null;

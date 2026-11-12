@@ -131,9 +131,14 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(request, session) {
                     val r = request ?: return@LaunchedEffect
                     if (session != Session.SignedIn) return@LaunchedEffect
-                    miaOpen = false
                     fromMia = false
                     go(r.tab)
+                    // Mia's routine opens her screen over Hoje, where closing her lands.
+                    if (r.mia) {
+                        miaTopic = "hoje"
+                        miaTab = r.tab
+                    }
+                    miaOpen = r.mia
                     simOpen = r.simulate
                     if (r.simulate) model.used("simular")
                     if (r.queue) queuePending = true

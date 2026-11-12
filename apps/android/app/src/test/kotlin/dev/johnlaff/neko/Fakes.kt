@@ -73,6 +73,52 @@ object Fakes {
         override suspend fun stop(sessao: String) = Unit
     }
 
+    /** Her routines, invented: Sunday's week with her board, and the 1st's month with a chart. */
+    fun mia2Rotina(tipo: String = "semana") = dev.johnlaff.neko.ui.Mia2Chat().apply {
+        val ok = dev.johnlaff.neko.data.Mia2Valor(true, "hoje")
+        val n = { rotulo: String, valor: Double, nota: String?, tela: String ->
+            dev.johnlaff.neko.data.Mia2Numero(rotulo, valor, nota, tela)
+        }
+        val line = { t: String, id: String -> dev.johnlaff.neko.data.Mia2Line(t, id = id) }
+        val r = if (tipo == "semana") dev.johnlaff.neko.data.Mia2Rotina(
+            "semana:2026-11-15", "semana", "Semana de 8 a 14 nov", "2026-11-15", "sesn_0000000001",
+            listOf(
+                line("mensagem", "m1").copy(
+                    texto = "A semana levou **R$ 812,40** em cartões e Pix, R$ 207,60 a menos que a anterior.",
+                    valores = mapOf("R$ 812,40" to ok, "R$ 207,60" to ok),
+                ),
+                line("numeros", "n1").copy(
+                    numeros = listOf(
+                        n("Cabe no teto", 1460.1, "até 30/11", "hoje"),
+                        n("Próxima fatura", 2915.4, "vence 12/12", "faturas"),
+                    ),
+                ),
+            ),
+        ) else dev.johnlaff.neko.data.Mia2Rotina(
+            "mes:2026-11-01", "mes", "Fechamento de outubro", "2026-11-01", "sesn_0000000002",
+            listOf(
+                line("mensagem", "m1").copy(
+                    texto = "Outubro fechou **R$ 1.180,40 no vermelho**. Guardou 9% das entradas, abaixo da meta de 20% a 30%.",
+                    valores = mapOf("R$ 1.180,40" to dev.johnlaff.neko.data.Mia2Valor(true, "mes", "2026-10")),
+                ),
+                line("numeros", "n1").copy(
+                    numeros = listOf(
+                        dev.johnlaff.neko.data.Mia2Numero("Guardado", 640.15, null, "mes", "2026-10"),
+                        dev.johnlaff.neko.data.Mia2Numero("Diário médio", 92.3, null, "mes", "2026-10"),
+                    ),
+                ),
+                line("grafico", "g1").copy(
+                    grafico = dev.johnlaff.neko.data.Mia2Grafico(
+                        "Guardado por mês", "barras", listOf("mai", "jun", "jul", "ago", "set", "out"),
+                        listOf(dev.johnlaff.neko.data.Mia2Serie("Guardado", listOf(1200.0, 450.0, 0.0, 820.5, 300.0, 640.15))),
+                    ),
+                ),
+            ),
+        )
+        takeRoutine(r)
+        cleared = null
+    }
+
     /** The same invented answers as the site's Mia 2 preview: a bar chart, then a two-line chart. */
     /** A summary as she gives it now: one sentence with the main number, then her board. */
     fun mia2Resumo() = dev.johnlaff.neko.ui.Mia2Chat().apply {

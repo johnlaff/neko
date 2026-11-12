@@ -28,6 +28,7 @@ import dev.johnlaff.neko.data.ApiException
 import dev.johnlaff.neko.data.Notice
 import dev.johnlaff.neko.data.Reminder
 import dev.johnlaff.neko.shortcuts.FATURAS
+import dev.johnlaff.neko.shortcuts.MIA
 import dev.johnlaff.neko.shortcuts.PARA_LANCAR
 import java.time.Duration
 import java.time.ZonedDateTime
@@ -80,7 +81,7 @@ enum class Kind(
 ) {
     Morning(
         "manha", "Contas e teto",
-        "De manhã, só quando vence uma conta, falta dinheiro na conta da fatura, o saldo fica negativo ou é dia de guardar. Aos domingos, a semana. E na hora em que o teto passa de 75% ou 100%",
+        "De manhã, só quando vence uma conta, falta dinheiro na conta da fatura, o saldo fica negativo ou é dia de guardar. Aos domingos, a semana. Na hora em que o teto passa de 75% ou 100%. E quando aparece uma assinatura nova ou mais cara",
         "notificacao_manha", "Contas e teto",
     ),
     Evening(
@@ -92,6 +93,11 @@ enum class Kind(
         "avisos", "Avisos",
         "Quando o Neko não consegue ler a planilha ou os bancos",
         "notificacao_aviso", "Um aviso do Neko",
+    ),
+    Mia(
+        "mia", "Resumos da Mia",
+        "Aos domingos, a semana que passou. No dia 1º, o mês que fechou",
+        "notificacao_mia", "A Mia deixou um resumo",
     ),
 }
 
@@ -181,6 +187,7 @@ object Reminders {
                 when (url) {
                     "/#para-lancar" -> PARA_LANCAR
                     "/faturas" -> FATURAS
+                    "/mia" -> MIA
                     else -> Intent.ACTION_MAIN
                 },
             )
@@ -253,8 +260,13 @@ object Reminders {
         val posted = notices.filter { it.id !in shown }
             .filter { n ->
                 val ceiling = n.tag == "ceiling"
+                val kind = when (n.tag) {
+                    "ceiling", "subscription" -> Kind.Morning
+                    "mia" -> Kind.Mia
+                    else -> Kind.Alert
+                }
                 post(
-                    context, if (ceiling) Kind.Morning else Kind.Alert, noticeId(n.id), n.title, n.body, n.url,
+                    context, kind, noticeId(n.id), n.title, n.body, n.url,
                     if (ceiling) ReminderClock.untilNext(ZonedDateTime.now(), ReminderClock.MORNING) else null,
                 )
             }
