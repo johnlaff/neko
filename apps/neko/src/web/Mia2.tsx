@@ -42,7 +42,7 @@ const notAsked = (asked: readonly string[]) => (q: string) =>
 /** After her routine, what one asks next about that week or that month. */
 const ROUTINE_NEXT: Record<Mia2Rotina["tipo"], readonly string[]> = {
   semana: ["Quanto vem nas próximas faturas?", "Este mês está melhor que o anterior?"],
-  mes: ["Quais foram as maiores saídas do mês passado?", "Como chego a 20% guardado?"],
+  mes: ["Como guardo mais este mês?", "Quais foram as maiores saídas do mês passado?"],
 };
 
 const mia2Next = (asked: readonly string[], topic: MiaTopic, rotina?: Mia2Rotina["tipo"]) =>
@@ -237,9 +237,13 @@ const restart = () => {
   setChat({ ...EMPTY, limited: chat.limited, cleared: chat.turns.length > 0 ? chat : null });
 };
 
-/** Brings back the conversation "Nova conversa" cleared. */
+/**
+ * Brings back the conversation "Nova conversa" or her routine cleared. A swap: the one on screen
+ * goes to Desfazer in its turn, so a routine undone is not lost (it was already marked seen).
+ */
 const undoRestart = () => {
-  if (chat.cleared && !chat.pending) setChat({ ...chat.cleared, cleared: null });
+  if (!chat.cleared || chat.pending) return;
+  setChat({ ...chat.cleared, cleared: chat.turns.length > 0 ? { ...chat, cleared: null } : null });
 };
 const ROUTINE_SEEN = "neko.mia2.rotina";
 const routineSeen = (id: string) => {
@@ -901,7 +905,13 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
         )}
         {cleared && (
           <div className="toast inline" role="status">
-            <span>{turns.length === 0 ? "Conversa apagada" : "Conversa anterior apagada"}</span>
+            <span>
+              {turns.length === 0
+                ? "Conversa apagada"
+                : cleared.turns[0]?.rotina
+                  ? "Resumo da Mia fechado"
+                  : "Conversa anterior apagada"}
+            </span>
             <button type="button" className="ghost small" onClick={undo}>
               Desfazer
             </button>

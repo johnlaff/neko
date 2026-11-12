@@ -20,8 +20,8 @@ const ASIDE =
   "O dono não está na conversa agora: vai ler depois, no celular, e pode continuar dali. Não proponha lançamentos.";
 
 export const ROUTINE_PROMPT: Record<RoutineKind, string> = {
-  semana: `Rotina de domingo do Neko. ${ASIDE} Faça o resumo da semana que terminou ontem: uma frase curta com o que cartões e Pix levaram na semana, em negrito, e como foi contra a semana anterior; e o quadro de números com dois valores: quanto ainda cabe no teto do mês e a próxima conta ou fatura a vencer, com o dia na nota. Use as ferramentas semana e hoje.`,
-  mes: `Rotina do primeiro dia do mês do Neko. ${ASIDE} Feche o mês passado (a ferramenta periodo diz qual é): uma frase curta que comece pelo resultado do mês, em negrito, e diga quanto foi guardado e, se ficou abaixo, a meta do método, de vinte a trinta por cento das entradas; o quadro de números com dois valores: o guardado, com a nota só com a parte das entradas que ele foi, e o diário médio, sem nota; e um gráfico de barras do guardado nos seis últimos meses, até o mês passado. Use as ferramentas periodo, mes e resumo_meses.`,
+  semana: `Rotina de domingo do Neko. ${ASIDE} Faça o resumo da semana que terminou ontem: uma frase curta com o que cartões e Pix levaram na semana, em negrito, e como foi contra a semana anterior; e o quadro de números com dois valores: quanto ainda cabe no teto do mês e a próxima conta ou fatura a vencer, com o dia na nota. Use as ferramentas semana, hoje e faturas.`,
+  mes: `Rotina do primeiro dia do mês do Neko. ${ASIDE} Feche o mês passado (a ferramenta periodo diz qual é): uma frase curta que comece pelo resultado do mês, em negrito, e diga a parte das entradas que foi guardada e, se ficou abaixo, a meta do método, de vinte a trinta por cento; o quadro de números com dois valores, sem notas: o guardado e o diário médio; e um gráfico de barras do guardado nos seis últimos meses, até o mês passado. Use as ferramentas periodo, mes e resumo_meses.`,
 };
 
 const MONTHS = [
