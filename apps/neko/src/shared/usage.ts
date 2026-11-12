@@ -33,6 +33,7 @@ export const NOTICE_TAP = {
   evening: "notificacao_noite",
   alert: "notificacao_aviso",
   mia: "notificacao_mia",
+  subscription: "notificacao_manha",
 } as const satisfies Record<string, keyof typeof USAGE_NOTICES>;
 
 export const USAGE = { ...USAGE_SCREENS, ...USAGE_TAPS, ...USAGE_NOTICES } as const;

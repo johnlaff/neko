@@ -81,7 +81,7 @@ enum class Kind(
 ) {
     Morning(
         "manha", "Contas e teto",
-        "De manhã, só quando vence uma conta, falta dinheiro na conta da fatura, o saldo fica negativo ou é dia de guardar. Aos domingos, a semana. E na hora em que o teto passa de 75% ou 100%",
+        "De manhã, só quando vence uma conta, falta dinheiro na conta da fatura, o saldo fica negativo ou é dia de guardar. Aos domingos, a semana. Na hora em que o teto passa de 75% ou 100%. E quando aparece uma assinatura nova ou mais cara",
         "notificacao_manha", "Contas e teto",
     ),
     Evening(
@@ -261,7 +261,7 @@ object Reminders {
             .filter { n ->
                 val ceiling = n.tag == "ceiling"
                 val kind = when (n.tag) {
-                    "ceiling" -> Kind.Morning
+                    "ceiling", "subscription" -> Kind.Morning
                     "mia" -> Kind.Mia
                     else -> Kind.Alert
                 }

@@ -52,10 +52,12 @@ import {
 } from "./mia.ts";
 import {
   checkCeiling,
+  checkSubscriptions,
   clearNotices,
   EVENING_HOURS,
   eveningJob,
   loadEveningHour,
+  miaSaid,
   pruneNotices,
   raiseNotice,
   recentNotices,
@@ -950,13 +952,17 @@ export default Sentry.withSentry(sentry, {
    */
   async scheduled(event, env, ctx) {
     if (event.cron === BANKS) {
-      // Fresh banks for the morning, and a safety net for webhooks Pluggy gave up on. Then, on
-      // Sunday and on the 1st, Mia's routine reads them.
+      // Fresh banks for the morning, and a safety net for webhooks Pluggy gave up on. Then a
+      // subscription out of its pattern is said, and, on Sunday and on the 1st, Mia's routine
+      // reads them.
+      const report = (error: unknown) => Sentry.captureException(error);
       ctx.waitUntil(
         bankSync(env)
-          .catch((error) => Sentry.captureException(error))
+          .catch(report)
+          .then(async () => checkSubscriptions(env, await getProjection(env, todayIn(new Date()))))
+          .catch(report)
           .then(() => miaRoutine(env))
-          .catch((error) => Sentry.captureException(error)),
+          .catch(report),
       );
       return;
     }
@@ -989,7 +995,8 @@ export default Sentry.withSentry(sentry, {
       await clearNotices(env.DB, "planilha");
       if (event.cron === MORNING) {
         await backfillEdits(env).catch((error) => console.error("revision backfill failed", error));
-        const morning = morningMessage(data);
+        const weekSaid = miaSaid(await recentNotices(env.DB), data.projection.today);
+        const morning = morningMessage(data, { weekSaid });
         if (morning) await sendReminder(env, morning);
       } else {
         const evening = eveningMessage(data);

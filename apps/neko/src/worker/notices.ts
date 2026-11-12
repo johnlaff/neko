@@ -8,6 +8,7 @@ import {
   morningMessage,
   type Reminder,
   sendReminder,
+  subscriptionReminder,
 } from "./push.ts";
 
 /**
@@ -18,9 +19,10 @@ import {
 
 /**
  * Messages born on the server, one of each kind per day (migrations/0015_notice.sql): the alerts,
- * the ceiling crossing a mark when the bank brings the purchase, and Mia's routines (routines.ts).
+ * the ceiling crossing a mark when the bank brings the purchase, a subscription out of its pattern,
+ * and Mia's routines (routines.ts).
  */
-export type NoticeKind = "meu-pluggy" | "planilha" | "teto-75" | "teto-100" | "mia";
+export type NoticeKind = "meu-pluggy" | "planilha" | "teto-75" | "teto-100" | "mia" | "assinatura";
 
 export interface Notice extends Reminder {
   /** The kind and the day ("planilha:2026-11-11"): the app shows each id once. */
@@ -67,7 +69,13 @@ export const recentNotices = async (db: D1Database, now = new Date()): Promise<N
 };
 
 const tagOf = (id: string): Notice["tag"] =>
-  id.startsWith("teto") ? "ceiling" : id.startsWith("mia:") ? "mia" : "alert";
+  id.startsWith("teto")
+    ? "ceiling"
+    : id.startsWith("mia:")
+      ? "mia"
+      : id.startsWith("assinatura:")
+        ? "subscription"
+        : "alert";
 
 export const pruneNotices = async (db: D1Database, now = new Date()): Promise<void> => {
   await db.prepare("DELETE FROM notice WHERE created_at <= ?").bind(daysAgo(now, KEEP_DAYS)).run();
@@ -142,6 +150,25 @@ export const checkCeiling = async (env: Env, data: ProjectionResponse): Promise<
     await raiseNotice(env, `teto-${news}`, data.projection.today as LocalDate, reminder);
 };
 
+const SUBSCRIPTIONS_KEY = "subscription_said";
+/** Enough to never say one twice in the window the engine reads (100 days). */
+const SAID_KEEP = 100;
+
+/**
+ * After the 06:00 read of the banks: a subscription that is new, or went up, is said once, all of
+ * the day's in one message, with the bills on the phone (Contas e teto).
+ */
+export const checkSubscriptions = async (env: Env, data: ProjectionResponse): Promise<void> => {
+  const news = data.bank?.subscriptions?.news ?? [];
+  if (news.length === 0) return;
+  const said = (await get<string[]>(env.DB, SUBSCRIPTIONS_KEY)) ?? [];
+  const fresh = news.filter((n) => !said.includes(n.key));
+  const reminder = subscriptionReminder(fresh);
+  if (!reminder) return;
+  await raiseNotice(env, "assinatura", data.projection.today as LocalDate, reminder);
+  await put(env.DB, SUBSCRIPTIONS_KEY, [...said, ...fresh.map((n) => n.key)].slice(-SAID_KEEP));
+};
+
 /** The hours the evening message can come at: after work, before the late-night launches. */
 export const EVENING_HOURS = [19, 20, 21, 22, 23] as const;
 export type EveningHour = (typeof EVENING_HOURS)[number];
@@ -174,6 +201,10 @@ export const eveningJob = (
       ? "message"
       : null;
 
+/** Mia's summary of today is out, so the morning does not say the week again. */
+export const miaSaid = (notices: readonly Notice[], today: string) =>
+  notices.some((n) => n.id === `mia:${today}`);
+
 /**
  * GET /api/reminders, for the Android app, which shows these itself: today's two messages (null
  * when one has nothing to say), its evening hour, and the server's messages it may not have
@@ -183,7 +214,7 @@ export const remindersView = (
   data: ProjectionResponse,
   extra: { readonly eveningHour: EveningHour; readonly notices: readonly Notice[] },
 ) => ({
-  morning: morningMessage(data),
+  morning: morningMessage(data, { weekSaid: miaSaid(extra.notices, data.projection.today) }),
   evening: eveningMessage(data),
   eveningHour: extra.eveningHour,
   notices: extra.notices,

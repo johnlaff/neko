@@ -20,6 +20,7 @@ import {
   phoneReads,
   type Statement,
   saldoCheck,
+  subscriptionNews,
   subscriptions,
   todayIn,
   transfersDue,
@@ -463,6 +464,7 @@ const subscriptionsView = (
     items: view,
     total,
     toCancel: cents(view.filter((i) => i.cancel).reduce((s, i) => s + i.amount, 0)),
+    news: subscriptionNews(lines, today, settings.othersCards),
   };
 };
 

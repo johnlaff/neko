@@ -42,13 +42,20 @@ const GAP_MIN = 26;
 const GAP_MAX = 35;
 /** Tax and late fees come back each month too, but there is nothing to cancel. */
 const FEE = /\biof\b|\bmulta\b|\bjuros\b|\bencargo/i;
-export const subscriptions = (
+type Charge = BankCardLine & { readonly date: LocalDate };
+
+/**
+ * The owner's charges of the window by store, oldest first, each store's split in series: same
+ * card and value, each charge 26 to 35 days after the one before. Two plans of one value (two
+ * channels) run side by side, so a charge joins the series it continues.
+ */
+const seriesByStore = (
   lines: readonly BankCardLine[],
   today: LocalDate,
   othersCards: readonly string[],
-): Subscriptions => {
+): Map<string, Charge[][]> => {
   const others = new Set(othersCards.map(normalizeName));
-  const byStore = new Map<string, (BankCardLine & { date: LocalDate })[]>();
+  const byStore = new Map<string, Charge[]>();
   for (const l of lines) {
     if (!l.date || l.amount <= 0 || (l.installments ?? 1) > 1 || FEE.test(l.description)) continue;
     const age = diffDays(l.date, today);
@@ -57,23 +64,35 @@ export const subscriptions = (
     if (!s) continue;
     byStore.set(s, [...(byStore.get(s) ?? []), { ...l, date: l.date }]);
   }
-
-  const items: Subscription[] = [];
+  const out = new Map<string, Charge[][]>();
   for (const [s, all] of byStore) {
-    // Each series: same card and value, each charge 26 to 35 days after the one before. Two plans
-    // of one value (two channels) run side by side, so a charge joins the series it continues.
-    const series: (typeof all)[number][][] = [];
+    const series: Charge[][] = [];
     for (const l of [...all].sort((a, b) => (a.date < b.date ? -1 : 1))) {
       const run = series.find((r) => {
         const prev = r[r.length - 1];
-        if (!prev || prev.amount !== l.amount || normalizeName(prev.card) !== normalizeName(l.card))
-          return false;
-        const gap = diffDays(prev.date, l.date);
-        return gap >= GAP_MIN && gap <= GAP_MAX;
+        return prev !== undefined && prev.amount === l.amount && monthApart(prev, l);
       });
       if (run) run.push(l);
       else series.push([l]);
     }
+    out.set(s, series);
+  }
+  return out;
+};
+
+const monthApart = (a: Charge, b: Charge) => {
+  if (normalizeName(a.card) !== normalizeName(b.card)) return false;
+  const gap = diffDays(a.date, b.date);
+  return gap >= GAP_MIN && gap <= GAP_MAX;
+};
+
+export const subscriptions = (
+  lines: readonly BankCardLine[],
+  today: LocalDate,
+  othersCards: readonly string[],
+): Subscriptions => {
+  const items: Subscription[] = [];
+  for (const [s, series] of seriesByStore(lines, today, othersCards)) {
     const found = series.filter((run) => {
       const last = run.at(-1);
       return run.length >= 2 && last !== undefined && diffDays(last.date, today) <= STALE_DAYS;
@@ -97,6 +116,82 @@ export const subscriptions = (
   }
   items.sort((a, b) => b.amount - a.amount || a.key.localeCompare(b.key));
   return { items, total: add(ZERO, ...items.map((i) => i.amount)) };
+};
+
+/**
+ * A subscription out of its pattern, the kind of news worth a notification (Mia 2, part 3): a new
+ * one, said on its second charge, or one whose new charge came higher than its usual value. Only
+ * charges already made; nothing is predicted.
+ */
+export interface SubscriptionNews {
+  readonly kind: "nova" | "subiu";
+  /** Kind, store, value and card: the same news is said once. */
+  readonly key: string;
+  /** The bank's text of the charge that brought the news. */
+  readonly description: string;
+  readonly card: string;
+  readonly amount: Cents;
+  /** What it charged before, when it went up. */
+  readonly before: Cents | null;
+  /** Its first charge in the window. */
+  readonly since: LocalDate;
+  readonly date: LocalDate;
+}
+
+/** News stops being news after a week; the 06:00 read says it the morning after the charge. */
+const NEWS_DAYS = 7;
+
+export const subscriptionNews = (
+  lines: readonly BankCardLine[],
+  today: LocalDate,
+  othersCards: readonly string[],
+): SubscriptionNews[] => {
+  const news: SubscriptionNews[] = [];
+  const key = (kind: string, store: string, c: Charge) =>
+    `${kind}|${store}|${c.amount}|${normalizeName(c.card)}`;
+  for (const [store, series] of seriesByStore(lines, today, othersCards)) {
+    const sameCard = (c: Charge) => (d: Charge) => normalizeName(d.card) === normalizeName(c.card);
+    for (const run of series) {
+      const [first, second] = run;
+      const last = run.at(-1);
+      if (!first || !last || diffDays(last.date, today) > NEWS_DAYS) continue;
+      // Its second charge ever in the window, with nothing of the store on that card before it.
+      const earlier = series
+        .flat()
+        .filter(sameCard(first))
+        .some((c) => c.date < first.date);
+      if (run.length === 2 && second && !earlier)
+        news.push({
+          kind: "nova",
+          key: key("nova", store, second),
+          description: second.description,
+          card: second.card,
+          amount: second.amount,
+          before: null,
+          since: first.date,
+          date: second.date,
+        });
+      // A first charge at a new value, a month after a series of the old one, higher.
+      if (run.length !== 1) continue;
+      const usual = series.find((r) => {
+        const end = r.at(-1);
+        return r.length >= 2 && end !== undefined && monthApart(end, first);
+      });
+      const end = usual?.at(-1);
+      if (usual && end && first.amount > end.amount)
+        news.push({
+          kind: "subiu",
+          key: key("subiu", store, first),
+          description: first.description,
+          card: first.card,
+          amount: first.amount,
+          before: end.amount,
+          since: usual[0]?.date ?? end.date,
+          date: first.date,
+        });
+    }
+  }
+  return news.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 };
 
 /**
