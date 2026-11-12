@@ -136,7 +136,7 @@ fun mia2NotAsked(asked: List<String>): (String) -> Boolean = { q -> asked.none {
 /** After her routine, what one asks next about that week or that month (the site's ROUTINE_NEXT). */
 private val ROUTINE_NEXT = mapOf(
     "semana" to listOf("Quanto vem nas próximas faturas?", "Este mês está melhor que o anterior?"),
-    "mes" to listOf("Quais foram as maiores saídas do mês passado?", "Como chego a 20% guardado?"),
+    "mes" to listOf("Como guardo mais este mês?", "Quais foram as maiores saídas do mês passado?"),
 )
 
 /** After an answer, two questions not asked yet; after her routine, about its week or month first. */
@@ -357,13 +357,16 @@ class Mia2Chat {
         return true
     }
 
-    /** Brings back the conversation "Nova conversa" cleared. */
+    /**
+     * Brings back the conversation "Nova conversa" or her routine cleared. A swap: the one on
+     * screen goes to Desfazer in its turn, so a routine undone is not lost (it was already seen).
+     */
     fun undoClear() {
         val (s, t) = cleared ?: return
         if (pending != null) return
+        cleared = if (turns.isEmpty()) null else sessao to turns
         sessao = s
         turns = t
-        cleared = null
     }
 }
 
@@ -601,7 +604,11 @@ fun Mia2Screen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            if (turns.isEmpty()) "Conversa apagada" else "Conversa anterior apagada",
+                            when {
+                                turns.isEmpty() -> "Conversa apagada"
+                                cleared.second.firstOrNull()?.rotina != null -> "Resumo da Mia fechado"
+                                else -> "Conversa anterior apagada"
+                            },
                             Modifier.weight(1f),
                             color = l.bg,
                             style = MaterialTheme.typography.bodyMedium,

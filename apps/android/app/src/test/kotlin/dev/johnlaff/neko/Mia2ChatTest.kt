@@ -89,6 +89,12 @@ class Mia2ChatTest {
         assertEquals(listOf("Na semana", "Cabe no teto"), (t.parts[1] as dev.johnlaff.neko.ui.Mia2Numeros).numeros.map { it.rotulo })
         // The conversation that was open waits for Desfazer, and the next question goes on in hers.
         assertEquals(listOf("Quanto vem nas faturas?"), chat.cleared!!.second.map { it.pergunta })
+        // Desfazer swaps: the old conversation comes back, and her routine waits in its place.
+        chat.undoClear()
+        assertEquals(listOf("Quanto vem nas faturas?"), chat.turns.map { it.pergunta })
+        assertEquals("semana", chat.cleared!!.second.single().rotina)
+        chat.undoClear()
+        assertEquals("Semana de 8 a 14 nov", chat.turns.single().pergunta)
         chat.ask("E a fatura de dezembro?", this, talk)
         coroutineContext.job.children.forEach { it.join() }
         assertEquals("sesn_0000000001", talk.asked.last().sessao)
