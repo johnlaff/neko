@@ -476,7 +476,7 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   const errors = await open(page, "/");
   await page.getByRole("link", { name: "Simular" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Simular" })).toBeFocused();
-  await expect(page.getByText("Nada aqui muda a planilha")).toBeVisible();
+  await expect(page.getByText("Nada aqui é salvo")).toBeVisible();
   // No ceiling in Ajustes: the sheet as it is, or the last months' average.
   await expect(page.getByRole("radio", { name: "Só a planilha" })).toBeChecked();
   await expect(page.getByRole("radio", { name: "Teto" })).toHaveCount(0);
@@ -520,7 +520,7 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await expect(page.getByRole("textbox", { name: /Entrada/ })).toHaveValue("1,500.50");
   await expect(page.getByRole("textbox", { name: /Entrada/ })).toBeFocused();
   await page.getByRole("button", { name: "Tirar entrada" }).click();
-  await expect(page.getByText("Tirou a entrada.")).toBeVisible();
+  await expect(page.getByText("Entrada removida.")).toBeVisible();
   await expect(page.getByRole("figure").getByText("Simulação")).toBeVisible();
   await page.getByText("Mês a mês").click();
   await expect(page.getByRole("columnheader", { name: "Planilha" })).toBeVisible();
@@ -561,13 +561,15 @@ test("Simular keeps the what-ifs while Ajustes is read again, and lands on the n
 }) => {
   await open(page, "about:blank");
   let fail = true;
-  await page.route("**/api/settings", (route) =>
-    fail
-      ? route.fulfill({ status: 500, json: { error: "indisponível" } })
-      : route.fulfill({ json: { ...(API["/api/settings"] as object), cycleBudget: 300_000 } }),
-  );
+  await page.route("**/api/settings", async (route) => {
+    if (!fail)
+      return route.fulfill({ json: { ...(API["/api/settings"] as object), cycleBudget: 300_000 } });
+    // Slow enough to see "Tentando…" before it fails again, on a busy machine too.
+    await new Promise((done) => setTimeout(done, 500));
+    return route.fulfill({ status: 500, json: { error: "indisponível" } });
+  });
   await page.goto("/simular");
-  await expect(page.getByText("Não consegui ler seus Ajustes")).toBeVisible();
+  await expect(page.getByText("Não consegui ler o teto em Ajustes")).toBeVisible();
   await page.keyboard.press("c");
   await page.keyboard.type("600");
   // Failing again keeps the row, and the keys stay on the button.
