@@ -87,7 +87,14 @@ const isTyping = (t: EventTarget | null, key: string) => {
 };
 const onShortcut = (e: KeyboardEvent) => {
   // A widget that used the key itself (the Mês calendar's arrows) keeps it.
-  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.repeat || isTyping(e.target, e.key))
+  if (
+    e.defaultPrevented ||
+    e.ctrlKey ||
+    e.metaKey ||
+    e.altKey ||
+    e.repeat ||
+    isTyping(e.target, e.key)
+  )
     return;
   if (document.querySelector("dialog[open]")) return;
   const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
