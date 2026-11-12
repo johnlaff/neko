@@ -238,7 +238,7 @@ export const nekoServer = (load: () => Promise<McpData>): McpServer => {
   engine(
     "reserva",
     "Reserva de emergência",
-    "Custo de vida médio, metas mínima e máxima do método (6 e 12 meses), quanto está guardado e quantos meses de custo isso cobre.",
+    "Quanto está guardado, o próximo degrau (como o Mês mostra) e quanto falta para ele, o custo de vida médio, as metas do método (6 e 12 meses) e quantos meses de custo o guardado cobre.",
   );
 
   server.registerTool(

@@ -8,6 +8,7 @@ import {
   project,
   type RefValue,
   refBook,
+  reserveSteps,
   runMiaTool,
 } from "../src/index.ts";
 import { cell, item, ledger } from "./builders.ts";
@@ -165,6 +166,19 @@ describe("mia tools: the engine computes, the model only points", () => {
       ainda_cabem: { cents: 0 },
       passou_do_previsto: { cents: 450_00 },
     });
+  });
+
+  it("gives the reserve's next step, the same one Mês shows", () => {
+    const r = p.reserve;
+    if (!r) throw new Error("the fixture closes a month");
+    const s = reserveSteps(r);
+    const out = runMiaTool(p, "reserva", {}, refBook()) as Record<string, unknown>;
+    expect(out.degraus_alcancados).toBe(`${s.reached} de ${s.steps.length}`);
+    expect(out.proximo_degrau).toMatchObject({
+      valor: { cents: s.next?.amount },
+      meses_de_custo: s.next?.months ?? null,
+    });
+    expect(out.falta_para_o_proximo).toMatchObject({ cents: s.missing });
   });
 
   it("continues the numbering of earlier turns", () => {
