@@ -39,6 +39,8 @@ data class Ledger(
     val neg: Color,
     /** Mia's amber: only her eyes in the mark, so she reads apart from Neko without a picture. */
     val mia: Color,
+    /** Mia's charts: up to three series, always in this order (the site's --series-1..3, checked for color blindness). */
+    val series: List<Color>,
 )
 
 val DarkLedger = Ledger(
@@ -46,6 +48,7 @@ val DarkLedger = Ledger(
     border = Color(0xFF2A2826), borderInput = Color(0xFF6B665F), text = Color(0xFFFAFAF9), muted = Color(0xFFBAB5AD),
     faint = Color(0xFF938E86), accent = Color(0xFF7CBF96), pos = Color(0xFF7CBF96),
     warn = Color(0xFFE7B765), neg = Color(0xFFF08F78), mia = Color(0xFFE0A85A),
+    series = listOf(Color(0xFF3F9E6A), Color(0xFF7B8AE6), Color(0xFFD26A2E)),
 )
 
 val LightLedger = Ledger(
@@ -53,6 +56,7 @@ val LightLedger = Ledger(
     border = Color(0xFFE2DFD8), borderInput = Color(0xFF8A857D), text = Color(0xFF1C1A17), muted = Color(0xFF57534E),
     faint = Color(0xFF6D6861), accent = Color(0xFF2A6B47), pos = Color(0xFF2A6B47),
     warn = Color(0xFF96580B), neg = Color(0xFFB0412B), mia = Color(0xFFA8661A),
+    series = listOf(Color(0xFF2A7A4F), Color(0xFF4A63C9), Color(0xFFC4571C)),
 )
 
 val LocalLedger = staticCompositionLocalOf { DarkLedger }

@@ -280,6 +280,79 @@ class ScreenshotTest {
         )
     }
 
+    // Mia 2: answers with checked values and charts, the first look, and an answer on its way.
+    @Test fun mia2ConversaDark() = shot("mia2-conversa-dark", night = true) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Chat(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2ConversaLight() = shot("mia2-conversa-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Chat(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2LinhaLight() = shot("mia2-linha-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Chat().apply { turns = turns.drop(1) },
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2VaziaLight() = shot("mia2-vazia-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            dev.johnlaff.neko.ui.Mia2Chat(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2EsperandoDark() = shot("mia2-esperando-dark", night = true) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            dev.johnlaff.neko.ui.Mia2Chat().apply {
+                turns = listOf(dev.johnlaff.neko.ui.Mia2Turno(0, "Quanto vem nas faturas de dezembro?", emptyList()))
+                pending = 0
+                status = "Lendo as faturas…"
+            },
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2FalhouLight() = shot("mia2-falhou-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            dev.johnlaff.neko.ui.Mia2Chat().apply {
+                turns = listOf(dev.johnlaff.neko.ui.Mia2Turno(0, "Quanto vem nas faturas de dezembro?", emptyList(), "falhou"))
+            },
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
     // Mia's mark in the head of a tab, and her screen opened from it.
     @Test fun miaTopoDark() = shot("mia-topo-dark", night = true) {
         androidx.compose.runtime.CompositionLocalProvider(dev.johnlaff.neko.ui.LocalMia provides Fakes.miaEntry) {

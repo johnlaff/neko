@@ -149,4 +149,27 @@ class StressScreensTest {
             onScreen = {},
         )
     }
+
+    // Mia 2 on a small phone and at 200% text: values, chart labels and the field must fit.
+    @Test fun mia2Small() = compose.shot(path("mia2"), night = false, Device.SmallLargeText) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Chat(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2HugeText() = compose.shot(path("mia2-200"), night = true, Device.HugeText) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Chat(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
 }

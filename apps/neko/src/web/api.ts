@@ -9,6 +9,8 @@ import type {
   BanksResponse,
   DailySource,
   HistoryResponse,
+  Mia2Ask,
+  Mia2Line,
   MiaReply,
   MiaStatus,
   ProjectionResponse,
@@ -74,6 +76,8 @@ export class ApiError extends Error {
 /** How long a call may wait, like the app's: 30 s, and 90 s for Mia and writes to the sheet. */
 const WAIT = 30_000;
 const LONG_WAIT = 90_000;
+/** Mia 2 thinks, reads and draws: the Worker gives up on a question after 4 minutes. */
+const MIA2_WAIT = 300_000;
 /** Reading a bill PDF: two careful reads at most. */
 const PDF_WAIT = 300_000;
 
@@ -187,6 +191,35 @@ export const api = {
   saveBanks: (items: readonly { itemId: string; label: string }[]) =>
     request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
   mia: () => request<MiaStatus>("/mia"),
+  /**
+   * Mia 2: one question, her work handed to `line` as it happens. Resolves when she is done;
+   * aborting stops the reading here (stopMia2 stops her).
+   */
+  askMia2: async (ask: Mia2Ask, line: (l: Mia2Line) => void, signal: AbortSignal) => {
+    const res = await fetch("/api/mia2", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(ask),
+      signal: AbortSignal.any([signal, AbortSignal.timeout(MIA2_WAIT)]),
+    });
+    if (!res.ok || !res.body) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+      throw new ApiError(res.status, body.error ?? "unknown", body.message ?? res.statusText);
+    }
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let rest = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      rest += value;
+      const lines = rest.split("\n");
+      rest = lines.pop() ?? "";
+      for (const l of lines) if (l.trim()) line(JSON.parse(l) as Mia2Line);
+    }
+  },
+  stopMia2: (sessao: string) =>
+    request<{ ok: true }>("/mia2/parar", { method: "POST", body: JSON.stringify({ sessao }) }),
   askMia: (ask: MiaAsk) =>
     request<MiaReply>("/mia", { method: "POST", body: JSON.stringify(ask) }, LONG_WAIT),
   miaEntry: (frase: string, cartoes: readonly string[]) =>

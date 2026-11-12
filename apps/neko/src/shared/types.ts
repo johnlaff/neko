@@ -271,7 +271,55 @@ export interface MiaStatus {
   readonly usadoPct: number;
   /** `AAAA-MM-DD` Mia comes back, when the cap was reached. */
   readonly pausadaAte: string | null;
+  /** 2 when her agent answers (POST /api/mia2); absent or 1 for the first Mia. */
+  readonly versao?: 1 | 2;
 }
+
+/** POST /api/mia2: a question, in the conversation `sessao` when there is one. */
+export interface Mia2Ask {
+  readonly pergunta: string;
+  readonly sessao?: string | undefined;
+}
+
+/** A money value of Mia 2's text, as written, and whether it came from the Neko. */
+export interface Mia2Valor {
+  readonly conferido: boolean;
+  /** The screen it was read from, to lead back to it. */
+  readonly tela?: "hoje" | "faturas" | "mes" | "simular" | undefined;
+  /** `AAAA-MM`, on Mês. */
+  readonly mes?: string | undefined;
+}
+
+/** A chart Mia draws in the conversation, values in reais, one label per value. */
+export interface Mia2Grafico {
+  readonly titulo: string;
+  readonly tipo: "linha" | "barras";
+  readonly rotulos: readonly string[];
+  readonly series: readonly { readonly nome: string; readonly valores: readonly number[] }[];
+  readonly nota?: string | undefined;
+}
+
+/**
+ * One line of POST /api/mia2's answer (NDJSON), in the order things happen. The text of a message
+ * comes first in pieces (`parcial`, each the whole text so far), then whole (`mensagem`), with its
+ * money values checked.
+ */
+export type Mia2Line =
+  | { readonly t: "sessao"; readonly id: string }
+  | { readonly t: "status"; readonly texto: string }
+  | { readonly t: "parcial"; readonly id: string; readonly texto: string }
+  | {
+      readonly t: "mensagem";
+      readonly id: string;
+      readonly texto: string;
+      /** Keyed by the value exactly as it appears in `texto` (`R$ 1.234,56`). */
+      readonly valores: Readonly<Record<string, Mia2Valor>>;
+    }
+  | { readonly t: "grafico"; readonly id: string; readonly grafico: Mia2Grafico }
+  /** A number did not check: what this question showed so far gives way to a new answer. */
+  | { readonly t: "refazendo" }
+  | { readonly t: "fim" }
+  | { readonly t: "erro"; readonly motivo: "limite_mes" | "limite_conversa" | "falha" };
 
 /** One answer from POST /api/mia: `{{vN}}` in the text, each one's value beside it. */
 export interface MiaReply {

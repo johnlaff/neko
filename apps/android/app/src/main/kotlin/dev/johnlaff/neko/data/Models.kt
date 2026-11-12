@@ -384,7 +384,45 @@ data class StatementProblem(val card: String? = null, val printed: Long, val rea
 
 /** GET /api/mia: whether Mia is on and how much of the month's cap is spent (specs/004-mia). */
 @Serializable
-data class MiaStatus(val ligada: Boolean = false, val usadoPct: Int = 0, val pausadaAte: String? = null)
+data class MiaStatus(
+    val ligada: Boolean = false,
+    val usadoPct: Int = 0,
+    val pausadaAte: String? = null,
+    /** 2 when her agent (Mia 2) answers: text as it comes, charts, every R$ checked. */
+    val versao: Int = 1,
+)
+
+/** Mia 2: where a value she wrote came from; not `conferido` when it came from nowhere. */
+@Serializable
+data class Mia2Valor(val conferido: Boolean, val tela: String? = null, val mes: String? = null)
+
+@Serializable
+data class Mia2Serie(val nome: String, val valores: List<Double>)
+
+/** A chart she drew, values in reais, every one checked by the Worker before it is sent. */
+@Serializable
+data class Mia2Grafico(
+    val titulo: String,
+    val tipo: String,
+    val rotulos: List<String>,
+    val series: List<Mia2Serie>,
+    val nota: String? = null,
+)
+
+/** One line of her answer as it streams (the site's Mia2Line); `t` says which fields it carries. */
+@Serializable
+data class Mia2Line(
+    val t: String,
+    val id: String? = null,
+    val texto: String? = null,
+    val valores: Map<String, Mia2Valor>? = null,
+    val grafico: Mia2Grafico? = null,
+    val motivo: String? = null,
+)
+
+/** A question to Mia 2, in the conversation she opened (`sessao`) or in a new one. */
+@Serializable
+data class Mia2Ask(val pergunta: String, val sessao: String? = null)
 
 /** Lançar com a Mia: the fields a sentence gave; each one only when the engine trusted it. */
 @Serializable
