@@ -110,10 +110,12 @@ export const dailySourceText = (source: DailySource) =>
 /** Mês's reserve panel, in the same words on the site and the app (ui/Learn.kt). */
 export const RESERVE = {
   title: "Reserva de emergência",
+  more: "Como funciona",
   rule: "O método pede de 6 a 12 meses, guardados onde dá para sacar na hora.",
   empty: "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas.",
   nothing: "Nada guardado ainda",
   done: "Reserva completa",
+  last: "Último degrau",
   minimum: "Já tem os 6 meses que o método pede",
 } as const;
 
@@ -126,13 +128,15 @@ const months = (n: number) => `${n} ${n === 1 ? "mês" : "meses"} de custo de vi
 export const stepGoal = (s: ReserveStep) =>
   s.months === null ? `os primeiros ${roundMoney(s.amount)}` : months(s.months);
 
-/** Over the meter: which step is being climbed, out of all of them. */
+/** Over the meter: which step is being climbed, out of all of them; the last one by name. */
 export const stepsMeta = (s: ReserveSteps, kept: number) =>
   !s.next
     ? RESERVE.done
-    : kept > 0
-      ? `Degrau ${s.reached + 1} de ${s.steps.length}`
-      : RESERVE.nothing;
+    : kept <= 0
+      ? RESERVE.nothing
+      : s.reached + 1 === s.steps.length
+        ? RESERVE.last
+        : `Degrau ${s.reached + 1} de ${s.steps.length}`;
 
 /** True once the method's minimum of 6 months is kept: from there on 12 is his call. */
 const minimumKept = (s: ReserveSteps) => s.steps[s.reached - 1]?.months === 6;
@@ -151,7 +155,7 @@ export const stepHint = (s: ReserveSteps, kept: number) =>
   kept <= 0
     ? RESERVE.empty
     : s.next && minimumKept(s)
-      ? `Para 12 meses, faltam ${upToReal(s.missing)}.`
+      ? `Para 12 meses, faltam ${upToReal(s.missing)}`
       : null;
 
 /** The steps in one line, before the method's rule. */

@@ -61,10 +61,12 @@ class CopyContractTest {
 
         val reserve = l.obj("reserve")
         assertEquals(reserve.str("title"), Learn.RESERVE_TITLE)
+        assertEquals(reserve.str("more"), Learn.RESERVE_MORE)
         assertEquals(reserve.str("rule"), Learn.RESERVE_RULE)
         assertEquals(reserve.str("empty"), Learn.RESERVE_EMPTY)
         assertEquals(reserve.str("nothing"), Learn.RESERVE_NOTHING)
         assertEquals(reserve.str("done"), Learn.RESERVE_DONE)
+        assertEquals(reserve.str("last"), Learn.RESERVE_LAST)
         assertEquals(reserve.str("minimum"), Learn.RESERVE_MINIMUM)
 
         val totals = l.obj("totals")

@@ -57,10 +57,12 @@
     },
     "reserve": {
       "title": "Reserva de emergência",
+      "more": "Como funciona",
       "rule": "O método pede de 6 a 12 meses, guardados onde dá para sacar na hora.",
       "empty": "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas.",
       "nothing": "Nada guardado ainda",
       "done": "Reserva completa",
+      "last": "Último degrau",
       "minimum": "Já tem os 6 meses que o método pede"
     },
     "totals": {
@@ -468,9 +470,9 @@
           "missing": 3200000
         },
         4000000,
-        "Degrau 5 de 5",
+        "Último degrau",
         "Já tem os 6 meses que o método pede",
-        "Para 12 meses, faltam R$ 32.000.",
+        "Para 12 meses, faltam R$ 32.000",
         "Degraus: R$ 3.000, depois 1, 3, 6 e 12 meses de custo de vida."
       ],
       [
