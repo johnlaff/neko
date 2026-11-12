@@ -557,6 +557,27 @@ app.post("/mia", async (c) => {
   }
 });
 
+/**
+ * Mia 2's tools over MCP (mcp.ts): read only, for the agent holding the token. Off without the
+ * secret; a wrong token learns nothing but 401.
+ */
+app.all("/mcp", async (c) => {
+  const token = c.env.MIA_MCP_TOKEN ?? "";
+  if (!token) throw new HTTPException(404);
+  const auth = c.req.header("authorization") ?? "";
+  if (!auth.startsWith("Bearer ") || !sameSecret(auth.slice(7), token))
+    return c.json({ error: "unauthorized" }, 401, { "WWW-Authenticate": "Bearer" });
+  // Loaded on the first call only: the MCP SDK stays out of every other request's start-up.
+  const { serveMcp } = await import("./mcp.ts");
+  return serveMcp(c.req.raw, async () => {
+    const [data, settings] = await Promise.all([
+      getProjection(c.env, todayIn(new Date())),
+      loadSettings(c.env.DB),
+    ]);
+    return { data, ceiling: settings.cycleBudget === null ? null : cents(settings.cycleBudget) };
+  });
+});
+
 /** Faturas › "Ler a fatura do banco". */
 app.post("/statement", async (c) =>
   c.json(await takeStatement(c.env, await c.req.json().catch(() => null))),

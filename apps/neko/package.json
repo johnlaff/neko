@@ -16,6 +16,7 @@
     "@cantoo/pdf-lib": "2.11.1",
     "@fontsource-variable/faustina": "5.3.0",
     "@fontsource-variable/geist": "5.3.0",
+    "@modelcontextprotocol/server": "2.4.0",
     "@neko/engine": "workspace:*",
     "@neko/sheet-reader": "workspace:*",
     "@sentry/cloudflare": "11.4.0",
