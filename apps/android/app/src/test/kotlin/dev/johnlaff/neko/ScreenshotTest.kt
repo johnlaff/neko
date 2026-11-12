@@ -153,7 +153,7 @@ class ScreenshotTest {
     @Test fun simularDark() = shot("simular-dark", night = true) {
         // Opened, before any what-if: the bills leave room under the ceiling, so it is no best case.
         SimularScreen(
-            Fakes.askScenario, {},
+            Fakes.askScenarios, {},
             start = Fakes.scenario.copy(
                 effect = null, effects = emptyList(), full = emptyList(),
                 saving = Saving("2026-10-05", 5_600_00, 7_600_00, "2026-12-31", 510_48),
@@ -163,15 +163,15 @@ class ScreenshotTest {
 
     /** Scrolled down to the what-ifs: the answer stays in one line under the bar. */
     @Test fun simularPeekDark() = shot("simular-peek-dark", night = true, scrollTo = "Todo dia 20, 2 meses seguidos.") {
-        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
+        SimularScreen(Fakes.askScenarios, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
     }
 
     @Test fun simularLight() = shot("simular-light", night = false, scrollTo = "E se…") {
-        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
+        SimularScreen(Fakes.askScenarios, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
     }
 
     @Test fun simularMesesDark() = shot("simular-meses-dark", night = true, tap = "Mês a mês") {
-        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
+        SimularScreen(Fakes.askScenarios, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
     }
 
     @Test fun ajustesDark() = shot("ajustes-dark", night = true) {

@@ -1,5 +1,8 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,7 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
@@ -21,15 +26,19 @@ import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.data.CanSpend
 import dev.johnlaff.neko.data.SimulatedCycle
 
-/** A pill to pick one option, pressed when chosen. */
+/** A pill to pick one option, pressed when chosen; it takes its new colors quickly, as on the site. */
 @Composable
 internal fun Choice(text: String, on: Boolean, fill: Boolean = false, onClick: () -> Unit) {
     val l = LocalLedger.current
     val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(50)
+    val ease = tween<Color>(160, easing = LinearOutSlowInEasing)
+    val ink by animateColorAsState(if (on) l.bg else l.text, ease, label = "ink")
+    val fillColor by animateColorAsState(if (on) l.text else l.surface2, ease, label = "fill")
+    val edge by animateColorAsState(if (on) l.text else l.border, ease, label = "edge")
     Text(
         text,
-        color = if (on) l.bg else l.text,
+        color = ink,
         style = MaterialTheme.typography.labelLarge,
         textAlign = if (fill) androidx.compose.ui.text.style.TextAlign.Center else null,
         maxLines = 1,
@@ -40,8 +49,8 @@ internal fun Choice(text: String, on: Boolean, fill: Boolean = false, onClick: (
         modifier = Modifier
             .then(if (fill) Modifier.fillMaxWidth() else Modifier)
             .minimumInteractiveComponentSize()
-            .background(if (on) l.text else l.surface2, shape)
-            .border(1.dp, if (on) l.text else l.border, shape)
+            .background(fillColor, shape)
+            .border(1.dp, edge, shape)
             .selectable(on, role = Role.RadioButton) {
                 if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                 onClick()
