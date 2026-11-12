@@ -39,9 +39,15 @@ const same = (q: string) => q.toLowerCase().replace(/[\s?!.]+$/, "");
 const notAsked = (asked: readonly string[]) => (q: string) =>
   !asked.some((a) => same(a) === same(q));
 
-const mia2Next = (asked: readonly string[], topic: MiaTopic) =>
-  mia2Starters(topic)
-    .concat(Object.values(MIA2_TOPICS).flat())
+/** After her routine, what one asks next about that week or that month. */
+const ROUTINE_NEXT: Record<Mia2Rotina["tipo"], readonly string[]> = {
+  semana: ["Quanto vem nas próximas faturas?", "Este mês está melhor que o anterior?"],
+  mes: ["Quais foram as maiores saídas do mês passado?", "Como chego a 20% guardado?"],
+};
+
+const mia2Next = (asked: readonly string[], topic: MiaTopic, rotina?: Mia2Rotina["tipo"]) =>
+  (rotina ? ROUTINE_NEXT[rotina] : [])
+    .concat(mia2Starters(topic), Object.values(MIA2_TOPICS).flat())
     .filter((q, i, all) => all.indexOf(q) === i)
     .filter(notAsked(asked))
     .slice(0, 2);
@@ -61,8 +67,8 @@ interface Turn {
   readonly n: number;
   /** The owner's question, or the name of her routine. */
   readonly pergunta: string;
-  /** Hers, by herself (Sunday's week, the month closed): its day, where a question would be. */
-  readonly rotina?: string | undefined;
+  /** Hers, by herself (Sunday's week, the month closed): her routine's name stands for a question. */
+  readonly rotina?: Mia2Rotina["tipo"] | undefined;
   readonly parts: readonly Part[];
   /**
    * How it ended, when it did not simply end: stopped, conversation too long, she could not finish
@@ -267,7 +273,7 @@ const takeRoutine = (r: Mia2Rotina) => {
     ...EMPTY,
     limited: chat.limited,
     sessao: r.sessao,
-    turns: [{ n: 0, pergunta: r.titulo, rotina: r.dia, parts, end: null }],
+    turns: [{ n: 0, pergunta: r.titulo, rotina: r.tipo, parts, end: null }],
     cleared: chat.turns.length > 0 ? chat : null,
   });
 };
@@ -813,7 +819,8 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
       return;
     }
     if (!last.current) return;
-    if (here !== document.body && here !== input.current && !body.current?.contains(here)) return;
+    const ours = here === document.body || here === input.current || here === title.current;
+    if (!ours && !body.current?.contains(here)) return;
     last.current.focus({ preventScroll: true });
   }, [finished]);
   // Desfazer after "Nova conversa" stays a few seconds, as after a launch.
@@ -855,7 +862,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const next =
     turns.length === 0 || typed.trim() || pending || showing || resting || full
       ? []
-      : mia2Next(asked, topic);
+      : mia2Next(asked, topic, turns[0]?.rotina);
 
   return (
     <>
@@ -892,9 +899,9 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
             A Mia descansa até {shortDate(s.pausadaAte)}. Os números seguem nas telas.
           </p>
         )}
-        {cleared && turns.length === 0 && (
+        {cleared && (
           <div className="toast inline" role="status">
-            <span>Conversa apagada</span>
+            <span>{turns.length === 0 ? "Conversa apagada" : "Conversa anterior apagada"}</span>
             <button type="button" className="ghost small" onClick={undo}>
               Desfazer
             </button>
@@ -935,10 +942,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                   className={here.has(t.n) ? "fresh" : undefined}
                 >
                   {t.rotina ? (
-                    <p className="mia-routine">
-                      {t.pergunta}
-                      <span> · {shortDate(t.rotina)}</span>
-                    </p>
+                    <p className="mia-routine">{t.pergunta}</p>
                   ) : (
                     <p className="mia-q">{t.pergunta}</p>
                   )}

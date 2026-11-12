@@ -81,7 +81,7 @@ object Fakes {
         }
         val line = { t: String, id: String -> dev.johnlaff.neko.data.Mia2Line(t, id = id) }
         val r = if (tipo == "semana") dev.johnlaff.neko.data.Mia2Rotina(
-            "semana:2026-11-15", "semana", "Resumo da semana", "2026-11-15", "sesn_0000000001",
+            "semana:2026-11-15", "semana", "Semana de 8 a 14 nov", "2026-11-15", "sesn_0000000001",
             listOf(
                 line("mensagem", "m1").copy(
                     texto = "A semana levou **R$ 812,40** em cartões e Pix, R$ 207,60 a menos que a anterior.",
@@ -98,13 +98,16 @@ object Fakes {
             "mes:2026-11-01", "mes", "Fechamento de outubro", "2026-11-01", "sesn_0000000002",
             listOf(
                 line("mensagem", "m1").copy(
-                    texto = "Outubro fechou com **R$ 640,15** guardados, 9% das entradas. O método pede de 20% a 30%.",
-                    valores = mapOf("R$ 640,15" to dev.johnlaff.neko.data.Mia2Valor(true, "mes", "2026-10")),
+                    texto = "Outubro fechou **R$ 1.180,40 no vermelho**. Guardou R$ 640,15, abaixo da meta de 20% a 30%.",
+                    valores = mapOf(
+                        "R$ 1.180,40" to dev.johnlaff.neko.data.Mia2Valor(true, "mes", "2026-10"),
+                        "R$ 640,15" to dev.johnlaff.neko.data.Mia2Valor(true, "mes", "2026-10"),
+                    ),
                 ),
                 line("numeros", "n1").copy(
                     numeros = listOf(
-                        dev.johnlaff.neko.data.Mia2Numero("Resultado do mês", -1180.4, null, "mes", "2026-10"),
-                        dev.johnlaff.neko.data.Mia2Numero("Diário médio", 92.3, "por dia", "mes", "2026-10"),
+                        dev.johnlaff.neko.data.Mia2Numero("Guardado", 640.15, "9% das entradas", "mes", "2026-10"),
+                        dev.johnlaff.neko.data.Mia2Numero("Diário médio", 92.3, null, "mes", "2026-10"),
                     ),
                 ),
                 line("grafico", "g1").copy(

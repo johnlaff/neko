@@ -1,4 +1,4 @@
-import { type LocalDate, weekday } from "@neko/engine";
+import { addDays, type LocalDate, weekday } from "@neko/engine";
 import type { Mia2Line, Mia2Rotina } from "../shared/types.ts";
 import { type Mia2Setup, runTurn, type TurnDeps } from "./mia2.ts";
 import type { Reminder } from "./push.ts";
@@ -21,7 +21,7 @@ const ASIDE =
 
 export const ROUTINE_PROMPT: Record<RoutineKind, string> = {
   semana: `Rotina de domingo do Neko. ${ASIDE} Faça o resumo da semana que terminou ontem: uma frase curta com o que cartões e Pix levaram na semana, em negrito, e como foi contra a semana anterior; e o quadro de números com dois valores: quanto ainda cabe no teto do mês e a próxima conta ou fatura a vencer, com o dia na nota. Use as ferramentas semana e hoje.`,
-  mes: `Rotina do primeiro dia do mês do Neko. ${ASIDE} Feche o mês passado (a ferramenta periodo diz qual é): uma frase curta sobre como ele fechou, com o guardado em negrito e a parte das entradas que ele foi, que o método quer entre vinte e trinta por cento; o quadro de números com o resultado do mês e o diário médio por dia; e um gráfico de barras do guardado nos seis últimos meses, até o mês passado. Use as ferramentas periodo, mes e resumo_meses.`,
+  mes: `Rotina do primeiro dia do mês do Neko. ${ASIDE} Feche o mês passado (a ferramenta periodo diz qual é): uma frase curta que comece pelo resultado do mês, em negrito, e diga quanto foi guardado e, se ficou abaixo, a meta do método, de vinte a trinta por cento das entradas; o quadro de números com dois valores: o guardado, com a nota só com a parte das entradas que ele foi, e o diário médio, sem nota; e um gráfico de barras do guardado nos seis últimos meses, até o mês passado. Use as ferramentas periodo, mes e resumo_meses.`,
 };
 
 const MONTHS = [
@@ -45,9 +45,22 @@ const closedMonth = (today: string) => {
   return MONTHS[(m + 10) % 12] ?? "";
 };
 
-/** What stands where a question would. */
+/** `8 nov`, as the screens write a day. */
+const day = (d: LocalDate) =>
+  `${Number(d.slice(8, 10))} ${(MONTHS[Number(d.slice(5, 7)) - 1] ?? "").slice(0, 3)}`;
+
+/** Sunday's week, the seven days before it: "8 a 14 nov", or "29 nov a 5 dez" across months. */
+const weekOf = (today: LocalDate) => {
+  const from = addDays(today, -7);
+  const to = addDays(today, -1);
+  return from.slice(5, 7) === to.slice(5, 7)
+    ? `${Number(from.slice(8, 10))} a ${day(to)}`
+    : `${day(from)} a ${day(to)}`;
+};
+
+/** What stands where a question would, saying which week or month it is. */
 export const routineTitle = (kind: RoutineKind, today: LocalDate): string =>
-  kind === "semana" ? "Resumo da semana" : `Fechamento de ${closedMonth(today)}`;
+  kind === "semana" ? `Semana de ${weekOf(today)}` : `Fechamento de ${closedMonth(today)}`;
 
 type Kept = Mia2Rotina["partes"][number];
 
