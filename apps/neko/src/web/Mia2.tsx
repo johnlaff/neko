@@ -781,12 +781,19 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                 else back();
               }}
             />
+            {/* Two elements, not one that changes type: a Parar click that turns it into Enviar
+                would otherwise submit the form and send what is in the field. */}
             {pending ? (
-              <button type="button" className="ghost mia-stop" onClick={() => halt(true)}>
+              <button
+                key="parar"
+                type="button"
+                className="ghost mia-stop"
+                onClick={() => halt(true)}
+              >
                 Parar
               </button>
             ) : (
-              <button type="submit" disabled={!typed.trim()}>
+              <button key="enviar" type="submit" disabled={!typed.trim()}>
                 Enviar
               </button>
             )}

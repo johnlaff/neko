@@ -82,7 +82,12 @@ const MIA_REPLY = {
 };
 
 /** Answers the API from fixtures and fails the test on any error the page logs or throws. */
-const open = async (page: Page, path: string, body = projection) => {
+const open = async (
+  page: Page,
+  path: string,
+  body = projection,
+  answers: Record<string, unknown> = API,
+) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
@@ -116,7 +121,7 @@ const open = async (page: Page, path: string, body = projection) => {
       return route.fulfill({ json: { ok: true } });
     if (pathname === "/api/projection")
       return route.fulfill({ contentType: "application/json", body });
-    if (pathname in API) return route.fulfill({ json: API[pathname] });
+    if (pathname in answers) return route.fulfill({ json: answers[pathname] });
     return route.fulfill({ status: 204 });
   });
   await page.goto(path);
@@ -236,6 +241,32 @@ test("the Diário previsto paces the month, closes the day and asks for its revi
   await expect(page.getByRole("form", { name: "Diário previsto" })).toContainText(
     "um dia seu custa R$ 100,00",
   );
+  expect(errors).toEqual([]);
+});
+
+test("Parar on Mia 2 keeps a question typed during her answer, unsent", async ({ page }) => {
+  const errors = await open(page, "/mia", projection, {
+    ...API,
+    "/api/mia": { ligada: true, usadoPct: 3, pausadaAte: null, versao: 2 },
+  });
+  const asked: string[] = [];
+  // She takes her time: the answer is still on its way when Parar is tapped.
+  await page.route("**/api/mia2", async (route) => {
+    asked.push(route.request().postDataJSON().pergunta);
+    await new Promise((r) => setTimeout(r, 5_000));
+    await route.fulfill({ status: 200, body: "" }).catch(() => undefined);
+  });
+  await page.getByRole("button", { name: "Quanto ainda cabe este mês?" }).click();
+  const field = page.getByRole("textbox", { name: "Pergunta para a Mia" });
+  await field.fill("E a fatura de dezembro?");
+  await field.press("Enter");
+  await expect(page.getByText("Sua pergunta vai quando ela terminar.")).toBeVisible();
+  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: "Parar" }).click();
+  await expect(page.getByText("Você parou esta resposta.")).toBeVisible();
+  await expect(field).toHaveValue("E a fatura de dezembro?");
+  await expect(page.getByRole("button", { name: "Enviar" })).toBeEnabled();
+  expect(asked).toEqual(["Quanto ainda cabe este mês?"]);
   expect(errors).toEqual([]);
 });
 
