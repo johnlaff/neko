@@ -67,6 +67,68 @@ object Fakes {
         ),
     )
 
+    /** Mia 2 in screenshots: answers are set by hand, nothing is asked. */
+    val mia2Talk = object : dev.johnlaff.neko.ui.Mia2Talk {
+        override fun ask(ask: dev.johnlaff.neko.data.Mia2Ask) = kotlinx.coroutines.flow.emptyFlow<dev.johnlaff.neko.data.Mia2Line>()
+        override suspend fun stop(sessao: String) = Unit
+    }
+
+    /** The same invented answers as the site's Mia 2 preview: a bar chart, then a two-line chart. */
+    fun mia2Chat() = dev.johnlaff.neko.ui.Mia2Chat().apply {
+        val ok = { tela: String, mes: String? -> dev.johnlaff.neko.data.Mia2Valor(true, tela, mes) }
+        val months = listOf("jun", "jul", "ago", "set", "out", "nov")
+        val saidas = listOf(3950.2, 4410.8, 3720.0, 4630.55, 4180.4, 2140.0)
+        turns = listOf(
+            dev.johnlaff.neko.ui.Mia2Turno(
+                0,
+                "Como foram meus últimos 6 meses?",
+                listOf(
+                    dev.johnlaff.neko.ui.Mia2Texto(
+                        "m1",
+                        "Outubro fechou em **R$ 4.180,40** de saídas, R$ 380 acima do teto de R$ 3.800.\n\n- Faturas: R$ 3.020,15\n- Pix e débito: R$ 1.160,25\n\nNovembro vai melhor: R$ 2.140 em 12 dias.",
+                        mapOf(
+                            "R$ 4.180,40" to ok("mes", "2026-10"),
+                            "R$ 380" to ok("mes", "2026-10"),
+                            "R$ 3.800" to ok("hoje", null),
+                            "R$ 3.020,15" to ok("faturas", null),
+                            "R$ 1.160,25" to ok("mes", "2026-10"),
+                            "R$ 2.140" to dev.johnlaff.neko.data.Mia2Valor(false),
+                        ),
+                    ),
+                    dev.johnlaff.neko.ui.Mia2Desenho(
+                        "g1",
+                        dev.johnlaff.neko.data.Mia2Grafico(
+                            "Saídas por mês", "barras", months,
+                            listOf(dev.johnlaff.neko.data.Mia2Serie("Saídas", saidas)),
+                            "Novembro vai até o dia 12.",
+                        ),
+                    ),
+                ),
+            ),
+            dev.johnlaff.neko.ui.Mia2Turno(
+                1,
+                "E o saldo, como ficou?",
+                listOf(
+                    dev.johnlaff.neko.ui.Mia2Desenho(
+                        "g2",
+                        dev.johnlaff.neko.data.Mia2Grafico(
+                            "Entradas e saídas", "linha", months,
+                            listOf(
+                                dev.johnlaff.neko.data.Mia2Serie("Entradas", listOf(6020.0, 6020.0, 6100.0, 3918.25, 7384.07, 7384.07)),
+                                dev.johnlaff.neko.data.Mia2Serie("Saídas", saidas),
+                            ),
+                        ),
+                    ),
+                    dev.johnlaff.neko.ui.Mia2Texto(
+                        "m2",
+                        "As entradas ficaram acima das saídas em 4 dos 6 meses. O pior foi setembro, com **R$ 712,30** a menos.",
+                        mapOf("R$ 712,30" to ok("mes", "2026-09")),
+                    ),
+                ),
+            ),
+        )
+    }
+
     /** An invented bank, the same one the site's smoke test uses (e2e/smoke.spec.ts). */
     val banks = BanksList(
         BanksView(

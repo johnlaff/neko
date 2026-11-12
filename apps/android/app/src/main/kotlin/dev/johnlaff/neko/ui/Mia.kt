@@ -482,7 +482,7 @@ private fun MiaTurnItem(
 
 /** Three soft dots that breathe while Mia works, as on the site. */
 @Composable
-private fun WaitDots() {
+internal fun WaitDots() {
     val l = LocalLedger.current
     // Still when the phone asks for no animations.
     val resolver = LocalContext.current.contentResolver
@@ -517,7 +517,7 @@ fun MiaText(reply: MiaReply, onOpen: (String, String?) -> Unit) {
 }
 
 @Composable
-private fun Suggestion(text: String, wrap: Boolean = false, onClick: () -> Unit) {
+internal fun Suggestion(text: String, wrap: Boolean = false, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(50)
     Text(

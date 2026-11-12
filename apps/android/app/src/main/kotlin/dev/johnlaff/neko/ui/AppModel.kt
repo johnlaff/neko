@@ -367,6 +367,15 @@ class AppModel(
     /** Mia's conversation, kept while the app lives, so leaving her screen and coming back finds it. */
     val miaChat = MiaChat()
 
+    /** Mia 2: her answer as it streams, and Stop; the Worker runs her agent and checks every R$. */
+    val mia2Talk = object : Mia2Talk {
+        override fun ask(ask: dev.johnlaff.neko.data.Mia2Ask) = neko.api.askMia2(ask)
+        override suspend fun stop(sessao: String) = neko.api.stopMia2(sessao)
+    }
+
+    /** Mia 2's conversation, kept like the first one's. */
+    val mia2Chat = Mia2Chat()
+
     /** Simular; the Worker does the math, as for every other figure, and saves nothing. */
     suspend fun scenarios(changes: List<ScenarioChange>): List<ScenarioView> = neko.api.scenarios(ScenarioBody(changes = changes))
 

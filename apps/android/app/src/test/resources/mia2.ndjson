@@ -1,0 +1,7 @@
+{"t":"status","texto":"Abrindo a conversa…"}
+{"t":"sessao","id":"sesn_0000000001"}
+{"t":"status","texto":"Lendo os meses…"}
+{"t":"parcial","id":"m1","texto":"Outubro fechou em "}
+{"t":"mensagem","id":"m1","texto":"Outubro fechou em **R$ 4.180,40**, menos que os R$ 4.630,55 de setembro.","valores":{"R$ 4.180,40":{"conferido":true,"tela":"mes","mes":"2026-10"},"R$ 4.630,55":{"conferido":true,"tela":"mes","mes":"2026-09"}}}
+{"t":"grafico","id":"c1","grafico":{"titulo":"Saídas por mês","tipo":"barras","rotulos":["set","out"],"series":[{"nome":"Saídas","valores":[4630.55,4180.4]}]}}
+{"t":"fim"}

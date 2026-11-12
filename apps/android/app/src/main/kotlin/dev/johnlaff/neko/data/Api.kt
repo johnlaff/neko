@@ -3,6 +3,10 @@ package dev.johnlaff.neko.data
 import java.io.IOException
 import java.time.Duration
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -39,6 +43,9 @@ class Api(
      * sheet may wait on Google's minute quota. Both get the longer wait.
      */
     private val patient = client.newBuilder().readTimeout(MIA_WAIT).callTimeout(MIA_WAIT).build()
+
+    /** Mia 2's turn may run for minutes (tools, code, a chart), her answer streaming all along. */
+    private val streaming = client.newBuilder().readTimeout(MIA2_WAIT).callTimeout(MIA2_WAIT).build()
 
     /** Reading a bill PDF: two careful reads at most. */
     private val slow = client.newBuilder().readTimeout(PDF_WAIT).callTimeout(PDF_WAIT).build()
@@ -251,6 +258,33 @@ class Api(
         return json.decodeFromString(call("/mia", body, via = patient))
     }
 
+    /** Mia 2: her answer line by line as she works; stopping the collection hangs up. */
+    fun askMia2(ask: Mia2Ask): Flow<Mia2Line> = callbackFlow {
+        val body = json.encodeToString(Mia2Ask.serializer(), ask).toRequestBody(jsonType)
+        val call = streaming.newCall(Request.Builder().url("$baseUrl/api/mia2").post(body).build())
+        launch(Dispatchers.IO) {
+            try {
+                call.execute().use { res ->
+                    if (!res.isSuccessful) throw ApiException(res.code, "unknown", res.message)
+                    val source = res.body.source()
+                    while (true) {
+                        val line = source.readUtf8Line() ?: break
+                        if (line.isNotBlank()) send(json.decodeFromString(Mia2Line.serializer(), line))
+                    }
+                }
+                channel.close()
+            } catch (e: Throwable) {
+                channel.close(e)
+            }
+        }
+        awaitClose { call.cancel() }
+    }
+
+    /** Stop: her turn is interrupted where it is; what she wrote stays. */
+    suspend fun stopMia2(sessao: String) {
+        call("/mia2/parar", buildJsonObject { put("sessao", sessao) }.asBody())
+    }
+
     /** WebAuthn request options, as JSON for Credential Manager. */
     suspend fun passkeyLoginOptions(): String = call("/passkey/login/options", JsonObject(emptyMap()).asBody())
 
@@ -271,6 +305,9 @@ class Api(
 data class BanksAnswer(val ok: Boolean, val signIn: Boolean)
 
 val MIA_WAIT: Duration = Duration.ofSeconds(90)
+
+/** Mia 2's whole turn, as the site waits for it (MIA2_WAIT): the Worker stops her at four minutes. */
+val MIA2_WAIT: Duration = Duration.ofSeconds(300)
 val PDF_WAIT: Duration = Duration.ofSeconds(300)
 
 @Serializable

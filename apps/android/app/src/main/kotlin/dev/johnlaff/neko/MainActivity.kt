@@ -55,6 +55,7 @@ import dev.johnlaff.neko.ui.LockSwitch
 import dev.johnlaff.neko.ui.LoginScreen
 import dev.johnlaff.neko.ui.MesScreen
 import dev.johnlaff.neko.ui.MiaScreen
+import dev.johnlaff.neko.ui.Mia2Screen
 import androidx.lifecycle.viewModelScope
 import dev.johnlaff.neko.ui.NekoTheme
 import dev.johnlaff.neko.ui.BanksList
@@ -114,7 +115,7 @@ class MainActivity : ComponentActivity() {
                             fromMia = false
                             miaOpen = true
                         },
-                        talking = { model.miaChat.talk.isNotEmpty() },
+                        talking = { model.miaChat.talk.isNotEmpty() || model.mia2Chat.turns.isNotEmpty() },
                     )
                 }
                 val closeMia = {
@@ -222,6 +223,14 @@ class MainActivity : ComponentActivity() {
                             ) { place ->
                             if (place == "simular") {
                                 SimularScreen(model::scenarios, onBack = { simOpen = false }, onAjustes = { simOpen = false; go(Tab.Ajustes) })
+                            } else if (place == "mia" && mia?.versao == 2) {
+                                Mia2Screen(
+                                    mia, model.mia2Talk, model.mia2Chat, model.viewModelScope,
+                                    onBack = closeMia,
+                                    onScreen = { tela -> leaveMia { toScreen(tela) } },
+                                    onMonth = { key -> leaveMia { toMonth(key) } },
+                                    topic = miaTopic,
+                                )
                             } else if (place == "mia") {
                                 MiaScreen(
                                     mia, model::askMia, model.miaChat, model.viewModelScope,

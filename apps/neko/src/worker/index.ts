@@ -26,7 +26,7 @@ import {
   simulateView,
 } from "../shared/screens.ts";
 import { todayView } from "../shared/today.ts";
-import type { BanksResponse, MiaStatus } from "../shared/types.ts";
+import type { BanksResponse, Mia2Line, MiaStatus } from "../shared/types.ts";
 import { assetLinks } from "./android.ts";
 import {
   endSession,
@@ -194,6 +194,8 @@ app.use("/banks", requireSession);
 app.use("/banks/*", requireSession);
 app.use("/mia", requireSession);
 app.use("/mia/*", requireSession);
+app.use("/mia2", requireSession);
+app.use("/mia2/*", requireSession);
 app.use("/entries", requireSession);
 app.use("/entries/*", requireSession);
 app.use("/queue/*", requireSession);
@@ -527,14 +529,87 @@ const nextMonthStart = (today: string) => {
 /** Whether Mia is on, and how much of the month's cap is spent (specs/004-mia). */
 app.get("/mia", async (c) => {
   const today = todayIn(new Date());
-  if (!c.env.ANTHROPIC_API_KEY) return c.json(miaStatus(false, 0, today));
-  return c.json(miaStatus(true, await spentThisMonth(c.env.DB, today), today));
+  if (!c.env.ANTHROPIC_API_KEY) return c.json(miaStatus(false, 0, today, 1));
+  const spent = await spentThisMonth(c.env.DB, today);
+  return c.json(miaStatus(true, spent, today, mia2On(c.env) ? 2 : 1));
 });
 
-const miaStatus = (on: boolean, spent: number, today: string): MiaStatus => ({
+const miaStatus = (on: boolean, spent: number, today: string, versao: 1 | 2): MiaStatus => ({
   ligada: on,
   usadoPct: Math.min(100, Math.floor((spent / CAP_MICRO_USD) * 100)),
   pausadaAte: spent >= CAP_MICRO_USD ? nextMonthStart(today) : null,
+  versao,
+});
+
+/** Mia 2 needs the API key, the token her agent reads the Neko with, and this site's address. */
+const mia2On = (env: Env) => Boolean(env.ANTHROPIC_API_KEY && env.MIA_MCP_TOKEN && env.SITE_URL);
+
+const Mia2AskBody = z.object({
+  pergunta: z.string().trim().min(1).max(1000),
+  sessao: z
+    .string()
+    .regex(/^sesn_[A-Za-z0-9]{8,64}$/)
+    .optional(),
+});
+
+/**
+ * Mia 2 (mia2.ts): one question, answered as NDJSON lines while her agent works. The turn runs to
+ * its end even when the phone leaves, so her chart calls are answered and the cost is booked.
+ */
+app.post("/mia2", async (c) => {
+  const { ANTHROPIC_API_KEY: key, MIA_MCP_TOKEN: token, SITE_URL: site } = c.env;
+  if (!key || !token || !site) throw new HTTPException(404);
+  const parsed = Mia2AskBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw new HTTPException(400);
+  const today = todayIn(new Date());
+  const spent = await spentThisMonth(c.env.DB, today);
+  if (spent >= CAP_MICRO_USD) return c.json({ pausadaAte: nextMonthStart(today) }, 429);
+  // Loaded on her first question only: the SDK stays out of every other request's start-up.
+  const [{ default: Anthropic }, { ensureSetup, runTurn }] = await Promise.all([
+    import("@anthropic-ai/sdk"),
+    import("./mia2.ts"),
+  ]);
+  const client = new Anthropic({ apiKey: key });
+  const setup = await ensureSetup(client, c.env.DB, site, token);
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = writable.getWriter();
+  const encoder = new TextEncoder();
+  let open = true;
+  const write = (line: Mia2Line) => {
+    if (!open) return;
+    writer.write(encoder.encode(`${JSON.stringify(line)}\n`)).catch(() => {
+      open = false;
+    });
+  };
+  const deps = { client, db: c.env.DB, today, now: () => new Date(), spentMicroUsd: spent, write };
+  const turn = runTurn(deps, setup, parsed.data)
+    .catch((e) => {
+      console.error("mia2", e);
+      Sentry.captureException(e);
+      write({ t: "erro", motivo: "falha" });
+    })
+    .finally(() => writer.close().catch(() => undefined));
+  c.executionCtx.waitUntil(turn);
+  return new Response(readable, {
+    headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" },
+  });
+});
+
+/** Stop: her turn is interrupted; the open answer ends on its own and keeps what she said. */
+app.post("/mia2/parar", async (c) => {
+  const { ANTHROPIC_API_KEY: key } = c.env;
+  if (!mia2On(c.env) || !key) throw new HTTPException(404);
+  const parsed = Mia2AskBody.pick({ sessao: true })
+    .required()
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw new HTTPException(400);
+  const [{ default: Anthropic }, { stopTurn }] = await Promise.all([
+    import("@anthropic-ai/sdk"),
+    import("./mia2.ts"),
+  ]);
+  const ok = await stopTurn(new Anthropic({ apiKey: key }), c.env.DB, parsed.data.sessao);
+  if (!ok) throw new HTTPException(404);
+  return c.body(null, 204);
 });
 
 app.post("/mia", async (c) => {
