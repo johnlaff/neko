@@ -122,7 +122,8 @@ class ScreenshotTest {
 
     @Test fun mesDark() = shot("mes-dark", night = true) { MesScreen(ScreenState(months), Fakes.history) {} }
 
-    @Test fun mesReserva() = shot("mes-reserva-dark", night = true) {
+    /** On the way, "Como funciona" opened: the steps, the cost of living and the method's rule. */
+    @Test fun mesReserva() = shot("mes-reserva-dark", night = true, tap = "Como funciona") {
         dev.johnlaff.neko.ui.ReservePanel(months.reserve!!, months.steps!!, months.years.lastOrNull())
     }
 

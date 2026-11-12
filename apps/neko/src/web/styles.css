@@ -1900,16 +1900,9 @@ fieldset.chip-radios {
 .reserve > .meter > span {
   background: var(--accent);
 }
-.reserve > .note {
-  margin: 12px 0 0;
-  font-size: 0.875rem;
-}
-/* The steps, then the method's rule: one note in two short paragraphs */
-.reserve > .note > p {
-  margin: 0;
-}
-.reserve > .note > p + p {
-  margin-top: 4px;
+/* Behind "Como funciona", the steps' line sits apart from the ledger under it. */
+.reserve details.formula > p + dl {
+  margin-top: 12px;
 }
 @keyframes grow-x {
   from {
@@ -3279,20 +3272,12 @@ details.mia-chart-table th[scope="row"] {
   letter-spacing: -0.01em;
   margin-right: 4px;
 }
-/* The next step, right under its meter: the one line to act on, and what to do under it */
-.panel.reserve > .reserve-next {
-  display: grid;
-  gap: 2px;
-  margin-bottom: 4px;
-}
-.panel.reserve > .reserve-next > p {
+/* The next step, right under its meter: the one line to act on */
+.panel.reserve > p.reserve-next {
   margin: 0;
-  font-size: 0.875rem;
-  font-variant-numeric: tabular-nums;
-}
-.panel.reserve > .reserve-next > p:first-child {
   font-size: 0.9375rem;
   font-weight: 550;
+  font-variant-numeric: tabular-nums;
 }
 /* Faturas: the usual card's bank mark before its name, smaller than a row's */
 .panel-head > h2.with-mark {
