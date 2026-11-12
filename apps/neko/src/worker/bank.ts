@@ -219,6 +219,7 @@ export const bankInput = (
         description: t.description,
         account: t.account_id,
         ...(t.id ? { id: t.id } : {}),
+        ...(t.status === "PENDING" ? { pending: true } : {}),
       });
   }
   // A closed bill's total is final, though the bank may leave a line or two out of the list. With

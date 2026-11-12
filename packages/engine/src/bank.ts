@@ -302,6 +302,8 @@ export interface BankMovement {
   readonly account?: string;
   /** The bank's id for it, so a decision about it (launched, ignored) sticks. */
   readonly id?: string;
+  /** The bank lists it but has not confirmed it yet. */
+  readonly pending?: boolean;
 }
 
 /** Bank text without numbers and punctuation: "PIX RECEBIDO 0710 FULANO" → "pix recebido fulano". */
@@ -338,6 +340,8 @@ export const MATCH_DAYS = 7;
  * the due day, so the money set aside for it is already gone from yesterday's Saldo. Nor is any
  * movement the sheet already holds on an earlier day: the bank sometimes dates again today what
  * left days ago, and if it did leave today, the sheet took it out before yesterday's Saldo too.
+ * A card bill the bank lists as pending on its due day is not off the balance yet either: the
+ * bank schedules the automatic debit in the morning and takes the money later in the day.
  * `all` is every account's movements, so a sheet line goes to the movement that really took it.
  */
 export const movedToday = (
@@ -364,6 +368,7 @@ export const movedToday = (
         (m) =>
           !earlier.has(m) &&
           !isAutoInvest(m.description) &&
+          !(m.pending && m.amount < 0 && BILL_PAYMENT.test(m.description)) &&
           !(
             m.amount < 0 &&
             BILL_PAYMENT.test(m.description) &&
