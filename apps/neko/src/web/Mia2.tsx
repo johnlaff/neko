@@ -74,6 +74,8 @@ interface Chat {
   /** What she is doing, while she is not writing. */
   readonly status: string | null;
   readonly limited: boolean;
+  /** The conversation "Nova conversa" just cleared, for Desfazer while it shows. */
+  readonly cleared: Chat | null;
 }
 const EMPTY: Chat = {
   sessao: null,
@@ -81,6 +83,7 @@ const EMPTY: Chat = {
   pending: null,
   status: null,
   limited: false,
+  cleared: null,
 };
 let chat: Chat = EMPTY;
 const listeners = new Set<() => void>();
@@ -123,6 +126,7 @@ const ask = async (pergunta: string, onLimit: () => void) => {
     turns: [...chat.turns, { n, pergunta, parts: [], end: null }],
     pending: { n, since: Date.now() },
     status: null,
+    cleared: null,
   });
   let ended = false;
   let monthLimit = false;
@@ -190,18 +194,25 @@ const stop = () => {
   setChat({ pending: null, status: null });
 };
 
-/** Asks a question that got no answer again, in its place. */
+/** Asks again, in its place, a question that got no answer or whose answer was stopped. */
 const retry = (onLimit: () => void) => {
   const t = chat.turns.at(-1);
-  if (!t || t.end !== "falhou" || chat.pending) return;
+  if (!t || (t.end !== "falhou" && t.end !== "parou") || chat.pending) return;
   setChat({ turns: chat.turns.slice(0, -1) });
   void ask(t.pergunta, onLimit);
 };
 
 const restart = () => {
   if (chat.pending) stop();
-  setChat({ ...EMPTY, limited: chat.limited });
+  setChat({ ...EMPTY, limited: chat.limited, cleared: chat.turns.length > 0 ? chat : null });
 };
+
+/** Brings back the conversation "Nova conversa" cleared. */
+const undoRestart = () => {
+  if (chat.cleared && !chat.pending) setChat({ ...chat.cleared, cleared: null });
+};
+/** How long Desfazer stays after "Nova conversa", as after a launch. */
+const UNDO_MS = 10_000;
 
 /** Values in reais keep their place but say nothing while values are hidden. */
 const Value = ({
@@ -218,6 +229,12 @@ const Value = ({
 }) => {
   const shown = hidden ? HIDDEN_MONEY : texto;
   if (!v) return <span className="mia-value">{shown}</span>;
+  const where =
+    v.tela === "faturas"
+      ? "ver faturas"
+      : v.mes
+        ? `ver ${monthName(Number(v.mes.slice(5, 7)))}`
+        : "ver o mês";
   if (!v.conferido)
     return (
       <span className="mia-value unchecked" aria-describedby={note}>
@@ -227,12 +244,18 @@ const Value = ({
   // Hoje is where she is opened from; a simulation is not kept anywhere to go back to.
   if (v.tela === "faturas" || v.tela === "mes")
     return (
-      <ScreenLink v={{ tela: v.tela, mes: v.mes }} className="mia-value">
+      <ScreenLink
+        v={{ tela: v.tela, mes: v.mes }}
+        className="mia-value"
+        title={`${shown} · ${where}`}
+      >
         {shown}
       </ScreenLink>
     );
   return <span className="mia-value">{shown}</span>;
 };
+
+const NOT_CHECKED: Mia2Valor = { conferido: false };
 
 const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -242,11 +265,14 @@ const Inline = ({
   valores,
   hidden,
   note,
+  stopped,
 }: {
   text: string;
   valores: Readonly<Record<string, Mia2Valor>> | null;
   hidden: boolean;
   note?: string | undefined;
+  /** The text of an answer stopped before the check: its values carry the unchecked mark. */
+  stopped: boolean;
 }) => {
   const keys = Object.keys(valores ?? {}).sort((a, b) => b.length - a.length);
   // While the text is still coming, any R$ is plain (and hidden when values are).
@@ -258,7 +284,8 @@ const Inline = ({
     s.split(money).map((piece, i) => {
       const k = `${key}-${i}`;
       if (i % 2 === 0) return <Fragment key={k}>{piece}</Fragment>;
-      const node = <Value key={k} texto={piece} v={valores?.[piece]} hidden={hidden} note={note} />;
+      const v = valores?.[piece] ?? (stopped ? NOT_CHECKED : undefined);
+      const node = <Value key={k} texto={piece} v={v} hidden={hidden} note={note} />;
       return bold ? <strong key={k}>{node}</strong> : node;
     });
   return (
@@ -280,6 +307,7 @@ const Rich = ({
   hidden,
   lead,
   note,
+  stopped,
 }: {
   texto: string;
   valores: Readonly<Record<string, Mia2Valor>> | null;
@@ -287,6 +315,7 @@ const Rich = ({
   /** Her first paragraph is the answer: set like every Neko verdict. */
   lead: boolean;
   note?: string | undefined;
+  stopped: boolean;
 }) => {
   const blocks: { list: boolean; lines: string[] }[] = [];
   // A bold still being written shows plain until it closes.
@@ -318,7 +347,13 @@ const Rich = ({
               {b.lines.map((l, j) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: lines of one block, in order
                 <li key={j}>
-                  <Inline text={l} valores={valores} hidden={hidden} note={note} />
+                  <Inline
+                    text={l}
+                    valores={valores}
+                    hidden={hidden}
+                    note={note}
+                    stopped={stopped}
+                  />
                 </li>
               ))}
             </ul>
@@ -329,7 +364,13 @@ const Rich = ({
                 // biome-ignore lint/suspicious/noArrayIndexKey: lines of one block, in order
                 <Fragment key={j}>
                   {j > 0 && <br />}
-                  <Inline text={l} valores={valores} hidden={hidden} note={note} />
+                  <Inline
+                    text={l}
+                    valores={valores}
+                    hidden={hidden}
+                    note={note}
+                    stopped={stopped}
+                  />
                 </Fragment>
               ))}
             </p>
@@ -363,19 +404,28 @@ const sourcesOf = (t: Turn) => {
   return [...seen.values()].slice(0, 2);
 };
 
+const MONEY = /[−-]?\s?R\$\s?[−-]?\s?[\d.,]*\d/;
+
 /** The values of one piece of her text that came from nowhere. */
 const unchecked = (p: Part) =>
   p.k === "texto"
     ? Object.entries(p.valores ?? {}).flatMap(([k, v]) => (v.conferido ? [] : [k]))
     : [];
 
+/** Whether a stopped answer has values she never got to check. */
+const stoppedValues = (t: Turn) =>
+  t.end === "parou" &&
+  t.parts.some((p) => p.k === "texto" && p.valores === null && MONEY.test(p.texto));
+
 /** Her answer's pieces, each text followed by the note on its values that came from nowhere. */
 const Answer = ({ t, working, hidden }: { t: Turn; working: boolean; hidden: boolean }) => {
   const first = t.parts.find((p) => p.k === "texto")?.id;
+  const stoppedNote = stoppedValues(t) ? `mia-stopped-${t.n}` : undefined;
   return t.parts.map((p) => {
     if (p.k === "grafico") return <MiaChart key={p.id} grafico={p.grafico} />;
+    const stopped = t.end === "parou" && p.valores === null;
     const loose = working ? [] : unchecked(p);
-    const note = loose.length > 0 ? `mia-note-${t.n}-${p.id}` : undefined;
+    const note = stopped ? stoppedNote : loose.length > 0 ? `mia-note-${t.n}-${p.id}` : undefined;
     return (
       <Fragment key={p.id}>
         <Rich
@@ -384,14 +434,15 @@ const Answer = ({ t, working, hidden }: { t: Turn; working: boolean; hidden: boo
           hidden={hidden}
           lead={p.id === first}
           note={note}
+          stopped={stopped}
         />
-        {note && (
+        {loose.length > 0 && (
           <p className="mia-note warn" id={note}>
             {hidden ? (
               loose.length > 1 ? (
-                "Alguns valores não vieram"
+                "Alguns valores não estão"
               ) : (
-                "Um valor não veio"
+                "Um valor não está"
               )
             ) : (
               <>
@@ -401,10 +452,10 @@ const Answer = ({ t, working, hidden }: { t: Turn; working: boolean; hidden: boo
                     <span className="mia-value unchecked">{v}</span>
                   </Fragment>
                 ))}
-                {loose.length > 1 ? " não vieram" : " não veio"}
+                {loose.length > 1 ? " não estão" : " não está"}
               </>
             )}{" "}
-            dos números do Neko. Confira antes de usar.
+            nos números do Neko. Confira antes de usar.
           </p>
         )}
       </Fragment>
@@ -426,8 +477,12 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const router = useRouter();
   const status = useMiaStatus();
   const hidden = useValuesHidden();
-  const { turns, pending, limited, status: doing } = useChat();
+  const { turns, pending, limited, status: doing, cleared } = useChat();
   const [typed, setTyped] = useState("");
+  /** A question typed and sent while she answers: it goes when she is done. */
+  const [held, setHeld] = useState(false);
+  /** Said to a screen reader when an answer ends while the owner is typing the next question. */
+  const [told, setTold] = useState("");
   const last = useRef<HTMLLIElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -447,14 +502,37 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     last.current?.scrollIntoView({ block: "start", behavior: smooth() });
     if (document.activeElement === document.body) body.current?.focus({ preventScroll: true });
   }, [pending]);
-  // A finished answer takes the focus to be read, where it is (no jump), while the owner is still here.
+  // A finished answer takes the focus to be read, where it is (no jump), while the owner is still
+  // here. Typing the next question, or just after Parar, the field keeps it (the keyboard stays up):
+  // the answer is announced instead, and a question sent while she answered goes now.
   const finished = pending === null ? turns.length : -1;
+  const typedNow = useRef(typed);
+  typedNow.current = typed;
+  const heldNow = useRef(held);
+  heldNow.current = held;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per finished answer
   useEffect(() => {
+    if (finished <= 0) return;
     const here = document.activeElement;
-    if (finished <= 0 || !last.current) return;
+    const end = chat.turns.at(-1)?.end ?? null;
+    if (heldNow.current) {
+      setHeld(false);
+      if (end === null && typedNow.current.trim()) return send(typedNow.current);
+    }
+    if (here === input.current && (typedNow.current || end === "parou")) {
+      setTold(end === null ? "A Mia respondeu." : "");
+      return;
+    }
+    if (!last.current) return;
     if (here !== document.body && here !== input.current && !body.current?.contains(here)) return;
     last.current.focus({ preventScroll: true });
   }, [finished]);
+  // Desfazer after "Nova conversa" stays a few seconds, as after a launch.
+  useEffect(() => {
+    if (!cleared) return;
+    const timer = setTimeout(() => setChat({ cleared: null }), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [cleared]);
   const back = () => (canGoBack ? router.history.back() : navigate({ to: "/" }));
 
   const s = status.data;
@@ -463,7 +541,19 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     const pergunta = q.trim();
     if (!pergunta || chat.pending) return;
     setTyped("");
+    setTold("");
     void ask(pergunta, onLimit);
+  };
+  // Parar takes Enviar's place: a second tap on Enviar right after it is not a stop.
+  const halt = (tap: boolean) => {
+    if (!chat.pending || (tap && Date.now() - chat.pending.since < 600)) return;
+    setHeld(false);
+    stop();
+    input.current?.focus();
+  };
+  const undo = () => {
+    undoRestart();
+    input.current?.focus();
   };
   const newChat = () => {
     restart();
@@ -511,6 +601,14 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
             A Mia descansa até {shortDate(s.pausadaAte)}. Os números seguem nas telas.
           </p>
         )}
+        {cleared && turns.length === 0 && (
+          <div className="toast inline" role="status">
+            <span>Conversa apagada</span>
+            <button type="button" className="ghost small" onClick={undo}>
+              Desfazer
+            </button>
+          </div>
+        )}
         {turns.length === 0 && !pending && (
           <div className="mia-empty">
             <h2>{miaTitle(topic)}</h2>
@@ -529,7 +627,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
           </div>
         )}
         {turns.length > 0 && (
-          <ol className="mia-talk" aria-label="Conversa com a Mia">
+          <ol className="mia-talk v2" aria-label="Conversa com a Mia">
             {turns.map((t, i) => {
               const newest = i === turns.length - 1;
               const working = pending?.n === t.n;
@@ -546,11 +644,31 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                       </p>
                     </div>
                   )}
-                  {t.end === "parou" && <p className="mia-note">Você parou esta resposta.</p>}
+                  {t.end === "parou" && (
+                    <div className="mia-wait">
+                      <p
+                        className="mia-note"
+                        id={stoppedValues(t) ? `mia-stopped-${t.n}` : undefined}
+                      >
+                        {stoppedValues(t)
+                          ? "Você parou esta resposta. Os valores não foram conferidos."
+                          : "Você parou esta resposta."}
+                      </p>
+                      {newest && !resting && !pending && (
+                        <button
+                          type="button"
+                          className="text-link mia-retry"
+                          onClick={() => retry(onLimit)}
+                        >
+                          Perguntar de novo
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {t.end === "falhou" && (
                     <div className="mia-wait">
                       <p className="mia-status" aria-live="polite">
-                        Não consegui falar com a Mia agora.
+                        A Mia não respondeu. Confira a internet e tente de novo.
                       </p>
                       {newest && !resting && (
                         <button
@@ -593,9 +711,17 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
         <p className="mia-status" aria-live="polite">
           {limited ? "A Mia descansa até o mês que vem. Os números seguem nas telas." : ""}
         </p>
+        <p className="sr-only" aria-live="polite">
+          {told}
+        </p>
       </div>
       {s?.ligada && !resting && !full && (
         <div className="mia-composer">
+          {held && pending && (
+            <p className="mia-held" role="status">
+              Sua pergunta vai quando ela terminar.
+            </p>
+          )}
           {next.length > 0 && (
             <div className="mia-suggest" key={turns.length}>
               {next.map((q) => (
@@ -611,6 +737,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               e.preventDefault();
               // While she answers, Enter keeps the next question for when she is done.
               if (!pending) send(typed);
+              else if (typed.trim()) setHeld(true);
             }}
           >
             <input
@@ -621,17 +748,20 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               autoComplete="off"
               enterKeyHint="send"
               value={typed}
-              onChange={(e) => setTyped(e.target.value)}
+              onChange={(e) => {
+                setTyped(e.target.value);
+                if (!e.target.value.trim()) setHeld(false);
+              }}
               onKeyDown={(e) => {
                 if (e.key !== "Escape") return;
                 e.preventDefault();
-                if (pending) stop();
+                if (pending) halt(false);
                 else if (typed) setTyped("");
                 else back();
               }}
             />
             {pending ? (
-              <button type="button" className="ghost mia-stop" onClick={stop}>
+              <button type="button" className="ghost mia-stop" onClick={() => halt(true)}>
                 Parar
               </button>
             ) : (

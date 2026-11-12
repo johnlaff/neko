@@ -355,6 +355,40 @@ describe("mia2 turn", () => {
     expect(JSON.stringify(results[0])).toContain("9999");
   });
 
+  it("puts her answer before a chart she drew first", async () => {
+    const draw = (id: string): Ev => ({
+      type: "agent.custom_tool_use",
+      id,
+      name: CHART_TOOL,
+      input: {
+        titulo: "Saídas",
+        tipo: "barras",
+        rotulos: ["set", "out"],
+        series: [{ nome: "Saídas", valores: [4321.5, 3900] }],
+      },
+    });
+    const read = [
+      toolUse("u1", "resumo_meses", {}),
+      toolResult("u1", {
+        meses: [
+          { mes: "2026-09", saidas: 4321.5 },
+          { mes: "2026-10", saidas: 3900 },
+        ],
+      }),
+    ];
+    const kinds = async (stream: Ev[], pergunta: string) =>
+      (await turn(fakeApi({ streams: [stream] }), sqliteD1(), { pergunta }))
+        .filter((l) => l.t !== "status")
+        .map((l) => l.t);
+    const said = [message("m1", "Outubro caiu."), idle("end_turn")];
+    expect(
+      await kinds([...read, draw("c1"), idle("requires_action"), ...said], "Mostra as saídas"),
+    ).toEqual(["sessao", "mensagem", "grafico", "fim"]);
+    // A chart with no words after it still reaches the owner.
+    const only = [...read, draw("c2"), idle("requires_action"), idle("end_turn")];
+    expect(await kinds(only, "Só o gráfico")).toEqual(["sessao", "grafico", "fim"]);
+  });
+
   it("says when the conversation or the month reached its limit", async () => {
     const db = sqliteD1();
     const api = fakeApi({ streams: [[idle("budget_reached")]] });

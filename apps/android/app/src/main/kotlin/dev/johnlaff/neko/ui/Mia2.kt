@@ -151,6 +151,10 @@ class Mia2Chat {
     var limited by mutableStateOf(false)
     var typed by mutableStateOf("")
     var typing by mutableStateOf(false)
+    /** A question sent while she answers: it goes when she is done. */
+    var held by mutableStateOf(false)
+    /** The conversation "Nova conversa" just cleared, for Desfazer while it shows. */
+    var cleared by mutableStateOf<Pair<String?, List<Mia2Turno>>?>(null)
     private var job: Job? = null
 
     private fun patch(n: Int, fn: (Mia2Turno) -> Mia2Turno) {
@@ -200,6 +204,7 @@ class Mia2Chat {
         sentAt = System.currentTimeMillis()
         status = null
         typed = ""
+        cleared = null
         job = scope.launch {
             try {
                 var ended = false
@@ -220,6 +225,13 @@ class Mia2Chat {
                 if (pending == n) {
                     pending = null
                     status = null
+                    // The question sent while she answered goes now, after an answer that ended well.
+                    val next = typed.trim()
+                    if (held && turns.lastOrNull()?.end == null && next.isNotEmpty()) {
+                        held = false
+                        ask(next, scope, talk)
+                    }
+                    held = false
                 }
             }
         }
@@ -233,20 +245,31 @@ class Mia2Chat {
         patch(n) { it.copy(end = "parou") }
         pending = null
         status = null
+        held = false
     }
 
-    /** Asks a question that got no answer again, in its place. */
+    /** Asks again, in its place, a question that got no answer or whose answer was stopped. */
     fun retry(scope: CoroutineScope, talk: Mia2Talk) {
         val t = turns.lastOrNull() ?: return
-        if (t.end != "falhou" || pending != null) return
+        if ((t.end != "falhou" && t.end != "parou") || pending != null) return
         turns = turns.dropLast(1)
         ask(t.pergunta, scope, talk)
     }
 
     fun clear() {
         if (pending != null) return
+        cleared = if (turns.isEmpty()) null else sessao to turns
         turns = emptyList()
         sessao = null
+    }
+
+    /** Brings back the conversation "Nova conversa" cleared. */
+    fun undoClear() {
+        val (s, t) = cleared ?: return
+        if (pending != null) return
+        sessao = s
+        turns = t
+        cleared = null
     }
 }
 
@@ -304,6 +327,10 @@ fun mia2Sources(t: Mia2Turno): List<MiaSource> =
 /** The values of one piece of her text that came from nowhere. */
 fun mia2Loose(p: Mia2Texto): List<String> = p.valores.orEmpty().filterValues { !it.conferido }.keys.toList()
 
+/** Whether a stopped answer has values she never got to check. */
+fun mia2StoppedValues(t: Mia2Turno): Boolean =
+    t.end == "parou" && t.parts.any { it is Mia2Texto && it.valores == null && LOOSE_MONEY.containsMatchIn(it.texto) }
+
 /**
  * Mia 2's screen (the site's Mia2Screen): the first Mia's page, her answer written as it comes,
  * charts in the conversation, every R$ checked against the Neko's numbers, and Stop while she works.
@@ -348,8 +375,25 @@ fun Mia2Screen(
         val at = turns.indexOfFirst { it.n == n }
         if (at >= 0) list.animateScrollToItem(lead + at)
     }
-    // An answer done closes the keyboard it was asked from, so the answer shows.
-    LaunchedEffect(chat.pending == null) { if (chat.pending == null && chat.typing && turns.isNotEmpty()) focus.clearFocus() }
+    // An answer done closes the keyboard it was asked from, so the answer shows; never while the next
+    // question is being typed, nor after Parar, which hands the field back.
+    LaunchedEffect(chat.pending == null) {
+        if (chat.pending == null && chat.typing && turns.isNotEmpty() && chat.typed.isBlank() && turns.last().end != "parou") focus.clearFocus()
+    }
+    // Desfazer after "Nova conversa" stays a few seconds, as after a launch.
+    val a11y = androidx.compose.ui.platform.LocalAccessibilityManager.current
+    LaunchedEffect(chat.cleared) {
+        if (chat.cleared == null) return@LaunchedEffect
+        delay(a11y?.calculateRecommendedTimeoutMillis(UNDO_MS, containsIcons = false, containsText = true, containsControls = true) ?: UNDO_MS)
+        chat.cleared = null
+    }
+    // Parar takes Enviar's place: a second tap on Enviar right after it is not a stop.
+    val halt = {
+        if (chat.pending != null && System.currentTimeMillis() - chat.sentAt >= 600) {
+            chat.stop(scope, talk)
+            runCatching { input.requestFocus() }
+        }
+    }
     val full = turns.lastOrNull()?.end == "cheia"
     val doing = chat.status ?: if (chat.pending?.let { n -> turns.firstOrNull { it.n == n }?.parts?.isEmpty() } == true) miaWaiting(seconds) else null
     val asked = turns.map { it.pergunta }
@@ -372,7 +416,8 @@ fun Mia2Screen(
                 Text("Mia", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f).semantics { heading() })
                 // Stays put while an answer is on its way, so the bar does not jump; usable again after.
                 if (turns.isNotEmpty()) {
-                    TextAction("Nova conversa", enabled = chat.pending == null, color = if (chat.pending == null) l.accent else l.faint, onClick = {
+                    // A way out, not the next step: quiet beside her name, the answer keeps the eye.
+                    TextAction("Nova conversa", enabled = chat.pending == null, color = if (chat.pending == null) l.muted else l.faint, onClick = {
                         chat.clear()
                         if (on && !resting) runCatching { input.requestFocus() }
                     })
@@ -390,6 +435,20 @@ fun Mia2Screen(
                 }
                 if (on && lead == 1 && paused != null) item(key = "lead") {
                     Text("A Mia descansa até ${shortDate(paused)}. Os números seguem nas telas.", color = l.muted)
+                }
+                val cleared = chat.cleared
+                if (cleared != null && turns.isEmpty()) item(key = "cleared") {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(l.text, RoundedCornerShape(12.dp))
+                            .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Conversa apagada", Modifier.weight(1f), color = l.bg, style = MaterialTheme.typography.bodyMedium)
+                        TextAction("Desfazer", { chat.undoClear() }, l.bg)
+                    }
                 }
                 if (on && turns.isEmpty() && chat.pending == null) item(key = "empty") {
                     Column(Modifier.padding(top = 56.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -435,6 +494,14 @@ fun Mia2Screen(
             if (on && !resting && !full) {
                 HorizontalDivider(color = l.border)
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (chat.held && chat.pending != null) {
+                        Text(
+                            "Sua pergunta vai quando ela terminar.",
+                            color = l.muted,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                    }
                     if (next.isNotEmpty() && !chat.typing) {
                         Row(
                             Modifier
@@ -452,11 +519,17 @@ fun Mia2Screen(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = chat.typed,
-                            onValueChange = { chat.typed = it.take(1000) },
+                            onValueChange = {
+                                chat.typed = it.take(1000)
+                                if (it.isBlank()) chat.held = false
+                            },
                             singleLine = true,
                             placeholder = { Text(if (turns.isEmpty()) "Pergunte algo" else "Outra pergunta?", color = l.faint) },
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(onSend = { send(chat.typed) }),
+                            // While she answers, Send keeps the next question for when she is done.
+                            keyboardActions = KeyboardActions(onSend = {
+                                if (chat.pending == null) send(chat.typed) else if (chat.typed.isNotBlank()) chat.held = true
+                            }),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
                             modifier = Modifier
                                 .weight(1f)
@@ -467,7 +540,7 @@ fun Mia2Screen(
                         // While she works, Send becomes Stop, outlined so it never reads as a second Send.
                         if (chat.pending != null) {
                             OutlinedButton(
-                                onClick = { chat.stop(scope, talk) },
+                                onClick = halt,
                                 border = BorderStroke(1.dp, l.borderInput),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
                                 shape = RoundedCornerShape(10.dp),
@@ -523,7 +596,7 @@ private fun Mia2TurnItem(
                     key(p.id) {
                         when (p) {
                             is Mia2Texto -> {
-                                Mia2Rich(p, open, lead = p.id == first)
+                                Mia2Rich(p, open, lead = p.id == first, stopped = t.end == "parou" && p.valores == null)
                                 val loose = if (working) emptyList() else mia2Loose(p)
                                 if (loose.isNotEmpty()) LooseNote(loose)
                             }
@@ -535,17 +608,21 @@ private fun Mia2TurnItem(
         }
         if (working) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WaitDots()
+                // The amber is the "confira" mark's on this screen: her wait is neutral ink.
+                WaitDots(l.faint)
                 Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
                     if (doing != null) Text(doing, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
-        if (t.end == "parou") Note("Você parou esta resposta.")
+        if (t.end == "parou") {
+            Note(if (mia2StoppedValues(t)) "Você parou esta resposta. Os valores não foram conferidos." else "Você parou esta resposta.")
+            onRetry?.let { TextAction("Perguntar de novo", it, color = l.accent) }
+        }
         if (t.end == "falhou") {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Não consegui falar com a Mia agora.",
+                    "A Mia não respondeu. Confira a internet e tente de novo.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f, fill = false).semantics { liveRegion = LiveRegionMode.Polite },
@@ -573,8 +650,8 @@ private fun LooseNote(loose: List<String>) {
             if (i > 0) append(", ")
             withAnnotation(LOOSE, v) { append(v.replace(' ', '\u00A0')) }
         }
-        append(if (loose.size > 1) " não vieram" else " não veio")
-        append(" dos números do Neko. Confira antes de usar.")
+        append(if (loose.size > 1) " não estão" else " não está")
+        append(" nos números do Neko. Confira antes de usar.")
     }
     ValueText(text, MaterialTheme.typography.bodyMedium)
 }
@@ -587,7 +664,7 @@ private fun Note(text: String) {
 
 /** Her text: paragraphs and lists, the main number in bold, each value as checked. */
 @Composable
-private fun Mia2Rich(p: Mia2Texto, open: (String, String?) -> Unit, lead: Boolean) {
+private fun Mia2Rich(p: Mia2Texto, open: (String, String?) -> Unit, lead: Boolean, stopped: Boolean = false) {
     val l = LocalLedger.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         mia2Blocks(p.texto).forEachIndexed { k, b ->
@@ -596,7 +673,7 @@ private fun Mia2Rich(p: Mia2Texto, open: (String, String?) -> Unit, lead: Boolea
                     b.lines.forEach { line ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("•", color = l.faint, style = MaterialTheme.typography.bodyLarge)
-                            ValueText(inline(line, p.valores, open), MaterialTheme.typography.bodyLarge)
+                            ValueText(inline(line, p.valores, open, stopped), MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
@@ -606,7 +683,7 @@ private fun Mia2Rich(p: Mia2Texto, open: (String, String?) -> Unit, lead: Boolea
                     buildAnnotatedString {
                         b.lines.forEachIndexed { i, line ->
                             if (i > 0) append("\n")
-                            append(inline(line, p.valores, open))
+                            append(inline(line, p.valores, open, stopped))
                         }
                     },
                     if (lead && k == 0) MaterialTheme.typography.bodyLarge.copy(fontFamily = Faustina, fontSize = 19.sp, lineHeight = 27.sp)
@@ -619,7 +696,7 @@ private fun Mia2Rich(p: Mia2Texto, open: (String, String?) -> Unit, lead: Boolea
 
 /** One line of her text with **bold** and each R$ as written: a link when checked, dotted when not. */
 @Composable
-private fun inline(line: String, valores: Map<String, Mia2Valor>?, open: (String, String?) -> Unit): AnnotatedString {
+private fun inline(line: String, valores: Map<String, Mia2Valor>?, open: (String, String?) -> Unit, stopped: Boolean = false): AnnotatedString {
     val l = LocalLedger.current
     val link = TextLinkStyles(SpanStyle(color = l.text, textDecoration = TextDecoration.Underline))
     val money = if (valores.isNullOrEmpty()) LOOSE_MONEY else Regex(valores.keys.sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) })
@@ -634,7 +711,8 @@ private fun inline(line: String, valores: Map<String, Mia2Valor>?, open: (String
                     // An amount never breaks from its R$.
                     val shown = m.value.replace(' ', '\u00A0')
                     when {
-                        v == null -> append(shown)
+                        // A stopped answer's values were never checked: dotted like any loose value.
+                        v == null -> if (stopped) withAnnotation(LOOSE, m.value) { append(shown) } else append(shown)
                         !v.conferido -> withAnnotation(LOOSE, m.value) { append(shown) }
                         v.tela == "faturas" || v.tela == "mes" ->
                             withLink(LinkAnnotation.Clickable(m.value, link) { open(v.tela, v.mes) }) { append(shown) }

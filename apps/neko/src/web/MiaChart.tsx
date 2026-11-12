@@ -60,6 +60,12 @@ export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(560);
   const [at, setAt] = useState<number | null>(null);
+  const tip = useRef<HTMLDivElement>(null);
+  const [tipW, setTipW] = useState(0);
+  // The readout's own width, so it stays inside the chart on a small phone.
+  useLayoutEffect(() => {
+    if (at !== null && tip.current) setTipW(tip.current.offsetWidth);
+  }, [at]);
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -137,6 +143,11 @@ export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
     if (move === undefined) return;
     ev.preventDefault();
     setAt((a) => Math.min(n - 1, Math.max(0, (a ?? (move > 0 ? -1 : n)) + move)));
+  };
+  // Beside the point, on the side with room; where neither side has it, as close as fits.
+  const tipLeft = (x: number) => {
+    const side = x + 12 + tipW <= width ? x + 12 : x - 12 - tipW;
+    return Math.max(0, Math.min(width - tipW, side));
   };
   const read = (i: number) =>
     `${rotulos[i]}: ${series.map((s) => `${series.length > 1 ? `${s.nome} ` : ""}${money(cents(s.valores[i] ?? 0))}`).join(", ")}`;
@@ -253,7 +264,8 @@ export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
           <div
             className="mia-chart-tip"
             aria-hidden="true"
-            style={X(at) > width / 2 ? { right: width - X(at) + 12 } : { left: X(at) + 12 }}
+            ref={tip}
+            style={{ left: tipLeft(X(at)) }}
           >
             <span className="date">{rotulos[at]}</span>
             {series.map((s, k) => (
