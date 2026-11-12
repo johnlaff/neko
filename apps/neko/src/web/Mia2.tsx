@@ -478,13 +478,23 @@ const stoppedValues = (t: Turn) =>
  * A number of her board, counting up from zero as it arrives, as the Neko's figures do (an answer
  * already read shows still). Plain, not a link: where it came from is in the ways out under it.
  */
-const Figure = ({ x, count }: { x: Mia2Numero; count: boolean }) => {
+const Figure = ({ x, count, hidden }: { x: Mia2Numero; count: boolean; hidden: boolean }) => {
   const cents = Math.round(x.valor * 100);
   const { from, to, e } = useMorph(cents, String(cents), mixNumber, count ? 0 : undefined);
+  // Hidden, a value says nothing, not even its sign. A screen reader hears the value, never the count.
   return (
     <div>
       <dt>{x.rotulo}</dt>
-      <dd className={cents < 0 ? "neg" : undefined}>{money(Math.round(mixNumber(from, to, e)))}</dd>
+      <dd className={cents < 0 && !hidden ? "neg" : undefined}>
+        {hidden ? (
+          HIDDEN_MONEY
+        ) : (
+          <>
+            <span aria-hidden="true">{money(Math.round(mixNumber(from, to, e)))}</span>
+            <span className="sr-only">{money(cents)}</span>
+          </>
+        )}
+      </dd>
       {x.nota && <dd className="fig-note">{x.nota}</dd>}
     </div>
   );
@@ -495,10 +505,12 @@ const Board = ({
   id,
   numeros,
   count,
+  hidden,
 }: {
   id: string;
   numeros: readonly Mia2Numero[];
   count: boolean;
+  hidden: boolean;
 }) => {
   useEffect(() => {
     seenParts.add(id);
@@ -507,7 +519,7 @@ const Board = ({
     <dl className="figures mia-numbers">
       {numeros.map((x, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: one board, in the order she gave
-        <Figure key={i} x={x} count={count} />
+        <Figure key={i} x={x} count={count} hidden={hidden} />
       ))}
     </dl>
   );
@@ -627,7 +639,15 @@ const Answer = ({
     if (p.k === "grafico") return <MiaChart key={p.id} grafico={p.grafico} />;
     const id = `${t.n}:${p.id}`;
     if (p.k === "numeros")
-      return <Board key={p.id} id={id} numeros={p.numeros} count={paced && !seenParts.has(id)} />;
+      return (
+        <Board
+          key={p.id}
+          id={id}
+          numeros={p.numeros}
+          count={paced && !seenParts.has(id)}
+          hidden={hidden}
+        />
+      );
     const stopped = t.end === "parou" && p.valores === null;
     // Her values are checked once her text is whole: the note may show then, with what follows.
     const loose = unchecked(p);
@@ -722,26 +742,23 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   typedNow.current = typed;
   const heldNow = useRef(held);
   heldNow.current = held;
-  // An answer arrived whole: a question sent while she answered goes now, after one that ended well.
-  const arrived = pending === null ? turns.length : -1;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per answer arrived
-  useEffect(() => {
-    if (arrived <= 0 || !heldNow.current) return;
-    setHeld(false);
-    if ((chat.turns.at(-1)?.end ?? null) === null && typedNow.current.trim()) {
-      send(typedNow.current);
-      setTold("A Mia respondeu. Sua próxima pergunta foi enviada.");
-    }
-  }, [arrived]);
   // A finished answer, all on screen (her last words shown, not only arrived), takes the focus to
   // be read, where it is (no jump), while the owner is still here. Typing the next question, or just
-  // after Parar, the field keeps it (the keyboard stays up) and the answer is announced instead.
+  // after Parar, the field keeps it (the keyboard stays up): the answer is announced instead, and a
+  // question sent while she answered goes now, so it rises under the bar with nothing landing above.
   const finished = pending === null && !showing ? turns.length : -1;
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per finished answer
   useEffect(() => {
-    if (finished <= 0 || chat.pending) return;
+    if (finished <= 0) return;
     const here = document.activeElement;
     const end = chat.turns.at(-1)?.end ?? null;
+    if (heldNow.current) {
+      setHeld(false);
+      if (end === null && typedNow.current.trim()) {
+        send(typedNow.current);
+        return setTold("A Mia respondeu. Sua próxima pergunta foi enviada.");
+      }
+    }
     if (here === input.current && (typedNow.current || end === "parou")) {
       setTold(end === null ? "A Mia respondeu." : "");
       return;
