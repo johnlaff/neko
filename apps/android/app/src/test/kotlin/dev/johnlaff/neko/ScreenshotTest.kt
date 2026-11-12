@@ -340,6 +340,37 @@ class ScreenshotTest {
         )
     }
 
+    @Test fun mia2ParouLight() = shot("mia2-parou-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            dev.johnlaff.neko.ui.Mia2Chat().apply {
+                turns = listOf(
+                    dev.johnlaff.neko.ui.Mia2Turno(
+                        0,
+                        "Quanto ainda cabe este mês?",
+                        listOf(dev.johnlaff.neko.ui.Mia2Texto("m1", "Ainda cabem **R$ 1.240,60** no teto até o dia 26, uns R$ 88 por di", null)),
+                        "parou",
+                    ),
+                )
+            },
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2ApagadaDark() = shot("mia2-apagada-dark", night = true) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Chat().apply { clear() },
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
     @Test fun mia2FalhouLight() = shot("mia2-falhou-light", night = false) {
         dev.johnlaff.neko.ui.Mia2Screen(
             dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),

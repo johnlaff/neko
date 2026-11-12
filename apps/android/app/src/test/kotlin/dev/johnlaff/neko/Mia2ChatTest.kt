@@ -97,6 +97,41 @@ class Mia2ChatTest {
         assertNull(chat.pending)
     }
 
+    @Test fun aQuestionSentWhileSheAnswersGoesWhenSheIsDone() = runBlocking {
+        val chat = Mia2Chat()
+        val talk = Talk { listOf(Mia2Line("mensagem", id = "m1", texto = "Pronto.", valores = emptyMap()), Mia2Line("fim")).asFlow() }
+        chat.ask("Oi", this, talk)
+        // Typed and sent before she starts: it waits.
+        chat.typed = "E setembro?"
+        chat.held = true
+        coroutineContext.job.children.forEach { it.join() }
+        coroutineContext.job.children.forEach { it.join() }
+        assertEquals(listOf("Oi", "E setembro?"), chat.turns.map { it.pergunta })
+        assertEquals(false, chat.held)
+    }
+
+    @Test fun aStoppedAnswerIsAskedAgainInPlace() = runBlocking {
+        val chat = Mia2Chat()
+        chat.turns = listOf(dev.johnlaff.neko.ui.Mia2Turno(0, "Oi", listOf(Mia2Texto("m1", "Ainda cabem R$ 1.240", null)), "parou"))
+        assertTrue(dev.johnlaff.neko.ui.mia2StoppedValues(chat.turns.single()))
+        chat.retry(this, Talk { listOf(Mia2Line("fim")).asFlow() })
+        coroutineContext.job.children.forEach { it.join() }
+        assertEquals(listOf("Oi"), chat.turns.map { it.pergunta })
+        assertNull(chat.turns.single().end)
+    }
+
+    @Test fun newConversationCanBeUndone() {
+        val chat = Mia2Chat()
+        chat.sessao = "sesn_0000000001"
+        chat.turns = listOf(dev.johnlaff.neko.ui.Mia2Turno(0, "Oi"))
+        chat.clear()
+        assertTrue(chat.turns.isEmpty())
+        chat.undoClear()
+        assertEquals("sesn_0000000001", chat.sessao)
+        assertEquals(listOf("Oi"), chat.turns.map { it.pergunta })
+        assertNull(chat.cleared)
+    }
+
     @Test fun theMonthsCapTakesTheQuestionAway() = runBlocking {
         val chat = Mia2Chat()
         chat.ask("Oi", this, Talk { listOf(Mia2Line("erro", motivo = "limite_mes")).asFlow() })

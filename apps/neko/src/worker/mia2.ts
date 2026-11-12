@@ -37,6 +37,7 @@ Como responder
 - Não conte o que vai fazer nem quais ferramentas usou.
 - Quando uma série no tempo ou uma comparação de 3 ou mais pontos ajudar, chame ${CHART_TOOL} com os valores das ferramentas, no máximo um gráfico por resposta, e não repita os mesmos valores em lista no texto. Com entradas e saídas no mesmo gráfico, entradas vêm primeiro.
 - Se a ferramenta não tiver o dado, diga isso em vez de supor.
+- Use as palavras do Neko: teto (o limite do mês para cartões e Pix), fatura, reserva, Para lançar.
 
 Memória
 - Guarde na memória só fatos duráveis que o dono contar: quem é quem, preferências, combinados. Nunca valores que mudam (esses vêm das ferramentas) nem senhas.`;
@@ -328,9 +329,35 @@ export const runTurn = async (
   }
 };
 
+/**
+ * Her charts wait for her first words: she draws before she writes, but the answer leads and the
+ * chart comes under it. A chart she drew and never wrote about still comes at the end.
+ */
+const chartsAfterText = (write: TurnDeps["write"]): TurnDeps["write"] => {
+  let texted = false;
+  const held: Mia2Line[] = [];
+  return (l) => {
+    if (l.t === "grafico" && !texted) {
+      held.push(l);
+      return;
+    }
+    if (l.t === "refazendo") {
+      texted = false;
+      held.length = 0;
+    }
+    if (l.t === "fim" || l.t === "erro") for (const h of held.splice(0)) write(h);
+    write(l);
+    if ((l.t === "parcial" || l.t === "mensagem") && !texted) {
+      texted = true;
+      for (const h of held.splice(0)) write(h);
+    }
+  };
+};
+
 /** Streams one turn of conversation `id`, answering her chart calls and checking her numbers. */
 const relay = async (deps: TurnDeps, id: string, pergunta: string) => {
-  const { client, write } = deps;
+  const { client } = deps;
+  const write = chartsAfterText(deps.write);
   const seen: Seen = new Map();
   seeText(seen, pergunta);
   const uses = new Map<string, { name: string; input: unknown }>();
@@ -403,7 +430,7 @@ const relay = async (deps: TurnDeps, id: string, pergunta: string) => {
         unchecked.push(...checked.filter((v) => !v.conferido).map((v) => v.texto));
         write({ t: "mensagem", id: ev.id, texto, valores: valuesOf(checked) });
       } else if (ev.type === "agent.custom_tool_use") {
-        await chart(deps, id, ev, seen, withHistory);
+        await chart({ ...deps, write }, id, ev, seen, withHistory);
       } else if (ev.type === "session.status_idle") {
         const why = ev.stop_reason.type;
         if (why === "requires_action") continue;
