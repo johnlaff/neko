@@ -80,7 +80,23 @@ class Api(
 
     suspend fun ajustes(): AjustesView = json.decodeFromString(call("/ajustes"))
 
+    /** Today's two messages, the evening hour and the server's messages still standing. */
     suspend fun reminders(): RemindersView = json.decodeFromString(call("/reminders"))
+
+    suspend fun notices(): NoticesView = json.decodeFromString(call("/notices"))
+
+    /** A purchase the phone read; the answer is the messages, the ceiling's among them. */
+    suspend fun purchase(p: PhonePurchase): NoticesView =
+        json.decodeFromString(call("/purchases", json.encodeToString(PhonePurchase.serializer(), p).toRequestBody(jsonType)))
+
+    /** A bank notice's words, kept 15 days so the reading can be checked against them. */
+    suspend fun notice(n: BankNotice) {
+        call("/purchases/notice", json.encodeToString(BankNotice.serializer(), n).toRequestBody(jsonType))
+    }
+
+    /** The evening message's hour, for the account: the site's push follows it too. */
+    suspend fun saveEveningHour(hour: Int): EveningHourView =
+        json.decodeFromString(call("/reminders/hour", buildJsonObject { put("hour", hour) }.asBody(), "PUT"))
 
     suspend fun history(): HistoryView = json.decodeFromString(call("/history"))
 
@@ -138,9 +154,21 @@ class Api(
         return json.decodeFromString(call("/entries", body.asBody(), via = patient))
     }
 
-    /** Atualizar agora: the banks read now instead of at the next morning sync. */
-    suspend fun refreshBanks(): Boolean =
-        json.parseToJsonElement(call("/banks/refresh", JsonObject(emptyMap()).asBody())).jsonObject["ok"]?.jsonPrimitive?.booleanOrNull ?: false
+    /**
+     * Atualizar: Meu Pluggy reads every bank now and Neko reads them after (up to about a minute).
+     * signIn when Neko has no Meu Pluggy session to ask with.
+     */
+    suspend fun refreshBanks(): BanksAnswer {
+        val answer = json.parseToJsonElement(call("/banks/refresh", JsonObject(emptyMap()).asBody(), via = patient)).jsonObject
+        return BanksAnswer(
+            ok = answer["ok"]?.jsonPrimitive?.booleanOrNull ?: false,
+            signIn = answer["signIn"]?.jsonPrimitive?.booleanOrNull ?: false,
+        )
+    }
+
+    /** Meu Pluggy's login page, where the owner asks for the e-mailed link that signs Neko in. */
+    suspend fun meuPluggySignIn(): String =
+        json.parseToJsonElement(call("/banks/meu-pluggy", JsonObject(emptyMap()).asBody())).jsonObject.getValue("url").jsonPrimitive.content
 
     suspend fun undo(id: String): LaunchResult =
         json.decodeFromString(call("/entries/$id/undo", JsonObject(emptyMap()).asBody(), via = patient))
@@ -233,6 +261,9 @@ class Api(
 }
 
 /** How long a question to Mia may take before the app gives up. */
+/** What Atualizar brought back. */
+data class BanksAnswer(val ok: Boolean, val signIn: Boolean)
+
 val MIA_WAIT: Duration = Duration.ofSeconds(90)
 val PDF_WAIT: Duration = Duration.ofSeconds(300)
 

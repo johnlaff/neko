@@ -30,6 +30,11 @@ const API: Record<string, unknown> = {
       { event: "faturas", label: "Faturas", count: 6 },
     ],
     taps: [{ event: "simular", label: "Simular compra", count: 0 }],
+    notices: [
+      { event: "notificacao_manha", label: "Contas e teto", count: 3 },
+      { event: "notificacao_noite", label: "Lançar o dia", count: 8 },
+      { event: "notificacao_aviso", label: "Avisos", count: 0 },
+    ],
   },
   // Invented bank, the same one e2e/make-projection.ts puts in the projection.
   "/api/banks": {
@@ -525,6 +530,16 @@ test("with nothing left to launch, Para lançar compares the Saldo with the bank
   expect(errors).toEqual([]);
 });
 
+test("the evening notification opens Hoje at Para lançar, its title in focus", async ({ page }) => {
+  const errors = await open(page, "/#para-lancar");
+  const queue = page.getByRole("region", { name: "Para lançar" });
+  await expect(queue.getByRole("heading", { name: "Para lançar" })).toBeFocused();
+  await expect
+    .poll(() => queue.evaluate((el) => Math.round(el.getBoundingClientRect().top)))
+    .toBe(16);
+  expect(errors).toEqual([]);
+});
+
 test("on a desktop the tabs stand on the left and the panels in three columns", async ({
   page,
 }) => {
@@ -555,6 +570,9 @@ test("Neko counts the screens it shows, and Ajustes tells what was used", async 
   await expect(usage).toContainText("OndeNo app Android10 dias");
   await expect(usage).toContainText("TelasHoje31 vezes");
   await expect(usage).toContainText("BotõesSimular compraNunca");
+  await expect(usage).toContainText(
+    "Notificações tocadasContas e teto3 vezesLançar o dia8 vezesAvisosNunca",
+  );
   await expect(usage).toContainText("Nenhum valor da planilha");
   expect(errors).toEqual([]);
 });

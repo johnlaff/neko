@@ -57,6 +57,7 @@ import dev.johnlaff.neko.data.BanksView
 import dev.johnlaff.neko.data.CardConfig
 import dev.johnlaff.neko.data.CardDays
 import dev.johnlaff.neko.data.Device
+import dev.johnlaff.neko.data.PhoneTrust
 import dev.johnlaff.neko.data.UsageSummary
 import dev.johnlaff.neko.data.UserSettings
 import dev.johnlaff.neko.ui.Format.fromCents
@@ -164,6 +165,7 @@ fun AjustesScreen(
     /** The Diário previsto's fill, and its Desfazer. */
     launcher: Launcher? = null,
     usage: UsageSummary? = null,
+    purchases: PurchasesSwitch = PurchasesSwitch(),
 ) {
     var undo by remember { mutableStateOf<Pair<String, String>?>(null) }
     Box(Modifier.fillMaxSize()) {
@@ -234,6 +236,7 @@ fun AjustesScreen(
         item {
             Group("Neste celular") {
                 Reminders(reminders)
+                Purchases(purchases, view.phone)
                 Lock(lock)
                 if (dev.johnlaff.neko.tile.LancarTile.canAsk) QuickTile()
             }
@@ -262,22 +265,26 @@ fun AjustesScreen(
     }
 }
 
-/** The phone's own reminders: a setting of this device, not of the account, so it is not saved. */
+/**
+ * The phone's own notifications: a setting of this device, not of the account, so it is not saved
+ * with the form. The evening hour under it is the account's (the site's push follows it too).
+ */
 data class RemindersSwitch(
     val on: Boolean = false,
     /** Android refused notifications to the app; only its settings can undo that. */
     val blocked: Boolean = false,
+    val hour: Int = 21,
+    val onHour: (Int) -> Unit = {},
     val onChange: (Boolean) -> Unit = {},
 )
 
 @Composable
 private fun Reminders(r: RemindersSwitch) {
-    val l = LocalLedger.current
     Setting(
-        "Lembretes",
+        "Notificações",
         when {
             r.blocked -> "Permita as notificações do Neko no Android"
-            else -> "Às 8h, quanto ainda cabe. Às 21h, lançar o dia"
+            else -> "Contas de manhã, Para lançar à noite"
         },
         r.blocked,
         // The whole row is the switch: a bigger target, and TalkBack reads the label with the state.
@@ -288,6 +295,104 @@ private fun Reminders(r: RemindersSwitch) {
             onCheckedChange = null,
             colors = switchColors(),
         )
+    }
+    if (r.on) Setting("Lembrete da noite", "Os bancos são lidos meia hora antes") { HourPicker(r.hour, r.onHour) }
+}
+
+/**
+ * Avisos de compra (purchases/Purchases.kt): Android's own permission is the switch, so turning it
+ * on or off opens Android's page for it, after saying plainly what is read and what is sent.
+ */
+data class PurchasesSwitch(
+    val on: Boolean = false,
+    /** The last purchase read, as sent: "R$ 45,90 em Livraria". */
+    val last: String? = null,
+    val onOpen: () -> Unit = {},
+)
+
+@Composable
+private fun Purchases(p: PurchasesSwitch, trust: List<PhoneTrust>) {
+    val l = LocalLedger.current
+    var asking by remember { mutableStateOf(false) }
+    // For now the reads only learn: each bank app's, checked against what its bank brings.
+    val banks = trust.joinToString("") { t ->
+        "\n${t.bank}: " + when {
+            t.trusted -> "conta no teto"
+            t.judged == 0 -> "esperando o banco conferir"
+            else -> "${t.matched} de ${t.judged} bateram com o banco"
+        }
+    }
+    Setting(
+        "Avisos de compra",
+        when {
+            !p.on -> "O Neko aprende como cada banco avisa"
+            p.last != null -> "Último lido: ${p.last}$banks"
+            else -> "Esperando o próximo aviso de compra$banks"
+        },
+        modifier = Modifier.toggleable(
+            p.on,
+            role = Role.Switch,
+            onValueChange = toggled { want -> if (want) asking = true else p.onOpen() },
+        ),
+    ) {
+        Switch(checked = p.on, onCheckedChange = null, colors = switchColors())
+    }
+    if (asking) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text("Ler os avisos de compra?", style = MaterialTheme.typography.headlineSmall) },
+            text = {
+                Text(
+                    "O Neko lê só os avisos de compra e de cartão dos apps Bradesco, Itaú, Inter e Mercado Pago. " +
+                        "Manda ao seu Neko o valor, a loja, o final do cartão e o texto do aviso, guardado 15 dias. " +
+                        "Avisos de outros apps e de Pix são ignorados.\n\n" +
+                        "Por enquanto é só para aprender: o Neko confere cada aviso com o banco, e o teto não muda " +
+                        "com eles.\n\nNa próxima tela, ative o Neko.",
+                    color = l.muted,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    asking = false
+                    p.onOpen()
+                }) { Text("Continuar", color = l.accent) }
+            },
+            dismissButton = { TextButton(onClick = { asking = false }) { Text("Agora não", color = l.text) } },
+            containerColor = l.surface,
+        )
+    }
+}
+
+/** The evening hours the Worker accepts (worker/notices.ts EVENING_HOURS). */
+@Composable
+private fun HourPicker(hour: Int, onPick: (Int) -> Unit) {
+    val l = LocalLedger.current
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(
+            onClick = { open = true },
+            modifier = Modifier.semantics { role = androidx.compose.ui.semantics.Role.DropdownList },
+        ) {
+            Text("${hour}h", color = l.text)
+            Spacer(Modifier.width(4.dp))
+            androidx.compose.material3.Icon(
+                androidx.compose.ui.res.painterResource(dev.johnlaff.neko.R.drawable.ic_chevron_down),
+                contentDescription = null,
+                tint = l.muted,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            dev.johnlaff.neko.reminders.ReminderClock.EVENING_HOURS.forEach { h ->
+                DropdownMenuItem(
+                    text = { Text("${h}h") },
+                    onClick = {
+                        open = false
+                        onPick(h)
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -647,8 +752,12 @@ private fun Usage(s: UsageSummary) {
                 s.screens.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
                 UsageHead("Botões")
                 s.taps.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
+                if (s.notices.isNotEmpty()) {
+                    UsageHead("Notificações tocadas")
+                    s.notices.forEach { e -> LedgerLine(e.label, times(e.count), if (e.count == 0) l.muted else l.text) }
+                }
                 Text(
-                    "Só contagens de telas e botões, no servidor do Neko. Nenhum valor da planilha.",
+                    "Só contagens de telas, botões e toques, no servidor do Neko. Nenhum valor da planilha.",
                     color = l.muted,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 4.dp),

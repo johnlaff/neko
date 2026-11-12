@@ -79,28 +79,53 @@ self.addEventListener("message", (event) => {
   if (event.data === "logout") event.waitUntil(caches.delete(DATA));
 });
 
-// Daily reminders sent by the Worker cron (08:00 "ainda cabem", 21:00 "lançou os gastos?").
+// Notifications the Worker sends (worker/push.ts): the morning message, the evening one with what
+// waits in Para lançar, the ceiling crossing a mark and the rare alert. The same tag replaces the
+// last one of its kind.
 self.addEventListener("push", (event) => {
   const msg = event.data?.json() ?? { title: "Neko", body: "", url: "/", tag: "neko" };
   event.waitUntil(
-    self.registration.showNotification(msg.title, {
-      body: msg.body,
-      tag: msg.tag,
-      icon: "/icon-192.png",
-      badge: "/badge-96.png",
-      data: { url: msg.url },
-    }),
+    (async () => {
+      // By evening the morning's numbers are old: it leaves the tray when the evening one comes.
+      if (msg.tag === "evening")
+        for (const n of await self.registration.getNotifications({ tag: "morning" })) n.close();
+      await self.registration.showNotification(msg.title, {
+        body: msg.body,
+        tag: msg.tag,
+        icon: "/icon-192.png",
+        badge: "/badge-96.png",
+        data: { url: msg.url },
+      });
+    })(),
   );
 });
+
+// What a tap on each kind counts as (shared/usage.ts NOTICE_TAP): only how often, never what it said.
+const NOTICE_TAP = {
+  morning: "notificacao_manha",
+  ceiling: "notificacao_manha",
+  evening: "notificacao_noite",
+  alert: "notificacao_aviso",
+};
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url ?? "/";
+  const tap = NOTICE_TAP[event.notification.tag];
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
-      const own =
-        url.startsWith("/") && windows.find((w) => new URL(w.url).origin === self.location.origin);
-      return own ? own.focus().then((w) => w.navigate(url)) : self.clients.openWindow(url);
-    }),
+    Promise.all([
+      tap &&
+        fetch("/api/usage", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ event: tap, app: "web" }),
+        }).catch(() => {}),
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+        const own =
+          url.startsWith("/") &&
+          windows.find((w) => new URL(w.url).origin === self.location.origin);
+        return own ? own.focus().then((w) => w.navigate(url)) : self.clients.openWindow(url);
+      }),
+    ]),
   );
 });

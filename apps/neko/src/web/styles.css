@@ -1298,7 +1298,8 @@ fieldset.panel > legend {
   font-weight: 600;
 }
 @media (prefers-reduced-motion: reduce) {
-  .masthead button.spinning svg {
+  .masthead button.spinning svg,
+  .q-sync > button.refresh:disabled > svg {
     animation: none;
   }
 }
@@ -2881,6 +2882,8 @@ main.mia-page form.mia-form > input {
 .panel.q-deck {
   position: relative;
   margin-bottom: 12px;
+  /* Where the evening notification lands: a little air above it. */
+  scroll-margin-top: 16px;
 }
 .q-deck::before,
 .q-deck::after {
@@ -3293,18 +3296,17 @@ button.small:not(.ghost) {
   font-size: 0.8125rem;
   color: var(--faint);
 }
-.q-sync > button.text-link {
+.q-sync > .text-link {
   min-height: 44px;
-  padding: 0;
   gap: 6px;
   font-size: 0.8125rem;
   color: var(--muted);
 }
-.q-sync > button.text-link > svg {
+.q-sync > .text-link > svg {
   width: 14px;
   height: 14px;
 }
-.q-sync > button.text-link:disabled > svg {
+.q-sync > button.refresh:disabled > svg {
   animation: spin 800ms linear infinite;
 }
 

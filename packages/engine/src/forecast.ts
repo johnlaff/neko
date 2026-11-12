@@ -6,10 +6,11 @@ import {
   originKey,
 } from "./bank.ts";
 import { normalizeName } from "./cards.ts";
-import { addDays, diffDays, type LocalDate } from "./date.ts";
+import { addDays, diffDays, type LocalDate, weekStart } from "./date.ts";
 import type { Placement } from "./entries.ts";
 import { type CellValue, FORECAST, forecastIn, isForecastItem, type Ledger } from "./ledger.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
+import { type OwnerMark, ownerOf } from "./owners.ts";
 
 /**
  * Diário previsto (specs/005-lancamentos, Fase 3), the method's way for someone who pays almost
@@ -107,7 +108,8 @@ export interface DailySuggestion extends Spend {
  * What a usual day costs, from the bank's last 90 days (or since the bank has data on both the
  * cards and the accounts), rounded up to whole reais. Null with less than 4 weeks of data.
  */
-export const suggestDaily = (input: SpendInput): DailySuggestion | null => {
+/** The first day the bank shows both the cards and the accounts; null until it shows both. */
+const bankSince = (input: SpendInput): LocalDate | null => {
   const first = (dates: readonly (LocalDate | undefined)[]) =>
     dates.reduce<LocalDate | undefined>((a, d) => (d && (!a || d < a) ? d : a), undefined);
   const firstCard = first(
@@ -115,7 +117,12 @@ export const suggestDaily = (input: SpendInput): DailySuggestion | null => {
   );
   const firstMove = first(input.movements.map((m) => m.date));
   if (!firstCard || !firstMove) return null;
-  const latest = firstCard > firstMove ? firstCard : firstMove;
+  return firstCard > firstMove ? firstCard : firstMove;
+};
+
+export const suggestDaily = (input: SpendInput): DailySuggestion | null => {
+  const latest = bankSince(input);
+  if (!latest) return null;
   const back = addDays(input.today, -REVIEW_DAYS);
   const from = latest > back ? latest : back;
   const days = diffDays(from, input.today);
@@ -123,6 +130,39 @@ export const suggestDaily = (input: SpendInput): DailySuggestion | null => {
   const spend = variableSpend(input, from, input.today);
   const perDay = cents(Math.ceil(spend.total / days / 100) * 100);
   return { ...spend, perDay: perDay < 0 ? ZERO : perDay, from, days };
+};
+
+export interface WeekSpend {
+  /** Sunday and Saturday of the last whole week. */
+  readonly from: LocalDate;
+  readonly to: LocalDate;
+  /** Cards and Pix in it, as `variableSpend` counts them. */
+  readonly total: Cents;
+  /** The same for the week before; null when the bank does not cover all of it. */
+  readonly previous: Cents | null;
+}
+
+/**
+ * The last whole week, Sunday to Saturday as the streak counts it, and the week before, in cards
+ * and Pix as the bank shows them, purchases marked as someone else's left out. Facts for Sunday's
+ * summary, never the week to come. Null when the bank does not cover the whole week.
+ */
+export const lastWeekSpend = (
+  input: SpendInput,
+  marks: readonly OwnerMark[] = [],
+): WeekSpend | null => {
+  const since = bankSince(input);
+  const start = weekStart(input.today);
+  const from = addDays(start, -7);
+  if (!since || since > from) return null;
+  const own = { ...input, lines: input.lines.filter((l) => ownerOf(l, marks) === null) };
+  const before = addDays(from, -7);
+  return {
+    from,
+    to: addDays(start, -1),
+    total: variableSpend(own, from, start).total,
+    previous: since > before ? null : variableSpend(own, before, from).total,
+  };
 };
 
 /** The months since `since`, counted by calendar: 3 on the same day number three months later. */

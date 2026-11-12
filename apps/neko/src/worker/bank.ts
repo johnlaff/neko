@@ -3,6 +3,7 @@ import {
   type BankCardLine,
   type BankMovement,
   billChecks,
+  billPayers,
   buildQueue,
   type CardConfig,
   type ClosedBill,
@@ -14,15 +15,20 @@ import {
   localDate,
   movedToday,
   normalizeName,
+  onePerPurchase,
+  type PhoneRead,
+  phoneReads,
   type Statement,
   saldoCheck,
   subscriptions,
   todayIn,
+  transfersDue,
   unmatchedMovements,
   withStatements,
 } from "@neko/engine";
 import { queueView } from "../shared/queue.ts";
 import type { BankView, UserSettings } from "../shared/types.ts";
+import { loadPhonePurchases, PHONE_RELEASED, type PhonePurchase } from "./phone.ts";
 
 /**
  * What was read from the banks, as the engine takes it (specs/003-open-finance). Only the mapping
@@ -43,6 +49,8 @@ export interface BankItemRow {
   readonly item_id: string;
   readonly label: string;
   readonly synced_at: string | null;
+  /** When Meu Pluggy last read this bank (or Neko asked, before that was kept). */
+  readonly read_at?: string | null;
 }
 
 export interface BankTxnRow {
@@ -98,6 +106,7 @@ export interface MailedContaRow {
 
 export interface BankRows {
   readonly items: number;
+  /** When Meu Pluggy last read the bank read longest ago: how fresh the bank numbers are. */
   readonly syncedAt: string | null;
   readonly itemRows?: readonly BankItemRow[];
   /** Para lançar keys already launched or ignored. */
@@ -113,6 +122,8 @@ export interface BankRows {
   readonly mailedBills?: readonly MailedBillRow[];
   /** Light and phone bills known from the biller's e-mail; none before migration 0013. */
   readonly mailedContas?: readonly MailedContaRow[];
+  /** Card purchases the phone read from the bank app; none before migration 0016. */
+  readonly phone?: readonly PhonePurchase[];
 }
 
 const last4 = (s: string | null) => (s ? s.replace(/\D/g, "").slice(-4) : null);
@@ -142,6 +153,8 @@ export const bankInput = (
   rows: BankRows,
   map: UserSettings["bankCards"],
   cards: readonly CardConfig[],
+  /** The bank apps whose phone reads may move the ceiling (phone.ts). */
+  released: ReadonlySet<string> = PHONE_RELEASED,
 ) => {
   const config = new Map(cards.map((c) => [normalizeName(c.name), c]));
   const cardAccounts = new Set(rows.accounts.filter((a) => a.type === "CREDIT").map((a) => a.id));
@@ -251,7 +264,59 @@ export const bankInput = (
     });
     statements.set(key, s);
   }
-  return { lines: withStatements(lines, [...statements.values()]), movements, pending, closed };
+  const all = withStatements(lines, [...statements.values()]);
+  // A purchase the phone read lands on its card's bill like any other, by the same cycle, and is
+  // checked against the bank's charges (engine phoneReads). Its card account: the one its last
+  // digits are known on (Ajustes › Bancos, or a charge the bank brought before), else the only
+  // card account of the linked bank whose label names it.
+  const seen: PhoneRead[] = [];
+  const credit = rows.accounts.filter((a) => a.type === "CREDIT");
+  const itemReadAt = new Map(
+    (rows.itemRows ?? []).map((i) => [i.item_id, i.read_at ?? i.synced_at]),
+  );
+  for (const p of onePerPurchase(rows.phone ?? [])) {
+    const bank = normalizeName(p.bank);
+    const items = new Set(
+      (rows.itemRows ?? [])
+        .filter((i) => normalizeName(i.label).includes(bank))
+        .map((i) => i.item_id),
+    );
+    const ofBank = credit.filter((a) => items.has(a.item_id ?? ""));
+    const byDigits =
+      p.last4 === null
+        ? undefined
+        : (map.find((m) => m.cardNumber === p.last4)?.accountId ??
+          rows.txns.find((t) => last4(t.card_number) === p.last4)?.account_id);
+    const account =
+      credit.find((a) => a.id === byDigits) ?? (ofBank.length === 1 ? ofBank[0] : undefined);
+    const card = account && cardName(map, account.id, p.last4);
+    const days = card ? config.get(normalizeName(card)) : undefined;
+    if (!account || !card || !days) continue;
+    const date = todayIn(new Date(p.at));
+    const readAt = itemReadAt.get(account.item_id ?? "");
+    seen.push({
+      bank: p.bank,
+      card,
+      amount: cents(p.amount),
+      billMonth: after(account.id, cycleContaining(days, date).due.slice(0, 7), date),
+      description: p.merchant,
+      installment: null,
+      installments: null,
+      date,
+      bankReadOn: readAt ? todayIn(new Date(readAt)) : null,
+    });
+  }
+  const phone = phoneReads(seen, all, released);
+  return {
+    lines: all,
+    movements,
+    pending,
+    closed,
+    /** Card purchases the phone read that the ceiling counts: the bank has not brought them yet. */
+    provisional: phone.provisional,
+    /** How each bank app's reads fared against the bank. */
+    phoneTrust: phone.trust,
+  };
 };
 
 /** How far back a bank movement missing from the sheet is still shown. */
@@ -301,6 +366,7 @@ export const bankView = (
   });
   const queue = built.filter((i) => !ignored.has(i.key));
   const synced = (a: BankAccountRow) => labels.get(a.item_id ?? "")?.synced_at ?? null;
+  const moving = [...movements, ...pending];
   return {
     syncedAt: rows.syncedAt,
     queue: queueView(queue, ledger, cards),
@@ -327,7 +393,8 @@ export const bankView = (
           today: movedToday(
             ledger,
             today,
-            [...movements, ...pending].filter((m) => m.account === a.id),
+            moving.filter((m) => m.account === a.id),
+            moving,
           ),
         })),
       movements,
@@ -353,6 +420,28 @@ export const bankView = (
       .map(({ account: _, ...m }) => m),
     subscriptions: subscriptionsView(lines, today, settings),
     owners: settings.owners,
+    transfers: transfersDue(
+      ledger,
+      billPayers(
+        checking
+          .filter((a) => a.balance != null && settings.accountUse[a.id] !== "guardado")
+          .map((a) => ({
+            id: a.id,
+            label: labels.get(a.item_id ?? "")?.label ?? "Banco",
+            bank: a.item_id ?? a.id,
+            balance: cents(a.balance ?? 0),
+            readOn: synced(a) ? todayIn(new Date(synced(a) as string)) : null,
+          })),
+        settings.bankCards.flatMap((c) => {
+          const bank = rows.accounts.find((a) => a.id === c.accountId)?.item_id;
+          return bank ? [{ bank, card: c.card }] : [];
+        }),
+        [...movements, ...pending],
+        today,
+      ),
+      today,
+    ),
+    phone: input.phoneTrust,
   };
 };
 
@@ -379,30 +468,47 @@ const subscriptionsView = (
 export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
   try {
     const items = await db
-      .prepare("SELECT COUNT(*) AS n, MAX(synced_at) AS at FROM bank_item")
+      // How fresh the banks are: the one Meu Pluggy read longest ago, not when Neko last asked.
+      .prepare(
+        "SELECT COUNT(*) AS n, MIN(COALESCE(bank_updated_at, synced_at)) AS at FROM bank_item",
+      )
       .first<{ n: number; at: string | null }>();
     if (!items || items.n === 0) return null;
-    const [itemRows, accounts, txns, bills, decisions, statements, mailedBills, mailedContas] =
-      await Promise.all([
-        db.prepare("SELECT item_id, label, synced_at FROM bank_item").all<BankItemRow>(),
-        db
-          .prepare(
-            "SELECT id, type, item_id, balance, credit_limit, available_limit FROM bank_account",
-          )
-          .all<BankAccountRow>(),
-        db
-          .prepare(
-            "SELECT COALESCE(provider_id, id) AS id, status, account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",
-          )
-          .all<BankTxnRow>(),
-        db
-          .prepare("SELECT id, account_id, due_date, close_date, total FROM bank_bill")
-          .all<BankBillRow>(),
-        loadDecided(db),
-        loadStatements(db),
-        loadMailedBills(db),
-        loadMailedContas(db),
-      ]);
+    const [
+      itemRows,
+      accounts,
+      txns,
+      bills,
+      decisions,
+      statements,
+      mailedBills,
+      mailedContas,
+      phone,
+    ] = await Promise.all([
+      db
+        .prepare(
+          "SELECT item_id, label, synced_at, COALESCE(bank_updated_at, synced_at) AS read_at FROM bank_item",
+        )
+        .all<BankItemRow>(),
+      db
+        .prepare(
+          "SELECT id, type, item_id, balance, credit_limit, available_limit FROM bank_account",
+        )
+        .all<BankAccountRow>(),
+      db
+        .prepare(
+          "SELECT COALESCE(provider_id, id) AS id, status, account_id, date, amount, type, description, installment, installments, bill_id, card_number FROM bank_txn ORDER BY date, id",
+        )
+        .all<BankTxnRow>(),
+      db
+        .prepare("SELECT id, account_id, due_date, close_date, total FROM bank_bill")
+        .all<BankBillRow>(),
+      loadDecided(db),
+      loadStatements(db),
+      loadMailedBills(db),
+      loadMailedContas(db),
+      loadPhonePurchases(db),
+    ]);
     return {
       items: items.n,
       syncedAt: items.at,
@@ -415,6 +521,7 @@ export const loadBank = async (db: D1Database): Promise<BankRows | null> => {
       statements,
       mailedBills,
       mailedContas,
+      phone,
     };
   } catch (error) {
     console.error("bank tables unreadable", error);

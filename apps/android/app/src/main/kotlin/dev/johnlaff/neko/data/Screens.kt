@@ -281,6 +281,20 @@ data class AjustesView(
     val dailyAuto: Long = 0,
     /** The Diário previsto; null from a Worker that predates it. */
     val previsto: PrevistoView? = null,
+    /** Avisos de compra: how each bank app's reads fared against the bank. */
+    val phone: List<PhoneTrust> = emptyList(),
+)
+
+/** One bank app's reads against the bank (engine phone.ts PhoneTrust). */
+@Serializable
+data class PhoneTrust(
+    val bank: String,
+    /** Reads the bank already judged: it brought them, or never did. */
+    val judged: Int = 0,
+    /** Of those, the ones the bank brought: same card, same amount. */
+    val matched: Int = 0,
+    /** The ceiling counts this bank app's reads (released by hand on the Worker). */
+    val trusted: Boolean = false,
 )
 
 /** The Worker's UserSettings (apps/neko/src/shared/types.ts), sent back whole on PUT. */
@@ -349,9 +363,11 @@ data class UsageSummary(
     val days: Int,
     val android: Int,
     val web: Int,
-    /** Every screen, then every button, the ones never used with zero. */
+    /** Every screen, then every button, then every kind of notification, the ones never used with zero. */
     val screens: List<UsageCount>,
     val taps: List<UsageCount>,
+    /** Taps on each kind of notification; absent from a Worker that predates them. */
+    val notices: List<UsageCount> = emptyList(),
 )
 
 @Serializable

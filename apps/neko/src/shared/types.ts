@@ -6,10 +6,13 @@ import type {
   DailySuggestion,
   Habit,
   OwnerMark,
+  PhoneTrust,
   Projection,
   RefValue,
   SaldoCheck,
   Subscription,
+  TransferDue,
+  WeekSpend,
 } from "@neko/engine";
 import { z } from "zod";
 import type { QueueItemView } from "./queue.ts";
@@ -54,6 +57,8 @@ export interface ProjectionResponse {
   readonly bank?: BankView | null;
   /** The Diário previsto (specs/005-lancamentos, Fase 3); absent from older copies. */
   readonly previsto?: PrevistoView;
+  /** Cards and Pix of the last whole week and the one before, for Sunday's summary; absent without a bank. */
+  readonly week?: WeekSpend | null;
 }
 
 /** The Diário previsto: on or off, its value, and what the bank says a day costs. */
@@ -87,7 +92,7 @@ export interface CardLimit {
 }
 
 export interface BankView {
-  /** Last time any linked bank was read; null before the first read. */
+  /** When Meu Pluggy last read the bank read longest ago; null before the first read. */
   readonly syncedAt: string | null;
   /** Future bills of the cards tied to a sheet name, with the parcels already owed. */
   readonly checks: readonly BillCheck[];
@@ -105,6 +110,10 @@ export interface BankView {
   readonly subscriptions?: SubscriptionsView;
   /** Purchases on your cards marked as someone else's; absent from a Worker that predates it. */
   readonly owners?: readonly OwnerMark[];
+  /** Money to move into an account before the bank debits a bill from it; absent before. */
+  readonly transfers?: readonly TransferDue[];
+  /** Avisos de compra: how each bank app's reads fared against the bank; absent before. */
+  readonly phone?: readonly PhoneTrust[];
 }
 
 export interface SubscriptionsView {

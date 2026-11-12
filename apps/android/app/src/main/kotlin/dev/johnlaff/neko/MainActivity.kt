@@ -60,6 +60,8 @@ import dev.johnlaff.neko.ui.NekoTheme
 import dev.johnlaff.neko.ui.BanksList
 import dev.johnlaff.neko.ui.DevicesList
 import dev.johnlaff.neko.ui.RemindersSwitch
+import dev.johnlaff.neko.ui.PurchasesSwitch
+import dev.johnlaff.neko.purchases.Purchases
 import dev.johnlaff.neko.ui.Session
 import dev.johnlaff.neko.ui.Tab
 
@@ -261,6 +263,7 @@ class MainActivity : ComponentActivity() {
                                             model::restoreReviewed,
                                             launcher = model.launcher,
                                             usage = usage,
+                                            purchases = purchasesSwitch(),
                                         )
                                     }
                                 }
@@ -289,6 +292,11 @@ class MainActivity : ComponentActivity() {
 
     private fun handle(intent: Intent?) {
         launchFor(intent?.action)?.let { request = it }
+        // A notification's tap counts once in Uso do Neko; taken off so a rotation does not count it again.
+        intent?.getStringExtra(Reminders.TAP)?.let { tap ->
+            model.used(tap)
+            intent.removeExtra(Reminders.TAP)
+        }
     }
 
     override fun onStart() {
@@ -330,17 +338,46 @@ class MainActivity : ComponentActivity() {
         AppLock.guardWindow(this, on)
     }
 
-    /** Ajustes' reminders switch: asks Android for notifications the first time it is turned on. */
+    /**
+     * Ajustes' Avisos de compra: Android's permission is the state, read again each time the app
+     * comes back (from Android's page for it, most often).
+     */
+    @Composable
+    private fun purchasesSwitch(): PurchasesSwitch {
+        var on by remember { mutableStateOf(Purchases.granted(this)) }
+        var last by remember { mutableStateOf(Purchases.last(this)?.first) }
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+            on = Purchases.granted(this@MainActivity)
+            last = Purchases.last(this@MainActivity)?.first
+        }
+        return PurchasesSwitch(on, last) {
+            // Some Android builds lack the page for one app: the list of all of them, then.
+            runCatching { startActivity(Purchases.settings(this)) }
+                .onFailure { runCatching { startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) } }
+        }
+    }
+
+    /**
+     * Ajustes' notifications switch: asks Android for notifications the first time it is turned on.
+     * The evening hour is the account's: kept here for the phone's own schedule, and sent to the
+     * Worker so the site's push follows it.
+     */
     @Composable
     private fun remindersSwitch(): RemindersSwitch {
         var on by remember { mutableStateOf(Reminders.enabled(this) && Reminders.permitted(this)) }
         var blocked by remember { mutableStateOf(false) }
+        var hour by remember { mutableIntStateOf(Reminders.eveningHour(this)) }
+        val pickHour = { h: Int ->
+            hour = h
+            Reminders.setEveningHour(this, h)
+            model.saveEveningHour(h)
+        }
         val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             blocked = !granted
             on = granted
             Reminders.setEnabled(this, granted)
         }
-        return RemindersSwitch(on, blocked) { want ->
+        return RemindersSwitch(on, blocked, hour = hour, onHour = pickHour) { want ->
             // Below Android 13 there is nothing to ask: permitted() is already true.
             if (want && !Reminders.permitted(this)) {
                 ask.launch(Manifest.permission.POST_NOTIFICATIONS)
