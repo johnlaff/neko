@@ -7,6 +7,7 @@ import {
   invoicesView,
   monthsView,
   scenarioView,
+  scenarioViews,
   simulateView,
 } from "../src/shared/screens.ts";
 import { type ProjectionResponse, UserSettings } from "../src/shared/types.ts";
@@ -201,6 +202,22 @@ describe("scenario view", () => {
     expect(scenarioView(fixture, 3_000_00 as never, { pace: "media", changes: [] }).pace).toBe(
       "media",
     );
+  });
+
+  it("answers every pace at once, the one it opens on first, so a chip never waits", () => {
+    const changes = [
+      {
+        kind: "saida" as const,
+        amount: 100_00 as never,
+        date: fixture.projection.today as never,
+        months: 1,
+      },
+    ];
+    const all = scenarioViews(fixture, 3_000_00 as never, changes);
+    expect(all.map((v) => v.pace)).toEqual(["teto", "planilha", "media"]);
+    expect(all[0]).toEqual(scenarioView(fixture, 3_000_00 as never, { changes }));
+    expect(all[2]).toEqual(scenarioView(fixture, 3_000_00 as never, { pace: "media", changes }));
+    expect(scenarioViews(fixture, null, []).map((v) => v.pace)).toEqual(["planilha", "media"]);
   });
 
   it("tells the screen the sheet's last day, the usual card and the paces it allows", () => {

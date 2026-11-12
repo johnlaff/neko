@@ -556,6 +556,24 @@ export const scenarioView = (
   };
 };
 
+/**
+ * Every pace's answer for the same what-ifs, the one Simular opens on first: Android asks once,
+ * and a tap on a chip only picks among them instead of waiting on the Worker.
+ */
+export const scenarioViews = (
+  r: ProjectionResponse,
+  ceiling: Cents | null,
+  changes: readonly Change[],
+): ScenarioView[] => {
+  const first = scenarioView(r, ceiling, { changes });
+  return [
+    first,
+    ...first.paces
+      .filter((pace) => pace !== first.pace)
+      .map((pace) => scenarioView(r, ceiling, { pace, changes })),
+  ];
+};
+
 export interface AjustesView {
   readonly settings: UserSettings;
   /** Cards found in the sheet, with the closing day in use (estimated when not set). */

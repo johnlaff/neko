@@ -99,7 +99,7 @@ object Fakes {
         dev.johnlaff.neko.ui.SimRow(1, "saida", "1.500,00", 2, "20/10/2026"),
     )
 
-    val askScenario: suspend (dev.johnlaff.neko.data.ScenarioBody) -> dev.johnlaff.neko.data.ScenarioView = { scenario }
+    val askScenarios: dev.johnlaff.neko.ui.AskScenarios = { listOf(scenario) }
 
     /** Launches nothing: the prints only draw Para lançar and Lançar à mão. */
     val launcher = object : dev.johnlaff.neko.ui.Launcher {

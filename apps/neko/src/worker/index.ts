@@ -1,16 +1,18 @@
 import {
   type Cents,
+  type Change,
   cents,
   clockIn,
   historyDelta,
   localDate,
   MAX_INSTALLMENTS,
   normalizeName,
+  type Pace,
   todayIn,
 } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
 import * as Sentry from "@sentry/cloudflare";
-import { Hono, type MiddlewareHandler } from "hono";
+import { type Context, Hono, type MiddlewareHandler } from "hono";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
@@ -20,6 +22,7 @@ import {
   invoicesView,
   monthsView,
   scenarioView,
+  scenarioViews,
   simulateView,
 } from "../shared/screens.ts";
 import { todayView } from "../shared/today.ts";
@@ -181,6 +184,7 @@ app.use("/notices", requireSession);
 app.use("/history", requireSession);
 app.use("/simulate", requireSession);
 app.use("/scenario", requireSession);
+app.use("/scenarios", requireSession);
 app.use("/settings", requireSession);
 app.use("/push/*", requireSession);
 app.use("/sessions", requireSession);
@@ -630,17 +634,26 @@ app.get("/simulate", async (c) => {
  * Simular (web and Android): the sheet's balances under a pace and what-ifs. Read only: nothing
  * is stored, and the sheet is never touched.
  */
-app.post("/scenario", async (c) => {
+/** Simular's ask as the engine takes it: the projection, the ceiling, the pace and the what-ifs. */
+interface ScenarioAsk {
+  readonly data: Awaited<ReturnType<typeof getProjection>>;
+  readonly ceiling: Cents | null;
+  readonly pace: Pace | undefined;
+  readonly changes: Change[];
+}
+
+const scenarioRoute = (answer: (ask: ScenarioAsk) => unknown) => async (c: Context<AppEnv>) => {
   const body = ScenarioBody.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid" }, 400);
   const [data, settings] = await Promise.all([
     getProjection(c.env, todayIn(new Date())),
     loadSettings(c.env.DB),
   ]);
-  const ceiling = settings.cycleBudget === null ? null : cents(settings.cycleBudget);
   try {
     return c.json(
-      scenarioView(data, ceiling, {
+      answer({
+        data,
+        ceiling: settings.cycleBudget === null ? null : cents(settings.cycleBudget),
         pace: body.data.pace,
         changes: body.data.changes.map((ch) =>
           ch.kind === "compra"
@@ -653,7 +666,16 @@ app.post("/scenario", async (c) => {
     if (e instanceof RangeError) return c.json({ error: "unavailable", detail: e.message }, 422);
     throw e;
   }
-});
+};
+app.post(
+  "/scenario",
+  scenarioRoute((a) => scenarioView(a.data, a.ceiling, a)),
+);
+/** Android's Simular: every pace at once, so a tap on a chip never waits on the network. */
+app.post(
+  "/scenarios",
+  scenarioRoute((a) => scenarioViews(a.data, a.ceiling, a.changes)),
+);
 
 /** Today's morning and evening messages, for the Android app to show itself (see notices.ts). */
 app.get("/reminders", async (c) => {

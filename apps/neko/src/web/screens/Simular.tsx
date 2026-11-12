@@ -17,6 +17,7 @@ import { capitalize, dayLabel, monthName, readAtLabel, roundMoney, toCents } fro
 import { IconChevron, IconChevronLeft, IconClose, IconPlus } from "../icons.tsx";
 import { simFigure } from "../Pace.tsx";
 import { SimChart } from "../SimChart.tsx";
+import { mixNumber, reducedMotion, useGlide, useMorph } from "../useMorph.ts";
 import { WithProjection } from "../useProjection.tsx";
 
 /** How Brazilian stores usually split a card purchase. */
@@ -180,8 +181,46 @@ const useSettled = (text: string, ms = 700) => {
   return settled;
 };
 
-const reducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+/**
+ * A figure that counts to its new value as the chart moves to it, and up from zero the first
+ * time it shows, as Hoje's figures roll in. Red while the count is below zero.
+ */
+const Count = ({ cents }: { cents: number }) => {
+  const { from, to, e } = useMorph(cents, String(cents), mixNumber, 0);
+  const shown = mixNumber(from, to, e);
+  return <span className={shown < 0 ? "neg" : undefined}>{roundMoney(shown)}</span>;
+};
+
+/**
+ * A line that comes and goes with the answer: it opens and closes by height, keeping its last
+ * words while it closes, so what is under it glides instead of jumping.
+ */
+const Reveal = ({
+  text,
+  slot,
+  id,
+  className,
+}: {
+  text: string;
+  /** The wrapper's own class, where the line keeps a place of its own in the panel. */
+  slot?: string;
+  id?: string;
+  className: string;
+}) => {
+  const last = useRef(text);
+  if (text) last.current = text;
+  return (
+    <div
+      className={slot ? `reveal ${slot}` : "reveal"}
+      data-open={text ? "" : undefined}
+      aria-hidden={text ? undefined : true}
+    >
+      <p id={id} className={className}>
+        {last.current}
+      </p>
+    </div>
+  );
+};
 
 /** Back where Simular was opened from: its button on Hoje takes the focus again. */
 const refocusOpener = () => {
@@ -407,6 +446,8 @@ const Sandbox = ({
       : `${delta}.`;
   })();
   const status = useSettled([verdict, headText].filter(Boolean).join(" "));
+  const answerKind = `${r?.pace ?? ""}${red ? "-neg" : ""}`;
+  const head = useGlide<HTMLDivElement>(answerKind);
 
   const add = (kind: Kind) => {
     const key = next.current++;
@@ -484,11 +525,21 @@ const Sandbox = ({
             ))}
 
       <section id="sim-answer" className="panel sim-answer" aria-labelledby="sim-verdict">
-        <div className="sim-head">
+        <div ref={head} className="sim-head">
+          {/*
+           * Another pace, or the red, fades the answer in where the last one was; typing only
+           * changes its numbers in place, as the figures count to theirs.
+           */}
           <h2 id="sim-verdict" ref={setVerdictEl} className="sim-verdict" tabIndex={-1}>
-            {verdict}
+            <span key={answerKind} className="swap">
+              {verdict}
+            </span>
           </h2>
-          {headText && <p className="sim-delta">{headText}</p>}
+          {headText && (
+            <p key={answerKind} className="sim-delta swap">
+              {headText}
+            </p>
+          )}
         </div>
         <PacePicker
           r={r}
@@ -503,17 +554,25 @@ const Sandbox = ({
           {endMonth && (
             <div>
               <dt>Fim de {endLabel}</dt>
-              <dd className={endMonth.endSim < 0 ? "neg" : undefined}>
-                {roundMoney(endMonth.endSim)}
+              <dd>
+                <Count cents={endMonth.endSim} />
               </dd>
               {r.pace !== "planilha" && endMonth.endSim !== endMonth.endSheet && (
-                <dd className="fig-note">Planilha: {roundMoney(endMonth.endSheet)}</dd>
+                <dd className="fig-note swap">Planilha: {roundMoney(endMonth.endSheet)}</dd>
               )}
             </div>
           )}
           <div className="end">
             <dt>Dá para guardar</dt>
-            <dd>{saving ? roundMoney(saving.amount) : "Nada"}</dd>
+            <dd>
+              {saving ? (
+                <Count key="saving" cents={saving.amount} />
+              ) : (
+                <span key="nada" className="swap">
+                  Nada
+                </span>
+              )}
+            </dd>
             <dd className="fig-note">
               {saving
                 ? saving.date === p.today
@@ -527,11 +586,15 @@ const Sandbox = ({
             </dd>
           </div>
         </dl>
-        {saving && (
-          <p className="hint sim-after">
-            Guardando esse valor, o menor saldo fica em {roundMoney(saving.leftAtLowest)}.
-          </p>
-        )}
+        <Reveal
+          slot="sim-after"
+          className="hint"
+          text={
+            saving
+              ? `Guardando esse valor, o menor saldo fica em ${roundMoney(saving.leftAtLowest)}.`
+              : ""
+          }
+        />
         <SimChart
           days={r.days}
           same={same}
@@ -677,6 +740,7 @@ const PacePicker = ({
 }) => {
   const id = useId();
   const { today, pace, monthly, spends, full } = r;
+  const premise = useGlide<HTMLDivElement>(pace);
   const now = Number(today.slice(5, 7));
   const from = `De ${monthName((now % 12) + 1)} em diante`;
   const { teto, media } = spends;
@@ -735,14 +799,12 @@ const PacePicker = ({
           describedBy={bare ? `${id}-line ${id}-bare` : `${id}-line`}
         />
       )}
-      <p id={`${id}-line`} className="hint">
-        {line}
-      </p>
-      {bare && (
-        <p id={`${id}-bare`} className="hint sim-bare">
-          {bare}
+      <div ref={premise}>
+        <p key={line} id={`${id}-line`} className="hint swap">
+          {line}
         </p>
-      )}
+      </div>
+      <Reveal id={`${id}-bare`} className="hint sim-bare" text={bare} />
       {settingsFailed ? (
         <p className="hint">
           Não consegui ler o teto em Ajustes.{" "}
