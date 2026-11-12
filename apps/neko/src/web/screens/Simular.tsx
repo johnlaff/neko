@@ -315,35 +315,19 @@ const Sandbox = ({
     p.today,
     p.cards.some((c) => c.usual),
   );
-  const pace = chosen ?? undefined;
-  const view = (list: readonly Asked[]) =>
-    scenarioView(data, ceiling, { pace, changes: list.map((a) => a.change) });
-  // A change the engine refuses never takes the screen with it: the answer without that one, named.
+  // The view leaves out what the engine refuses and says which; only a sheet with no months
+  // ahead leaves nothing to answer.
   let r: ScenarioView | null = null;
-  let used: readonly Asked[] = asked;
   try {
-    r = view(asked);
-  } catch {
-    used = asked.filter((a) => {
-      try {
-        view([a]);
-        return true;
-      } catch {
-        return false;
-      }
+    r = scenarioView(data, ceiling, {
+      pace: chosen ?? undefined,
+      changes: asked.map((a) => a.change),
     });
-    try {
-      r = view(used);
-    } catch {
-      used = [];
-      try {
-        r = view([]);
-      } catch {
-        r = null;
-      }
-    }
+  } catch {
+    r = null;
   }
-  const refused = asked.filter((a) => !used.includes(a));
+  const refused = asked.filter((_, i) => r?.refused.includes(i));
+  const used = asked.filter((_, i) => !r?.refused.includes(i));
   const effectOf = (key: number) => {
     const i = used.findIndex((a) => a.key === key);
     return i < 0 ? null : (r?.effects[i] ?? null);
@@ -739,9 +723,9 @@ const ChangeRow = ({
     if (held)
       notes.push({
         text:
-          effect && effect.of === 1
-            ? `Fica ${PACE_INSIDE[r.pace]} de ${monthOf(held.until, today)}: ${roundMoney(held.amount)} a menos para o resto do mês.`
-            : `${held.count === effect?.of ? `As ${held.count} parcelas ficam` : held.count === 1 ? "1 parcela fica" : `${held.count} parcelas ficam`} ${PACE_INSIDE[r.pace]} até ${monthOf(held.until, today)}: ${roundMoney(held.perMonth)} a menos por mês para o resto.`,
+          held.count === 1
+            ? `${effect?.of === 1 ? "Fica" : "1 parcela fica"} ${PACE_INSIDE[r.pace]} de ${monthOf(held.until, today)}: ${roundMoney(held.amount)} a menos para o resto do mês.`
+            : `${held.count === effect?.of ? `As ${held.count} parcelas ficam` : `${held.count} parcelas ficam`} ${PACE_INSIDE[r.pace]} até ${monthOf(held.until, today)}: ${roundMoney(held.perMonth)} a menos por mês para o resto.`,
       });
     if (fig && r.canSpend)
       notes.push({

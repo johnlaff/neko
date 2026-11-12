@@ -408,8 +408,10 @@ data class ScenarioView(
     val saving: Saving? = null,
     /** "Ainda cabem" once the purchases' first parcels are on it; null without a purchase. */
     val cycle: SimulatedCycle? = null,
-    /** The same pace without the changes, so a what-if shows its own effect; null without changes. */
-    val base: ScenarioBase? = null,
+    /** What the changes take from (negative) or add to the lowest balance and the end; null without changes. */
+    val effect: ScenarioEffect? = null,
+    /** Each change on its own, in the order asked, without the refused ones. */
+    val effects: List<ScenarioChangeEffect> = emptyList(),
     val today: String,
     /** When the sheet was read: the answer is only as fresh as that. */
     val readAt: String = "",
@@ -422,11 +424,29 @@ data class ScenarioView(
     val paces: List<String> = listOf("planilha"),
     /** What the ceiling and the last months' average spend a month; null without one. */
     val spends: ScenarioSpends = ScenarioSpends(),
+    /** The first day the pace counts (next month's first); null for the sheet as it is. */
+    val paceFrom: String? = null,
+    /** The changes the engine refused, by their place in the ask; the answer leaves them out. */
+    val refused: List<Int> = emptyList(),
     val canSpend: ScenarioCanSpend? = null,
 )
 
 @Serializable
-data class ScenarioBase(val lowest: Long, val end: Long)
+data class ScenarioEffect(val lowest: Long, val end: Long)
+
+/** One change on its own: its effect, the parcels the pace holds, and the dates the sheet reaches. */
+@Serializable
+data class ScenarioChangeEffect(
+    val lowest: Long,
+    val end: Long,
+    val inPace: ScenarioHeld? = null,
+    val counted: Int = 0,
+    val of: Int = 0,
+)
+
+/** A purchase's parcels inside the pace: they move no balance and leave less of each month. */
+@Serializable
+data class ScenarioHeld(val count: Int, val amount: Long, val perMonth: Long, val until: String)
 
 @Serializable
 data class ScenarioSpends(val teto: Long? = null, val media: Long? = null)
@@ -442,7 +462,7 @@ data class ScenarioPoint(val date: String, val balance: Long)
 
 /** Hoje's "Ainda cabem" as a purchase's own figure reads it. */
 @Serializable
-data class ScenarioCanSpend(val mode: String, val left: Long, val overBy: Long)
+data class ScenarioCanSpend(val mode: String, val left: Long, val overBy: Long, val due: String = "")
 
 /** What Simular asks: a pace (null for the default) and the what-ifs typed so far. */
 @Serializable

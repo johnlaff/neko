@@ -522,6 +522,7 @@
     "media": 362800
   },
   "paceFrom": "2026-11-01",
+  "refused": [],
   "canSpend": {
     "mode": "month",
     "left": 221280,

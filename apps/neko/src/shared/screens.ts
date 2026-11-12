@@ -465,6 +465,11 @@ export interface ScenarioView extends ScenarioResult {
    * the month, after it the pace is an assumption. Null for the sheet as it is.
    */
   readonly paceFrom: LocalDate | null;
+  /**
+   * The changes the engine refused (a day already gone, a purchase with no card), by their place
+   * in the ask: the answer leaves them out and `effects` follows the others, in order.
+   */
+  readonly refused: readonly number[];
   /** Hoje's "Ainda cabem", as a purchase's own figure reads it, and the bill it measures. */
   readonly canSpend: Pick<CanSpend, "mode" | "left" | "overBy" | "due"> | null;
 }
@@ -504,16 +509,31 @@ export const scenarioView = (
     ask.pace && paces.includes(ask.pace) ? ask.pace : paces.includes("teto") ? "teto" : "planilha";
   const last = p.months.at(-1);
   const lastDay = last?.days.at(-1)?.day;
-  const result = simulate(
-    {
-      today: p.today,
-      months: p.months,
-      due: usual?.cycle.due ?? null,
-      ceiling,
-      canSpend: p.canSpend,
-    },
-    { pace, changes: ask.changes },
-  );
+  const input = {
+    today: p.today,
+    months: p.months,
+    due: usual?.cycle.due ?? null,
+    ceiling,
+    canSpend: p.canSpend,
+  };
+  const run = (changes: readonly Change[]) => simulate(input, { pace, changes });
+  // One change the engine refuses never takes the others with it: the answer without it, named.
+  let refused: number[] = [];
+  let result: ScenarioResult;
+  try {
+    result = run(ask.changes);
+  } catch (e) {
+    if (!(e instanceof RangeError) || ask.changes.length === 0) throw e;
+    refused = ask.changes.flatMap((c, i) => {
+      try {
+        run([c]);
+        return [];
+      } catch {
+        return [i];
+      }
+    });
+    result = run(ask.changes.filter((_, i) => !refused.includes(i)));
+  }
   const cs = p.canSpend;
   const [y, m] = p.today.split("-").map(Number) as [number, number];
   return {
@@ -526,6 +546,7 @@ export const scenarioView = (
     paces,
     spends,
     paceFrom: result.monthly === null ? null : addDays(ymd(y, m, daysInMonth(y, m)), 1),
+    refused,
     canSpend: cs ? { mode: cs.mode, left: cs.left, overBy: cs.overBy, due: cs.due } : null,
   };
 };
