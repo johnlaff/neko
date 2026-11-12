@@ -150,7 +150,7 @@ const val NOTICE = "notice"
 const val KEPT_TEXT = "Mantido. O Neko pergunta de novo em 3 meses"
 
 /** How long Desfazer stays after a launch. */
-private const val UNDO_MS = 10_000L
+internal const val UNDO_MS = 10_000L
 
 /** Worker refusals whose message is written for the owner; any other text stays out of sight. */
 private val SPOKEN = setOf("busy", "write", "writing-off", "sheet-structure")

@@ -5,6 +5,7 @@ import { ApiError, api, type MiaReply } from "./api.ts";
 import { BrandMark } from "./BrandMark.tsx";
 import { money, monthName, shortDate } from "./format.ts";
 import { IconChevron, IconChevronLeft } from "./icons.tsx";
+import { Mia2Screen, useMia2Open } from "./Mia2.tsx";
 
 /** The screen Mia was opened from: her first questions are about it. */
 export type MiaTopic = "hoje" | "faturas" | "mes";
@@ -52,7 +53,7 @@ const shown = (v: Value) =>
   "pct" in v ? `${Math.abs(v.pct)}%` : money(v.tipo === "diferenca" ? Math.abs(v.cents) : v.cents);
 
 /** Where a value leads: its screen, and on Mês the very month it came from. */
-const ScreenLink = ({
+export const ScreenLink = ({
   v,
   className,
   title,
@@ -195,7 +196,7 @@ const ask = async (pergunta: string, queryClient: QueryClient) => {
 };
 
 /** Seconds since `since`, ticking once a second; 0 while nothing waits. */
-const useSeconds = (since: number | undefined) => {
+export const useSeconds = (since: number | undefined) => {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (since === undefined) return;
@@ -206,7 +207,8 @@ const useSeconds = (since: number | undefined) => {
   return since === undefined ? 0 : Math.max(0, Math.floor((now - since) / 1000));
 };
 
-const useMiaStatus = () => useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
+export const useMiaStatus = () =>
+  useQuery({ queryKey: ["mia"], queryFn: api.mia, staleTime: 60_000 });
 
 /**
  * Which way into Mia was taken, and from where: when her screen closes back onto that screen, the
@@ -216,7 +218,7 @@ let opener: { selector: string; path: string } | null = null;
 const opened = (selector: string) => () => {
   opener = { selector, path: window.location.pathname };
 };
-const refocusOpener = () => {
+export const refocusOpener = () => {
   const o = opener;
   opener = null;
   // The screen it lives on may still be loading: a few frames, then give up quietly.
@@ -237,10 +239,13 @@ const refocusOpener = () => {
 export const MiaHead = ({ topic }: { topic: MiaTopic }) => {
   const status = useMiaStatus();
   const { talk } = useChat();
+  const open2 = useMia2Open();
   if (!status.data?.ligada) return null;
   // With a conversation open she continues it, as the Hoje row says; otherwise she starts on this screen.
   const label =
-    talk.length > 0 ? "Continuar a conversa com a Mia" : `Perguntar à Mia ${miaSubject(topic)}`;
+    talk.length > 0 || open2
+      ? "Continuar a conversa com a Mia"
+      : `Perguntar à Mia ${miaSubject(topic)}`;
   return (
     <Link
       onClick={opened(".mia-head")}
@@ -261,7 +266,7 @@ export const MiaHead = ({ topic }: { topic: MiaTopic }) => {
  * While Mia's screen is open, a phone keyboard shrinks the page instead of covering it, so the
  * question field stays in sight above the keys (Chrome's interactive-widget; others ignore it).
  */
-const useKeyboardResizes = () => {
+export const useKeyboardResizes = () => {
   useEffect(() => {
     const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
     if (!meta) return;
@@ -278,6 +283,13 @@ const useKeyboardResizes = () => {
  * No tabs here; the arrow (or Esc, or the phone's back) returns to where she was opened from.
  */
 export const MiaScreen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined }) => {
+  const status = useMiaStatus();
+  // Her agent when it is on; the first Mia otherwise. Nothing until the status says which.
+  if (!status.data) return null;
+  return status.data.versao === 2 ? <Mia2Screen topic={topic} /> : <Mia1Screen topic={topic} />;
+};
+
+const Mia1Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const canGoBack = useCanGoBack();

@@ -482,7 +482,7 @@ private fun MiaTurnItem(
 
 /** Three soft dots that breathe while Mia works, as on the site. */
 @Composable
-private fun WaitDots() {
+internal fun WaitDots(color: Color? = null) {
     val l = LocalLedger.current
     // Still when the phone asks for no animations.
     val resolver = LocalContext.current.contentResolver
@@ -491,7 +491,7 @@ private fun WaitDots() {
         1f, 0.35f, infiniteRepeatable(tween(600), RepeatMode.Reverse), label = "dots",
     )
     Row(Modifier.graphicsLayer { alpha = if (still) 1f else pulse }, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        repeat(3) { Box(Modifier.size(5.dp).background(l.mia, CircleShape)) }
+        repeat(3) { Box(Modifier.size(5.dp).background(color ?: l.mia, CircleShape)) }
     }
 }
 
@@ -517,7 +517,7 @@ fun MiaText(reply: MiaReply, onOpen: (String, String?) -> Unit) {
 }
 
 @Composable
-private fun Suggestion(text: String, wrap: Boolean = false, onClick: () -> Unit) {
+internal fun Suggestion(text: String, wrap: Boolean = false, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(50)
     Text(
