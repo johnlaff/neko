@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.json
 import dev.johnlaff.neko.data.AjustesView
@@ -34,7 +35,7 @@ import dev.johnlaff.neko.ui.MiaChat
 import dev.johnlaff.neko.ui.MiaScreen
 import dev.johnlaff.neko.ui.SaveState
 import dev.johnlaff.neko.ui.StatementRead
-import dev.johnlaff.neko.ui.Simulator
+import dev.johnlaff.neko.ui.SimularScreen
 import dev.johnlaff.neko.ui.ScreenState
 import dev.johnlaff.neko.ui.LoginScreen
 import dev.johnlaff.neko.ui.NekoTheme
@@ -132,12 +133,29 @@ class ScreenshotTest {
 
     @Test fun mesLight() = shot("mes-light", night = false) { MesScreen(ScreenState(months), Fakes.history) {} }
 
+    // No line typed yet: nothing to compare with.
     @Test fun simularDark() = shot("simular-dark", night = true) {
-        Simulator(view.canSpend!!, Fakes.simulate, startTyped = "600,00", startCount = 3)
+        // Opened, before any what-if: the bills leave room under the ceiling, so it is no best case.
+        SimularScreen(
+            Fakes.askScenario, {},
+            start = Fakes.scenario.copy(
+                effect = null, effects = emptyList(), full = emptyList(),
+                saving = Saving("2026-10-05", 5_600_00, 7_600_00, "2026-12-31", 510_48),
+            ),
+        )
     }
 
-    @Test fun simularLight() = shot("simular-light", night = false) {
-        HojeScreen(TodayState(view), {}, {}, Fakes.simulate, simulatorOpen = true)
+    /** Scrolled down to the what-ifs: the answer stays in one line under the bar. */
+    @Test fun simularPeekDark() = shot("simular-peek-dark", night = true, scrollTo = "Todo dia 20, 2 meses seguidos.") {
+        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
+    }
+
+    @Test fun simularLight() = shot("simular-light", night = false, scrollTo = "E se…") {
+        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
+    }
+
+    @Test fun simularMesesDark() = shot("simular-meses-dark", night = true, tap = "Mês a mês") {
+        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
     }
 
     @Test fun ajustesDark() = shot("ajustes-dark", night = true) {

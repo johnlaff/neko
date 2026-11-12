@@ -597,7 +597,7 @@ const SaySentence = ({
   );
 };
 
-/** Lançar à mão: a button on Hoje that opens the form in place, like Simular compra. */
+/** Lançar à mão: a button on Hoje that opens the form in place. */
 export const ManualLaunch = ({ cards, today }: { cards: readonly string[]; today: LocalDate }) => {
   const [open, setOpen] = useState(false);
   return (

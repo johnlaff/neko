@@ -15,7 +15,8 @@ import dev.johnlaff.neko.data.BanksView
 import dev.johnlaff.neko.data.MiaEntry
 import dev.johnlaff.neko.data.Device
 import dev.johnlaff.neko.data.HistoryView
-import dev.johnlaff.neko.data.InstallmentSimulation
+import dev.johnlaff.neko.data.ScenarioBody
+import dev.johnlaff.neko.data.ScenarioView
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MiaAsk
 import dev.johnlaff.neko.data.MiaReply
@@ -365,8 +366,8 @@ class AppModel(
     /** Mia's conversation, kept while the app lives, so leaving her screen and coming back finds it. */
     val miaChat = MiaChat()
 
-    /** Hoje's simulator; the Worker does the math, as for every other figure. */
-    suspend fun simulate(amount: Long, count: Int): InstallmentSimulation? = neko.api.simulate(amount, count)
+    /** Simular; the Worker does the math, as for every other figure, and saves nothing. */
+    suspend fun scenario(ask: ScenarioBody): ScenarioView = neko.api.scenario(ask)
 
     /** When each screen was last read well, on [clock]; a screen not read this run is missing. */
     private val readAt = mutableMapOf<MutableStateFlow<out ScreenState<*>>, Long>()

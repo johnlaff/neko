@@ -58,11 +58,14 @@ export const ErrorBlock = ({
 /** Loading and error states shared by every screen, so each screen only renders data. */
 export const WithProjection = ({
   children,
+  loading,
 }: {
   children: (data: ProjectionResponse & { offline?: true }) => ReactNode;
+  /** The screen's own placeholder; Hoje's shape when left out. */
+  loading?: ReactNode;
 }) => {
   const q = useProjection();
-  if (q.isPending) return <Skeleton />;
+  if (q.isPending) return <>{loading ?? <Skeleton />}</>;
   if (q.isError) {
     const structure = q.error instanceof ApiError && q.error.code === "sheet-structure";
     return (

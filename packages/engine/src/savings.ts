@@ -56,6 +56,26 @@ export const ceilingHeld = (
   return (date) => add(ZERO, ...gaps.filter((g) => g.month <= date.slice(0, 7)).map((g) => g.gap));
 };
 
+/** Each month's bills on the owner's own cards (not someone else's), the ceiling's measure. */
+export const ownCardBills = (
+  months: readonly {
+    readonly year: number;
+    readonly month: number;
+    readonly outflows: readonly {
+      readonly kind: string;
+      readonly others: boolean;
+      readonly amount: Cents;
+    }[];
+  }[],
+): { readonly month: string; readonly amount: Cents }[] =>
+  months.map((m) => ({
+    month: `${m.year}-${String(m.month).padStart(2, "0")}`,
+    amount: add(
+      ZERO,
+      ...m.outflows.filter((o) => o.kind === "card" && !o.others).map((o) => o.amount),
+    ),
+  }));
+
 export const saveable = (days: readonly SaveDay[]): Saving | null => {
   let at = -1;
   for (let i = 0; i < Math.min(days.length, PAYDAY_WINDOW); i++) {

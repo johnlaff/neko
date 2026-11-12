@@ -1,8 +1,14 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { simulateInstallments } from "@neko/engine";
+import { paceMonthly, simulateInstallments } from "@neko/engine";
 import { describe, expect, it } from "vitest";
-import { ajustesView, invoicesView, monthsView, simulateView } from "../src/shared/screens.ts";
+import {
+  ajustesView,
+  invoicesView,
+  monthsView,
+  scenarioView,
+  simulateView,
+} from "../src/shared/screens.ts";
 import { type ProjectionResponse, UserSettings } from "../src/shared/types.ts";
 import type { Env } from "../src/worker/env.ts";
 import worker from "../src/worker/index.ts";
@@ -170,6 +176,96 @@ describe("simulate view", () => {
   });
 });
 
+describe("scenario view", () => {
+  it("is the sheet as it is with no pace and no change, from today on", () => {
+    const r = scenarioView(fixture, null, { pace: "planilha", changes: [] });
+    expect(r.days[0]?.date).toBe(fixture.projection.today);
+    expect(r.days.every((d) => d.sim === d.sheet)).toBe(true);
+  });
+
+  it("puts a purchase's first parcel on the usual card's next bill", () => {
+    const usual = fixture.projection.cards.find((c) => c.usual);
+    if (!usual) throw new Error("fixture has a usual card");
+    const r = scenarioView(fixture, null, {
+      pace: "planilha",
+      changes: [{ kind: "compra", amount: 300_00 as never, count: 1 }],
+    });
+    const due = r.days.find((d) => d.date === usual.cycle.due);
+    expect(due && due.sheet - due.sim).toBe(300_00);
+  });
+
+  it("starts at the ceiling when there is one, else on the sheet, and never on a pace it lacks", () => {
+    expect(scenarioView(fixture, null, { changes: [] }).pace).toBe("planilha");
+    expect(scenarioView(fixture, 3_000_00 as never, { changes: [] }).pace).toBe("teto");
+    expect(scenarioView(fixture, null, { pace: "teto", changes: [] }).pace).toBe("planilha");
+    expect(scenarioView(fixture, 3_000_00 as never, { pace: "media", changes: [] }).pace).toBe(
+      "media",
+    );
+  });
+
+  it("tells the screen the sheet's last day, the usual card and the paces it allows", () => {
+    const r = scenarioView(fixture, null, { changes: [] });
+    expect(r.today).toBe(fixture.projection.today);
+    expect(r.readAt).toBe(fixture.sheet.readAt);
+    expect(r.end).toBe(r.days.at(-1)?.date);
+    expect(r.end).toBe("2026-12-31");
+    expect(r.card).toBe("Cartão Azul");
+    expect(r.due).toBe(fixture.projection.cards.find((c) => c.usual)?.cycle.due);
+    expect(r.paces).toEqual(["planilha", "media"]);
+    expect(scenarioView(fixture, 3_000_00 as never, { changes: [] }).paces).toEqual([
+      "planilha",
+      "teto",
+      "media",
+    ]);
+    expect(r.canSpend).toEqual({
+      mode: fixture.projection.canSpend?.mode,
+      left: fixture.projection.canSpend?.left,
+      overBy: fixture.projection.canSpend?.overBy,
+      due: fixture.projection.canSpend?.due,
+    });
+  });
+
+  it("leaves out a change the engine refuses, names its place, and answers with the others", () => {
+    const today = fixture.projection.today;
+    const r = scenarioView(fixture, null, {
+      pace: "planilha",
+      changes: [
+        { kind: "saida", amount: 100_00 as never, date: today as never, months: 1 },
+        { kind: "saida", amount: 100_00 as never, date: "2000-01-01" as never, months: 1 },
+      ],
+    });
+    expect(r.refused).toEqual([1]);
+    expect(r.effects).toHaveLength(1);
+    expect(scenarioView(fixture, null, { changes: [] }).refused).toEqual([]);
+  });
+
+  it("tells where the pace starts to count: next month, never on the sheet as it is", () => {
+    const today = fixture.projection.today;
+    expect(scenarioView(fixture, null, { pace: "planilha", changes: [] }).paceFrom).toBeNull();
+    const from = scenarioView(fixture, 3_000_00 as never, { pace: "teto", changes: [] }).paceFrom;
+    expect(from?.endsWith("-01")).toBe(true);
+    expect(from && from > today).toBe(true);
+    expect(from?.slice(0, 7)).not.toBe(today.slice(0, 7));
+  });
+
+  it("tells what each pace spends a month, so the screen can say which one is the cautious one", () => {
+    const p = fixture.projection;
+    const media = paceMonthly("media", p.months, p.today, null);
+    expect(scenarioView(fixture, null, { changes: [] }).spends).toEqual({ teto: null, media });
+    expect(scenarioView(fixture, 3_000_00 as never, { changes: [] }).spends).toEqual({
+      teto: 3_000_00,
+      media,
+    });
+  });
+
+  it("holds the ceiling back from next month on", () => {
+    const r = scenarioView(fixture, 1_000_000_00 as never, { pace: "teto", changes: [] });
+    expect(r.monthly).toBe(1_000_000_00);
+    expect(r.months[0]?.endSim).toBe(r.months[0]?.endSheet);
+    expect(r.months.slice(1).every((m) => m.endSim < m.endSheet)).toBe(true);
+  });
+});
+
 describe("ajustes view", () => {
   it("brings the settings, the sheet's cards and the diário in use", () => {
     const settings = UserSettings.parse({ othersCards: ["Cartão Verde"] });
@@ -210,6 +306,15 @@ describe("android screen contracts", () => {
     ["months.json", monthsView(fixture)],
     ["ajustes.json", ajustesView(fixture, settings)],
     ["simulate.json", simulateView(fixture, 600_00 as never, 3)],
+    [
+      "scenario.json",
+      scenarioView(fixture, 3_000_00 as never, {
+        changes: [
+          { kind: "compra", amount: 600_00 as never, count: 3 },
+          { kind: "saida", amount: 1_500_00 as never, date: "2026-10-20" as never, months: 2 },
+        ],
+      }),
+    ],
   ])("%s matches what the Worker sends for the e2e fixture", (file, view) => {
     const path = join(import.meta.dirname, "../../android/app/src/test/resources", file);
     if (process.env.UPDATE_CONTRACT) writeFileSync(path, `${JSON.stringify(view, null, 2)}\n`);
