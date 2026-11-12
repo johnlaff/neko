@@ -245,12 +245,14 @@ const Outflows = ({
 
 /**
  * The method's emergency reserve, climbed in steps. At a glance: what the sheet shows as kept and
- * how far the next step is. Behind "Como funciona": the steps, the cost of living behind them, the
- * year's Economia (the sheet's tab), how to start and the method's rule.
+ * how far the next step is. Behind "Como funciona": how to start, the steps, the cost of living
+ * behind them, the year's Economia (the sheet's tab) and the method's rule.
  */
 const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined }) => {
   const s = reserveSteps(r);
   const hint = stepHint(s, r.kept);
+  // Shown only when it adds something: with everything kept this year it repeats the total.
+  const yearSaved = year && year.saved > 0 && year.saved !== r.kept ? year : null;
   return (
     <section className="panel reserve" aria-labelledby="h-reserve">
       <div className="panel-head">
@@ -258,34 +260,40 @@ const ReservePanel = ({ r, year }: { r: Reserve; year: YearTotals | undefined })
         <span className="meta">{stepsMeta(s, r.kept)}</span>
       </div>
       {r.kept > 0 && (
-        <p className="reserve-kept">
-          <strong>{money(r.kept)}</strong> guardados na planilha
-        </p>
+        <>
+          <p className="reserve-kept">
+            <strong>{money(r.kept)}</strong> guardados na planilha
+          </p>
+          {/* Display only: kept over the next step, so a step reached is never back at zero. */}
+          <span className="meter" aria-hidden="true">
+            <span
+              style={{ width: `${s.next ? Math.min(100, (r.kept / s.next.amount) * 100) : 100}%` }}
+            />
+          </span>
+        </>
       )}
-      {/* Display only: kept over the next step, so a step reached is never back at zero. */}
-      <span className="meter" aria-hidden="true">
-        <span
-          style={{ width: `${s.next ? Math.min(100, (r.kept / s.next.amount) * 100) : 100}%` }}
-        />
-      </span>
-      <p className="reserve-next">{stepLine(s, r.kept)}</p>
+      <div className="reserve-next">
+        <p>{stepLine(s, r.kept)}</p>
+        {/* Past 6 months the meter climbs to 12: the line under it says so. */}
+        {r.kept > 0 && hint && <p className="muted">{hint}</p>}
+      </div>
       <details className="formula">
         <summary>
           <IconChevron />
           {RESERVE.more}
         </summary>
+        {r.kept <= 0 && hint && <p>{hint}</p>}
         <p>{stepsRule(s)}</p>
         <dl className="ledger">
           <dt>{costLabel(r.costMonths)}</dt>
           <dd>{money(r.cost)}</dd>
-          {year && year.saved > 0 && (
+          {yearSaved && (
             <>
-              <dt>Guardado em {year.year}</dt>
-              <dd>{money(year.saved)}</dd>
+              <dt>Guardado em {yearSaved.year}</dt>
+              <dd>{money(yearSaved.saved)}</dd>
             </>
           )}
         </dl>
-        {hint && <p>{hint}</p>}
         <p>{RESERVE.rule}</p>
       </details>
     </section>

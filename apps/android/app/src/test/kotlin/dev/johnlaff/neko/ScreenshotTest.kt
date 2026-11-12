@@ -138,6 +138,18 @@ class ScreenshotTest {
         )
     }
 
+    /** Past the method's 6 months: the meter climbs to 12 and the line under it says how far. */
+    @Test fun mesReservaSeis() = shot("mes-reserva-seis-light", night = false) {
+        val s = months.steps!!
+        val six = s.steps[s.steps.size - 2]
+        val twelve = s.steps.last()
+        dev.johnlaff.neko.ui.ReservePanel(
+            months.reserve!!.copy(kept = six.amount),
+            s.copy(reached = s.steps.size - 1, next = twelve, missing = twelve.amount - six.amount),
+            null,
+        )
+    }
+
     /** A closed month keeps its wins: September 2025 ended in the blue and first covered a month. */
     @Test fun mesFechado() = shot("mes-fechado-light", night = false) {
         MesScreen(ScreenState(months.copy(current = "2025-09"))) {}

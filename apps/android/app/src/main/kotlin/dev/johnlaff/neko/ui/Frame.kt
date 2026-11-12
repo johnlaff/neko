@@ -506,11 +506,12 @@ fun monogram(name: String): String {
 
 /** A thin bar, display only: `share` comes from the API's numbers, already a fraction. */
 @Composable
-fun Meter(share: Float, modifier: Modifier = Modifier, color: Color = LocalLedger.current.muted) {
+fun Meter(share: Float, modifier: Modifier = Modifier, color: Color = LocalLedger.current.muted, height: Dp = 4.dp) {
     val l = LocalLedger.current
     val grow = arrival(400)
-    Box(modifier.fillMaxWidth().height(4.dp).background(l.surface2, RoundedCornerShape(2.dp))) {
-        Box(Modifier.fillMaxWidth(share.coerceIn(0f, 1f) * grow).height(4.dp).background(color, RoundedCornerShape(2.dp)))
+    val shape = RoundedCornerShape(height / 2)
+    Box(modifier.fillMaxWidth().height(height).background(l.surface2, shape)) {
+        Box(Modifier.fillMaxWidth(share.coerceIn(0f, 1f) * grow).height(height).background(color, shape))
     }
 }
 
