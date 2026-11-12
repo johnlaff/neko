@@ -1,6 +1,15 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { HealthIssue, Insight, SaldoWaiting, Win } from "@neko/engine";
+import {
+  cents,
+  type HealthIssue,
+  type Insight,
+  type Reserve,
+  reserveSteps,
+  type SaldoWaiting,
+  savingStep,
+  type Win,
+} from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import { winShareText, winText } from "../src/shared/wins.ts";
 import { insightView, issueText } from "../src/web/Alerts.tsx";
@@ -18,7 +27,6 @@ import {
 import {
   CARDS_COME_FROM,
   costLabel,
-  coveredLabel,
   dailySourceText,
   HABIT,
   HINTS,
@@ -26,12 +34,26 @@ import {
   LEARN_INTRO,
   RESERVE,
   resultNote,
+  saveStepText,
+  stepHint,
+  stepLine,
+  stepsMeta,
+  stepsRule,
   streakLabel,
   TOTALS,
 } from "../src/web/learn.ts";
 import { milestoneText } from "../src/web/Streak.tsx";
 
 const ref = { tab: "2026", a1: "BB15" };
+
+const reserveOf = (cost: number, kept: number): Reserve => ({
+  cost: cents(cost),
+  costMonths: 3,
+  min: cents(cost * 6),
+  max: cents(cost * 12),
+  kept: cents(kept),
+  coveredTenths: Math.floor((kept * 10) / cost),
+});
 
 /** One of each warning, Conferência point and win, with the variations their words have. */
 const INSIGHTS = [
@@ -148,7 +170,31 @@ const contract = () => ({
       [12, true],
     ].map(([n, atRisk]) => [n, atRisk, streakLabel(n as number, atRisk as boolean)]),
     milestone: [7, 66, 500].map((m) => [m, milestoneText(m)]),
-    covered: [6, 10, 16, 20].map((t) => [t, coveredLabel(t)]),
+    // The reserve's steps: nothing kept, on the way, a first step left out, past the last one.
+    steps: (
+      [
+        [6000_00, 0],
+        [6000_00, 1000_00],
+        [6000_00, 20000_00],
+        [6000_00, 40000_00],
+        [2500_00, 0],
+        [4000_00, 50000_00],
+      ] as const
+    ).map(([cost, kept]) => {
+      const s = reserveSteps(reserveOf(cost, kept));
+      return [s, kept, stepsMeta(s, kept), stepLine(s, kept), stepHint(s, kept), stepsRule(s)];
+    }),
+    saveStep: (
+      [
+        [6000_00, 0, 1800_00],
+        [6000_00, 1000_00, 2000_00],
+        [6000_00, 1000_00, 5500_00],
+        [4000_00, 22000_00, 3000_00],
+      ] as const
+    ).map(([cost, kept, amount]) => {
+      const s = savingStep(reserveOf(cost, kept), cents(amount));
+      return [s, s && saveStepText(s)];
+    }),
     cost: [1, 3].map((m) => [m, costLabel(m)]),
     result: [true, false].map((down) => [down, resultNote(down)]),
     dailySource: (["settings", "sheet-note", "inferred"] as const).map((s) => [
@@ -177,6 +223,13 @@ describe("copy contract", () => {
       ...c.insights.flatMap((i) => [i.title ?? "", i.detail ?? ""]),
       ...c.issues.flatMap((i) => [i.title, i.detail]),
       ...c.wins.map((w) => w.text),
+      ...c.labels.steps.flatMap(([, , meta, line, hint, rule]) => [
+        meta,
+        line,
+        ...(hint ? [hint] : []),
+        rule,
+      ]),
+      ...c.labels.saveStep.map(([, text]) => text ?? ""),
     ];
     for (const l of lines) expect(l, l).toMatch(/^[A-ZÀ-Ý0-9"]/);
   });
