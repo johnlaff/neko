@@ -69,14 +69,17 @@ const path = (xs: readonly number[], ys: readonly number[]) =>
 /**
  * Balance from today to the sheet's last day: the sheet as it is (quiet) and the simulation
  * (accent, red where it goes below zero, on the termômetro's red wash). A dot marks the day the
- * answer names. A crosshair reads any day by pointer or by the arrow keys; the month table
- * carries every value without it.
+ * answer names, and a dashed rule the day the pace starts to count: left of it the sheet holds the
+ * month, right of it the spending is an assumption. A crosshair reads any day by pointer or by the
+ * arrow keys; the month table carries every value without it.
  */
 export const SimChart = ({
   days,
   label,
   same,
   mark,
+  fit = false,
+  from = null,
 }: {
   days: readonly ScenarioDay[];
   /** What the chart says, for screen readers. */
@@ -85,6 +88,13 @@ export const SimChart = ({
   same: boolean;
   /** The day the answer names: the first one below zero, or the lowest. */
   mark: ScenarioPoint | null;
+  /**
+   * Scale to the simulation alone: with a pace the sheet's rosy months would set the scale and
+   * squeeze the answer into a corner, so the sheet runs off the top with its peak named there.
+   */
+  fit?: boolean;
+  /** The first day the pace counts; null for the sheet as it is. */
+  from?: string | null;
 }) => {
   const id = useId();
   // useId's colons are not welcome in a url(#…) reference.
@@ -104,7 +114,8 @@ export const SimChart = ({
   const sim = useMorph(days.map((d) => d.sim));
   if (days.length < 2) return null;
 
-  const values = [...days.map((d) => d.sheet), ...days.map((d) => d.sim), 0];
+  const sims = days.map((d) => d.sim);
+  const values = fit ? [...sims, 0] : [...days.map((d) => d.sheet), ...sims, 0];
   const ticks = ticksFor(Math.min(...values), Math.max(...values));
   const lo = ticks[0] ?? 0;
   const hi = ticks.at(-1) ?? 1;
@@ -118,6 +129,13 @@ export const SimChart = ({
   const zero = Y(0);
   const bottom = HEIGHT - PAD.bottom;
   const markAt = mark ? days.findIndex((d) => d.date === mark.date) : -1;
+  const fromAt = from ? days.findIndex((d) => d.date === from) : -1;
+  // The sheet's highest day when it runs off the top: its value is named where it leaves.
+  const peakAt = days.reduce((top, d, i) => (d.sheet > (days[top]?.sheet ?? 0) ? i : top), 0);
+  const peak = days[peakAt]?.sheet ?? 0;
+  const offTop = !same && peak > hi;
+  const peakText = `↑ planilha ${axisMoney(peak)}`.trim();
+  const anyRed = sim.some((v) => v < 0);
   // A month name at each first day, every second or third month on a narrow screen.
   const firsts = days.flatMap((d, i) => (d.date.endsWith("-01") ? [i] : []));
   const every = Math.ceil(firsts.length / Math.max(2, Math.floor(plotW / 64)));
@@ -147,10 +165,16 @@ export const SimChart = ({
 
   return (
     <figure className={same ? "sim-chart same" : "sim-chart"}>
-      {!same && (
+      {(!same || fromAt > 0 || anyRed) && (
         <figcaption className="sim-legend">
-          <span className="sheet">Planilha</span>
-          <span className="sim">Simulação</span>
+          {!same && <span className="sheet">Planilha</span>}
+          {!same && <span className="sim">Simulação</span>}
+          {anyRed && <span className="below">Abaixo de zero</span>}
+          {fromAt > 0 && (
+            <span className="from">
+              Previsão desde {monthName(Number(from?.slice(5, 7))).slice(0, 3)}
+            </span>
+          )}
         </figcaption>
       )}
       {/* biome-ignore lint/a11y/useSemanticElements: a chart read by pointer and keys, not a form; the table says it all without it */}
@@ -175,6 +199,9 @@ export const SimChart = ({
             </clipPath>
             <clipPath id={`${clip}-down`}>
               <rect x={0} y={zero} width={width} height={Math.max(0, HEIGHT - zero)} />
+            </clipPath>
+            <clipPath id={`${clip}-plot`}>
+              <rect x={0} y={PAD.top - 2} width={width} height={plotH + 4} />
             </clipPath>
           </defs>
           {zero > PAD.top && zero < bottom && (
@@ -201,13 +228,17 @@ export const SimChart = ({
             return (
               <text key={d} className="month" x={X(i)} y={HEIGHT - 8}>
                 {monthName(Number(d.slice(5, 7))).slice(0, 3)}
-                {d.slice(0, 4) === was ? "" : ` ${d.slice(2, 4)}`}
+                {d.slice(0, 4) === was ? "" : ` ${d.slice(0, 4)}`}
               </text>
             );
           })}
+          {fromAt > 0 && (
+            <line className="from" x1={X(fromAt)} x2={X(fromAt)} y1={PAD.top} y2={bottom} />
+          )}
           {!same && (
             <path
               className="line sheet"
+              clipPath={`url(#${clip}-plot)`}
               d={path(
                 xs,
                 days.map((d) => Y(d.sheet)),
@@ -225,18 +256,32 @@ export const SimChart = ({
               )}
             />
           ))}
+          {offTop && (
+            <text
+              className="peak"
+              x={Math.min(
+                Math.max(X(peakAt), left + peakText.length * CHAR_PX * 0.5),
+                width - PAD.right - peakText.length * CHAR_PX * 0.5,
+              )}
+              y={PAD.top - 2}
+            >
+              {peakText}
+            </text>
+          )}
           {markAt >= 0 && (
             <circle
               className={(sim[markAt] ?? 0) < 0 ? "mark neg" : "mark"}
               cx={X(markAt)}
               cy={Y(sim[markAt] ?? 0)}
-              r={4.5}
+              r={3.5}
             />
           )}
           {hover && at !== null && (
             <g className="cross">
               <line x1={X(at)} x2={X(at)} y1={PAD.top} y2={bottom} />
-              {!same && <circle className="sheet" cx={X(at)} cy={Y(hover.sheet)} r={4} />}
+              {!same && hover.sheet <= hi && (
+                <circle className="sheet" cx={X(at)} cy={Y(hover.sheet)} r={4} />
+              )}
               <circle className={same ? "sheet" : "sim"} cx={X(at)} cy={Y(hover.sim)} r={4} />
             </g>
           )}

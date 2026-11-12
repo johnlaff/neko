@@ -221,7 +221,17 @@ describe("scenario view", () => {
       mode: fixture.projection.canSpend?.mode,
       left: fixture.projection.canSpend?.left,
       overBy: fixture.projection.canSpend?.overBy,
+      due: fixture.projection.canSpend?.due,
     });
+  });
+
+  it("tells where the pace starts to count: next month, never on the sheet as it is", () => {
+    const today = fixture.projection.today;
+    expect(scenarioView(fixture, null, { pace: "planilha", changes: [] }).paceFrom).toBeNull();
+    const from = scenarioView(fixture, 3_000_00 as never, { pace: "teto", changes: [] }).paceFrom;
+    expect(from?.endsWith("-01")).toBe(true);
+    expect(from && from > today).toBe(true);
+    expect(from?.slice(0, 7)).not.toBe(today.slice(0, 7));
   });
 
   it("tells what each pace spends a month, so the screen can say which one is the cautious one", () => {

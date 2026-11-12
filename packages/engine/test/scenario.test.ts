@@ -176,15 +176,91 @@ describe("simulate", () => {
       { kind: "saida", amount: cents(3_000_00), date: localDate("2026-10-15"), months: 2 },
       { kind: "entrada", amount: cents(500_00), date: localDate("2026-12-01"), months: 1 },
     ];
-    expect(run({ pace: "planilha", changes }).base).toEqual({ lowest: 2_000_00, end: 4_000_00 });
-    // With a pace the base is that pace without the changes, not the sheet.
+    // The sheet alone: lowest R$ 2.000 today, R$ 4.000 at the end of December.
+    expect(run({ pace: "planilha", changes }).effect).toEqual({
+      lowest: -3_500_00,
+      end: -5_500_00,
+    });
+    // With a pace it is against that pace without the changes, not against the sheet.
     const teto = run({ pace: "teto", changes }, 1_500_00);
     const alone = run({ pace: "teto", changes: [] }, 1_500_00);
-    expect(teto.base).toEqual({
-      lowest: alone.lowest?.balance,
-      end: alone.months.at(-1)?.endSim,
+    expect(teto.effect).toEqual({
+      lowest: (teto.lowest?.balance ?? 0) - (alone.lowest?.balance ?? 0),
+      end: (teto.months.at(-1)?.endSim ?? 0) - (alone.months.at(-1)?.endSim ?? 0),
     });
-    expect(alone.base).toBeNull();
+    expect(alone.effect).toBeNull();
+    expect(alone.effects).toEqual([]);
+  });
+
+  it("tells each change's own effect, as if it were the only one", () => {
+    const r = run({
+      pace: "planilha",
+      changes: [
+        { kind: "saida", amount: cents(3_000_00), date: localDate("2026-10-15"), months: 2 },
+        { kind: "entrada", amount: cents(500_00), date: localDate("2026-12-01"), months: 1 },
+      ],
+    });
+    expect(r.effects).toEqual([
+      // Alone the second 3.000 meets December's bill too: R$ -2.000 on 10/12.
+      { lowest: -4_000_00, end: -6_000_00, inPace: null, counted: 2, of: 2 },
+      { lowest: 0, end: 500_00, inPace: null, counted: 1, of: 1 },
+    ]);
+  });
+
+  it("says which of a purchase's parcels the pace already holds, and how much of each month", () => {
+    // R$ 1.200 in 3: R$ 400 on 10/10 (this month, past the pace), 10/11 and 10/12 (inside it).
+    const r = run(
+      { pace: "teto", changes: [{ kind: "compra", amount: cents(1_200_00), count: 3 }] },
+      1_500_00,
+      localDate("2026-10-10"),
+    );
+    expect(r.effects).toEqual([
+      {
+        lowest: -400_00,
+        end: -400_00,
+        inPace: { count: 2, amount: 800_00, perMonth: 400_00, until: "2026-12" },
+        counted: 3,
+        of: 3,
+      },
+    ]);
+    // Past what is left of the ceiling only that part is held: 1.000 of 1.600 in November.
+    const big = run(
+      { pace: "teto", changes: [{ kind: "compra", amount: cents(1_600_00), count: 1 }] },
+      1_500_00,
+      localDate("2026-11-10"),
+    );
+    expect(big.effects[0]?.inPace).toEqual({
+      count: 1,
+      amount: 1_000_00,
+      perMonth: 1_000_00,
+      until: "2026-11",
+    });
+    expect(big.effects[0]?.end).toBe(-600_00);
+    // On the sheet as it is nothing holds a purchase: all of it moves the balances.
+    const plain = run(
+      { pace: "planilha", changes: [{ kind: "compra", amount: cents(1_200_00), count: 3 }] },
+      null,
+      localDate("2026-10-10"),
+    );
+    expect(plain.effects[0]?.inPace).toBeNull();
+  });
+
+  it("counts only the dates the sheet reaches", () => {
+    const r = run(
+      {
+        pace: "planilha",
+        changes: [
+          { kind: "saida", amount: cents(100_00), date: localDate("2026-12-15"), months: 3 },
+          { kind: "compra", amount: cents(1_200_00), count: 12 },
+        ],
+      },
+      null,
+      localDate("2026-10-10"),
+    );
+    expect(r.effects.map((e) => [e.counted, e.of])).toEqual([
+      [1, 3],
+      [3, 12],
+    ]);
   });
 
   it("counts extra money in as income when it looks for the payday", () => {
