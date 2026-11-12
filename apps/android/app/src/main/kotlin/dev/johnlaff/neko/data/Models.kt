@@ -20,6 +20,8 @@ data class TodayView(
     val upcomingCount: Int = 0,
     val insights: List<Insight> = emptyList(),
     val saving: Saving? = null,
+    /** What that saving does to the reserve's steps; null without it or past the last step. */
+    val savingStep: SavingStep? = null,
     val issues: List<TodayIssue> = emptyList(),
     val issuesInWindow: Int = 0,
     val readAt: String = "",

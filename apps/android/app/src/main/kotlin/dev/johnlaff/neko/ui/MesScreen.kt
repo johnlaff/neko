@@ -46,6 +46,7 @@ import dev.johnlaff.neko.data.MonthItem
 import dev.johnlaff.neko.data.MonthsView
 import dev.johnlaff.neko.data.Outflow
 import dev.johnlaff.neko.data.Reserve
+import dev.johnlaff.neko.data.ReserveSteps
 import dev.johnlaff.neko.data.TrendPoint
 import dev.johnlaff.neko.data.YearTotals
 import dev.johnlaff.neko.ui.Format.capitalize
@@ -105,7 +106,7 @@ fun MesScreen(
         if (m.days.isNotEmpty()) item { Thermo(m, v.today, v.saving) }
         column()
         if (m.outflows.isNotEmpty()) item { Outflows(m) }
-        v.reserve?.let { r -> item { ReservePanel(r, v.years.firstOrNull { it.year == m.year }) } }
+        v.reserve?.let { r -> v.steps?.let { st -> item { ReservePanel(r, st, v.years.firstOrNull { it.year == m.year }) } } }
     }
 }
 
@@ -127,19 +128,15 @@ private fun Warnings(warnings: List<Insight>, shown: String, current: String?, o
 }
 
 /**
- * The method's emergency reserve, as on the site: cost of living times 6 to 12 months, against
- * what the sheet shows as kept, plus the year's Economia (the sheet's tab of the same name).
+ * The method's emergency reserve, climbed in steps as on the site: what the sheet shows as kept,
+ * how far the next step is, the cost of living behind it and the year's Economia (the sheet's tab).
  */
 @Composable
-internal fun ReservePanel(r: Reserve, year: YearTotals?) {
+internal fun ReservePanel(r: Reserve, s: ReserveSteps, year: YearTotals?) {
     val l = LocalLedger.current
     Panel {
         PanelHead(Learn.RESERVE_TITLE) {
-            Text(
-                if (r.kept > 0) "${Learn.coveredLabel(r.coveredTenths)} de 6" else "Nada guardado ainda",
-                color = l.muted,
-                style = MaterialTheme.typography.labelLarge,
-            )
+            Text(Learn.stepsMeta(s, r.kept), color = l.muted, style = MaterialTheme.typography.labelLarge)
         }
         if (r.kept > 0) {
             Text(
@@ -151,20 +148,30 @@ internal fun ReservePanel(r: Reserve, year: YearTotals?) {
                 style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
             )
         }
-        // Display only: kept over the 6-month goal, full past it.
-        Meter(if (r.min <= 0) 0f else r.kept.toFloat() / r.min, color = l.accent)
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            LedgerLine(Learn.costLabel(r.costMonths), money(r.cost))
-            LedgerLine("Meta de 6 meses", money(r.min))
-            if (year != null && year.saved > 0) {
-                LedgerLine("Em ${year.year}" + (year.savedShare?.let { " · $it% das entradas" } ?: ""), money(year.saved))
+        // Display only: kept over the next step, so a step reached is never back at zero.
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Meter(s.next?.let { if (it.amount <= 0) 0f else r.kept.toFloat() / it.amount } ?: 1f, color = l.accent)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    Learn.stepLine(s, r.kept),
+                    color = l.text,
+                    style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
+                )
+                Learn.stepHint(s, r.kept)?.let {
+                    Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"))
+                }
             }
         }
-        Text(
-            if (r.kept > 0) Learn.RESERVE_RULE else "${Learn.RESERVE_RULE} ${Learn.RESERVE_EMPTY}",
-            color = l.muted,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LedgerLine(Learn.costLabel(r.costMonths), money(r.cost))
+            if (year != null && year.saved > 0) {
+                LedgerLine("Guardado em ${year.year}", money(year.saved))
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(Learn.stepsRule(s), color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            Text(Learn.RESERVE_RULE, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 

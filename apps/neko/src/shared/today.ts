@@ -8,7 +8,10 @@ import {
   type Habit,
   type HealthIssue,
   type Insight,
+  type Reserve,
   type Saving,
+  type SavingStep,
+  savingStep,
   sub,
   type UpcomingDay,
 } from "@neko/engine";
@@ -21,6 +24,10 @@ export const HEALTH_DAYS = 60;
 /** The payday saving shows on Hoje on its day only; Mês marks the day all month. */
 export const saveToday = (saving: Saving | null | undefined, today: string): Saving | null =>
   saving?.date === today ? saving : null;
+
+/** Where saving it all would leave the reserve's steps; null without a reserve yet. */
+export const saveStep = (save: Saving | null, reserve: Reserve | null | undefined) =>
+  save && reserve ? savingStep(reserve, save.amount) : null;
 
 /**
  * Warnings that live in Mês, not on Hoje: a fixed bill that went up (Para onde foi shows it all
@@ -89,6 +96,8 @@ export interface TodayView {
   readonly insights: readonly Insight[];
   /** The payday saving, on its day only. */
   readonly saving: Saving | null;
+  /** What that saving does to the reserve's steps; null without it or past the last step. */
+  readonly savingStep: SavingStep | null;
   /** Conferência points of the last 60 days not yet marked as checked, newest first. */
   readonly issues: readonly TodayIssue[];
   /** All points in the window, checked or not: tells "all fine" from "only checked ones left". */
@@ -120,6 +129,7 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
   const since = addDays(p.today, -HEALTH_DAYS);
   const inWindow = p.health.filter((i) => i.date >= since).reverse();
   const seen = new Set(reviewed);
+  const save = saveToday(p.saving, p.today);
   return {
     today: p.today,
     balanceToday: p.balanceToday,
@@ -137,7 +147,8 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     upcoming: groupUpcomingByDay(p.upcoming),
     upcomingCount: p.upcoming.length,
     insights: (p.insights ?? []).filter((i) => !inMes(i)),
-    saving: saveToday(p.saving, p.today),
+    saving: save,
+    savingStep: saveStep(save, p.reserve),
     issues: inWindow
       .filter((i) => !seen.has(issueKey(i)))
       .map((issue) => ({ issue, url: cellUrl(issue.ref.tab, issue.ref.a1) })),

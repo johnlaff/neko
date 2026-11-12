@@ -7,6 +7,13 @@ import { add, type Cents, cents, divFloor, mul, ZERO } from "./money.ts";
  */
 
 export const RESERVE_MONTHS = { min: 6, max: 12 } as const;
+/**
+ * The way up to the method's 6 to 12 months, in steps near enough to reach: a first one that fits
+ * a payday, then months of the cost of living. A near subgoal makes saving easier than a far one
+ * (Colby and Chapman, "Savings, subgoals, and reference points", 2013).
+ */
+export const RESERVE_FIRST_STEP = cents(3_000_00);
+export const RESERVE_STEP_MONTHS = [1, 3, RESERVE_MONTHS.min, RESERVE_MONTHS.max] as const;
 /** Closed months averaged into the cost of living: recent enough to be "today's" cost. */
 export const COST_MONTHS = 3;
 
@@ -81,4 +88,60 @@ export const yearTotals = (months: readonly ReserveMonth[], year: number): YearT
     saved: cents(saved),
     savedShare: entrada > 0 ? Math.round((saved / entrada) * 100) : null,
   };
+};
+
+export interface ReserveStep {
+  readonly amount: Cents;
+  /** Months of the cost of living; null for the first step, a fixed amount. */
+  readonly months: number | null;
+}
+
+export interface ReserveSteps {
+  readonly steps: readonly ReserveStep[];
+  /** How many steps what was kept already covers. */
+  readonly reached: number;
+  /** The first step not reached yet; null past the last one. */
+  readonly next: ReserveStep | null;
+  /** What is still missing for `next`; zero without one. */
+  readonly missing: Cents;
+}
+
+/**
+ * The reserve in steps: R$ 3.000, then 1, 3, 6 and 12 months of the cost of living, against what
+ * the sheet shows as kept. The first step is left out when one month already costs no more.
+ */
+export const reserveSteps = (r: Reserve): ReserveSteps => {
+  const months = RESERVE_STEP_MONTHS.map((n) => ({ amount: mul(r.cost, n), months: n }));
+  const first = months[0];
+  const steps: ReserveStep[] =
+    first && first.amount > RESERVE_FIRST_STEP
+      ? [{ amount: RESERVE_FIRST_STEP, months: null }, ...months]
+      : months;
+  const reached = steps.filter((s) => r.kept >= s.amount).length;
+  const next = steps[reached] ?? null;
+  return { steps, reached, next, missing: next ? cents(next.amount - r.kept) : ZERO };
+};
+
+export interface SavingStep {
+  readonly step: ReserveStep;
+  /** The step's place, from 1. */
+  readonly index: number;
+  /** What is still missing for it after saving; zero when the saving reaches it. */
+  readonly missing: Cents;
+}
+
+/**
+ * What saving `amount` today does to the steps: the highest one it reaches, or what the next one
+ * still misses. Null past the last step, and also once the method's minimum of 6 months is kept,
+ * unless the saving reaches the next step: the method leaves going on to the owner [27:58], so the
+ * payday does not push a far goal.
+ */
+export const savingStep = (r: Reserve, amount: Cents): SavingStep | null => {
+  const before = reserveSteps(r);
+  const after = reserveSteps({ ...r, kept: add(r.kept, amount) });
+  const top = before.steps[after.reached - 1];
+  if (after.reached > before.reached && top)
+    return { step: top, index: after.reached, missing: ZERO };
+  if (!after.next || r.kept >= mul(r.cost, RESERVE_MONTHS.min)) return null;
+  return { step: after.next, index: after.reached + 1, missing: after.missing };
 };

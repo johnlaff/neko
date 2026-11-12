@@ -64,6 +64,11 @@ class ScreenshotTest {
 
     @Test fun hojeLight() = shot("hoje-light", night = false) { HojeScreen(TodayState(view), {}, {}) }
 
+    /** Payday: what saving it all does to the reserve's steps. */
+    @Test fun hojeGuardar() = shot("hoje-guardar-dark", night = true, scrollTo = "Dia de guardar") {
+        HojeScreen(TodayState(view), {}, {})
+    }
+
     /** The day the run reaches 21: the week's marks and the one card that celebrates it. */
     @Test fun hojeMarco() = shot("hoje-marco-dark", night = true, scrollTo = "Planilha em dia · 21 dias") {
         val h = view.habit!!
@@ -118,7 +123,18 @@ class ScreenshotTest {
     @Test fun mesDark() = shot("mes-dark", night = true) { MesScreen(ScreenState(months), Fakes.history) {} }
 
     @Test fun mesReserva() = shot("mes-reserva-dark", night = true) {
-        dev.johnlaff.neko.ui.ReservePanel(months.reserve!!, months.years.lastOrNull())
+        dev.johnlaff.neko.ui.ReservePanel(months.reserve!!, months.steps!!, months.years.lastOrNull())
+    }
+
+    /** Nothing kept yet: the first step and where the panel reads what is kept. */
+    @Test fun mesReservaVazia() = shot("mes-reserva-vazia-light", night = false) {
+        val s = months.steps!!
+        val first = s.steps.first()
+        dev.johnlaff.neko.ui.ReservePanel(
+            months.reserve!!.copy(kept = 0, coveredTenths = 0),
+            s.copy(reached = 0, next = first, missing = first.amount),
+            null,
+        )
     }
 
     /** A closed month keeps its wins: September 2025 ended in the blue and first covered a month. */
