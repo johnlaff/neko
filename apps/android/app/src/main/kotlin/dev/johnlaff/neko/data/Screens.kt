@@ -408,6 +408,11 @@ data class ScenarioView(
     val saving: Saving? = null,
     /** "Ainda cabem" once the purchases' first parcels are on it; null without a purchase. */
     val cycle: SimulatedCycle? = null,
+    /**
+     * The months from next on (`YYYY-MM`) whose own bills already take the whole pace: there the
+     * answer counts nothing else spent, a premise said out loud.
+     */
+    val full: List<String> = emptyList(),
     /** What the changes take from (negative) or add to the lowest balance and the end; null without changes. */
     val effect: ScenarioEffect? = null,
     /** Each change on its own, in the order asked, without the refused ones. */

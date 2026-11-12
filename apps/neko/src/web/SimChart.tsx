@@ -8,6 +8,8 @@ const HEIGHT = 200;
 const PAD = { top: 12, right: 8, bottom: 26 } as const;
 /** About one label character at 11px Geist, to size the gutter to its longest label. */
 const CHAR_PX = 6.2;
+/** Beside the dashed rule: from there on, the spending is assumed. */
+const FROM_TEXT = "previsão →";
 /** How long the simulation line takes to move to a new answer; none with reduced motion. */
 const MORPH_MS = 260;
 
@@ -90,7 +92,7 @@ export const SimChart = ({
   mark: ScenarioPoint | null;
   /**
    * Scale to the simulation alone: with a pace the sheet's rosy months would set the scale and
-   * squeeze the answer into a corner, so the sheet runs off the top with its peak named there.
+   * squeeze the answer into a corner, so the sheet runs off the top, an arrow where it leaves.
    */
   fit?: boolean;
   /** The first day the pace counts; null for the sheet as it is. */
@@ -130,12 +132,9 @@ export const SimChart = ({
   const bottom = HEIGHT - PAD.bottom;
   const markAt = mark ? days.findIndex((d) => d.date === mark.date) : -1;
   const fromAt = from ? days.findIndex((d) => d.date === from) : -1;
-  // The sheet's highest day when it runs off the top: its value is named where it leaves.
-  const peakAt = days.reduce((top, d, i) => (d.sheet > (days[top]?.sheet ?? 0) ? i : top), 0);
-  const peak = days[peakAt]?.sheet ?? 0;
-  const offTop = !same && peak > hi;
-  const peakText = `↑ planilha ${axisMoney(peak)}`.trim();
-  const anyRed = sim.some((v) => v < 0);
+  // Where the sheet's rosier line leaves the top, a small arrow says where it went.
+  const exitAt = same ? -1 : days.findIndex((d) => d.sheet > hi);
+  const exitText = "↑ planilha";
   // A month name at each first day, every second or third month on a narrow screen.
   const firsts = days.flatMap((d, i) => (d.date.endsWith("-01") ? [i] : []));
   const every = Math.ceil(firsts.length / Math.max(2, Math.floor(plotW / 64)));
@@ -165,16 +164,10 @@ export const SimChart = ({
 
   return (
     <figure className={same ? "sim-chart same" : "sim-chart"}>
-      {(!same || fromAt > 0 || anyRed) && (
+      {!same && (
         <figcaption className="sim-legend">
-          {!same && <span className="sheet">Planilha</span>}
-          {!same && <span className="sim">Simulação</span>}
-          {anyRed && <span className="below">Abaixo de zero</span>}
-          {fromAt > 0 && (
-            <span className="from">
-              Previsão desde {monthName(Number(from?.slice(5, 7))).slice(0, 3)}
-            </span>
-          )}
+          <span className="sheet">Planilha</span>
+          <span className="sim">Simulação</span>
         </figcaption>
       )}
       {/* biome-ignore lint/a11y/useSemanticElements: a chart read by pointer and keys, not a form; the table says it all without it */}
@@ -201,7 +194,7 @@ export const SimChart = ({
               <rect x={0} y={zero} width={width} height={Math.max(0, HEIGHT - zero)} />
             </clipPath>
             <clipPath id={`${clip}-plot`}>
-              <rect x={0} y={PAD.top - 2} width={width} height={plotH + 4} />
+              <rect x={0} y={PAD.top} width={width} height={plotH} />
             </clipPath>
           </defs>
           {zero > PAD.top && zero < bottom && (
@@ -233,7 +226,17 @@ export const SimChart = ({
             );
           })}
           {fromAt > 0 && (
-            <line className="from" x1={X(fromAt)} x2={X(fromAt)} y1={PAD.top} y2={bottom} />
+            <>
+              <line className="from" x1={X(fromAt)} x2={X(fromAt)} y1={PAD.top} y2={bottom} />
+              {/* Right of the rule the day to day is an assumption: said on the plot, not apart. */}
+              <text
+                className="from"
+                x={Math.min(X(fromAt) + 5, width - PAD.right - FROM_TEXT.length * CHAR_PX)}
+                y={bottom - 6}
+              >
+                {FROM_TEXT}
+              </text>
+            </>
           )}
           {!same && (
             <path
@@ -256,16 +259,16 @@ export const SimChart = ({
               )}
             />
           ))}
-          {offTop && (
+          {exitAt >= 0 && at === null && (
             <text
               className="peak"
               x={Math.min(
-                Math.max(X(peakAt), left + peakText.length * CHAR_PX * 0.5),
-                width - PAD.right - peakText.length * CHAR_PX * 0.5,
+                Math.max(X(exitAt), left + exitText.length * CHAR_PX * 0.5),
+                width - PAD.right - exitText.length * CHAR_PX * 0.5,
               )}
               y={PAD.top - 2}
             >
-              {peakText}
+              {exitText}
             </text>
           )}
           {markAt >= 0 && (

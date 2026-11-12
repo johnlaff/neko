@@ -473,15 +473,11 @@
     "remaining": 201280,
     "due": "2026-10-12"
   },
-  "saving": {
-    "date": "2026-10-05",
-    "income": 560000,
-    "amount": 760000,
-    "lowest": 811048,
-    "lowestDate": "2026-12-31",
-    "leftAtLowest": 51048,
-    "until": "2026-12-31"
-  },
+  "full": [
+    "2026-11",
+    "2026-12"
+  ],
+  "saving": null,
   "effect": {
     "lowest": -343807,
     "end": -343807

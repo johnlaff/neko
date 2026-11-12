@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.json
 import dev.johnlaff.neko.data.AjustesView
@@ -134,7 +135,14 @@ class ScreenshotTest {
 
     // No line typed yet: nothing to compare with.
     @Test fun simularDark() = shot("simular-dark", night = true) {
-        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario.copy(effect = null, effects = emptyList()))
+        // Opened, before any what-if: the bills leave room under the ceiling, so it is no best case.
+        SimularScreen(
+            Fakes.askScenario, {},
+            start = Fakes.scenario.copy(
+                effect = null, effects = emptyList(), full = emptyList(),
+                saving = Saving("2026-10-05", 5_600_00, 7_600_00, "2026-12-31", 510_48),
+            ),
+        )
     }
 
     /** Scrolled down to the what-ifs: the answer stays in one line under the bar. */

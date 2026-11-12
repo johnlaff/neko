@@ -90,6 +90,12 @@ export interface ScenarioResult {
   /** "Ainda cabem" once the purchases' first parcels are on it; null without a purchase. */
   readonly cycle: Simulation | null;
   /**
+   * The months from next on whose own bills (with the purchases' parcels) already take the whole
+   * pace, `YYYY-MM`: there the scenario assumes nothing else is spent, so the answer is a best
+   * case, said out loud, and `saving` is null.
+   */
+  readonly full: readonly string[];
+  /**
    * What the changes take from (negative) or add to the lowest balance and the last month's end,
    * against the same pace without them, so nobody has to remember the number from before; null
    * without changes.
@@ -123,6 +129,12 @@ export interface ChangeEffect extends Effect {
 }
 
 const key = (year: number, month: number) => year * 12 + month;
+
+/** The month the pace starts to count, `YYYY-MM`: the one after today's, as `ceilingHeld` reads it. */
+const nextMonth = (today: LocalDate) => {
+  const { year, month } = parts(today);
+  return addDays(ymd(year, month, daysInMonth(year, month)), 1).slice(0, 7);
+};
 
 /** The pace's monthly spending, in whole reais; null for the sheet as it is. */
 export const paceMonthly = (
@@ -201,6 +213,7 @@ const core = (input: ScenarioInput, scenario: Scenario): Core => {
     ),
   }));
   const held = monthly === null ? () => ZERO : ceilingHeld(bills, today, monthly);
+  const next = nextMonth(today);
   const shift = (date: LocalDate) =>
     add(ZERO, ...shifts.filter((s) => s.date <= date).map((s) => s.amount));
 
@@ -239,6 +252,10 @@ const core = (input: ScenarioInput, scenario: Scenario): Core => {
   // window Hoje's "Dia de guardar" reads, so both say the same with the ceiling and no change.
   const unplanned = firstUnplannedMonth(months, today);
   const until = unplanned && ymd(unplanned.year, unplanned.month, 1);
+  const full =
+    monthly === null
+      ? []
+      : bills.filter((b) => b.month >= next && b.amount >= monthly).map((b) => b.month);
   return {
     pace: scenario.pace,
     monthly,
@@ -262,11 +279,16 @@ const core = (input: ScenarioInput, scenario: Scenario): Core => {
             ),
           )
         : null,
-    saving: saveable(
-      days
-        .filter((d) => until === null || d.date < until)
-        .map((d) => ({ date: d.date, balance: d.sim, income: d.income })),
-    ),
+    full,
+    // A best case (months with nothing for the day to day) never says to put money away.
+    saving:
+      full.length > 0
+        ? null
+        : saveable(
+            days
+              .filter((d) => until === null || d.date < until)
+              .map((d) => ({ date: d.date, balance: d.sim, income: d.income })),
+          ),
   };
 };
 
@@ -284,8 +306,7 @@ const heldParcels = (
   input: ScenarioInput,
   monthly: Cents,
 ): ChangeEffect["inPace"] => {
-  const { year, month } = parts(input.today);
-  const next = addDays(ymd(year, month, daysInMonth(year, month)), 1).slice(0, 7);
+  const next = nextMonth(input.today);
   const bills = ownCardBills(input.months);
   const held = parcels.flatMap((p) => {
     const m = p.date.slice(0, 7);

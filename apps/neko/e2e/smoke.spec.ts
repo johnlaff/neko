@@ -484,7 +484,8 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await expect(
     page.getByRole("heading", { name: /^Só com a planilha, o menor saldo é/ }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Compra", exact: true }).click();
+  // C adds a purchase, as the add button's title says.
+  await page.keyboard.press("c");
   await expect(page.getByRole("textbox", { name: /Compra no Cartão Azul/ })).toBeFocused();
   await page.keyboard.type("600");
   // The parcels are one radio group: the arrows move the choice inside it.
@@ -494,8 +495,11 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await expect(page.getByText("1ª parcela em 12 out")).toBeVisible();
   await page.getByRole("button", { name: "Saída", exact: true }).click();
   await page.keyboard.type("50000");
+  // In the red, the answer says when, and how deep it goes.
   await expect(
-    page.getByRole("heading", { name: "Só com a planilha, fica negativo em 5 out." }),
+    page.getByRole("heading", {
+      name: /^Só com a planilha, fica negativo em 5 out e chega a −R\$\s[\d.]+/,
+    }),
   ).toBeVisible();
   // Each what-if's own effect, in reais, without remembering the number from before.
   await expect(page.getByText(/^As mudanças tiram R\$\s[\d.]+ do menor saldo/)).toBeVisible();
@@ -509,6 +513,12 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await expect(page.getByRole("textbox", { name: /Entrada/ })).toHaveValue("1,500.50");
   await page.getByRole("button", { name: "Tirar entrada" }).click();
   await expect(page.getByRole("textbox", { name: /Saída/ })).toBeFocused();
+  // Taken out by mistake, it comes back as it was, until the next change.
+  await page.getByRole("button", { name: "Desfazer" }).click();
+  await expect(page.getByRole("textbox", { name: /Entrada/ })).toHaveValue("1,500.50");
+  await expect(page.getByRole("textbox", { name: /Entrada/ })).toBeFocused();
+  await page.getByRole("button", { name: "Tirar entrada" }).click();
+  await expect(page.getByText("Tirou a entrada.")).toBeVisible();
   await expect(page.getByRole("figure").getByText("Simulação")).toBeVisible();
   await page.getByText("Mês a mês").click();
   await expect(page.getByRole("columnheader", { name: "Planilha" })).toBeVisible();
@@ -542,6 +552,35 @@ test("Lançar à mão asks the value, how it was paid and the name, then offers 
   await expect(page.getByRole("button", { name: "Desfazer" })).toBeVisible();
   await expect(form).toBeHidden();
   expect(errors).toEqual([]);
+});
+
+test("Simular keeps the what-ifs while Ajustes is read again, and lands on the new answer", async ({
+  page,
+}) => {
+  await open(page, "about:blank");
+  let fail = true;
+  await page.route("**/api/settings", (route) =>
+    fail
+      ? route.fulfill({ status: 500, json: { error: "indisponível" } })
+      : route.fulfill({ json: { ...(API["/api/settings"] as object), cycleBudget: 300_000 } }),
+  );
+  await page.goto("/simular");
+  await expect(page.getByText("Não consegui ler seus Ajustes")).toBeVisible();
+  await page.keyboard.press("c");
+  await page.keyboard.type("600");
+  // Failing again keeps the row, and the keys stay on the button.
+  const retry = page.getByRole("button", { name: /^(Tentar de novo|Tentando…)$/ });
+  await retry.click();
+  await expect(retry).toHaveText("Tentando…");
+  await expect(retry).toHaveText("Tentar de novo");
+  await expect(retry).toBeFocused();
+  await expect(page.getByRole("textbox", { name: /Compra/ })).toHaveValue("600");
+  // Read at last: the ceiling joins the paces, the row is still there, the keys on the answer.
+  fail = false;
+  await retry.click();
+  await expect(page.locator("#sim-verdict")).toBeFocused();
+  await expect(page.getByRole("radio", { name: "Teto" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /Compra/ })).toHaveValue("600");
 });
 
 test("Lançar com a Mia fills the form from one sentence, and only Lançar writes", async ({
