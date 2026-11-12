@@ -100,6 +100,7 @@ object Learn {
     const val RESERVE_EMPTY = "Para contar aqui, lance o valor como Saída sob o título Reserva, nas notas."
     const val RESERVE_NOTHING = "Nada guardado ainda"
     const val RESERVE_DONE = "Reserva completa"
+    const val RESERVE_LAST = "Último degrau"
     const val RESERVE_MINIMUM = "Já tem os 6 meses que o método pede"
 
     /** A goal's distance in whole reais, rounded up: the goal is a multiple of an average. */
@@ -110,11 +111,12 @@ object Learn {
     /** A step as a goal: "os primeiros R$ 3.000" or "3 meses de custo de vida". */
     fun stepGoal(s: ReserveStep): String = s.months?.let(::months) ?: "os primeiros ${Format.roundMoney(s.amount)}"
 
-    /** Over the meter: which step is being climbed, out of all of them. */
+    /** Over the meter: which step is being climbed, out of all of them; the last one by name. */
     fun stepsMeta(s: ReserveSteps, kept: Long) = when {
         s.next == null -> RESERVE_DONE
-        kept > 0 -> "Degrau ${s.reached + 1} de ${s.steps.size}"
-        else -> RESERVE_NOTHING
+        kept <= 0 -> RESERVE_NOTHING
+        s.reached + 1 == s.steps.size -> RESERVE_LAST
+        else -> "Degrau ${s.reached + 1} de ${s.steps.size}"
     }
 
     /** True once the method's minimum of 6 months is kept: from there on 12 is his call. */
@@ -131,7 +133,7 @@ object Learn {
     /** Under that, muted, when there is one: how to start, or what 12 months would still need. */
     fun stepHint(s: ReserveSteps, kept: Long): String? = when {
         kept <= 0 -> RESERVE_EMPTY
-        s.next != null && minimumKept(s) -> "Para 12 meses, faltam ${upToReal(s.missing)}."
+        s.next != null && minimumKept(s) -> "Para 12 meses, faltam ${upToReal(s.missing)}"
         else -> null
     }
 
