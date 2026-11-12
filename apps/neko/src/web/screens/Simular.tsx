@@ -69,9 +69,14 @@ const KIND_NOUN: Record<Kind, string> = {
   saida: "A saída",
 };
 
-/** "dez", or "dez 2027" when it is not this year: the same month in every place on the screen. */
+/**
+ * "dez", or "dez 2027" when it is not this year: the same month in every place on the screen,
+ * never broken across two lines.
+ */
 const monthLabel = (year: number, month: number, today: string) =>
-  `${monthName(month).slice(0, 3)}${String(year) === today.slice(0, 4) ? "" : ` ${year}`}`;
+  `${monthName(month).slice(0, 3)}${String(year) === today.slice(0, 4) ? "" : `\u00a0${year}`}`;
+/** "12 mai 2027" in one piece: a date never breaks across lines in a sentence. */
+const dayOf = (iso: string, today: string) => dayLabel(iso, today).replaceAll(" ", "\u00a0");
 const monthOf = (yyyyMm: string, today: string) =>
   monthLabel(Number(yyyyMm.slice(0, 4)), Number(yyyyMm.slice(5, 7)), today);
 
@@ -390,9 +395,9 @@ const Sandbox = ({
   const verdict = !r
     ? ""
     : red && lowest
-      ? `${lead}, ${best ? "mesmo no melhor caso " : ""}fica negativo em ${dayLabel(red.date, p.today)} e chega a ${roundMoney(lowest.balance)}${edge}.`
+      ? `${lead}, ${best ? "mesmo no melhor caso " : ""}fica negativo em ${dayOf(red.date, p.today)} e chega a ${roundMoney(lowest.balance)}${best ? "" : edge}.`
       : lowest
-        ? `${lead}, ${best ? "no melhor caso " : ""}o menor saldo é ${roundMoney(lowest.balance)}, em ${dayLabel(lowest.date, p.today)}${edge}.`
+        ? `${lead}, ${best ? "no melhor caso " : ""}o menor saldo é ${roundMoney(lowest.balance)}, em ${dayOf(lowest.date, p.today)}${edge}.`
         : "";
   const single = used.length === 1 ? used[0] : undefined;
   // One quiet line under the answer: what the changes did to it, and what the pace kept of them.
@@ -476,7 +481,7 @@ const Sandbox = ({
               <button type="button" className="sim-peek" onClick={scrollToAnswer}>
                 <span className={red ? "neg" : undefined}>
                   {red
-                    ? `Negativo em ${dayLabel(red.date, p.today)}`
+                    ? `Negativo em ${dayOf(red.date, p.today)}`
                     : lowest &&
                       `Menor saldo ${roundMoney(lowest.balance)}${best ? " no melhor caso" : ""}`}
                 </span>
@@ -525,7 +530,7 @@ const Sandbox = ({
               {saving
                 ? saving.date === p.today
                   ? "hoje"
-                  : `em ${dayLabel(saving.date, p.today)}`
+                  : `em ${dayOf(saving.date, p.today)}`
                 : best
                   ? `as faturas tomam ${r.pace === "teto" ? "o teto" : "a média"}`
                   : red
@@ -545,7 +550,7 @@ const Sandbox = ({
           mark={red ?? lowest}
           fit={r.pace !== "planilha"}
           from={r.paceFrom}
-          label={`Saldo de hoje até ${dayLabel(r.end, p.today)}. ${verdict}`}
+          label={`Saldo de hoje até ${dayOf(r.end, p.today)}. ${verdict}`}
         />
         <MonthTable r={r} same={same} today={p.today} />
       </section>
@@ -841,12 +846,12 @@ const ChangeRow = ({
     const first: { text: string; neg?: boolean }[] = [];
     if (due)
       first.push({
-        text: `${row.count > 1 ? "1ª parcela" : "Sai da conta"} em ${dayLabel(due, today)}.`,
+        text: `${row.count > 1 ? "1ª parcela" : "Sai da conta"} em ${dayOf(due, today)}.`,
       });
     if (fig && r.canSpend) first.push({ text: fitText(r.canSpend, fig, today), neg: fig.over });
     if (first.length > 0) lines.push(first);
   } else if (outOfRange) {
-    lines.push([{ text: `Escolha um dia de hoje até ${dayLabel(end, today)}.` }]);
+    lines.push([{ text: `Escolha um dia de hoje até ${dayOf(end, today)}.` }]);
   } else if (row.count > 1) {
     lines.push([{ text: `Todo dia ${day}, ${row.count} meses seguidos.` }]);
   }
