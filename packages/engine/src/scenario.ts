@@ -2,7 +2,7 @@ import { clampedDay, daysInMonth, type LocalDate, parts, ymd } from "./date.ts";
 import { firstUnplannedMonth } from "./insights.ts";
 import { splitInstallments } from "./installments.ts";
 import { add, type Cents, cents, mul, sub, ZERO } from "./money.ts";
-import type { MonthView } from "./projection.ts";
+import { type CanSpend, type MonthView, type Simulation, simulatePurchase } from "./projection.ts";
 import { ceilingHeld, ownCardBills, type Saving, saveable } from "./savings.ts";
 
 /**
@@ -48,6 +48,8 @@ export interface ScenarioInput {
   readonly due: LocalDate | null;
   /** Ajustes › Teto do mês; null when it is not set. */
   readonly ceiling: Cents | null;
+  /** Hoje's "Ainda cabem", to tell what a purchase leaves of it; null without one. */
+  readonly canSpend?: CanSpend | null;
 }
 
 export interface ScenarioDay {
@@ -85,6 +87,8 @@ export interface ScenarioResult {
   readonly sheetFirstNegative: ScenarioPoint | null;
   /** What the next payday lets you set aside in the scenario, as Hoje's "Dia de guardar" reads it. */
   readonly saving: Saving | null;
+  /** "Ainda cabem" once the purchases' first parcels are on it; null without a purchase. */
+  readonly cycle: Simulation | null;
 }
 
 const key = (year: number, month: number) => year * 12 + month;
@@ -149,8 +153,21 @@ export const simulate = (input: ScenarioInput, scenario: Scenario): ScenarioResu
   if (scenario.changes.length > MAX_CHANGES) throw new RangeError(`at most ${MAX_CHANGES} changes`);
   for (const c of scenario.changes) checkChange(c, today, due);
   const monthly = paceMonthly(scenario.pace, months, today, ceiling);
-  const held = monthly === null ? () => ZERO : ceilingHeld(ownCardBills(months), today, monthly);
   const shifts = moves(scenario.changes, due);
+  // A purchase is card spending: with a pace it lands on the bills the pace already fills, so
+  // only what goes past the pace moves the balances. On the sheet as it is, all of it does.
+  const parcels = moves(
+    scenario.changes.filter((c) => c.kind === "compra"),
+    due,
+  );
+  const bills = ownCardBills(months).map((b) => ({
+    month: b.month,
+    amount: sub(
+      b.amount,
+      add(ZERO, ...parcels.filter((p) => p.date.startsWith(b.month)).map((p) => p.amount)),
+    ),
+  }));
+  const held = monthly === null ? () => ZERO : ceilingHeld(bills, today, monthly);
   const shift = (date: LocalDate) =>
     add(ZERO, ...shifts.filter((s) => s.date <= date).map((s) => s.amount));
 
@@ -200,6 +217,18 @@ export const simulate = (input: ScenarioInput, scenario: Scenario): ScenarioResu
       days.find((d) => d.sheet < 0),
       false,
     ),
+    cycle:
+      input.canSpend && parcels.length > 0
+        ? simulatePurchase(
+            input.canSpend,
+            cents(
+              -add(
+                ZERO,
+                ...parcels.filter((p) => p.date === parcels[0]?.date).map((p) => p.amount),
+              ),
+            ),
+          )
+        : null,
     saving: saveable(
       days
         .filter((d) => until === null || d.date < until)
