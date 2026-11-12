@@ -478,12 +478,15 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await expect(page.getByRole("heading", { level: 1, name: "Simular" })).toBeFocused();
   await expect(page.getByText("Nada aqui muda a planilha")).toBeVisible();
   // No ceiling in Ajustes: the sheet as it is, or the last months' average.
-  await expect(page.getByRole("button", { name: "Planilha" })).toHaveAttribute(
+  await expect(page.getByRole("button", { name: "Só a planilha" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
   await expect(page.getByRole("button", { name: "Teto" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: /^Fica no azul até/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ajustes" }).first()).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /^Só com a planilha, o menor saldo é/ }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Compra", exact: true }).click();
   await expect(page.getByRole("textbox", { name: /Compra no Cartão Azul/ })).toBeFocused();
   await page.keyboard.type("600");
@@ -491,7 +494,20 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await expect(page.getByText("1ª parcela em 12 out")).toBeVisible();
   await page.getByRole("button", { name: "Saída", exact: true }).click();
   await page.keyboard.type("50000");
-  await expect(page.getByRole("heading", { name: "Fica negativo em 5 out." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Só com a planilha, fica negativo em 5 out." }),
+  ).toBeVisible();
+  // Each what-if's own effect, in reais, without remembering the number from before.
+  await expect(page.getByText(/^As mudanças tiram R\$\s[\d.]+ do menor saldo/)).toBeVisible();
+  // A typo says so at once; a stray Esc steps out of the field and never wipes the what-ifs.
+  await page.getByRole("button", { name: "Entrada", exact: true }).click();
+  await page.keyboard.type("1,500.50");
+  await expect(page.getByText("Use um valor como 1.500,00.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("heading", { level: 1, name: "Simular" })).toBeFocused();
+  await expect(page.getByRole("textbox", { name: /Entrada/ })).toHaveValue("1,500.50");
+  await page.getByRole("button", { name: "Tirar entrada" }).click();
+  await expect(page.getByRole("textbox", { name: /Saída/ })).toBeFocused();
   await expect(page.getByRole("figure").getByText("Simulação")).toBeVisible();
   await page.getByText("Mês a mês").click();
   await expect(page.getByRole("columnheader", { name: "Planilha" })).toBeVisible();
@@ -500,7 +516,10 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await page.getByRole("button", { name: "Voltar" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Hoje" })).toBeVisible();
   await page.getByRole("link", { name: "Simular" }).click();
-  await expect(page.getByRole("heading", { name: /^Fica no azul até/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /^Só com a planilha, o menor saldo é/ }),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

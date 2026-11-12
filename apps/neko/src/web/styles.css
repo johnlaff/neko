@@ -505,9 +505,12 @@ button {
     opacity 160ms ease-out,
     scale 120ms ease-out;
 }
-.button:hover,
-button:hover {
-  background: color-mix(in oklch, var(--text) 86%, var(--bg));
+/* Hover only where there is a pointer that hovers: on a phone a tapped button never stays lit. */
+@media (hover: hover) {
+  .button:hover,
+  button:hover {
+    background: color-mix(in oklch, var(--text) 86%, var(--bg));
+  }
 }
 .button:active,
 button:active,
@@ -528,9 +531,11 @@ button.ghost,
   color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border-input);
 }
-button.ghost:hover,
-.button.ghost:hover {
-  background: var(--pill-active);
+@media (hover: hover) {
+  button.ghost:hover,
+  .button.ghost:hover {
+    background: var(--pill-active);
+  }
 }
 button.icon,
 a.icon {
@@ -540,9 +545,11 @@ a.icon {
   background: transparent;
   color: var(--text);
 }
-button.icon:hover,
-a.icon:hover {
-  background: var(--pill-active);
+@media (hover: hover) {
+  button.icon:hover,
+  a.icon:hover {
+    background: var(--pill-active);
+  }
 }
 /* A link that looks like the icon buttons around it (Mia's mark in the head). */
 a.icon {
@@ -1622,8 +1629,10 @@ button.chip-button {
   color: var(--faint);
   font-size: 0.75rem;
 }
-button.chip-button:hover {
-  background: var(--pill-active);
+@media (hover: hover) {
+  button.chip-button:hover {
+    background: var(--pill-active);
+  }
 }
 button.chip-button[aria-pressed="true"] {
   background: var(--text);
@@ -1642,16 +1651,6 @@ button.chip-button[aria-pressed="true"] {
 }
 .parcels > button.chip-button {
   padding: 0 10px;
-}
-.sim-outlook {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-.sim-outlook > .bad {
-  color: var(--neg);
 }
 
 /* Bill dates: closing then due, as the two ends of one line across the card */
@@ -3735,22 +3734,75 @@ p.sim-lead {
   color: var(--faint);
   font-size: 0.8125rem;
 }
+/* The answer's number, and the bar's one-line copy of it while the answer is scrolled away. */
+.sim-head {
+  display: grid;
+  gap: 6px;
+}
 h2.sim-verdict {
-  font: 400 1.375rem / 1.2 var(--serif);
+  font: 400 1.375rem / 1.25 var(--serif);
+}
+p.sim-delta {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.sim-answer {
+  scroll-margin-top: calc(env(safe-area-inset-top) + 76px);
+}
+.sim-answer .figures > div {
+  align-content: start;
+}
+.sim-bar {
+  flex-wrap: wrap;
+}
+.sim-peek-slot {
+  flex-basis: 100%;
+}
+.sim-peek-slot:empty {
+  display: none;
+}
+button.sim-peek {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 2px 12px;
+  width: calc(100% - 10px);
+  min-height: 36px;
+  margin-left: 10px;
+  padding: 2px 0 4px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+@media (hover: hover) {
+  button.sim-peek:hover {
+    background: transparent;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+button.sim-peek > .neg {
+  color: var(--neg);
+}
+button.sim-peek > .faint {
+  color: var(--faint);
+  font-weight: 400;
+}
+@media (prefers-reduced-motion: no-preference) {
+  button.sim-peek {
+    animation: day-in 180ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
 }
 .figures dd.fig-note {
   color: var(--faint);
   font-size: 0.8125rem;
   font-weight: 400;
   letter-spacing: 0;
-}
-p.sim-save {
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-p.sim-save > strong {
-  color: var(--text);
-  font-weight: 600;
 }
 .sim-chart {
   display: grid;
@@ -3820,6 +3872,10 @@ p.sim-save > strong {
 .sim-plot text.month {
   text-anchor: middle;
 }
+.sim-plot text.amount {
+  text-anchor: end;
+  font-variant-numeric: tabular-nums;
+}
 .sim-plot .line {
   fill: none;
   stroke-width: 2;
@@ -3835,6 +3891,22 @@ p.sim-save > strong {
 }
 .sim-plot .line.sim {
   stroke: var(--accent);
+}
+/* Below zero the line itself turns red, not only the wash behind it. */
+.sim-plot .line.below-zero {
+  stroke: var(--neg);
+}
+/* The day the answer names, ringed in the panel's color so it reads over the line. */
+.sim-plot .mark {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.sim-chart.same .mark {
+  fill: var(--muted);
+}
+.sim-plot .mark.neg {
+  fill: var(--neg);
 }
 .sim-plot .cross > line {
   stroke: var(--faint);
@@ -3896,12 +3968,16 @@ p.sim-save > strong {
 .sim-months td.neg {
   color: var(--neg);
 }
+/* Equal chips in one row; with big text they wrap whole, never inside a label. */
 fieldset.sim-pace-pick {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
+}
+.sim-pace-pick > button.chip-button {
+  flex: 1 1 0;
+  min-width: max-content;
 }
 .sim-rows {
   display: grid;
@@ -3930,18 +4006,20 @@ fieldset.sim-pace-pick {
   justify-content: space-between;
   margin: -10px -10px -6px 0;
 }
+/* A row's name sits under the panel's "E se…", one step quieter. */
 .sim-row-head > h3 {
-  color: var(--text);
-  font-size: 0.9375rem;
-  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 .sim-row-head > button.icon svg {
   width: 20px;
   height: 20px;
 }
+/* Value and day side by side, one over the other when the phone or the text is too big for both. */
 .sim-row-fields {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
   align-items: end;
   gap: 12px;
 }
@@ -3952,28 +4030,33 @@ fieldset.sim-pace-pick {
   min-width: 0;
   min-height: 56px;
 }
+/* Parcels in a row while they fit; with big text the chips wrap whole, never squeezed. */
+fieldset.parcels.sim-parcels {
+  display: flex;
+  flex-wrap: wrap;
+}
+.sim-parcels > button.chip-button {
+  flex: 1 1 0;
+  min-width: max-content;
+}
 fieldset.sim-repeat {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(4.75rem, 1fr));
   gap: 8px;
   min-width: 0;
 }
 .sim-repeat > button.chip-button {
   padding: 0 6px;
+  white-space: nowrap;
 }
+/* What the row does, one fact a line: no separator left dangling where a line wraps. */
 p.sim-row-note {
-  display: flex;
-  flex-wrap: wrap;
-}
-p.sim-row-note > span + span::before {
-  content: "·";
-  margin: 0 6px;
-  color: var(--faint);
+  display: grid;
+  gap: 2px;
 }
 .sim-add {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
   gap: 8px;
 }
 .sim-add > button.ghost.small {
@@ -3981,6 +4064,33 @@ p.sim-row-note > span + span::before {
   gap: 6px;
 }
 .sim-add > button > svg {
+  flex: none;
   width: 16px;
   height: 16px;
+}
+
+/* From the expanded width the answer stays in sight on the left while the what-ifs change it. */
+@media (min-width: 52.5rem) {
+  .sim-page {
+    max-width: 66rem;
+  }
+  .sim-body {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 16px 20px;
+    padding-top: 20px;
+  }
+  .sim-body > :not(.sim-answer, .sim-changes, .sim-pace) {
+    grid-column: 1 / -1;
+  }
+  .sim-answer {
+    grid-column: 1;
+    grid-row: 2 / span 2;
+    position: sticky;
+    top: calc(env(safe-area-inset-top) + 76px);
+    align-self: start;
+  }
+  .sim-changes,
+  .sim-pace {
+    grid-column: 2;
+  }
 }

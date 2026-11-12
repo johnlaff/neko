@@ -1,19 +1,22 @@
-import type { ScenarioDay } from "@neko/engine";
+import type { ScenarioDay, ScenarioPoint } from "@neko/engine";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { dayLabel, monthName, roundMoney } from "./format.ts";
 import { valuesHidden } from "./privacy.ts";
 
 const HEIGHT = 200;
-const PAD = { top: 12, right: 12, bottom: 26, left: 12 } as const;
+/** The left side is a gutter for the amounts, so no line ever runs through a label. */
+const PAD = { top: 12, right: 8, bottom: 26 } as const;
+/** About one label character at 11px Geist, to size the gutter to its longest label. */
+const CHAR_PX = 6.2;
 /** How long the simulation line takes to move to a new answer; none with reduced motion. */
 const MORPH_MS = 260;
 
-/** "R$ 20 mil", "−R$ 5 mil", "R$ 0": an axis reads in thousands, never in cents. */
+/** "20 mil", "−5 mil", "0": an axis reads in thousands of reais, never in cents. */
 const axisMoney = (cents: number) => {
-  if (valuesHidden()) return cents === 0 ? "R$ 0" : "";
-  if (cents === 0) return "R$ 0";
+  if (valuesHidden()) return cents === 0 ? "0" : "";
+  if (cents === 0) return "0";
   const k = Math.round(Math.abs(cents) / 100_000);
-  return `${cents < 0 ? "−" : ""}R$ ${k.toLocaleString("pt-BR")} mil`;
+  return `${cents < 0 ? "−" : ""}${k.toLocaleString("pt-BR")} mil`;
 };
 
 /** About four round steps that cover the range, zero always one of them. */
@@ -62,29 +65,34 @@ const path = (xs: readonly number[], ys: readonly number[]) =>
 
 /**
  * Balance from today to the sheet's last day: the sheet as it is (quiet) and the simulation
- * (accent). Below zero is washed in the termômetro's red. A
- * crosshair reads any day by pointer or by the arrow keys; the month table carries every value
- * without it.
+ * (accent, red where it goes below zero, on the termômetro's red wash). A dot marks the day the
+ * answer names. A crosshair reads any day by pointer or by the arrow keys; the month table
+ * carries every value without it.
  */
 export const SimChart = ({
   days,
   label,
   same,
+  mark,
 }: {
   days: readonly ScenarioDay[];
   /** What the chart says, for screen readers. */
   label: string;
   /** The simulation is the sheet itself: one line, no legend. */
   same: boolean;
+  /** The day the answer names: the first one below zero, or the lowest. */
+  mark: ScenarioPoint | null;
 }) => {
   const id = useId();
+  // useId's colons are not welcome in a url(#…) reference.
+  const clip = `clip${id.replace(/[^\w-]/g, "")}`;
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
   const [at, setAt] = useState<number | null>(null);
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const read = () => setWidth(Math.max(280, Math.round(el.getBoundingClientRect().width)));
+    const read = () => setWidth(Math.max(200, Math.round(el.getBoundingClientRect().width)));
     read();
     const ro = new ResizeObserver(read);
     ro.observe(el);
@@ -97,13 +105,16 @@ export const SimChart = ({
   const ticks = ticksFor(Math.min(...values), Math.max(...values));
   const lo = ticks[0] ?? 0;
   const hi = ticks.at(-1) ?? 1;
-  const plotW = width - PAD.left - PAD.right;
+  const left = Math.ceil(Math.max(...ticks.map((t) => axisMoney(t).length)) * CHAR_PX) + 10;
+  const plotW = width - left - PAD.right;
   const plotH = HEIGHT - PAD.top - PAD.bottom;
-  const X = (i: number) => PAD.left + (i / (days.length - 1)) * plotW;
+  const X = (i: number) => left + (i / (days.length - 1)) * plotW;
   const Y = (v: number) => PAD.top + ((hi - v) / (hi - lo || 1)) * plotH;
   const xs = days.map((_, i) => X(i));
   const today = days[0]?.date ?? "";
   const zero = Y(0);
+  const bottom = HEIGHT - PAD.bottom;
+  const markAt = mark ? days.findIndex((d) => d.date === mark.date) : -1;
   // A month name at each first day, every second or third month on a narrow screen.
   const firsts = days.flatMap((d, i) => (d.date.endsWith("-01") ? [i] : []));
   const every = Math.ceil(firsts.length / Math.max(2, Math.floor(plotW / 64)));
@@ -113,12 +124,17 @@ export const SimChart = ({
   const pick = (clientX: number) => {
     const r = box.current?.getBoundingClientRect();
     if (!r) return;
-    const i = Math.round(((clientX - r.left - PAD.left) / plotW) * (days.length - 1));
+    const i = Math.round(((clientX - r.left - left) / plotW) * (days.length - 1));
     setAt(Math.min(days.length - 1, Math.max(0, i)));
   };
   const key = (e: React.KeyboardEvent) => {
     const step = { ArrowRight: 1, ArrowLeft: -1, PageDown: 30, PageUp: -30 }[e.key];
-    if (e.key === "Escape") return setAt(null);
+    // Esc first lets go of the crosshair; only a second one leaves the screen.
+    if (e.key === "Escape") {
+      if (at === null) return;
+      e.preventDefault();
+      return setAt(null);
+    }
     if (e.key === "Home") return setAt(0);
     if (e.key === "End") return setAt(days.length - 1);
     if (step === undefined) return;
@@ -134,7 +150,7 @@ export const SimChart = ({
           <span className="sim">Simulação</span>
         </figcaption>
       )}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useSemanticElements: a chart read by pointer and keys, not a form; the table says it all without it */}
+      {/* biome-ignore lint/a11y/useSemanticElements: a chart read by pointer and keys, not a form; the table says it all without it */}
       <div
         ref={box}
         className="sim-plot"
@@ -150,27 +166,35 @@ export const SimChart = ({
         onBlur={() => setAt(null)}
       >
         <svg width={width} height={HEIGHT} aria-hidden="true">
-          {zero > PAD.top && zero < HEIGHT - PAD.bottom && (
-            <rect
-              className="below"
-              x={PAD.left}
-              y={zero}
-              width={plotW}
-              height={HEIGHT - PAD.bottom - zero}
-            />
+          <defs>
+            <clipPath id={`${clip}-up`}>
+              <rect x={0} y={0} width={width} height={Math.max(0, zero)} />
+            </clipPath>
+            <clipPath id={`${clip}-down`}>
+              <rect x={0} y={zero} width={width} height={Math.max(0, HEIGHT - zero)} />
+            </clipPath>
+          </defs>
+          {zero > PAD.top && zero < bottom && (
+            <rect className="below" x={left} y={zero} width={plotW} height={bottom - zero} />
           )}
           {ticks.map((t) => (
             <g key={t} className={t === 0 ? "zero" : "grid"}>
-              <line x1={PAD.left} x2={width - PAD.right} y1={Y(t)} y2={Y(t)} />
-              <text x={PAD.left} y={Y(t) - 4}>
+              <line x1={left} x2={width - PAD.right} y1={Y(t)} y2={Y(t)} />
+              <text className="amount" x={left - 8} y={Y(t) + 4}>
                 {axisMoney(t)}
               </text>
             </g>
           ))}
           {marks.map((i, k) => {
             const d = days[i]?.date ?? "";
-            // The year where it turns, so two Novembers never read alike.
-            const was = (k === 0 ? today : (days[marks[k - 1] ?? 0]?.date ?? "")).slice(0, 4);
+            // The year on the first month when the chart spans more than one, and where it turns.
+            const spans = today.slice(0, 4) !== (days.at(-1)?.date ?? today).slice(0, 4);
+            const was =
+              k === 0
+                ? spans
+                  ? ""
+                  : today.slice(0, 4)
+                : (days[marks[k - 1] ?? 0]?.date ?? "").slice(0, 4);
             return (
               <text key={d} className="month" x={X(i)} y={HEIGHT - 8}>
                 {monthName(Number(d.slice(5, 7))).slice(0, 3)}
@@ -187,16 +211,28 @@ export const SimChart = ({
               )}
             />
           )}
-          <path
-            className={same ? "line sheet" : "line sim"}
-            d={path(
-              xs,
-              sim.map((v) => Y(v)),
-            )}
-          />
+          {(["up", "down"] as const).map((side) => (
+            <path
+              key={side}
+              className={`${same ? "line sheet" : "line sim"}${side === "down" ? " below-zero" : ""}`}
+              clipPath={`url(#${clip}-${side})`}
+              d={path(
+                xs,
+                sim.map((v) => Y(v)),
+              )}
+            />
+          ))}
+          {markAt >= 0 && (
+            <circle
+              className={(sim[markAt] ?? 0) < 0 ? "mark neg" : "mark"}
+              cx={X(markAt)}
+              cy={Y(sim[markAt] ?? 0)}
+              r={4.5}
+            />
+          )}
           {hover && at !== null && (
             <g className="cross">
-              <line x1={X(at)} x2={X(at)} y1={PAD.top} y2={HEIGHT - PAD.bottom} />
+              <line x1={X(at)} x2={X(at)} y1={PAD.top} y2={bottom} />
               {!same && <circle className="sheet" cx={X(at)} cy={Y(hover.sheet)} r={4} />}
               <circle className={same ? "sheet" : "sim"} cx={X(at)} cy={Y(hover.sim)} r={4} />
             </g>

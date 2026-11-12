@@ -171,6 +171,22 @@ describe("simulate", () => {
     expect(r.lowest).toEqual({ date: "2026-11-15", balance: -1_500_00 });
   });
 
+  it("tells what the changes take from the lowest balance and the end, against the pace alone", () => {
+    const changes: Scenario["changes"] = [
+      { kind: "saida", amount: cents(3_000_00), date: localDate("2026-10-15"), months: 2 },
+      { kind: "entrada", amount: cents(500_00), date: localDate("2026-12-01"), months: 1 },
+    ];
+    expect(run({ pace: "planilha", changes }).base).toEqual({ lowest: 2_000_00, end: 4_000_00 });
+    // With a pace the base is that pace without the changes, not the sheet.
+    const teto = run({ pace: "teto", changes }, 1_500_00);
+    const alone = run({ pace: "teto", changes: [] }, 1_500_00);
+    expect(teto.base).toEqual({
+      lowest: alone.lowest?.balance,
+      end: alone.months.at(-1)?.endSim,
+    });
+    expect(alone.base).toBeNull();
+  });
+
   it("counts extra money in as income when it looks for the payday", () => {
     const r = run({
       pace: "planilha",
