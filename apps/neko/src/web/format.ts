@@ -13,6 +13,19 @@ export const HIDDEN_MONEY = "R$ ••••";
 export const money = (cents: number) =>
   valuesHidden() ? HIDDEN_MONEY : brl.format(cents / 100).replace("-", "−");
 
+const brlWhole = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+/**
+ * Whole reais, for what has not happened (Simular): a simulation is a direction, not a value to
+ * the cent, and it should not read like one.
+ */
+export const roundMoney = (cents: number) =>
+  valuesHidden() ? HIDDEN_MONEY : brlWhole.format(Math.round(cents / 100) || 0).replace("-", "−");
+
 const MONTHS = [
   "janeiro",
   "fevereiro",
@@ -32,6 +45,10 @@ export const monthName = (m: number) => MONTHS[m - 1] ?? "";
 /** `2026-10-13` → `13 out`. */
 export const shortDate = (iso: string) =>
   `${Number(iso.slice(8, 10))} ${monthName(Number(iso.slice(5, 7))).slice(0, 3)}`;
+
+/** `15 nov`, or `10 fev 2027` outside today's year. */
+export const dayLabel = (iso: string, today: string) =>
+  iso.slice(0, 4) === today.slice(0, 4) ? shortDate(iso) : `${shortDate(iso)} ${iso.slice(0, 4)}`;
 
 const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 export const weekday = (iso: string) => WEEKDAYS[new Date(`${iso}T12:00:00Z`).getUTCDay()] ?? "";

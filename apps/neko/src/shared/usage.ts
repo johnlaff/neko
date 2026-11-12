@@ -13,7 +13,7 @@ export const USAGE_SCREENS = {
 
 export const USAGE_TAPS = {
   lancar: "Lançar",
-  simular: "Simular compra",
+  simular: "Simular",
   calculo: "Como calculei",
   ler: "Ler a planilha de novo",
 } as const;
