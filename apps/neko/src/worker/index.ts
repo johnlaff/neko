@@ -4,9 +4,7 @@ import {
   clockIn,
   historyDelta,
   localDate,
-  MAX_CHANGES,
   MAX_INSTALLMENTS,
-  MAX_REPEAT,
   normalizeName,
   todayIn,
 } from "@neko/engine";
@@ -87,6 +85,7 @@ import {
   WebhookEvent,
 } from "./pluggy.ts";
 import { eveningMessage, morningMessage, readFailedMessage, sendReminder } from "./push.ts";
+import { ScenarioBody } from "./scenario.ts";
 import { keepBankCards, loadSettings, saveSettings, UserSettings } from "./settings.ts";
 import { takeStatement } from "./statement.ts";
 import { recordUse, UsagePost, usageSummary } from "./usage.ts";
@@ -625,29 +624,6 @@ app.get("/simulate", async (c) => {
   const { amount, count } = Purchase.parse(c.req.query());
   const data = await getProjection(c.env, todayIn(new Date()));
   return c.json(simulateView(data, amount as Cents, count));
-});
-
-const Money = z.number().int().positive().max(100_000_000_00);
-const ScenarioBody = z.object({
-  // Left out, the ceiling when there is one, else the sheet as it is.
-  pace: z.enum(["planilha", "teto", "media"]).optional(),
-  changes: z
-    .array(
-      z.discriminatedUnion("kind", [
-        z.object({
-          kind: z.literal("compra"),
-          amount: Money,
-          count: z.number().int().min(1).max(MAX_INSTALLMENTS),
-        }),
-        z.object({
-          kind: z.enum(["entrada", "saida"]),
-          amount: Money,
-          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-          months: z.number().int().min(1).max(MAX_REPEAT),
-        }),
-      ]),
-    )
-    .max(MAX_CHANGES),
 });
 
 /**
