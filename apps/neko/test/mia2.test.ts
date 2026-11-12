@@ -23,6 +23,7 @@ import {
   ROUTINE_PROMPT,
   routineFor,
   routineReminder,
+  routineTitle,
   runRoutine,
 } from "../src/worker/routines.ts";
 import { sqliteD1 } from "./d1.ts";
@@ -567,7 +568,7 @@ describe("mia2 routines", () => {
     expect(r).toMatchObject({
       id: "semana:2026-11-15",
       tipo: "semana",
-      titulo: "Resumo da semana",
+      titulo: "Semana de 8 a 14 nov",
       dia: "2026-11-15",
       sessao: "sesn_0000000001",
     });
@@ -613,6 +614,12 @@ describe("mia2 routines", () => {
     expect(failed.r).toBeNull();
     expect(failed.told).toEqual([]);
     expect(await loadRoutine(failed.d1, SUNDAY)).toBeNull();
+  });
+
+  it("name the week by its days, and the month closed", () => {
+    expect(routineTitle("semana", localDate("2026-11-15"))).toBe("Semana de 8 a 14 nov");
+    expect(routineTitle("semana", localDate("2026-12-06"))).toBe("Semana de 29 nov a 5 dez");
+    expect(routineTitle("mes", localDate("2027-01-01"))).toBe("Fechamento de dezembro");
   });
 
   it("do nothing on other days", async () => {

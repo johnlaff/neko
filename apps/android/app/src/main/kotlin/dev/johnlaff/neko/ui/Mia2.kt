@@ -133,9 +133,16 @@ private fun same(q: String) = q.lowercase().replace(Regex("""[\s?!.]+$"""), "")
 
 fun mia2NotAsked(asked: List<String>): (String) -> Boolean = { q -> asked.none { same(it) == same(q) } }
 
-/** After an answer, two questions not asked yet. */
-fun mia2Next(asked: List<String>, topic: String = "hoje"): List<String> =
-    (mia2Starters(topic) + MIA2_TOPICS.values.flatten()).distinct().filter(mia2NotAsked(asked)).take(2)
+/** After her routine, what one asks next about that week or that month (the site's ROUTINE_NEXT). */
+private val ROUTINE_NEXT = mapOf(
+    "semana" to listOf("Quanto vem nas próximas faturas?", "Este mês está melhor que o anterior?"),
+    "mes" to listOf("Quais foram as maiores saídas do mês passado?", "Como chego a 20% guardado?"),
+)
+
+/** After an answer, two questions not asked yet; after her routine, about its week or month first. */
+fun mia2Next(asked: List<String>, topic: String = "hoje", rotina: String? = null): List<String> =
+    (ROUTINE_NEXT[rotina].orEmpty() + mia2Starters(topic) + MIA2_TOPICS.values.flatten())
+        .distinct().filter(mia2NotAsked(asked)).take(2)
 
 /** A piece of her answer: text (values checked once it is whole), a chart or a board of numbers. */
 sealed interface Mia2Part {
@@ -152,7 +159,7 @@ data class Mia2Numeros(override val id: String, val numeros: List<Mia2Numero>) :
 
 /**
  * One question and her answer; `end` says how it ended when it did not simply end ("parou", "cheia",
- * "falhou"). A routine of hers has its name for a question and its day in `rotina`.
+ * "falhou"). A routine of hers has its name for a question and its kind in `rotina`.
  */
 data class Mia2Turno(
     val n: Int,
@@ -346,7 +353,7 @@ class Mia2Chat {
         cleared = if (turns.isEmpty()) null else sessao to turns
         seen.clear()
         sessao = r.sessao
-        turns = listOf(Mia2Turno(0, r.titulo, parts, rotina = r.dia))
+        turns = listOf(Mia2Turno(0, r.titulo, parts, rotina = r.tipo))
         return true
     }
 
@@ -544,7 +551,7 @@ fun Mia2Screen(
     val full = turns.lastOrNull()?.end == "cheia"
     val doing = chat.status ?: if (chat.pending?.let { n -> turns.firstOrNull { it.n == n }?.parts?.isEmpty() } == true) miaWaiting(seconds) else null
     val asked = turns.map { it.pergunta }
-    val next = if (turns.isEmpty() || resting || full || chat.typed.isNotBlank() || chat.pending != null || moving.isNotEmpty()) emptyList() else mia2Next(asked, topic)
+    val next = if (turns.isEmpty() || resting || full || chat.typed.isNotBlank() || chat.pending != null || moving.isNotEmpty()) emptyList() else mia2Next(asked, topic, turns.firstOrNull()?.rotina)
 
     Column(
         Modifier.fillMaxSize().background(l.bg).safeDrawingPadding().semantics { paneTitle = "Mia" },
@@ -584,7 +591,7 @@ fun Mia2Screen(
                     Text("A Mia descansa até ${shortDate(paused)}. Os números seguem nas telas.", color = l.muted)
                 }
                 val cleared = chat.cleared
-                if (cleared != null && turns.isEmpty()) item(key = "cleared") {
+                if (cleared != null) item(key = "cleared") {
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -593,7 +600,12 @@ fun Mia2Screen(
                             .semantics { liveRegion = LiveRegionMode.Polite },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Conversa apagada", Modifier.weight(1f), color = l.bg, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            if (turns.isEmpty()) "Conversa apagada" else "Conversa anterior apagada",
+                            Modifier.weight(1f),
+                            color = l.bg,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                         TextAction("Desfazer", { chat.undoClear() }, l.bg)
                     }
                 }
@@ -741,14 +753,12 @@ private fun Mia2TurnItem(
     val at = t.parts.indexOfFirst { "${t.n}:${it.id}" in moving }
     val parts = if (at < 0) t.parts else t.parts.take(at + 1)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Her routine stands where a question would: its name and day, on her side, not a bubble.
+        // Her routine stands where a question would: its name (which week, which month), on her
+        // side, not a bubble.
         if (t.rotina != null) Text(
-            buildAnnotatedString {
-                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(t.pergunta) }
-                append(" · ${Format.shortDate(t.rotina)}")
-            },
+            t.pergunta,
             color = l.muted,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
         ) else Text(
             t.pergunta,
             color = l.text,

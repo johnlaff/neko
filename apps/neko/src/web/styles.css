@@ -2724,9 +2724,6 @@ main.mia-page p.mia-routine {
   font-size: 0.8125rem;
   font-weight: 600;
 }
-main.mia-page p.mia-routine > span {
-  font-weight: 400;
-}
 /* Before the first question: what she does, and the questions she answers well, one per line. */
 .mia-empty {
   display: grid;

@@ -78,8 +78,13 @@ class Mia2ChatTest {
         coroutineContext.job.children.forEach { it.join() }
         assertTrue(chat.takeRoutine(r))
         val t = chat.turns.single()
-        assertEquals("Resumo da semana", t.pergunta)
-        assertEquals("2026-11-15", t.rotina)
+        assertEquals("Semana de 8 a 14 nov", t.pergunta)
+        assertEquals("semana", t.rotina)
+        // What one asks next is about that week first.
+        assertEquals(
+            listOf("Quanto vem nas próximas faturas?", "Este mês está melhor que o anterior?"),
+            mia2Next(listOf(t.pergunta), rotina = t.rotina),
+        )
         assertTrue((t.parts[0] as Mia2Texto).valores!!.getValue("R$ 812,40").conferido)
         assertEquals(listOf("Na semana", "Cabe no teto"), (t.parts[1] as dev.johnlaff.neko.ui.Mia2Numeros).numeros.map { it.rotulo })
         // The conversation that was open waits for Desfazer, and the next question goes on in hers.
