@@ -72,6 +72,8 @@ class AppModel(
     private val neko: Neko,
     /** A monotonic clock in ms, for how fresh each reading is; tests drive their own. */
     private val clock: () -> Long = SystemClock::elapsedRealtime,
+    /** Which routine of Mia's took her screen last; the app keeps it in its preferences. */
+    private val routineSeen: RoutineSeen = RoutineSeen.InMemory(),
     private val effects: Effects,
 ) : ViewModel() {
     private val _session = MutableStateFlow<Session>(Session.Checking)
@@ -371,6 +373,10 @@ class AppModel(
     val mia2Talk = object : Mia2Talk {
         override fun ask(ask: dev.johnlaff.neko.data.Mia2Ask) = neko.api.askMia2(ask)
         override suspend fun stop(sessao: String) = neko.api.stopMia2(sessao)
+        override suspend fun routine() = neko.api.mia2Rotina()?.takeIf { it.id != routineSeen.last }
+        override fun routineShown(id: String) {
+            routineSeen.last = id
+        }
     }
 
     /** Mia 2's conversation, kept like the first one's. */
@@ -530,11 +536,15 @@ class AppModel(
 val AppModelFactory = viewModelFactory {
     initializer {
         val app = this[APPLICATION_KEY] as NekoApp
-        AppModel(app.neko, effects = { view ->
-            WidgetRefresh.redraw(app)
-            Shortcuts.lancar(app, view?.todayUrl)
-            dev.johnlaff.neko.tile.LancarTile.refresh(app)
-        })
+        AppModel(
+            app.neko,
+            effects = { view ->
+                WidgetRefresh.redraw(app)
+                Shortcuts.lancar(app, view?.todayUrl)
+                dev.johnlaff.neko.tile.LancarTile.refresh(app)
+            },
+            routineSeen = RoutineSeen.Stored(app),
+        )
     }
 }
 

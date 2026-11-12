@@ -9,8 +9,8 @@ import androidx.core.net.toUri
 import dev.johnlaff.neko.R
 import dev.johnlaff.neko.ui.Tab
 
-/** Where a launcher shortcut (res/xml/shortcuts.xml) or the widget takes the app. */
-data class Launch(val tab: Tab, val simulate: Boolean = false, val queue: Boolean = false)
+/** Where a launcher shortcut (res/xml/shortcuts.xml), the widget or a notification takes the app. */
+data class Launch(val tab: Tab, val simulate: Boolean = false, val queue: Boolean = false, val mia: Boolean = false)
 
 /** The widget's "N para lançar" and the evening notification: Hoje, with Para lançar in view. */
 const val PARA_LANCAR = "dev.johnlaff.neko.PARA_LANCAR"
@@ -18,7 +18,11 @@ const val PARA_LANCAR = "dev.johnlaff.neko.PARA_LANCAR"
 /** The Faturas shortcut, and a morning notification about card bills only. */
 const val FATURAS = "dev.johnlaff.neko.FATURAS"
 
+/** Mia's routine (Sunday's week, the month closed): her screen, with it as the conversation. */
+const val MIA = "dev.johnlaff.neko.MIA"
+
 fun launchFor(action: String?): Launch? = when (action) {
+    MIA -> Launch(Tab.Hoje, mia = true)
     "dev.johnlaff.neko.SIMULAR" -> Launch(Tab.Hoje, simulate = true)
     PARA_LANCAR -> Launch(Tab.Hoje, queue = true)
     FATURAS -> Launch(Tab.Faturas)

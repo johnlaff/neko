@@ -11,6 +11,7 @@ import type {
   HistoryResponse,
   Mia2Ask,
   Mia2Line,
+  Mia2Rotina,
   MiaReply,
   MiaStatus,
   ProjectionResponse,
@@ -218,6 +219,8 @@ export const api = {
       for (const l of lines) if (l.trim()) line(JSON.parse(l) as Mia2Line);
     }
   },
+  /** Her latest routine (Sunday's week, the month closed), while it is news. */
+  mia2Rotina: () => request<{ rotina: Mia2Rotina | null }>("/mia2/rotina"),
   stopMia2: (sessao: string) =>
     request<{ ok: true }>("/mia2/parar", { method: "POST", body: JSON.stringify({ sessao }) }),
   askMia: (ask: MiaAsk) =>

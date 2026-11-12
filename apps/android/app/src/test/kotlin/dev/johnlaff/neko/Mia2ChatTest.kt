@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -62,6 +63,31 @@ class Mia2ChatTest {
         chat.ask("E setembro?", this, talk)
         coroutineContext.job.children.forEach { it.join() }
         assertEquals("sesn_0000000001", talk.asked.last().sessao)
+    }
+
+    /** GET /api/mia2/rotina, as the site's tests write it (apps/neko/test/mia2.test.ts). */
+    @Test fun herRoutineBecomesTheConversation() = runBlocking {
+        val view = json.decodeFromString(
+            dev.johnlaff.neko.data.Mia2RotinaView.serializer(),
+            File("src/test/resources/mia2-rotina.json").readText(),
+        )
+        val r = view.rotina!!
+        val chat = Mia2Chat()
+        val talk = Talk { flowOf(Mia2Line("fim")) }
+        chat.ask("Quanto vem nas faturas?", this, talk)
+        coroutineContext.job.children.forEach { it.join() }
+        assertTrue(chat.takeRoutine(r))
+        val t = chat.turns.single()
+        assertEquals("Resumo da semana", t.pergunta)
+        assertEquals("2026-11-15", t.rotina)
+        assertTrue((t.parts[0] as Mia2Texto).valores!!.getValue("R$ 812,40").conferido)
+        assertEquals(listOf("Na semana", "Cabe no teto"), (t.parts[1] as dev.johnlaff.neko.ui.Mia2Numeros).numeros.map { it.rotulo })
+        // The conversation that was open waits for Desfazer, and the next question goes on in hers.
+        assertEquals(listOf("Quanto vem nas faturas?"), chat.cleared!!.second.map { it.pergunta })
+        chat.ask("E a fatura de dezembro?", this, talk)
+        coroutineContext.job.children.forEach { it.join() }
+        assertEquals("sesn_0000000001", talk.asked.last().sessao)
+        assertEquals(listOf(0, 1), chat.turns.map { it.n })
     }
 
     @Test fun aFailureKeepsTheQuestionAndAsksItAgainInPlace() = runBlocking {

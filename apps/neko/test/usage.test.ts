@@ -34,6 +34,7 @@ describe("usage", () => {
       "notificacao_manha",
       "notificacao_noite",
       "notificacao_aviso",
+      "notificacao_mia",
     ]);
     expect([...s.screens, ...s.taps, ...s.notices].map((e) => e.event)).toEqual(Object.keys(USAGE));
     expect(s.screens[0]).toEqual({ event: "hoje", label: "Hoje", count: 3 });

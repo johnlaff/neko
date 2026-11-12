@@ -28,7 +28,7 @@ export interface Reminder {
   /** Opened when the notification is tapped: "/" is Hoje, PARA_LANCAR its Para lançar. */
   readonly url: string;
   /** Same tag replaces the previous notification instead of stacking. */
-  readonly tag: "morning" | "evening" | "alert" | "ceiling";
+  readonly tag: "morning" | "evening" | "alert" | "ceiling" | "mia";
 }
 
 /** Hoje, scrolled to Para lançar: the web reads the hash, the Android app its own action. */

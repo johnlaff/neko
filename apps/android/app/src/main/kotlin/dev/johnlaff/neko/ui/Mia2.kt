@@ -1,5 +1,6 @@
 package dev.johnlaff.neko.ui
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -95,6 +96,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import androidx.core.content.edit
 import androidx.compose.ui.unit.dp
 import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.ApiException
@@ -102,6 +104,7 @@ import dev.johnlaff.neko.data.Mia2Ask
 import dev.johnlaff.neko.data.Mia2Grafico
 import dev.johnlaff.neko.data.Mia2Line
 import dev.johnlaff.neko.data.Mia2Numero
+import dev.johnlaff.neko.data.Mia2Rotina
 import dev.johnlaff.neko.data.Mia2Valor
 import dev.johnlaff.neko.data.MiaStatus
 import dev.johnlaff.neko.ui.Format.shortDate
@@ -147,13 +150,43 @@ data class Mia2Desenho(override val id: String, val grafico: Mia2Grafico) : Mia2
 /** Her board: two to four numbers side by side, every one checked by the Worker. */
 data class Mia2Numeros(override val id: String, val numeros: List<Mia2Numero>) : Mia2Part
 
-/** One question and her answer; `end` says how it ended when it did not simply end ("parou", "cheia", "falhou"). */
-data class Mia2Turno(val n: Int, val pergunta: String, val parts: List<Mia2Part> = emptyList(), val end: String? = null)
+/**
+ * One question and her answer; `end` says how it ended when it did not simply end ("parou", "cheia",
+ * "falhou"). A routine of hers has its name for a question and its day in `rotina`.
+ */
+data class Mia2Turno(
+    val n: Int,
+    val pergunta: String,
+    val parts: List<Mia2Part> = emptyList(),
+    val end: String? = null,
+    val rotina: String? = null,
+)
 
-/** The Worker's two calls for her: the answer as it streams, and Stop. */
+/** The Worker's calls for her: the answer as it streams, Stop, and the routine she left by herself. */
 interface Mia2Talk {
     fun ask(ask: Mia2Ask): Flow<Mia2Line>
     suspend fun stop(sessao: String)
+    /** Her latest routine not shown yet, or null. */
+    suspend fun routine(): Mia2Rotina? = null
+    /** It was shown: it never takes the screen again. */
+    fun routineShown(id: String) {}
+}
+
+/** Which routine of hers took her screen last, so each does it once. */
+interface RoutineSeen {
+    var last: String?
+
+    class InMemory : RoutineSeen {
+        override var last: String? = null
+    }
+
+    /** In the app's preferences: one shown stays shown after the app is closed. */
+    class Stored(context: Context) : RoutineSeen {
+        private val prefs = context.getSharedPreferences("mia2", Context.MODE_PRIVATE)
+        override var last: String?
+            get() = prefs.getString("rotina", null)
+            set(value) = prefs.edit { putString("rotina", value) }
+    }
 }
 
 /**
@@ -294,6 +327,27 @@ class Mia2Chat {
         cleared = if (turns.isEmpty()) null else sessao to turns
         turns = emptyList()
         sessao = null
+    }
+
+    /**
+     * Her routine becomes the conversation (one that was open goes to Desfazer, as with "Nova
+     * conversa"), and the next question goes on in it. Not while she answers.
+     */
+    fun takeRoutine(r: Mia2Rotina): Boolean {
+        if (pending != null) return false
+        val parts = r.partes.mapNotNull { p ->
+            when (p.t) {
+                "mensagem" -> Mia2Texto(p.id.orEmpty(), p.texto.orEmpty(), p.valores.orEmpty())
+                "grafico" -> p.grafico?.let { Mia2Desenho(p.id.orEmpty(), it) }
+                "numeros" -> p.numeros?.let { Mia2Numeros(p.id.orEmpty(), it) }
+                else -> null
+            }
+        }
+        cleared = if (turns.isEmpty()) null else sessao to turns
+        seen.clear()
+        sessao = r.sessao
+        turns = listOf(Mia2Turno(0, r.titulo, parts, rotina = r.dia))
+        return true
     }
 
     /** Brings back the conversation "Nova conversa" cleared. */
@@ -456,6 +510,11 @@ fun Mia2Screen(
     val moving = remember { mutableStateListOf<String>() }
     val send = { q: String ->
         if (q.isNotBlank() && chat.pending == null) chat.ask(q.trim(), scope, talk)
+    }
+    // Her routine, the first time her screen opens after it came.
+    LaunchedEffect(Unit) {
+        val r = runCatching { talk.routine() }.getOrNull() ?: return@LaunchedEffect
+        if (chat.takeRoutine(r)) talk.routineShown(r.id)
     }
     // A question just sent shows at the top; the answer then grows under it, never scrolled away.
     LaunchedEffect(chat.pending) {
@@ -682,7 +741,15 @@ private fun Mia2TurnItem(
     val at = t.parts.indexOfFirst { "${t.n}:${it.id}" in moving }
     val parts = if (at < 0) t.parts else t.parts.take(at + 1)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
+        // Her routine stands where a question would: its name and day, on her side, not a bubble.
+        if (t.rotina != null) Text(
+            buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(t.pergunta) }
+                append(" · ${Format.shortDate(t.rotina)}")
+            },
+            color = l.muted,
+            style = MaterialTheme.typography.bodySmall,
+        ) else Text(
             t.pergunta,
             color = l.text,
             style = MaterialTheme.typography.bodyMedium,

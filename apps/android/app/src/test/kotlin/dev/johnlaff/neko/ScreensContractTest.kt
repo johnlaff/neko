@@ -169,7 +169,7 @@ class ScreensContractTest {
         assertEquals(4, v.taps.size)
         assertEquals("Hoje", v.screens.first().label)
         assertEquals(0, v.taps.single { it.event == "simular" }.count)
-        assertEquals(listOf("notificacao_manha", "notificacao_noite", "notificacao_aviso"), v.notices.map { it.event })
+        assertEquals(listOf("notificacao_manha", "notificacao_noite", "notificacao_aviso", "notificacao_mia"), v.notices.map { it.event })
     }
 
     /** GET /api/reminders, as apps/neko/test/notices.test.ts writes it. */

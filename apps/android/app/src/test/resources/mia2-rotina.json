@@ -1,0 +1,38 @@
+{
+  "rotina": {
+    "id": "semana:2026-11-15",
+    "tipo": "semana",
+    "titulo": "Resumo da semana",
+    "dia": "2026-11-15",
+    "sessao": "sesn_0000000001",
+    "partes": [
+      {
+        "t": "mensagem",
+        "id": "m1",
+        "texto": "A semana levou **R$ 812,40** em cartões e Pix, menos que a anterior.",
+        "valores": {
+          "R$ 812,40": {
+            "conferido": true,
+            "tela": "hoje"
+          }
+        }
+      },
+      {
+        "t": "numeros",
+        "id": "n1",
+        "numeros": [
+          {
+            "rotulo": "Na semana",
+            "valor": 812.4,
+            "tela": "hoje"
+          },
+          {
+            "rotulo": "Cabe no teto",
+            "valor": 1460.1,
+            "tela": "hoje"
+          }
+        ]
+      }
+    ]
+  }
+}
