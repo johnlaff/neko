@@ -56,7 +56,7 @@ val LightLedger = Ledger(
     border = Color(0xFFE2DFD8), borderInput = Color(0xFF8A857D), text = Color(0xFF1C1A17), muted = Color(0xFF57534E),
     faint = Color(0xFF6D6861), accent = Color(0xFF2A6B47), pos = Color(0xFF2A6B47),
     warn = Color(0xFF96580B), neg = Color(0xFFB0412B), mia = Color(0xFFA8661A),
-    series = listOf(Color(0xFF2A7A4F), Color(0xFF4A63C9), Color(0xFFC4571C)),
+    series = listOf(Color(0xFF2E8B57), Color(0xFF4A63C9), Color(0xFFC4571C)),
 )
 
 val LocalLedger = staticCompositionLocalOf { DarkLedger }

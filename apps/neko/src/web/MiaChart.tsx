@@ -63,8 +63,10 @@ export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
   const tip = useRef<HTMLDivElement>(null);
   const [tipW, setTipW] = useState(0);
   // The readout's own width, so it stays inside the chart on a small phone.
+  // Measured while it floats: docked above the plot it takes the chart's whole width.
   useLayoutEffect(() => {
-    if (at !== null && tip.current) setTipW(tip.current.offsetWidth);
+    if (at !== null && tip.current && !tip.current.classList.contains("docked"))
+      setTipW(tip.current.offsetWidth);
   }, [at]);
   useLayoutEffect(() => {
     const el = box.current;
@@ -144,6 +146,9 @@ export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
     ev.preventDefault();
     setAt((a) => Math.min(n - 1, Math.max(0, (a ?? (move > 0 ? -1 : n)) + move)));
   };
+  // On a narrow chart where neither side has room, the readout takes the head of the chart, over its
+  // title, as stock apps do while a finger scrubs: the point it reads stays in view.
+  const docked = (x: number) => tipW > 0 && x + 12 + tipW > width && x - 12 - tipW < 0;
   // Beside the point, on the side with room; where neither side has it, as close as fits.
   const tipLeft = (x: number) => {
     const side = x + 12 + tipW <= width ? x + 12 : x - 12 - tipW;
@@ -262,10 +267,10 @@ export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
         </svg>
         {at !== null && (
           <div
-            className="mia-chart-tip"
             aria-hidden="true"
             ref={tip}
-            style={{ left: tipLeft(X(at)) }}
+            className={`mia-chart-tip${docked(X(at)) ? " docked" : ""}`}
+            style={docked(X(at)) ? undefined : { left: tipLeft(X(at)) }}
           >
             <span className="date">{rotulos[at]}</span>
             {series.map((s, k) => (

@@ -58,8 +58,11 @@ interface Turn {
   readonly n: number;
   readonly pergunta: string;
   readonly parts: readonly Part[];
-  /** How it ended, when it did not simply end: stopped, conversation too long, or no answer. */
-  readonly end: "parou" | "cheia" | "falhou" | null;
+  /**
+   * How it ended, when it did not simply end: stopped, conversation too long, she could not finish
+   * (falhou), the connection dropped (rede), or the month's cap (descansa).
+   */
+  readonly end: "parou" | "cheia" | "falhou" | "rede" | "descansa" | null;
 }
 
 /**
@@ -130,6 +133,8 @@ const ask = async (pergunta: string, onLimit: () => void) => {
   });
   let ended = false;
   let monthLimit = false;
+  /** She said she could not finish, so the connection was fine. */
+  let herFailure = false;
   const line = (l: Mia2Line) => {
     switch (l.t) {
       case "sessao":
@@ -158,6 +163,7 @@ const ask = async (pergunta: string, onLimit: () => void) => {
         if (l.motivo === "limite_conversa") return patch(n, (t) => ({ ...t, end: "cheia" }));
         // The month's cap: she rests, and the question goes with the answer she could not give.
         if (l.motivo === "limite_mes") monthLimit = true;
+        else herFailure = true;
         throw new Error(l.motivo);
     }
   };
@@ -169,15 +175,12 @@ const ask = async (pergunta: string, onLimit: () => void) => {
     if (controller.signal.aborted) return;
     if (monthLimit || (e instanceof ApiError && e.status === 429)) {
       onLimit();
-      return setChat({
-        pending: null,
-        status: null,
-        limited: true,
-        turns: chat.turns.filter((t) => t.n !== n),
-      });
+      // The question stays, to be asked again when she is back.
+      patch(n, (t) => ({ ...t, parts: [], end: "descansa" }));
+      return setChat({ pending: null, status: null, limited: true });
     }
     // The question stays where it was asked, with "Tentar de novo" under it; a half answer goes.
-    patch(n, (t) => ({ ...t, parts: [], end: "falhou" }));
+    patch(n, (t) => ({ ...t, parts: [], end: herFailure ? "falhou" : "rede" }));
     setChat({ pending: null, status: null });
   } finally {
     if (reading === controller) reading = null;
@@ -197,7 +200,7 @@ const stop = () => {
 /** Asks again, in its place, a question that got no answer or whose answer was stopped. */
 const retry = (onLimit: () => void) => {
   const t = chat.turns.at(-1);
-  if (!t || (t.end !== "falhou" && t.end !== "parou") || chat.pending) return;
+  if (!t || !(t.end === "falhou" || t.end === "rede" || t.end === "parou") || chat.pending) return;
   setChat({ turns: chat.turns.slice(0, -1) });
   void ask(t.pergunta, onLimit);
 };
@@ -517,7 +520,10 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     const end = chat.turns.at(-1)?.end ?? null;
     if (heldNow.current) {
       setHeld(false);
-      if (end === null && typedNow.current.trim()) return send(typedNow.current);
+      if (end === null && typedNow.current.trim()) {
+        send(typedNow.current);
+        return setTold("A Mia respondeu. Sua próxima pergunta foi enviada.");
+      }
     }
     if (here === input.current && (typedNow.current || end === "parou")) {
       setTold(end === null ? "A Mia respondeu." : "");
@@ -613,7 +619,8 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
           <div className="mia-empty">
             <h2>{miaTitle(topic)}</h2>
             <p className="muted">
-              Ela lê o Neko, faz as contas e mostra gráficos. Não muda a planilha.
+              Ela lê o Neko, faz as contas e mostra gráficos. Não muda a planilha. Valores
+              sublinhados levam à tela de onde vieram.
             </p>
             {!resting && (
               <div className="mia-starters">
@@ -665,10 +672,17 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                       )}
                     </div>
                   )}
-                  {t.end === "falhou" && (
+                  {t.end === "descansa" && (
+                    <p className="mia-status" aria-live="polite">
+                      A Mia descansa até o mês que vem. Os números seguem nas telas.
+                    </p>
+                  )}
+                  {(t.end === "falhou" || t.end === "rede") && (
                     <div className="mia-wait">
                       <p className="mia-status" aria-live="polite">
-                        A Mia não respondeu. Confira a internet e tente de novo.
+                        {t.end === "rede"
+                          ? "A Mia não respondeu. Confira a internet e tente de novo."
+                          : "A Mia não conseguiu terminar esta resposta. Tente de novo."}
                       </p>
                       {newest && !resting && (
                         <button
@@ -709,7 +723,9 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
           </ol>
         )}
         <p className="mia-status" aria-live="polite">
-          {limited ? "A Mia descansa até o mês que vem. Os números seguem nas telas." : ""}
+          {limited && turns.at(-1)?.end !== "descansa"
+            ? "A Mia descansa até o mês que vem. Os números seguem nas telas."
+            : ""}
         </p>
         <p className="sr-only" aria-live="polite">
           {told}
@@ -753,6 +769,11 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                 if (!e.target.value.trim()) setHeld(false);
               }}
               onKeyDown={(e) => {
+                // ↑ in an empty field brings back the last question, to change and send again.
+                if (e.key === "ArrowUp" && !typed && !pending && turns.length > 0) {
+                  e.preventDefault();
+                  return setTyped(turns.at(-1)?.pergunta ?? "");
+                }
                 if (e.key !== "Escape") return;
                 e.preventDefault();
                 if (pending) halt(false);
