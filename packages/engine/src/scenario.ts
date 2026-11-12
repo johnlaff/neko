@@ -1,4 +1,4 @@
-import { clampedDay, daysInMonth, type LocalDate, parts, ymd } from "./date.ts";
+import { addDays, clampedDay, daysInMonth, type LocalDate, parts, ymd } from "./date.ts";
 import { firstUnplannedMonth } from "./insights.ts";
 import { splitInstallments } from "./installments.ts";
 import { add, type Cents, cents, mul, sub, ZERO } from "./money.ts";
@@ -90,10 +90,36 @@ export interface ScenarioResult {
   /** "Ainda cabem" once the purchases' first parcels are on it; null without a purchase. */
   readonly cycle: Simulation | null;
   /**
-   * The same pace without the changes, so a what-if shows its own effect and nobody has to
-   * remember the number from before; null without changes.
+   * What the changes take from (negative) or add to the lowest balance and the last month's end,
+   * against the same pace without them, so nobody has to remember the number from before; null
+   * without changes.
    */
-  readonly base: { readonly lowest: Cents; readonly end: Cents } | null;
+  readonly effect: Effect | null;
+  /** Each change on its own, in the order asked. */
+  readonly effects: readonly ChangeEffect[];
+}
+
+export interface Effect {
+  readonly lowest: Cents;
+  readonly end: Cents;
+}
+
+export interface ChangeEffect extends Effect {
+  /**
+   * A purchase's parcels the pace's monthly spending already holds: they leave the balances as
+   * they were and leave that much less of the month for everything else. Null when none.
+   */
+  readonly inPace: {
+    readonly count: number;
+    readonly amount: Cents;
+    /** The most any month gives up to it. */
+    readonly perMonth: Cents;
+    /** The last month that holds one, `YYYY-MM`. */
+    readonly until: string;
+  } | null;
+  /** Its dates (parcels or repeats) the sheet reaches: fewer than `of` past the sheet's last day. */
+  readonly counted: number;
+  readonly of: number;
 }
 
 const key = (year: number, month: number) => year * 12 + month;
@@ -153,7 +179,9 @@ const moves = (changes: readonly Change[], due: LocalDate | null) =>
     }));
   });
 
-export const simulate = (input: ScenarioInput, scenario: Scenario): ScenarioResult => {
+type Core = Omit<ScenarioResult, "effect" | "effects">;
+
+const core = (input: ScenarioInput, scenario: Scenario): Core => {
   const { today, months, due, ceiling } = input;
   if (scenario.changes.length > MAX_CHANGES) throw new RangeError(`at most ${MAX_CHANGES} changes`);
   for (const c of scenario.changes) checkChange(c, today, due);
@@ -211,9 +239,6 @@ export const simulate = (input: ScenarioInput, scenario: Scenario): ScenarioResu
   // window Hoje's "Dia de guardar" reads, so both say the same with the ceiling and no change.
   const unplanned = firstUnplannedMonth(months, today);
   const until = unplanned && ymd(unplanned.year, unplanned.month, 1);
-  const alone =
-    scenario.changes.length > 0 ? simulate(input, { pace: scenario.pace, changes: [] }) : null;
-  const aloneEnd = alone?.months.at(-1);
   return {
     pace: scenario.pace,
     monthly,
@@ -242,6 +267,63 @@ export const simulate = (input: ScenarioInput, scenario: Scenario): ScenarioResu
         .filter((d) => until === null || d.date < until)
         .map((d) => ({ date: d.date, balance: d.sim, income: d.income })),
     ),
-    base: alone?.lowest && aloneEnd ? { lowest: alone.lowest.balance, end: aloneEnd.endSim } : null,
+  };
+};
+
+const effectOf = (with_: Core, without: Core): Effect => ({
+  lowest: sub(with_.lowest?.balance ?? ZERO, without.lowest?.balance ?? ZERO),
+  end: sub(with_.months.at(-1)?.endSim ?? ZERO, without.months.at(-1)?.endSim ?? ZERO),
+});
+
+/**
+ * The parcels from next month on, where the pace fills each month up to its spending: what the
+ * month's own bills leave of it holds the parcel, the same gap `ceilingHeld` takes.
+ */
+const heldParcels = (
+  parcels: readonly { readonly date: LocalDate; readonly amount: Cents }[],
+  input: ScenarioInput,
+  monthly: Cents,
+): ChangeEffect["inPace"] => {
+  const { year, month } = parts(input.today);
+  const next = addDays(ymd(year, month, daysInMonth(year, month)), 1).slice(0, 7);
+  const bills = ownCardBills(input.months);
+  const held = parcels.flatMap((p) => {
+    const m = p.date.slice(0, 7);
+    const bill = bills.find((b) => b.month === m);
+    if (m < next || !bill) return [];
+    const gap = Math.max(0, monthly - bill.amount);
+    const amount = Math.min(-p.amount, gap);
+    return amount > 0 ? [{ month: m, amount }] : [];
+  });
+  const last = held.at(-1);
+  if (!last) return null;
+  return {
+    count: held.length,
+    amount: cents(held.reduce((t, h) => t + h.amount, 0)),
+    perMonth: cents(Math.max(...held.map((h) => h.amount))),
+    until: last.month,
+  };
+};
+
+export const simulate = (input: ScenarioInput, scenario: Scenario): ScenarioResult => {
+  const result = core(input, scenario);
+  if (scenario.changes.length === 0) return { ...result, effect: null, effects: [] };
+  const alone = core(input, { pace: scenario.pace, changes: [] });
+  const last = result.days.at(-1)?.date ?? input.today;
+  return {
+    ...result,
+    effect: effectOf(result, alone),
+    effects: scenario.changes.map((c) => {
+      const dates = moves([c], input.due);
+      return {
+        ...effectOf(core(input, { pace: scenario.pace, changes: [c] }), alone),
+        inPace:
+          c.kind === "compra" && result.monthly !== null
+            ? heldParcels(dates, input, result.monthly)
+            : null,
+        counted: dates.filter((d) => d.date <= last).length,
+        of: dates.length,
+      };
+    }),
   };
 };

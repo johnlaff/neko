@@ -478,11 +478,8 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await expect(page.getByRole("heading", { level: 1, name: "Simular" })).toBeFocused();
   await expect(page.getByText("Nada aqui muda a planilha")).toBeVisible();
   // No ceiling in Ajustes: the sheet as it is, or the last months' average.
-  await expect(page.getByRole("button", { name: "Só a planilha" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(page.getByRole("button", { name: "Teto" })).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: "Só a planilha" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "Teto" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Ajustes" }).first()).toBeVisible();
   await expect(
     page.getByRole("heading", { name: /^Só com a planilha, o menor saldo é/ }),
@@ -490,7 +487,10 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await page.getByRole("button", { name: "Compra", exact: true }).click();
   await expect(page.getByRole("textbox", { name: /Compra no Cartão Azul/ })).toBeFocused();
   await page.keyboard.type("600");
-  await page.getByRole("button", { name: "3×" }).click();
+  // The parcels are one radio group: the arrows move the choice inside it.
+  await page.getByRole("radio", { name: "2×", exact: true }).click();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("radio", { name: "3×" })).toBeChecked();
   await expect(page.getByText("1ª parcela em 12 out")).toBeVisible();
   await page.getByRole("button", { name: "Saída", exact: true }).click();
   await page.keyboard.type("50000");
@@ -505,6 +505,7 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await expect(page.getByText("Use um valor como 1.500,00.")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("heading", { level: 1, name: "Simular" })).toBeFocused();
+  await expect(page.getByText("Esc de novo sai e apaga as mudanças.")).toBeVisible();
   await expect(page.getByRole("textbox", { name: /Entrada/ })).toHaveValue("1,500.50");
   await page.getByRole("button", { name: "Tirar entrada" }).click();
   await expect(page.getByRole("textbox", { name: /Saída/ })).toBeFocused();

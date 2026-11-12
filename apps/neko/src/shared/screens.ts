@@ -1,5 +1,6 @@
 import {
   add,
+  addDays,
   type BillCheck,
   type BillState,
   billState,
@@ -9,6 +10,7 @@ import {
   type Change,
   cents,
   cycleForDueMonth,
+  daysInMonth,
   diffDays,
   type Fixed,
   fixedOf,
@@ -458,8 +460,13 @@ export interface ScenarioView extends ScenarioResult {
   readonly paces: readonly Pace[];
   /** What the ceiling and the last months' average spend a month, side by side; null without one. */
   readonly spends: { readonly teto: Cents | null; readonly media: Cents | null };
-  /** Hoje's "Ainda cabem", as a purchase's own figure reads it. */
-  readonly canSpend: Pick<CanSpend, "mode" | "left" | "overBy"> | null;
+  /**
+   * The first day the pace's spending counts, the start of next month: before it the sheet holds
+   * the month, after it the pace is an assumption. Null for the sheet as it is.
+   */
+  readonly paceFrom: LocalDate | null;
+  /** Hoje's "Ainda cabem", as a purchase's own figure reads it, and the bill it measures. */
+  readonly canSpend: Pick<CanSpend, "mode" | "left" | "overBy" | "due"> | null;
 }
 
 /** The ceiling needs Ajustes › Teto do mês; the average needs a full month before today. */
@@ -508,6 +515,7 @@ export const scenarioView = (
     { pace, changes: ask.changes },
   );
   const cs = p.canSpend;
+  const [y, m] = p.today.split("-").map(Number) as [number, number];
   return {
     ...result,
     today: p.today,
@@ -517,7 +525,8 @@ export const scenarioView = (
     due: usual?.cycle.due ?? null,
     paces,
     spends,
-    canSpend: cs ? { mode: cs.mode, left: cs.left, overBy: cs.overBy } : null,
+    paceFrom: result.monthly === null ? null : addDays(ymd(y, m, daysInMonth(y, m)), 1),
+    canSpend: cs ? { mode: cs.mode, left: cs.left, overBy: cs.overBy, due: cs.due } : null,
   };
 };
 
