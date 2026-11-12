@@ -12,6 +12,7 @@ import {
   CHART_TOOL,
   ensureSetup,
   type Mia2Setup,
+  NUMBERS_TOOL,
   runTurn,
   SESSION_CAP_CENTS,
   stopTurn,
@@ -355,6 +356,59 @@ describe("mia2 turn", () => {
     expect(JSON.stringify(results[0])).toContain("9999");
   });
 
+  it("shows a board of numbers that check, each with where it came from, and refuses others", async () => {
+    const board = (id: string, valor: number, nota = "vencem 12/12"): Ev => ({
+      type: "agent.custom_tool_use",
+      id,
+      name: NUMBERS_TOOL,
+      input: {
+        itens: [
+          { rotulo: "Saídas de setembro", valor: 4321.5 },
+          { rotulo: "Faturas abertas", valor, nota },
+        ],
+      },
+    });
+    const api = fakeApi({
+      streams: [
+        [
+          toolUse("u1", "mes", { mes: "2026-09" }),
+          toolResult("u1", { saidas: 4321.5 }),
+          toolUse("u2", "faturas", {}),
+          toolResult("u2", { abertas: 3115.13 }),
+          message("m1", "Setembro foi o mês mais caro."),
+          board("n1", 9999),
+          idle("requires_action"),
+          // A value in a note is checked as one in her text is.
+          board("n2", 3115.13, "faltam R$ 9.999"),
+          idle("requires_action"),
+          board("n3", 3115.13),
+          idle("requires_action"),
+          idle("end_turn"),
+        ],
+      ],
+    });
+    const lines = await turn(api, sqliteD1(), { pergunta: "Como estou?" });
+    expect(lines.filter((l) => l.t === "numeros")).toEqual([
+      {
+        t: "numeros",
+        id: "n3",
+        numeros: [
+          { rotulo: "Saídas de setembro", valor: 4321.5, tela: "mes", mes: "2026-09" },
+          { rotulo: "Faturas abertas", valor: 3115.13, nota: "vencem 12/12", tela: "faturas" },
+        ],
+      },
+    ]);
+    const results = api
+      .posted("/events")
+      .flatMap((s) => (s.body as { events: Ev[] }).events)
+      .filter((e) => e.type === "user.custom_tool_result");
+    expect(results.map((r) => [r.custom_tool_use_id, r.is_error])).toEqual([
+      ["n1", true],
+      ["n2", true],
+      ["n3", false],
+    ]);
+  });
+
   it("puts her answer before a chart she drew first", async () => {
     const draw = (id: string): Ev => ({
       type: "agent.custom_tool_use",
@@ -501,6 +555,19 @@ describe("mia2 android contract", () => {
               series: [{ nome: "Saídas", valores: [4630.55, 4180.4] }],
             },
           },
+          idle("requires_action"),
+          {
+            type: "agent.custom_tool_use",
+            id: "n1",
+            name: NUMBERS_TOOL,
+            input: {
+              itens: [
+                { rotulo: "Saídas de outubro", valor: 4180.4 },
+                { rotulo: "Saídas de setembro", valor: 4630.55, nota: "o mês mais caro" },
+              ],
+            },
+          },
+          idle("requires_action"),
           idle("end_turn"),
         ],
       ],

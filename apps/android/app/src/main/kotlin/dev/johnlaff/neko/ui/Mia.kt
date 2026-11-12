@@ -422,7 +422,9 @@ fun MiaScreen(
                             enabled = chat.typed.isNotBlank() && chat.pending == null,
                             colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
                             shape = RoundedCornerShape(10.dp),
-                        ) { Text("Enviar", style = MaterialTheme.typography.labelLarge) }
+                            // The theme's text styles carry a color, which would win over the button's: dark on light
+                            // when it can send, faded when it cannot.
+                        ) { Text("Enviar", style = MaterialTheme.typography.labelLarge.copy(color = Color.Unspecified)) }
                     }
                 }
             }

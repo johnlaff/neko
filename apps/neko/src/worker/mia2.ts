@@ -10,8 +10,8 @@ import type { AgentCreateParams } from "@anthropic-ai/sdk/resources/beta/agents/
 import type { BetaManagedAgentsStreamSessionEvents as StreamEvent } from "@anthropic-ai/sdk/resources/beta/sessions/events";
 import type { LocalDate } from "@neko/engine";
 import { z } from "zod";
-import type { Mia2Grafico, Mia2Line, Mia2Valor } from "../shared/types.ts";
-import { checkText, type Seen, seenValue, seeText, seeToolResult } from "./grounding.ts";
+import type { Mia2Grafico, Mia2Line, Mia2Numero, Mia2Valor } from "../shared/types.ts";
+import { checkText, type Seen, seenValue, seeText, seeToolResult, sourceOf } from "./grounding.ts";
 import { CAP_MICRO_USD, ledgerMonth } from "./mia.ts";
 
 export const MIA2_MODEL = "claude-sonnet-5-5";
@@ -20,6 +20,7 @@ export const SESSION_CAP_CENTS = 200;
 /** A question that runs longer than this is stopped and said to have failed. */
 export const TURN_MS = 240_000;
 export const CHART_TOOL = "mostrar_grafico";
+export const NUMBERS_TOOL = "mostrar_numeros";
 
 export const SYSTEM = `Você é a Mia, a assistente do Neko. O Neko lê a planilha financeira do dono, preenchida à mão no método do gasto diário, e mostra o dia, as faturas, os meses e a reserva. Você conversa com o dono em português do Brasil.
 
@@ -32,10 +33,13 @@ De onde vêm os números
 - Para saber a data de hoje, use a ferramenta hoje.
 
 Como responder
-- Comece pela resposta, em uma ou duas frases. Depois, só se ajudar, até 3 itens curtos.
+- O dono lê no celular, de relance. A resposta vem numa frase só, com o número principal em negrito.
+- Depois, só se ajudar, até 3 itens de uma linha, cada um com no máximo um valor. O texto nunca passa de 60 palavras.
+- Números que o dono vai comparar de relance (2 a 4) vão em ${NUMBERS_TOOL}, não em lista no texto. Num resumo ou em "como estou", mostre ali os 3 ou 4 que mais importam, como o saldo, quanto ainda cabe no teto, as faturas abertas e a reserva.
+- Uma série no tempo ou uma comparação de 3 ou mais pontos vai em ${CHART_TOOL}. Com entradas e saídas no mesmo gráfico, entradas vêm primeiro.
+- No máximo um quadro de números e um gráfico por resposta, e o texto não repete os valores deles.
 - Sem títulos e sem tabelas. Negrito só no número principal.
 - Não conte o que vai fazer nem quais ferramentas usou.
-- Quando uma série no tempo ou uma comparação de 3 ou mais pontos ajudar, chame ${CHART_TOOL} com os valores das ferramentas, no máximo um gráfico por resposta, e não repita os mesmos valores em lista no texto. Com entradas e saídas no mesmo gráfico, entradas vêm primeiro.
 - Se a ferramenta não tiver o dado, diga isso em vez de supor.
 - Use as palavras do Neko: teto (o limite do mês para cartões e Pix), fatura, reserva, Para lançar.
 
@@ -62,6 +66,47 @@ export const Chart = z
   .refine((c) => c.series.every((s) => s.valores.length === c.rotulos.length), {
     message: "cada série precisa de um valor por rótulo",
   });
+
+/** Her board of numbers: two to four values in reais, a short label over each. */
+export const Numbers = z.object({
+  itens: z
+    .array(
+      z.object({
+        rotulo: z.string().trim().min(1).max(28),
+        valor: z.number().finite(),
+        nota: z.string().trim().max(32).optional(),
+      }),
+    )
+    .min(2)
+    .max(4),
+});
+
+const NUMBERS_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    itens: {
+      type: "array",
+      description: "De 2 a 4 números, na ordem de importância.",
+      items: {
+        type: "object",
+        properties: {
+          rotulo: {
+            type: "string",
+            description:
+              "O que o número é, curto (até 28 letras), como 'Saldo hoje' ou 'Cabe no teto'.",
+          },
+          valor: { type: "number", description: "O valor em reais, negativo quando falta." },
+          nota: {
+            type: "string",
+            description: "Opcional, bem curto (até 32 letras), como 'até 26/11' ou 'vence 12/12'.",
+          },
+        },
+        required: ["rotulo", "valor"],
+      },
+    },
+  },
+  required: ["itens"],
+};
 
 const CHART_SCHEMA = {
   type: "object" as const,
@@ -121,6 +166,13 @@ export const agentConfig = (site: string): AgentCreateParams => ({
       description:
         "Mostra um gráfico na conversa, desenhado pelo Neko. Use só valores em reais que vieram das ferramentas ou de contas no bash; o Neko recusa valores sem origem.",
       input_schema: CHART_SCHEMA,
+    },
+    {
+      type: "custom",
+      name: NUMBERS_TOOL,
+      description:
+        "Mostra de 2 a 4 números lado a lado na conversa, um rótulo curto em cima de cada valor, desenhados pelo Neko. Use só valores em reais que vieram das ferramentas ou de contas no bash; o Neko recusa valores sem origem.",
+      input_schema: NUMBERS_SCHEMA,
     },
   ],
 });
@@ -337,7 +389,7 @@ const chartsAfterText = (write: TurnDeps["write"]): TurnDeps["write"] => {
   let texted = false;
   const held: Mia2Line[] = [];
   return (l) => {
-    if (l.t === "grafico" && !texted) {
+    if ((l.t === "grafico" || l.t === "numeros") && !texted) {
       held.push(l);
       return;
     }
@@ -524,6 +576,12 @@ const send = async (client: Anthropic, id: string, events: Outgoing) => {
   }
 };
 
+/** What in a chart or a board did not come from the tools: its numbers, and any R$ in its words. */
+const looseOf = (seen: Seen, values: readonly number[], words: readonly string[]) => [
+  ...values.filter((v) => !seenValue(seen, v)).map(String),
+  ...checkText(seen, words.join("\n")).flatMap((c) => (c.conferido ? [] : [c.texto])),
+];
+
 /** Her chart call: drawn when every value checks, refused with the reason otherwise. */
 const chart = async (
   deps: TurnDeps,
@@ -541,14 +599,16 @@ const chart = async (
         is_error: isError,
       },
     ]);
+  if (ev.name === NUMBERS_TOOL) return board(deps, ev, seen, withHistory, reply);
   if (ev.name !== CHART_TOOL) return reply(`Ferramenta desconhecida: ${ev.name}.`, true);
   const parsed = Chart.safeParse(ev.input);
   if (!parsed.success) return reply(`Gráfico inválido: ${parsed.error.issues[0]?.message}.`, true);
   const values = parsed.data.series.flatMap((s) => s.valores);
-  let loose = values.filter((v) => !seenValue(seen, v));
+  const words = [parsed.data.titulo, parsed.data.nota ?? ""];
+  let loose = looseOf(seen, values, words);
   if (loose.length > 0) {
     await withHistory();
-    loose = values.filter((v) => !seenValue(seen, v));
+    loose = looseOf(seen, values, words);
   }
   if (loose.length > 0)
     return reply(
@@ -558,6 +618,34 @@ const chart = async (
   const grafico: Mia2Grafico = parsed.data;
   deps.write({ t: "grafico", id: ev.id, grafico });
   return reply("Gráfico mostrado ao dono.", false);
+};
+
+/** Her board of numbers: shown when every value checks, each leading to where it was read. */
+const board = async (
+  deps: TurnDeps,
+  ev: Extract<StreamEvent, { type: "agent.custom_tool_use" }>,
+  seen: Seen,
+  withHistory: () => Promise<void>,
+  reply: (text: string, isError: boolean) => Promise<unknown>,
+) => {
+  const parsed = Numbers.safeParse(ev.input);
+  if (!parsed.success) return reply(`Números inválidos: ${parsed.error.issues[0]?.message}.`, true);
+  const { itens } = parsed.data;
+  const values = itens.map((i) => i.valor);
+  const words = itens.flatMap((i) => [i.rotulo, i.nota ?? ""]);
+  let loose = looseOf(seen, values, words);
+  if (loose.length > 0) {
+    await withHistory();
+    loose = looseOf(seen, values, words);
+  }
+  if (loose.length > 0)
+    return reply(
+      `Estes valores não vieram das ferramentas nem do bash: ${loose.join(", ")}. Use os números das ferramentas.`,
+      true,
+    );
+  const numeros: Mia2Numero[] = itens.map((i) => ({ ...i, ...(sourceOf(seen, i.valor) ?? {}) }));
+  deps.write({ t: "numeros", id: ev.id, numeros });
+  return reply("Números mostrados ao dono.", false);
 };
 
 /** Books what the conversation cost since it was last booked, against the month's cap. */

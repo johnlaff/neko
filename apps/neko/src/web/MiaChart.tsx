@@ -50,6 +50,9 @@ const barPath = (x: number, w: number, base: number, end: number) => {
   return `M${x} ${base}V${end - r}Q${x} ${end} ${x + r} ${end}H${x + w - r}Q${x + w} ${end} ${x + w} ${end - r}V${base}Z`;
 };
 
+/** The narrowest the chart draws, whatever room it has. */
+const MIN_W = 200;
+
 /**
  * A chart Mia draws in the conversation: money over time (linha) or side by side (barras), up to
  * three series in a fixed order of color. Pointer or arrow keys read any point; the table under it
@@ -58,7 +61,9 @@ const barPath = (x: number, w: number, base: number, end: number) => {
 export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
   const id = useId();
   const box = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(560);
+  // Narrower than any phone until measured (before the first paint): a wider first layout would
+  // overflow the page for a moment and make the browser move the scroll.
+  const [width, setWidth] = useState(MIN_W);
   const [at, setAt] = useState<number | null>(null);
   const tip = useRef<HTMLDivElement>(null);
   const [tipW, setTipW] = useState(0);
@@ -71,7 +76,7 @@ export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const read = () => setWidth(Math.max(200, Math.round(el.getBoundingClientRect().width)));
+    const read = () => setWidth(Math.max(MIN_W, Math.round(el.getBoundingClientRect().width)));
     read();
     const ro = new ResizeObserver(read);
     ro.observe(el);

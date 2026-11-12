@@ -2816,6 +2816,55 @@ a.mia-value {
     opacity: 0.35;
   }
 }
+/* Mia 2 in motion (the app's Mia2Pace and Shine): her words come at reading pace, each fading in;
+   what she is doing shines while she does it; a question sent rises into place; what follows an
+   answer (sources, notes, a chart) settles in after it. Still when the system asks for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .mia-w {
+    animation: mia-fade-in 250ms ease-out both;
+  }
+  .mia-talk.v2 .mia-status.shine {
+    color: transparent;
+    background:
+      linear-gradient(90deg, var(--muted) 42%, var(--text) 50%, var(--muted) 58%) 0 0 / 300% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: mia-shine 2s linear infinite;
+  }
+  .mia-talk.v2 > li.fresh > .mia-q {
+    animation: mia-q-in 240ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  /* Only in an answer asked here and now: one already read is simply there. A note in a waiting
+     row rises with its row, not twice. */
+  .mia-talk.v2 > li.fresh .mia-wait,
+  .mia-talk.v2 > li.fresh .mia-note:not(.mia-wait .mia-note),
+  .mia-talk.v2 > li.fresh p.mia-sources,
+  .mia-talk.v2 > li.fresh figure.mia-chart,
+  .mia-talk.v2 > li.fresh dl.mia-numbers,
+  .mia-page .mia-suggest {
+    animation: mia-rise 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+@keyframes mia-shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@keyframes mia-q-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+@keyframes mia-rise {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
 /* The new answer takes the focus to be read, not to be acted on; it lands under the bar. */
 .mia-talk > li:focus {
   outline: none;
@@ -2831,6 +2880,25 @@ main.mia-page .mia-talk > li {
    grows in view above the field, never behind it. */
 main.mia-page .mia-talk > li:last-child {
   min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 11rem);
+}
+/* Her board of numbers: the Neko's own figures, two to a row, so four read as a square. */
+dl.mia-numbers {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 4px 0;
+}
+dl.mia-numbers > div {
+  align-content: start;
+}
+dl.mia-numbers dd {
+  font-variant-numeric: tabular-nums;
+}
+/* With room, the board is one row, as a scoreboard. */
+@media (min-width: 720px) {
+  dl.mia-numbers {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
 }
 /* Where the numbers came from, as quiet ways out under the answer. */
 p.mia-sources {
@@ -4630,6 +4698,7 @@ p.mia-held {
   white-space: normal;
 }
 /* The ways out sit right under the chart they follow, not a tap box away. */
-figure.mia-chart + p.mia-sources {
+figure.mia-chart + p.mia-sources,
+dl.mia-numbers + p.mia-sources {
   margin-top: -14px;
 }
