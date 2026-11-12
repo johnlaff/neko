@@ -74,6 +74,35 @@ object Fakes {
     }
 
     /** The same invented answers as the site's Mia 2 preview: a bar chart, then a two-line chart. */
+    /** A summary as she gives it now: one sentence with the main number, then her board. */
+    fun mia2Resumo() = dev.johnlaff.neko.ui.Mia2Chat().apply {
+        val n = { rotulo: String, valor: Double, nota: String?, tela: String?, mes: String? ->
+            dev.johnlaff.neko.data.Mia2Numero(rotulo, valor, nota, tela, mes)
+        }
+        turns = listOf(
+            dev.johnlaff.neko.ui.Mia2Turno(
+                0,
+                "Me fala um resumo da minha situação",
+                listOf(
+                    dev.johnlaff.neko.ui.Mia2Texto(
+                        "m1",
+                        "Novembro está no vermelho: o mês deve fechar em **−R$ 640,15**, e a reserva ainda está zerada.",
+                        mapOf("−R$ 640,15" to dev.johnlaff.neko.data.Mia2Valor(true, "mes", "2026-11")),
+                    ),
+                    dev.johnlaff.neko.ui.Mia2Numeros(
+                        "n1",
+                        listOf(
+                            n("Saldo hoje", 2480.35, null, "hoje", null),
+                            n("Cabe no teto", 412.9, "até 26/11", "hoje", null),
+                            n("Faturas abertas", 2915.4, "vencem 12/12", "faturas", null),
+                            n("Reserva", 0.0, "meta: R$ 3.000", "hoje", null),
+                        ),
+                    ),
+                ),
+            ),
+        )
+    }
+
     fun mia2Chat() = dev.johnlaff.neko.ui.Mia2Chat().apply {
         val ok = { tela: String, mes: String? -> dev.johnlaff.neko.data.Mia2Valor(true, tela, mes) }
         val months = listOf("jun", "jul", "ago", "set", "out", "nov")

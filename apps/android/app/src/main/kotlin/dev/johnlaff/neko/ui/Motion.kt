@@ -9,7 +9,9 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -81,6 +83,21 @@ fun arrival(duration: Int, delay: Int = 0): Float {
         }
     }
     return a.value
+}
+
+/**
+ * Fades in and rises [distance] into place once, like the site's `mia-rise` and `mia-q-in`; simply
+ * there when not [on] (an answer already read).
+ */
+@Composable
+fun Modifier.rise(distance: Dp = 4.dp, duration: Int = 200, on: Boolean = true): Modifier {
+    if (!on) return this
+    val t = arrival(duration)
+    val d = with(LocalDensity.current) { distance.toPx() }
+    return graphicsLayer {
+        alpha = t
+        translationY = (1f - t) * d
+    }
 }
 
 /** Fades and grows a little into place once, like the site's `appear`. */

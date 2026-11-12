@@ -54,6 +54,9 @@ class Mia2ChatTest {
         assertEquals("2026-10", text.valores!!.getValue("R$ 4.180,40").mes)
         val chart = (t.parts[1] as Mia2Desenho).grafico
         assertEquals(listOf(4630.55, 4180.4), chart.series.single().valores)
+        val board = (t.parts[2] as dev.johnlaff.neko.ui.Mia2Numeros).numeros
+        assertEquals(listOf("Saídas de outubro", "Saídas de setembro"), board.map { it.rotulo })
+        assertEquals("o mês mais caro", board[1].nota)
         assertEquals(listOf("Ver outubro", "Ver setembro"), mia2Sources(t).map { it.label })
         // The next question goes to the same conversation.
         chat.ask("E setembro?", this, talk)
