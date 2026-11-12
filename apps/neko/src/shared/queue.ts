@@ -203,6 +203,8 @@ const titleOf = (item: QueueItem): string => {
  */
 const noteOf = (item: QueueItem): string => {
   const draft = item.options[0]?.draft;
+  // Proposed by Mia from what the owner told her (engine `MiaProposal`), not seen at the bank.
+  if (item.key.startsWith("mia:")) return "Veio da sua conversa com a Mia.";
   switch (item.kind) {
     case "conta-propria":
       return `Dinheiro passou entre suas contas. A conta ${item.account ?? "nova"} guarda dinheiro ou é do dia a dia?`;

@@ -176,7 +176,30 @@ export interface QueueInput {
   readonly forecast?: Cents | null;
   /** Bills that came by e-mail before they are paid. */
   readonly mailed?: readonly MailedConta[];
+  /** What Mia proposed in a conversation, still waiting for Lançar or Ignorar. */
+  readonly proposals?: readonly MiaProposal[];
 }
+
+/**
+ * An entry Mia proposed when the owner told her about it (Mia 2): as typed by hand, so Lançar
+ * does what the form would. She never writes; it waits here like what the bank brings.
+ */
+export interface MiaProposal {
+  readonly id: string;
+  readonly entry: EntryInput;
+}
+
+/** The line a proposal makes, as Para lançar names the kinds of item. */
+const PROPOSAL_KIND: Record<EntryInput["kind"], QueueKind> = {
+  entrada: "entrada",
+  diario: "diario",
+  conta: "conta",
+  saida: "conta",
+  investimento: "conta",
+  reserva: "guardar",
+  resgate: "resgate",
+  cartao: "cartao",
+};
 
 /** A bill the biller e-mailed (light, phone): its value and due day, known before it is paid. */
 export interface MailedConta {
@@ -871,6 +894,14 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
           draft: { type: "forecast", value: cents(value), days: empty.map((r) => r.date) },
         },
       ],
+    });
+  for (const p of input.proposals ?? [])
+    push({
+      key: `mia:${p.id}`,
+      kind: PROPOSAL_KIND[p.entry.kind],
+      date: p.entry.date,
+      bank: [],
+      options: [{ label: "", draft: { type: "new", ...p.entry } }],
     });
   // What changes the sheet first, by date; questions about an account last.
   const question = (i: QueueItem) => Number(i.kind === "conta-propria");

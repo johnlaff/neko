@@ -644,13 +644,20 @@ app.all("/mcp", async (c) => {
     return c.json({ error: "unauthorized" }, 401, { "WWW-Authenticate": "Bearer" });
   // Loaded on the first call only: the MCP SDK stays out of every other request's start-up.
   const { serveMcp } = await import("./mcp.ts");
-  return serveMcp(c.req.raw, async () => {
-    const [data, settings] = await Promise.all([
-      getProjection(c.env, todayIn(new Date())),
-      loadSettings(c.env.DB),
-    ]);
-    return { data, ceiling: settings.cycleBudget === null ? null : cents(settings.cycleBudget) };
-  });
+  return serveMcp(
+    c.req.raw,
+    async () => {
+      const [data, settings] = await Promise.all([
+        getProjection(c.env, todayIn(new Date())),
+        loadSettings(c.env.DB),
+      ]);
+      return { data, ceiling: settings.cycleBudget === null ? null : cents(settings.cycleBudget) };
+    },
+    async (entry) => {
+      const { saveProposal } = await import("./proposals.ts");
+      await saveProposal(c.env.DB, entry, new Date());
+    },
+  );
 });
 
 /** Faturas › "Ler a fatura do banco". */
