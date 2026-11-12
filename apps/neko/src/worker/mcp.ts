@@ -1,0 +1,355 @@
+import { type CallToolResult, createMcpHandler, McpServer } from "@modelcontextprotocol/server";
+import {
+  type Cents,
+  type Change,
+  cents,
+  localDate,
+  MAX_CHANGES,
+  MAX_INSTALLMENTS,
+  MAX_REPEAT,
+  MIA_PERIODS,
+  type MonthView,
+  refBook,
+  runMiaTool,
+} from "@neko/engine";
+import { z } from "zod";
+import { scenarioView } from "../shared/screens.ts";
+import type { ProjectionResponse } from "../shared/types.ts";
+
+/**
+ * Mia 2's window on Neko: the sheet, the bills, the reserve, Para lançar and Simular as MCP tools,
+ * for the agent that holds the token (Model Context Protocol, both the 2026-07-28 stateless era
+ * and the 2025 one). Read only: nothing here writes to the sheet, to D1 or anywhere else. Unlike
+ * Mia 1's tools, values go out in reais, so the agent can chart and reason over them; every number
+ * it shows must still come from a tool.
+ */
+
+/** What every tool reads: the projection and the ceiling of Ajustes. */
+export interface McpData {
+  readonly data: ProjectionResponse;
+  readonly ceiling: Cents | null;
+}
+
+const reais = (c: number) => c / 100;
+
+/** Mia 1's references (`{ref, cents}` and `{ref, pct}`) back to plain values in reais and percent. */
+const plain = (v: unknown): unknown => {
+  if (Array.isArray(v)) return v.map(plain);
+  if (typeof v !== "object" || v === null) return v;
+  const o = v as Record<string, unknown>;
+  if (typeof o.ref === "string" && typeof o.cents === "number") return reais(o.cents);
+  if (typeof o.ref === "string" && typeof o.pct === "number") return o.pct;
+  return Object.fromEntries(Object.entries(o).map(([k, x]) => [k, plain(x)]));
+};
+
+const answer = (out: unknown): CallToolResult => ({
+  content: [{ type: "text", text: JSON.stringify(out) }],
+});
+const refuse = (text: string): CallToolResult => ({
+  content: [{ type: "text", text }],
+  isError: true,
+});
+
+/** A Mia 1 tool, same checks and words, with real values. */
+const engineTool = (d: McpData, name: string, input: unknown): CallToolResult => {
+  const out = runMiaTool(d.data.projection, name, input, refBook());
+  return typeof out.erro === "string" ? refuse(out.erro) : answer(plain(out));
+};
+
+const keyOf = (m: MonthView) => `${m.year}-${String(m.month).padStart(2, "0")}`;
+const Month = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+  .describe("Mês no formato AAAA-MM.");
+const situation = (today: string, key: string) =>
+  key < today.slice(0, 7) ? "fechado" : key === today.slice(0, 7) ? "em andamento" : "futuro";
+/** resumo_meses reads at most three years at once. */
+const MAX_SUMMARY = 36;
+
+const MOVE = { income: "entrada", bill: "conta", card: "cartao", diario: "diario" } as const;
+
+const Reais = z.number().positive().max(100_000_000);
+const Day = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .describe("Dia no formato AAAA-MM-DD.");
+const SimulateInput = z.object({
+  ritmo: z
+    .enum(["planilha", "teto", "media"])
+    .optional()
+    .describe(
+      "Como os meses à frente gastam: planilha (só o que já está lançado), teto (o Teto do mês de Ajustes, cartões e Pix) ou media (média dos últimos 3 meses inteiros). Sem ritmo: o teto quando existe, senão a planilha.",
+    ),
+  mudancas: z
+    .array(
+      z.discriminatedUnion("tipo", [
+        z.object({
+          tipo: z.literal("compra").describe("Compra hoje no cartão de sempre."),
+          valor: Reais.describe("Valor total em reais."),
+          parcelas: z.number().int().min(1).max(MAX_INSTALLMENTS),
+        }),
+        z.object({
+          tipo: z.enum(["entrada", "saida"]),
+          valor: Reais.describe("Valor de cada vez, em reais."),
+          data: Day,
+          meses: z
+            .number()
+            .int()
+            .min(1)
+            .max(MAX_REPEAT)
+            .describe("Quantos meses repete, 1 = uma vez."),
+        }),
+      ]),
+    )
+    .max(MAX_CHANGES)
+    .default([]),
+});
+
+const toChange = (m: z.infer<typeof SimulateInput>["mudancas"][number]): Change =>
+  m.tipo === "compra"
+    ? { kind: "compra", amount: cents(Math.round(m.valor * 100)), count: m.parcelas }
+    : {
+        kind: m.tipo,
+        amount: cents(Math.round(m.valor * 100)),
+        date: localDate(m.data),
+        months: m.meses,
+      };
+
+const point = (p: { date: string; balance: number } | null) =>
+  p && { data: p.date, saldo: reais(p.balance) };
+
+const simulateTool = (d: McpData, input: z.infer<typeof SimulateInput>): CallToolResult => {
+  try {
+    const v = scenarioView(d.data, d.ceiling, {
+      pace: input.ritmo,
+      changes: input.mudancas.map(toChange),
+    });
+    return answer({
+      hoje: v.today,
+      planilha_lida_em: v.readAt,
+      ultimo_dia_da_planilha: v.end,
+      ritmo: v.pace,
+      ritmos_possiveis: v.paces,
+      gasto_por_mes_no_teto: v.spends.teto === null ? null : reais(v.spends.teto),
+      gasto_por_mes_na_media: v.spends.media === null ? null : reais(v.spends.media),
+      ritmo_conta_a_partir_de: v.paceFrom,
+      menor_saldo: point(v.lowest),
+      primeiro_dia_negativo: point(v.firstNegative),
+      primeiro_dia_negativo_so_com_a_planilha: point(v.sheetFirstNegative),
+      melhor_caso_nos_meses: v.full,
+      dia_de_guardar: v.saving && {
+        dia: v.saving.date,
+        entrada: reais(v.saving.income),
+        da_para_guardar: reais(v.saving.amount),
+        menor_saldo_depois: reais(v.saving.leftAtLowest),
+      },
+      efeito_das_mudancas: v.effect && {
+        no_menor_saldo: reais(v.effect.lowest),
+        no_fim: reais(v.effect.end),
+      },
+      cada_mudanca: v.effects.map((e) => ({
+        no_menor_saldo: reais(e.lowest),
+        no_fim: reais(e.end),
+        parcelas_dentro_do_ritmo: e.inPace && {
+          quantas: e.inPace.count,
+          por_mes: reais(e.inPace.perMonth),
+          ate: e.inPace.until,
+        },
+        datas_dentro_da_planilha: e.counted,
+        datas_pedidas: e.of,
+      })),
+      mudancas_recusadas: v.refused,
+      fim_de_cada_mes: v.months.map((m) => ({
+        mes: `${m.year}-${String(m.month).padStart(2, "0")}`,
+        planilha: reais(m.endSheet),
+        simulacao: reais(m.endSim),
+      })),
+    });
+  } catch (e) {
+    if (e instanceof RangeError) return refuse(`Não dá para simular: ${e.message}`);
+    throw e;
+  }
+};
+
+const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } as const;
+
+/** One server with every tool, over the data `load` reads once, on the first call that needs it. */
+export const nekoServer = (load: () => Promise<McpData>): McpServer => {
+  let cached: Promise<McpData> | null = null;
+  const data = () => {
+    cached ??= load();
+    return cached;
+  };
+  const server = new McpServer(
+    { name: "neko", version: "1.0.0" },
+    {
+      instructions:
+        "Neko lê a planilha de finanças do dono (método da Escola do Breno) e responde em reais. Tudo aqui só lê: nada muda a planilha. Os meses futuros têm só o que já está lançado; para ver um futuro com gasto do dia a dia, use simular.",
+    },
+  );
+  const engine = (name: string, title: string, description: string, input?: z.ZodObject) =>
+    server.registerTool(
+      name,
+      { title, description, inputSchema: input ?? z.object({}), annotations: READ_ONLY },
+      async (args) => engineTool(await data(), name, args),
+    );
+
+  engine(
+    "periodo",
+    "Período",
+    "Converte um período em palavras (este mês, mês passado...) nos meses AAAA-MM de início e fim, a partir de hoje.",
+    z.object({ expressao: z.enum(MIA_PERIODS) }),
+  );
+  engine(
+    "hoje",
+    "Hoje",
+    "Saldo de hoje, quanto ainda cabe (no teto do mês com cartões e Pix, no Diário previsto ou no ciclo do cartão principal), o diário previsto por dia e o que vence nos próximos 7 dias.",
+  );
+  engine(
+    "mes",
+    "Um mês",
+    "Um mês da planilha: entradas, saídas, diário, resultado (saldo final menos o inicial), guardado e a parte das entradas, custo de vida, diário médio por dia, saldos e as maiores saídas por nome.",
+    z.object({ mes: Month }),
+  );
+  engine(
+    "comparar_meses",
+    "Comparar meses",
+    "Compara dois meses: cada número dos dois, a diferença (b menos a), a direção e a variação em percentual.",
+    z.object({
+      a: Month.describe("Mês anterior, AAAA-MM."),
+      b: Month.describe("Mês posterior, AAAA-MM."),
+    }),
+  );
+  engine(
+    "gasto_com",
+    "Gasto com um nome",
+    "Quanto saiu com um nome (mercado, aluguel, um cartão) entre dois meses, mês a mês e no total. Procura nas saídas; o diário não tem nomes.",
+    z.object({
+      termo: z.string().min(2).max(60),
+      de: Month.describe("Primeiro mês, AAAA-MM."),
+      ate: Month.describe("Último mês, AAAA-MM."),
+    }),
+  );
+  engine(
+    "faturas",
+    "Faturas",
+    "Cada cartão: a fatura aberta na planilha, o fechamento, o vencimento, se é o principal e se é de outra pessoa.",
+  );
+  engine(
+    "reserva",
+    "Reserva de emergência",
+    "Custo de vida médio, metas mínima e máxima do método (6 e 12 meses), quanto está guardado e quantos meses de custo isso cobre.",
+  );
+
+  server.registerTool(
+    "resumo_meses",
+    {
+      title: "Resumo de vários meses",
+      description:
+        "Os números de cada mês entre dois meses, para comparar e desenhar gráficos: entradas, saídas, diário, resultado, guardado, custo de vida e saldo no fim. Até 36 meses.",
+      inputSchema: z.object({
+        de: Month.describe("Primeiro mês, AAAA-MM."),
+        ate: Month.describe("Último mês, AAAA-MM."),
+      }),
+      annotations: READ_ONLY,
+    },
+    async ({ de, ate }) => {
+      if (de > ate) return refuse("O primeiro mês vem depois do último.");
+      const { projection: p } = (await data()).data;
+      const months = p.months.filter((m) => keyOf(m) >= de && keyOf(m) <= ate);
+      if (months.length === 0) return refuse("A planilha não tem esses meses.");
+      return answer({
+        meses: months.slice(0, MAX_SUMMARY).map((m) => ({
+          mes: keyOf(m),
+          situacao: situation(p.today, keyOf(m)),
+          entradas: reais(m.entrada),
+          saidas: reais(m.saida),
+          diario: reais(m.diario),
+          resultado: reais(m.result),
+          guardado: reais(m.saved),
+          custo_de_vida: reais(m.livingCost),
+          saldo_no_fim: reais(m.endSheet),
+        })),
+        cortado_em_36_meses: months.length > MAX_SUMMARY,
+      });
+    },
+  );
+
+  server.registerTool(
+    "dias_do_mes",
+    {
+      title: "Dias de um mês",
+      description:
+        "Cada dia de um mês como a planilha tem: o saldo no fim do dia, se é futuro e o que mexeu nele (entradas, contas, cartões e o diário, com o nome e o valor).",
+      inputSchema: z.object({ mes: Month }),
+      annotations: READ_ONLY,
+    },
+    async ({ mes }) => {
+      const m = (await data()).data.projection.months.find((x) => keyOf(x) === mes);
+      if (!m) return refuse("A planilha não tem esse mês.");
+      return answer({
+        mes,
+        dias: m.days.map((day) => ({
+          data: `${mes}-${String(day.day).padStart(2, "0")}`,
+          saldo: reais(day.balance),
+          futuro: day.future,
+          movimentos: day.moves.map((x) => ({
+            tipo: MOVE[x.kind],
+            nome: x.description,
+            valor: reais(x.amount),
+          })),
+        })),
+      });
+    },
+  );
+
+  server.registerTool(
+    "simular",
+    {
+      title: "Simular o futuro",
+      description:
+        "Os saldos da planilha daqui até o último mês num ritmo de gasto e com mudanças hipotéticas (compra parcelada, entrada ou saída repetida). É a tela Simular: nada é salvo e a planilha não muda. Devolve o menor saldo, o primeiro dia negativo, quanto dá para guardar no dia do salário e o saldo no fim de cada mês, na planilha e na simulação.",
+      inputSchema: SimulateInput,
+      annotations: READ_ONLY,
+    },
+    async (input) => simulateTool(await data(), input),
+  );
+
+  server.registerTool(
+    "para_lancar",
+    {
+      title: "Para lançar",
+      description:
+        "O que o banco mostrou e a planilha ainda não tem: cada item com dia, tipo, nome, o que o banco viu e as opções de lançamento. Só mostra; quem lança é o dono, no app.",
+      inputSchema: z.object({}),
+      annotations: READ_ONLY,
+    },
+    async () => {
+      const bank = (await data()).data.bank;
+      if (!bank) return answer({ banco_ligado: false, itens: [] });
+      return answer({
+        banco_ligado: true,
+        banco_lido_em: bank.syncedAt,
+        itens: (bank.queue ?? []).map((i) => ({
+          data: i.date,
+          tipo: i.kind,
+          nome: i.title,
+          no_banco: i.bank.map((b) => ({
+            data: b.date,
+            valor: reais(b.amount),
+            descricao: b.description,
+          })),
+          opcoes: i.options.map((o) => o.label).filter(Boolean),
+        })),
+      });
+    },
+  );
+
+  return server;
+};
+
+/** One MCP request, answered by a fresh server (the transport keeps nothing between requests). */
+export const serveMcp = (request: Request, load: () => Promise<McpData>): Promise<Response> =>
+  createMcpHandler(() => nekoServer(load), {
+    onerror: (e) => console.error("mcp", e),
+  }).fetch(request);
