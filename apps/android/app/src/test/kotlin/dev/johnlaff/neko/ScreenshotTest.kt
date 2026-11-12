@@ -350,6 +350,29 @@ class ScreenshotTest {
         )
     }
 
+    // Her routines: what she left by herself, where a question would be, ready to go on from.
+    @Test fun mia2RotinaDark() = shot("mia2-rotina-dark", night = true) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Rotina(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2FechamentoLight() = shot("mia2-fechamento-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Rotina("mes"),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
     // A summary: one sentence, then her board of numbers. Typed and ready, Enviar reads in its ink.
     @Test fun mia2ResumoDark() = shot("mia2-resumo-dark", night = true) {
         dev.johnlaff.neko.ui.Mia2Screen(

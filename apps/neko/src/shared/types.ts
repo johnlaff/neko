@@ -334,6 +334,23 @@ export type Mia2Line =
   | { readonly t: "fim" }
   | { readonly t: "erro"; readonly motivo: "limite_mes" | "limite_conversa" | "falha" };
 
+/**
+ * What Mia left by herself (worker/routines.ts), from GET /api/mia2/rotina: Sunday's week or the
+ * month just closed, shown as the start of a conversation the owner can go on with.
+ */
+export interface Mia2Rotina {
+  /** `semana:2026-11-15`: each is shown once. */
+  readonly id: string;
+  readonly tipo: "semana" | "mes";
+  /** Stands where a question would: "Resumo da semana", "Fechamento de outubro". */
+  readonly titulo: string;
+  readonly dia: string;
+  /** Her conversation, where the owner's next question goes. */
+  readonly sessao: string;
+  /** Her answer as POST /api/mia2 showed it, a redone one already in place. */
+  readonly partes: readonly Extract<Mia2Line, { t: "mensagem" | "grafico" | "numeros" }>[];
+}
+
 /** One answer from POST /api/mia: `{{vN}}` in the text, each one's value beside it. */
 export interface MiaReply {
   readonly texto: string;

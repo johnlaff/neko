@@ -21,6 +21,7 @@ const TOOL_TELA: Record<string, Tela> = {
   periodo: "hoje",
   reserva: "hoje",
   para_lancar: "hoje",
+  semana: "hoje",
   faturas: "faturas",
   mes: "mes",
   comparar_meses: "mes",

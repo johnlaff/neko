@@ -18,9 +18,9 @@ import {
 
 /**
  * Messages born on the server, one of each kind per day (migrations/0015_notice.sql): the alerts,
- * and the ceiling crossing a mark when the bank brings the purchase.
+ * the ceiling crossing a mark when the bank brings the purchase, and Mia's routines (routines.ts).
  */
-export type NoticeKind = "meu-pluggy" | "planilha" | "teto-75" | "teto-100";
+export type NoticeKind = "meu-pluggy" | "planilha" | "teto-75" | "teto-100" | "mia";
 
 export interface Notice extends Reminder {
   /** The kind and the day ("planilha:2026-11-11"): the app shows each id once. */
@@ -57,14 +57,17 @@ export const clearNotices = async (db: D1Database, kind: NoticeKind): Promise<vo
   await db.prepare("DELETE FROM notice WHERE id LIKE ?").bind(`${kind}:%`).run();
 };
 
-/** What the phone should be showing now, oldest first; the ceiling's go with the bills. */
+/** What the phone should be showing now, oldest first; the ceiling's go with the bills, Mia's apart. */
 export const recentNotices = async (db: D1Database, now = new Date()): Promise<Notice[]> => {
   const { results } = await db
     .prepare("SELECT id, title, body, url FROM notice WHERE created_at > ? ORDER BY created_at, id")
     .bind(daysAgo(now, KEEP_DAYS))
     .all<Omit<Notice, "tag">>();
-  return results.map((r) => ({ ...r, tag: r.id.startsWith("teto") ? "ceiling" : "alert" }));
+  return results.map((r) => ({ ...r, tag: tagOf(r.id) }));
 };
+
+const tagOf = (id: string): Notice["tag"] =>
+  id.startsWith("teto") ? "ceiling" : id.startsWith("mia:") ? "mia" : "alert";
 
 export const pruneNotices = async (db: D1Database, now = new Date()): Promise<void> => {
   await db.prepare("DELETE FROM notice WHERE created_at <= ?").bind(daysAgo(now, KEEP_DAYS)).run();

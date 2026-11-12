@@ -88,6 +88,7 @@ describe("mcp", () => {
       "gasto_com",
       "faturas",
       "reserva",
+      "semana",
       "resumo_meses",
       "dias_do_mes",
       "simular",
@@ -144,6 +145,35 @@ describe("mcp", () => {
       mudancas: [{ tipo: "compra", valor: 1200, parcelas: 3 }],
     });
     expect(buy.out.efeito_das_mudancas.no_fim).toBe(-1200);
+  });
+
+  it("reads the last whole week, as Sunday's summary does", async () => {
+    const week = await call("semana");
+    if (fixture.week) {
+      expect(week.out).toMatchObject({
+        de: fixture.week.from,
+        cartoes_e_pix: fixture.week.total / 100,
+      });
+    } else expect(week.error).toBe(true);
+    const withWeek = async (): Promise<McpData> => ({
+      data: {
+        ...fixture,
+        week: { from: "2026-11-08", to: "2026-11-14", total: 81_240, previous: 102_000 },
+        habit: { ...fixture.habit, lastWeek: 5 } as ProjectionResponse["habit"],
+      } as ProjectionResponse,
+      ceiling: null,
+    });
+    const r = await result(
+      await serveMcp(modern("tools/call", { name: "semana", arguments: {} }, "semana"), withWeek),
+    );
+    expect(JSON.parse(r.content[0].text)).toEqual({
+      de: "2026-11-08",
+      ate: "2026-11-14",
+      cartoes_e_pix: 812.4,
+      semana_anterior: 1020,
+      diferenca: -207.6,
+      dias_lancados: 5,
+    });
   });
 
   it("refuses what it cannot read, as an error the agent can correct", async () => {

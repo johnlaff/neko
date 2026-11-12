@@ -1,7 +1,7 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
 import { Fragment, type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { Mia2Grafico, Mia2Line, Mia2Numero, Mia2Valor } from "../shared/types.ts";
+import type { Mia2Grafico, Mia2Line, Mia2Numero, Mia2Rotina, Mia2Valor } from "../shared/types.ts";
 import { ApiError, api } from "./api.ts";
 import { BrandMark } from "./BrandMark.tsx";
 import { HIDDEN_MONEY, money, monthName, shortDate } from "./format.ts";
@@ -59,7 +59,10 @@ type Part =
 
 interface Turn {
   readonly n: number;
+  /** The owner's question, or the name of her routine. */
   readonly pergunta: string;
+  /** Hers, by herself (Sunday's week, the month closed): its day, where a question would be. */
+  readonly rotina?: string | undefined;
   readonly parts: readonly Part[];
   /**
    * How it ended, when it did not simply end: stopped, conversation too long, she could not finish
@@ -232,6 +235,43 @@ const restart = () => {
 const undoRestart = () => {
   if (chat.cleared && !chat.pending) setChat({ ...chat.cleared, cleared: null });
 };
+const ROUTINE_SEEN = "neko.mia2.rotina";
+const routineSeen = (id: string) => {
+  try {
+    return localStorage.getItem(ROUTINE_SEEN) === id;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Her routine, the first time her screen opens after it came: it becomes the conversation (one
+ * that was open goes to Desfazer, as with "Nova conversa") and the next question goes on in it.
+ */
+const takeRoutine = (r: Mia2Rotina) => {
+  if (chat.pending || routineSeen(r.id)) return;
+  try {
+    localStorage.setItem(ROUTINE_SEEN, r.id);
+  } catch {
+    // Without storage it shows again next time, which is harmless.
+  }
+  const parts = r.partes.map(
+    (p): Part =>
+      p.t === "mensagem"
+        ? { k: "texto", id: p.id, texto: p.texto, valores: p.valores }
+        : p.t === "grafico"
+          ? { k: "grafico", id: p.id, grafico: p.grafico }
+          : { k: "numeros", id: p.id, numeros: p.numeros },
+  );
+  setChat({
+    ...EMPTY,
+    limited: chat.limited,
+    sessao: r.sessao,
+    turns: [{ n: 0, pergunta: r.titulo, rotina: r.dia, parts, end: null }],
+    cleared: chat.turns.length > 0 ? chat : null,
+  });
+};
+
 /** How long Desfazer stays after "Nova conversa", as after a launch. */
 const UNDO_MS = 10_000;
 
@@ -722,6 +762,15 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const [here] = useState(() => new Set<number>());
   if (pending) here.add(pending.n);
   const [still] = useState(lessMotion);
+  const routine = useQuery({
+    queryKey: ["mia2-rotina"],
+    queryFn: api.mia2Rotina,
+    staleTime: 60_000,
+    enabled: status.data?.versao === 2,
+  });
+  useEffect(() => {
+    if (routine.data?.rotina) takeRoutine(routine.data.rotina);
+  }, [routine.data]);
   useMoving();
   const showing = moving.size > 0;
   useKeyboardResizes();
@@ -885,7 +934,14 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                   tabIndex={newest ? -1 : undefined}
                   className={here.has(t.n) ? "fresh" : undefined}
                 >
-                  <p className="mia-q">{t.pergunta}</p>
+                  {t.rotina ? (
+                    <p className="mia-routine">
+                      {t.pergunta}
+                      <span> · {shortDate(t.rotina)}</span>
+                    </p>
+                  ) : (
+                    <p className="mia-q">{t.pergunta}</p>
+                  )}
                   <Answer t={t} working={working} hidden={hidden} paced={here.has(t.n) && !still} />
                   {working && (
                     <div className="mia-wait">
@@ -1014,9 +1070,10 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               }}
               onKeyDown={(e) => {
                 // ↑ in an empty field brings back the last question, to change and send again.
-                if (e.key === "ArrowUp" && !typed && !pending && turns.length > 0) {
+                const lastAsked = turns.at(-1);
+                if (e.key === "ArrowUp" && !typed && !pending && lastAsked && !lastAsked.rotina) {
                   e.preventDefault();
-                  return setTyped(turns.at(-1)?.pergunta ?? "");
+                  return setTyped(lastAsked.pergunta);
                 }
                 if (e.key !== "Escape") return;
                 e.preventDefault();

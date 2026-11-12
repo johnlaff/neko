@@ -67,6 +67,11 @@
       "event": "notificacao_aviso",
       "label": "Avisos",
       "count": 0
+    },
+    {
+      "event": "notificacao_mia",
+      "label": "Resumos da Mia",
+      "count": 0
     }
   ]
 }

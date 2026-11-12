@@ -23,6 +23,7 @@ export const USAGE_NOTICES = {
   notificacao_manha: "Contas e teto",
   notificacao_noite: "Lançar o dia",
   notificacao_aviso: "Avisos",
+  notificacao_mia: "Resumos da Mia",
 } as const;
 
 /** The notification's tag to what its tap counts as: named after the Android channels. */
@@ -31,6 +32,7 @@ export const NOTICE_TAP = {
   ceiling: "notificacao_manha",
   evening: "notificacao_noite",
   alert: "notificacao_aviso",
+  mia: "notificacao_mia",
 } as const satisfies Record<string, keyof typeof USAGE_NOTICES>;
 
 export const USAGE = { ...USAGE_SCREENS, ...USAGE_TAPS, ...USAGE_NOTICES } as const;
