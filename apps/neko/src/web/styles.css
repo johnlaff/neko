@@ -2892,8 +2892,11 @@ dl.mia-numbers > div {
 dl.mia-numbers dd {
   font-variant-numeric: tabular-nums;
 }
-/* With room, the board is one row, as a scoreboard. */
-@media (min-width: 720px) {
+/* With room (600 wide, as in the app), the board is one row, as a scoreboard. */
+.mia-talk.v2 > li {
+  container-type: inline-size;
+}
+@container (min-width: 600px) {
   dl.mia-numbers {
     grid-template-columns: none;
     grid-auto-flow: column;
