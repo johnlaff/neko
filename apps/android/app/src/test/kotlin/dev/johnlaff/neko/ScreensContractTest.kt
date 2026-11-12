@@ -139,7 +139,13 @@ class ScreensContractTest {
         assertEquals(v.months.last().endSim, v.days.last().sim)
         assertEquals(null, v.firstNegative)
         // What the changes did, against the same pace without them, and what each pace spends.
-        assertEquals(true, v.base != null && v.base.end > v.months.last().endSim)
+        assertEquals(true, v.effect != null && v.effect.end < 0)
+        // Each change on its own: the purchase's parcels the ceiling holds, the dates the sheet reaches.
+        assertEquals(2, v.effects.size)
+        assertEquals(true, v.effects[0].inPace != null && v.effects[0].counted == v.effects[0].of)
+        assertEquals("2026-11-01", v.paceFrom)
+        assertEquals(emptyList<Int>(), v.refused)
+        assertEquals(true, v.canSpend?.due?.isNotEmpty())
         assertEquals(300_000L, v.spends.teto)
         assertEquals(true, v.readAt.isNotEmpty())
     }

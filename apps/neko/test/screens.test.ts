@@ -225,6 +225,20 @@ describe("scenario view", () => {
     });
   });
 
+  it("leaves out a change the engine refuses, names its place, and answers with the others", () => {
+    const today = fixture.projection.today;
+    const r = scenarioView(fixture, null, {
+      pace: "planilha",
+      changes: [
+        { kind: "saida", amount: 100_00 as never, date: today as never, months: 1 },
+        { kind: "saida", amount: 100_00 as never, date: "2000-01-01" as never, months: 1 },
+      ],
+    });
+    expect(r.refused).toEqual([1]);
+    expect(r.effects).toHaveLength(1);
+    expect(scenarioView(fixture, null, { changes: [] }).refused).toEqual([]);
+  });
+
   it("tells where the pace starts to count: next month, never on the sheet as it is", () => {
     const today = fixture.projection.today;
     expect(scenarioView(fixture, null, { pace: "planilha", changes: [] }).paceFrom).toBeNull();

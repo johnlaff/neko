@@ -134,11 +134,11 @@ class ScreenshotTest {
 
     // No line typed yet: nothing to compare with.
     @Test fun simularDark() = shot("simular-dark", night = true) {
-        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario.copy(base = null))
+        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario.copy(effect = null, effects = emptyList()))
     }
 
     /** Scrolled down to the what-ifs: the answer stays in one line under the bar. */
-    @Test fun simularPeekDark() = shot("simular-peek-dark", night = true, scrollTo = "Gasto do dia a dia") {
+    @Test fun simularPeekDark() = shot("simular-peek-dark", night = true, scrollTo = "Todo dia 20, 2 meses seguidos.") {
         SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
     }
 
