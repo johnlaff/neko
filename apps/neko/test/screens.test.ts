@@ -2,7 +2,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { simulateInstallments } from "@neko/engine";
 import { describe, expect, it } from "vitest";
-import { ajustesView, invoicesView, monthsView, simulateView } from "../src/shared/screens.ts";
+import {
+  ajustesView,
+  invoicesView,
+  monthsView,
+  scenarioView,
+  simulateView,
+} from "../src/shared/screens.ts";
 import { type ProjectionResponse, UserSettings } from "../src/shared/types.ts";
 import type { Env } from "../src/worker/env.ts";
 import worker from "../src/worker/index.ts";
@@ -167,6 +173,32 @@ describe("simulate view", () => {
   it("has nothing to simulate without a usual card", () => {
     const none = { ...fixture, projection: { ...fixture.projection, canSpend: null } };
     expect(simulateView(none, 100_00 as never, 1)).toBeNull();
+  });
+});
+
+describe("scenario view", () => {
+  it("is the sheet as it is with no pace and no change, from today on", () => {
+    const r = scenarioView(fixture, null, { pace: "planilha", changes: [] });
+    expect(r.days[0]?.date).toBe(fixture.projection.today);
+    expect(r.days.every((d) => d.sim === d.sheet)).toBe(true);
+  });
+
+  it("puts a purchase's first parcel on the usual card's next bill", () => {
+    const usual = fixture.projection.cards.find((c) => c.usual);
+    if (!usual) throw new Error("fixture has a usual card");
+    const r = scenarioView(fixture, null, {
+      pace: "planilha",
+      changes: [{ kind: "compra", amount: 300_00 as never, count: 1 }],
+    });
+    const due = r.days.find((d) => d.date === usual.cycle.due);
+    expect(due && due.sheet - due.sim).toBe(300_00);
+  });
+
+  it("holds the ceiling back from next month on", () => {
+    const r = scenarioView(fixture, 1_000_000_00 as never, { pace: "teto", changes: [] });
+    expect(r.monthly).toBe(1_000_000_00);
+    expect(r.months[0]?.endSim).toBe(r.months[0]?.endSheet);
+    expect(r.months.slice(1).every((m) => m.endSim < m.endSheet)).toBe(true);
   });
 });
 
