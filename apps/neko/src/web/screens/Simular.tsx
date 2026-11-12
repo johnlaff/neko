@@ -60,6 +60,8 @@ const PACE_INSIDE: Record<Pace, string> = {
   media: "dentro da média",
 };
 const KIND_LABEL: Record<Kind, string> = { compra: "Compra", entrada: "Entrada", saida: "Saída" };
+/** One key adds each kind, as the tabs have theirs; never while typing a value. */
+const KIND_KEY: Record<Kind, string> = { compra: "C", entrada: "E", saida: "S" };
 /** One change on its own is the subject of the answer's sentence. */
 const KIND_NOUN: Record<Kind, string> = {
   compra: "A compra",
@@ -121,11 +123,20 @@ const changesOf = (rows: readonly Row[], today: string, card: boolean): Asked[] 
 const none = (d: number) => Math.round(d / 100) === 0;
 
 /**
- * "As mudanças tiram R$ 300 do menor saldo e R$ 1.800 do fim de dez 2027." With one change it is
- * that change, in the singular: "A compra tira…", and "Sozinha, tira…" in its own row.
+ * "As mudanças tiram R$ 300 do menor saldo e R$ 1.800 do fim de dez 2027", with no period, so the
+ * caller can go on. With one change it is that change, in the singular: "A compra tira…", and
+ * "Sozinha, tira…" in its own row. The same amount on both reads once: "tira R$ 300 do menor saldo
+ * e do fim".
  */
-const deltaSentence = (e: Effect, endLabel: string, who: string, plural: boolean) => {
+const deltaSentence = (e: Effect, end: string, who: string, plural: boolean) => {
   const verb = (pl: string, sg: string) => (plural ? pl : sg);
+  const low = Math.round(e.lowest / 100);
+  if (none(e.lowest) && none(e.end))
+    return `${who} ${verb("não mexem", "não mexe")} no menor saldo nem no ${end}`;
+  if (low === Math.round(e.end / 100))
+    return low < 0
+      ? `${who} ${verb("tiram", "tira")} ${roundMoney(-e.lowest)} do menor saldo e do ${end}`
+      : `${who} ${verb("somam", "soma")} ${roundMoney(e.lowest)} ao menor saldo e ao ${end}`;
   const part = (d: number, what: string, withVerb: boolean) =>
     none(d)
       ? `${verb("não mexem", "não mexe")} no ${what}`
@@ -133,18 +144,30 @@ const deltaSentence = (e: Effect, endLabel: string, who: string, plural: boolean
         ? `${withVerb ? `${verb("tiram", "tira")} ` : ""}${roundMoney(-d)} do ${what}`
         : `${withVerb ? `${verb("somam", "soma")} ` : ""}${roundMoney(d)} ao ${what}`;
   const sameWay = Math.sign(e.lowest) === Math.sign(e.end) && !none(e.lowest) && !none(e.end);
-  return `${who} ${part(e.lowest, "menor saldo", true)} e ${part(e.end, `fim de ${endLabel}`, !sameWay)}.`;
+  return `${who} ${part(e.lowest, "menor saldo", true)} e ${part(e.end, end, !sameWay)}`;
 };
 
-/** What the pace holds of the purchases: it moves no balance and leaves less of each month. */
-const inPaceSentence = (effects: readonly ChangeEffect[], pace: Pace) => {
-  const held = effects.flatMap((e) => (e.inPace ? [e.inPace] : []));
-  if (held.length === 0) return "";
-  const total = held.reduce((t, h) => t + h.amount, 0);
-  const parcels = held.reduce((t, h) => t + h.count, 0);
-  return parcels > 1
-    ? `${roundMoney(total)} em parcelas ficam ${PACE_INSIDE[pace]}: não mexem no saldo, mas deixam menos para o resto de cada mês.`
-    : `${roundMoney(total)} da compra fica ${PACE_INSIDE[pace]}: não mexe no saldo, mas deixa menos para o resto do mês.`;
+/** What the pace holds of the purchases, as a clause: "R$ 2.700 das parcelas ficam dentro do teto". */
+const inPaceClause = (effects: readonly ChangeEffect[], pace: Pace) => {
+  const total = effects.reduce((t, e) => t + (e.inPace?.amount ?? 0), 0);
+  return total > 0 ? `${roundMoney(total)} das parcelas ficam ${PACE_INSIDE[pace]}` : "";
+};
+
+/**
+ * "Em nov", "Em nov e jan 2027", "De nov a set 2027, em 11 meses,", or "Em 7 dos 9 meses de nov a
+ * jul 2027,": the months a premise leaves bare, never a count that reads as wrong arithmetic.
+ */
+const monthsSpan = (months: readonly string[], today: string) => {
+  const first = months[0];
+  const last = months.at(-1);
+  if (!first || !last) return "";
+  if (months.length === 1) return `Em ${monthOf(first, today)}`;
+  if (months.length === 2) return `Em ${monthOf(first, today)} e ${monthOf(last, today)}`;
+  const index = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7));
+  const span = index(last) - index(first) + 1;
+  return span === months.length
+    ? `De ${monthOf(first, today)} a ${monthOf(last, today)}, em ${span} meses,`
+    : `Em ${months.length} dos ${span} meses de ${monthOf(first, today)} a ${monthOf(last, today)},`;
 };
 
 /** A live text that waits for the typing to settle, so a screen reader reads the answer once. */
@@ -171,22 +194,6 @@ const refocusOpener = () => {
   requestAnimationFrame(look);
 };
 
-/** Whether the bar's title holds the focus: the one place where Esc leaves the screen. */
-const useTitleFocused = () => {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const read = () => setOn(document.activeElement?.matches(".sim-bar > h1") ?? false);
-    const later = () => setTimeout(read, 0);
-    document.addEventListener("focusin", read);
-    document.addEventListener("focusout", later);
-    return () => {
-      document.removeEventListener("focusin", read);
-      document.removeEventListener("focusout", later);
-    };
-  }, []);
-  return on;
-};
-
 /**
  * Simular: how the months ahead would look from today, on demand. The sheet keeps only what is
  * certain; here the spending of the day to day (at the ceiling, or as in the last months) and a
@@ -200,6 +207,8 @@ export const Simular = () => {
   const title = useRef<HTMLHeadingElement>(null);
   // The bar holds a one-line answer while the real one is scrolled away.
   const [peek, setPeek] = useState<HTMLDivElement | null>(null);
+  // Esc inside the screen stepped out to the title: one more leaves, and the bar says so.
+  const [escaped, setEscaped] = useState(false);
   useEffect(() => {
     title.current?.focus({ preventScroll: true });
     return refocusOpener;
@@ -218,7 +227,7 @@ export const Simular = () => {
         >
           <IconChevronLeft />
         </button>
-        <h1 ref={title} tabIndex={-1}>
+        <h1 ref={title} tabIndex={-1} onBlur={() => setEscaped(false)}>
           Simular
         </h1>
         <div ref={setPeek} className="sim-peek-slot" />
@@ -229,11 +238,12 @@ export const Simular = () => {
         onKeyDown={(e) => {
           if (e.key !== "Escape" || e.defaultPrevented) return;
           e.preventDefault();
+          setEscaped(true);
           title.current?.focus();
         }}
       >
         <WithProjection loading={<SimSkeleton />}>
-          {(data) => <Settled data={data} peek={peek} />}
+          {(data) => <Settled data={data} peek={peek} escaped={escaped} />}
         </WithProjection>
       </div>
     </>
@@ -267,30 +277,54 @@ const SimSkeleton = () => (
 );
 
 /** Ajustes comes first: the ceiling decides where the answer starts, so it never flips. */
-const Settled = ({ data, peek }: { data: ProjectionResponse; peek: HTMLElement | null }) => {
+const Settled = ({
+  data,
+  peek,
+  escaped,
+}: {
+  data: ProjectionResponse;
+  peek: HTMLElement | null;
+  escaped: boolean;
+}) => {
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
-  if (settings.isPending) return <SimSkeleton />;
+  // A retry of a failed read is pending again: the what-ifs stay on screen while it runs, and only
+  // the very first read shows the skeleton. The count of errors survives the retry.
+  const failedBefore = settings.errorUpdateCount > 0;
+  if (settings.isPending && !failedBefore) return <SimSkeleton />;
   return (
     <Sandbox
       data={data}
       ceiling={(settings.data?.cycleBudget ?? null) as Cents | null}
-      noSettings={settings.isError}
+      settingsFailed={
+        settings.data === undefined && failedBefore
+          ? { retrying: settings.isFetching, retry: () => void settings.refetch() }
+          : null
+      }
       peek={peek}
+      escaped={escaped}
     />
   );
 };
 
+/** Ajustes could not be read: no ceiling to offer, the screen says why and tries again. */
+interface SettingsFailed {
+  readonly retrying: boolean;
+  readonly retry: () => void;
+}
+
 const Sandbox = ({
   data,
   ceiling,
-  noSettings,
+  settingsFailed,
   peek,
+  escaped,
 }: {
   data: ProjectionResponse;
   ceiling: Cents | null;
-  /** Ajustes could not be read: no ceiling to offer, and the screen says why. */
-  noSettings: boolean;
+  settingsFailed: SettingsFailed | null;
   peek: HTMLElement | null;
+  /** Esc took the focus to the title: the bar warns what one more press does. */
+  escaped: boolean;
 }) => {
   const p = data.projection;
   const [chosen, setChosen] = useState<Pace | null>(null);
@@ -299,8 +333,17 @@ const Sandbox = ({
   const focusKey = useRef<number | null>(null);
   const changesTitle = useRef<HTMLHeadingElement>(null);
   const [verdictEl, setVerdictEl] = useState<HTMLElement | null>(null);
+  // Ajustes read again after "Tentar de novo": the keys land on the answer it changed.
+  const retried = useRef(false);
+  const failedNow = settingsFailed !== null;
+  useEffect(() => {
+    if (failedNow || !retried.current) return;
+    retried.current = false;
+    verdictEl?.focus();
+  }, [failedNow, verdictEl]);
   const [verdictSeen, setVerdictSeen] = useState(true);
-  const titleFocused = useTitleFocused();
+  // The row just taken out, and where it was, until the next change: one tap puts it back.
+  const [removed, setRemoved] = useState<{ row: Row; at: number } | null>(null);
   useEffect(() => {
     if (!verdictEl || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(([e]) => setVerdictSeen(e?.isIntersecting ?? true), {
@@ -340,39 +383,61 @@ const Sandbox = ({
   const endLabel = r && endMonth ? monthLabel(endMonth.year, endMonth.month, p.today) : "";
   // A lowest day in the sheet's last month may not be the bottom: past it nothing is known.
   const atEdge = !!(r && lowest && lowest.date.slice(0, 7) === r.end.slice(0, 7));
+  const edge = atEdge ? ", no último mês da planilha" : "";
+  // Months whose bills take the whole pace leave the day to day out: the answer says it is the best.
+  const best = !!r && r.full.length > 0;
+  // In the red the answer is when, and how deep; otherwise the lowest balance and its day.
   const verdict = !r
     ? ""
-    : red
-      ? `${lead}, fica negativo em ${dayLabel(red.date, p.today)}.`
+    : red && lowest
+      ? `${lead}, ${best ? "mesmo no melhor caso " : ""}fica negativo em ${dayLabel(red.date, p.today)} e chega a ${roundMoney(lowest.balance)}${edge}.`
       : lowest
-        ? `${lead}, o menor saldo é ${roundMoney(lowest.balance)}, em ${dayLabel(lowest.date, p.today)}${atEdge ? ", no último mês da planilha" : ""}.`
+        ? `${lead}, ${best ? "no melhor caso " : ""}o menor saldo é ${roundMoney(lowest.balance)}, em ${dayLabel(lowest.date, p.today)}${edge}.`
         : "";
   const single = used.length === 1 ? used[0] : undefined;
-  const deltaText =
-    r?.effect && endMonth
-      ? deltaSentence(r.effect, endLabel, single ? KIND_NOUN[single.kind] : "As mudanças", !single)
-      : "";
-  const heldText = r ? inPaceSentence(r.effects, r.pace) : "";
-  const wayOut =
-    red && lowest
-      ? `Para não ficar negativo, faltam ${roundMoney(-lowest.balance)} no pior dia, ${dayLabel(lowest.date, p.today)}.`
-      : "";
-  const status = useSettled([verdict, deltaText, heldText].filter(Boolean).join(" "));
+  // One quiet line under the answer: what the changes did to it, and what the pace kept of them.
+  const headText = (() => {
+    if (!r?.effect || !endMonth) return "";
+    const e = r.effect;
+    const delta = deltaSentence(
+      e,
+      `fim de ${endLabel}`,
+      single ? KIND_NOUN[single.kind] : "As mudanças",
+      !single,
+    );
+    const held = red ? "" : inPaceClause(r.effects, r.pace);
+    if (!held) return `${delta}.`;
+    return `${delta}${none(e.lowest) && none(e.end) ? ":" : ";"} ${held}.`;
+  })();
+  const status = useSettled([verdict, headText].filter(Boolean).join(" "));
 
   const add = (kind: Kind) => {
     const key = next.current++;
     focusKey.current = key;
+    setRemoved(null);
     setRows((rs) => [...rs, { key, kind, typed: "", count: 1, date: p.today }]);
   };
-  const edit = (key: number, patch: Partial<Row>) =>
+  const edit = (key: number, patch: Partial<Row>) => {
+    setRemoved(null);
     setRows((rs) => rs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+  };
   const remove = (key: number) => {
     const i = rows.findIndex((x) => x.key === key);
+    const row = rows[i];
+    if (!row) return;
     // The focus goes to the row next to it, or to the panel's title when it was the last one.
     const near = rows[i - 1] ?? rows[i + 1];
     focusKey.current = near?.key ?? null;
     if (!near) requestAnimationFrame(() => changesTitle.current?.focus());
+    setRemoved({ row, at: i });
     setRows((rs) => rs.filter((x) => x.key !== key));
+  };
+  const undo = () => {
+    if (!removed) return;
+    const { row, at } = removed;
+    focusKey.current = row.key;
+    setRemoved(null);
+    setRows((rs) => [...rs.slice(0, at), row, ...rs.slice(at)]);
   };
 
   if (!r || r.days.length < 2)
@@ -401,7 +466,7 @@ const Sandbox = ({
       </p>
       {peek &&
         rows.length > 0 &&
-        (titleFocused
+        (escaped
           ? createPortal(
               <p className="sim-peek-hint">Esc de novo sai e apaga as mudanças.</p>,
               peek,
@@ -412,7 +477,8 @@ const Sandbox = ({
                 <span className={red ? "neg" : undefined}>
                   {red
                     ? `Negativo em ${dayLabel(red.date, p.today)}`
-                    : lowest && `Menor saldo ${roundMoney(lowest.balance)}`}
+                    : lowest &&
+                      `Menor saldo ${roundMoney(lowest.balance)}${best ? " no melhor caso" : ""}`}
                 </span>
                 {effect && !none(effect.lowest) && (
                   <span className="faint">
@@ -426,14 +492,20 @@ const Sandbox = ({
 
       <section id="sim-answer" className="panel sim-answer" aria-labelledby="sim-verdict">
         <div className="sim-head">
-          <h2 id="sim-verdict" ref={setVerdictEl} className="sim-verdict">
+          <h2 id="sim-verdict" ref={setVerdictEl} className="sim-verdict" tabIndex={-1}>
             {verdict}
           </h2>
-          {deltaText && <p className="sim-delta">{deltaText}</p>}
-          {heldText && <p className="sim-delta">{heldText}</p>}
-          {wayOut && <p className="sim-delta">{wayOut}</p>}
+          {headText && <p className="sim-delta">{headText}</p>}
         </div>
-        <PacePicker r={r} noSettings={noSettings} onPick={setChosen} />
+        <PacePicker
+          r={r}
+          settingsFailed={settingsFailed}
+          onRetry={() => {
+            retried.current = true;
+            settingsFailed?.retry();
+          }}
+          onPick={setChosen}
+        />
         <dl className="figures">
           {endMonth && (
             <div>
@@ -451,18 +523,22 @@ const Sandbox = ({
             <dd>{saving ? roundMoney(saving.amount) : "Nada"}</dd>
             <dd className="fig-note">
               {saving
-                ? `${saving.date === p.today ? "hoje" : `em ${dayLabel(saving.date, p.today)}`}${
-                    r.pace === "planilha" ? ", sem o gasto do dia a dia" : ""
-                  }`
-                : red
-                  ? "o saldo fica negativo"
-                  : "sobra pouco no menor saldo"}
+                ? saving.date === p.today
+                  ? "hoje"
+                  : `em ${dayLabel(saving.date, p.today)}`
+                : best
+                  ? `as faturas tomam ${r.pace === "teto" ? "o teto" : "a média"}`
+                  : red
+                    ? "o saldo fica negativo"
+                    : "sobra pouco no menor saldo"}
             </dd>
-            {saving && (
-              <dd className="fig-note">Depois, menor saldo {roundMoney(saving.leftAtLowest)}</dd>
-            )}
           </div>
         </dl>
+        {saving && (
+          <p className="hint sim-after">
+            Guardando esse valor, o menor saldo fica em {roundMoney(saving.leftAtLowest)}.
+          </p>
+        )}
         <SimChart
           days={r.days}
           same={same}
@@ -502,6 +578,14 @@ const Sandbox = ({
             ))}
           </ul>
         )}
+        {removed && (
+          <p className="sim-undo" role="status">
+            Tirou {KIND_NOUN[removed.row.kind].toLowerCase()}.{" "}
+            <button type="button" className="text-link" onClick={undo}>
+              Desfazer
+            </button>
+          </p>
+        )}
         {refused.length > 0 && (
           <p className="hint error" role="alert">
             Não consegui somar{" "}
@@ -519,6 +603,8 @@ const Sandbox = ({
                 className="ghost"
                 disabled={rows.length >= MAX_CHANGES}
                 onClick={() => add(k)}
+                aria-keyshortcuts={KIND_KEY[k]}
+                title={`${KIND_LABEL[k]} (${KIND_KEY[k]})`}
               >
                 <IconPlus />
                 {KIND_LABEL[k]}
@@ -587,15 +673,17 @@ const ChipRadios = <T extends string | number>({
  */
 const PacePicker = ({
   r,
-  noSettings,
+  settingsFailed,
+  onRetry,
   onPick,
 }: {
   r: ScenarioView;
-  noSettings: boolean;
+  settingsFailed: SettingsFailed | null;
+  onRetry: () => void;
   onPick: (p: Pace) => void;
 }) => {
   const id = useId();
-  const { today, pace, monthly, spends } = r;
+  const { today, pace, monthly, spends, full } = r;
   const now = Number(today.slice(5, 7));
   const from = `${capitalize(monthName(now))} segue a planilha; de ${monthName((now % 12) + 1)} em diante`;
   const { teto, media } = spends;
@@ -605,6 +693,11 @@ const PacePicker = ({
       : pace === "teto"
         ? `${from}, ${roundMoney(monthly)} por mês em cartões e Pix.`
         : `${from}, ${roundMoney(monthly)} por mês, a média dos últimos 3 meses.`;
+  // Where the bills alone already take the pace, the answer counts nothing else that month.
+  const bare =
+    monthly !== null && full.length > 0
+      ? `${monthsSpan(full, today)} as faturas já tomam ${pace === "teto" ? "o teto todo" : "a média toda"}. Nesses meses a conta não deixa nada para o dia a dia: é o melhor caso.`
+      : "";
   const inside =
     "As faturas que já estão na planilha ficam dentro dele: cada mês só gasta o que falta para chegar lá. Por isso uma compra parcelada que cabe não mexe no saldo; ela deixa menos para o resto do mês.";
   const how =
@@ -634,15 +727,31 @@ const PacePicker = ({
           options={r.paces.map((k) => ({ value: k, label: PACE_LABEL[k] }))}
           value={pace}
           onPick={onPick}
-          describedBy={`${id}-line`}
+          describedBy={bare ? `${id}-line ${id}-bare` : `${id}-line`}
         />
       )}
       <p id={`${id}-line`} className="hint">
         {line}
       </p>
-      {noSettings ? (
+      {bare && (
+        <p id={`${id}-bare`} className="hint sim-bare">
+          {bare}
+        </p>
+      )}
+      {settingsFailed ? (
         <p className="hint">
-          Não consegui ler seus Ajustes, então o teto ficou de fora. Volte daqui a pouco.
+          Não consegui ler seus Ajustes, então o teto ficou de fora.{" "}
+          <button
+            type="button"
+            className="text-link"
+            // Still focusable while it runs, so the keys stay where they were if it fails again.
+            aria-disabled={settingsFailed.retrying || undefined}
+            onClick={() => {
+              if (!settingsFailed.retrying) onRetry();
+            }}
+          >
+            {settingsFailed.retrying ? "Tentando…" : "Tentar de novo"}
+          </button>
         </p>
       ) : (
         teto === null && (
@@ -662,11 +771,23 @@ const PacePicker = ({
   );
 };
 
-/** Hoje's "Ainda cabem" names what it measures: the bills it counts, or the month. */
-const figureScope = (cs: NonNullable<ScenarioView["canSpend"]>, today: string) =>
-  cs.mode === "month"
-    ? `em ${monthName(Number(today.slice(5, 7)))}`
-    : `${cs.mode === "cards" ? "nas faturas" : "na fatura"} de ${monthName(Number(cs.due.slice(5, 7)))}`;
+/**
+ * What a purchase leaves of the plan it lands on, said as Simular says it: "Ainda cabem R$ 900 no
+ * diário de novembro", "Passa R$ 300 do teto das faturas de dezembro".
+ */
+const fitText = (
+  cs: NonNullable<ScenarioView["canSpend"]>,
+  fig: { amount: Cents; over: boolean },
+  today: string,
+) => {
+  const plan =
+    cs.mode === "month"
+      ? `diário de ${monthName(Number(today.slice(5, 7)))}`
+      : `${cs.mode === "cards" ? "teto das faturas" : "plano da fatura"} de ${monthName(Number(cs.due.slice(5, 7)))}`;
+  return fig.over
+    ? `Passa ${roundMoney(fig.amount)} do ${plan}.`
+    : `Ainda cabem ${roundMoney(fig.amount)} no ${plan}.`;
+};
 
 const ChangeRow = ({
   row,
@@ -713,35 +834,38 @@ const ChangeRow = ({
     return m ? monthLabel(m.year, m.month, today) : endLabel;
   })();
   const held = effect?.inPace ?? null;
-  // One fact a line: when it starts, what the pace holds, what the sheet reaches, its own effect.
-  const notes: { text: string; neg?: boolean }[] = [];
+  // Two lines at most: when it lands and what it leaves of the plan, then what it does on its own
+  // (and what the pace keeps of it); a third only when the sheet ends before its last parcel.
+  const lines: { text: string; neg?: boolean }[][] = [];
   if (compra) {
+    const first: { text: string; neg?: boolean }[] = [];
     if (due)
-      notes.push({
+      first.push({
         text: `${row.count > 1 ? "1ª parcela" : "Sai da conta"} em ${dayLabel(due, today)}.`,
       });
-    if (held)
-      notes.push({
-        text:
-          held.count === 1
-            ? `${effect?.of === 1 ? "Fica" : "1 parcela fica"} ${PACE_INSIDE[r.pace]} de ${monthOf(held.until, today)}: ${roundMoney(held.amount)} a menos para o resto do mês.`
-            : `${held.count === effect?.of ? `As ${held.count} parcelas ficam` : `${held.count} parcelas ficam`} ${PACE_INSIDE[r.pace]} até ${monthOf(held.until, today)}: ${roundMoney(held.perMonth)} a menos por mês para o resto.`,
-      });
-    if (fig && r.canSpend)
-      notes.push({
-        text: `${fig.label} ${roundMoney(fig.amount)} ${figureScope(r.canSpend, today)}.`,
-        neg: fig.over,
-      });
+    if (fig && r.canSpend) first.push({ text: fitText(r.canSpend, fig, today), neg: fig.over });
+    if (first.length > 0) lines.push(first);
   } else if (outOfRange) {
-    notes.push({ text: `Escolha um dia de hoje até ${dayLabel(end, today)}.` });
+    lines.push([{ text: `Escolha um dia de hoje até ${dayLabel(end, today)}.` }]);
   } else if (row.count > 1) {
-    notes.push({ text: `Todo dia ${day}, ${row.count} meses seguidos.` });
+    lines.push([{ text: `Todo dia ${day}, ${row.count} meses seguidos.` }]);
   }
-  if (effect && effect.counted < effect.of)
-    notes.push({
-      text: `A planilha vai até ${lastLabel}: ${effect.counted} de ${effect.of} ${compra ? "parcelas entram" : "entram"} na conta.`,
+  const own: { text: string }[] = [];
+  if (effect && alone) own.push({ text: `${deltaSentence(effect, "fim", "Sozinha,", false)}.` });
+  if (held)
+    own.push({
+      text:
+        held.count === 1
+          ? `${capitalize(PACE_INSIDE[r.pace])} de ${monthOf(held.until, today)}: ${roundMoney(held.amount)} a menos para o resto do mês.`
+          : `${capitalize(PACE_INSIDE[r.pace])} até ${monthOf(held.until, today)}: ${held.perMonth * held.count === held.amount ? "" : "no máximo "}${roundMoney(held.perMonth)} a menos por mês.`,
     });
-  if (effect && alone) notes.push({ text: deltaSentence(effect, lastLabel, "Sozinha,", false) });
+  if (own.length > 0) lines.push(own);
+  if (effect && effect.counted < effect.of)
+    lines.push([
+      {
+        text: `A planilha vai até ${lastLabel}: ${effect.counted} de ${effect.of} ${compra ? "parcelas entram" : "entram"} na conta.`,
+      },
+    ]);
   const choices = compra
     ? PARCELS.map((n) => ({ value: n, label: n === 1 ? "À vista" : `${n}×` }))
     : REPEATS.map((n) => ({ value: n, label: n === 1 ? "Uma vez" : `${n} meses` }));
@@ -762,7 +886,7 @@ const ChangeRow = ({
               placeholder="0,00"
               value={row.typed}
               aria-invalid={bad || undefined}
-              aria-describedby={bad ? `${id}-err` : notes.length > 0 ? `${id}-note` : undefined}
+              aria-describedby={bad ? `${id}-err` : lines.length > 0 ? `${id}-note` : undefined}
               onChange={(e) => onChange({ typed: e.target.value })}
             />
           </span>
@@ -776,7 +900,7 @@ const ChangeRow = ({
               max={end}
               value={row.date}
               aria-invalid={outOfRange || undefined}
-              aria-describedby={notes.length > 0 ? `${id}-note` : undefined}
+              aria-describedby={lines.length > 0 ? `${id}-note` : undefined}
               onChange={(e) => onChange({ date: e.target.value })}
             />
           </label>
@@ -794,14 +918,19 @@ const ChangeRow = ({
         value={row.count}
         onPick={(n) => onChange({ count: n })}
       />
-      {notes.length > 0 && (
+      {lines.length > 0 && (
         <p
           id={`${id}-note`}
           className={outOfRange ? "hint error sim-row-note" : "hint sim-row-note"}
         >
-          {notes.map((n) => (
-            <span key={n.text} className={n.neg ? "neg" : undefined}>
-              {n.text}
+          {lines.map((line) => (
+            <span key={line.map((n) => n.text).join(" ")}>
+              {line.map((n, k) => (
+                <span key={n.text} className={n.neg ? "neg" : undefined}>
+                  {k > 0 ? " " : ""}
+                  {n.text}
+                </span>
+              ))}
             </span>
           ))}
         </p>

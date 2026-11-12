@@ -145,6 +145,9 @@ class ScreensContractTest {
         assertEquals(true, v.effects[0].inPace != null && v.effects[0].counted == v.effects[0].of)
         assertEquals("2026-11-01", v.paceFrom)
         assertEquals(emptyList<Int>(), v.refused)
+        assertEquals(listOf("2026-11", "2026-12"), v.full)
+        // A best case (bills take the whole ceiling) offers nothing to save.
+        assertEquals(null, v.saving)
         assertEquals(true, v.canSpend?.due?.isNotEmpty())
         assertEquals(300_000L, v.spends.teto)
         assertEquals(true, v.readAt.isNotEmpty())

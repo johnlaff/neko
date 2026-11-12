@@ -245,6 +245,30 @@ describe("simulate", () => {
     expect(plain.effects[0]?.inPace).toBeNull();
   });
 
+  it("names the months whose bills already take the whole pace, where nothing else is spent", () => {
+    const buy = (amount: number, pace: "teto" | "planilha" = "teto") =>
+      run(
+        { pace, changes: [{ kind: "compra", amount: cents(amount), count: 1 }] },
+        pace === "teto" ? 1_500_00 : null,
+        localDate("2026-11-10"),
+      ).full;
+    // November's 500 bill and a 1.600 purchase pass the 1.500 ceiling: nothing left for the rest.
+    expect(buy(1_600_00)).toEqual(["2026-11"]);
+    expect(buy(600_00)).toEqual([]);
+    expect(buy(1_600_00, "planilha")).toEqual([]);
+  });
+
+  it("offers nothing to save on a best case: the full months leave the day to day out", () => {
+    const saving = (amount: number) =>
+      run(
+        { pace: "teto", changes: [{ kind: "compra", amount: cents(amount), count: 1 }] },
+        1_500_00,
+        localDate("2026-11-10"),
+      ).saving;
+    expect(saving(600_00)).not.toBeNull();
+    expect(saving(1_600_00)).toBeNull();
+  });
+
   it("counts only the dates the sheet reaches", () => {
     const r = run(
       {

@@ -3795,6 +3795,35 @@ p.sim-delta {
   color: var(--muted);
   font-size: 0.875rem;
 }
+/* What saving does to the lowest day, under both figures rather than under one. */
+p.sim-after {
+  margin-top: -8px;
+}
+/* A premise the answer leans on: the tone in one dot, as the alerts carry it. */
+p.sim-bare {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--muted);
+}
+p.sim-bare::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+  transform: translateY(-1px);
+}
+/* A row just taken out comes back with one tap, until the next change. */
+p.sim-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
 .sim-answer {
   scroll-margin-top: calc(env(safe-area-inset-top) + 76px);
 }
@@ -3891,20 +3920,6 @@ button.sim-peek > .faint {
 .sim-tip > span.sim::before {
   border-top-color: var(--accent);
 }
-.sim-legend > span.below::before {
-  border-top-color: var(--neg);
-}
-/* The day the pace starts to count, drawn as the dashed rule on the plot. */
-.sim-legend > span.from::before {
-  width: 0;
-  height: 12px;
-  border-top: 0;
-  border-left: 1.5px dashed var(--faint);
-}
-.sim-legend {
-  flex-wrap: wrap;
-  row-gap: 4px;
-}
 /* The plot takes the column's width and the drawing follows it, never the other way round. */
 .sim-plot {
   position: relative;
@@ -3948,6 +3963,9 @@ button.sim-peek > .faint {
 }
 .sim-plot text.peak {
   text-anchor: middle;
+}
+.sim-plot text.from {
+  fill: var(--muted);
 }
 .sim-plot line.from {
   stroke: var(--faint);
@@ -4184,12 +4202,16 @@ p.sim-row-note {
   .sim-body > :not(.sim-answer, .sim-changes) {
     grid-column: 1 / -1;
   }
+  /* Pinned under the bar; taller than the window (the months open), it scrolls on its own. */
   .sim-answer {
     grid-column: 1;
     grid-row: 2;
     position: sticky;
     top: calc(env(safe-area-inset-top) + 76px);
     align-self: start;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 92px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .sim-changes {
     grid-column: 2;

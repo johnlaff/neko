@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -67,10 +68,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -80,25 +81,28 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.isTraversalGroup
-import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.ScenarioBody
 import dev.johnlaff.neko.data.ScenarioChange
 import dev.johnlaff.neko.data.ScenarioChangeEffect
-import dev.johnlaff.neko.data.ScenarioEffect
 import dev.johnlaff.neko.data.ScenarioDay
+import dev.johnlaff.neko.data.ScenarioEffect
 import dev.johnlaff.neko.data.ScenarioPoint
 import dev.johnlaff.neko.data.ScenarioView
 import dev.johnlaff.neko.data.json
@@ -107,20 +111,21 @@ import dev.johnlaff.neko.ui.Format.dayLabel
 import dev.johnlaff.neko.ui.Format.monthName
 import dev.johnlaff.neko.ui.Format.roundMoney
 import dev.johnlaff.neko.ui.Format.toCents
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log10
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.math.sign
 import kotlin.math.roundToLong
+import kotlin.math.sign
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 
 /** Asks the Worker for a scenario; it throws when there is no connection. */
 typealias AskScenario = suspend (ScenarioBody) -> ScenarioView
@@ -191,43 +196,98 @@ private fun changesOf(rows: List<SimRow>, today: String?, card: Boolean): List<A
 private fun none(d: Long) = (d / 100.0).roundToLong() == 0L
 
 /**
- * "As mudanças tiram R$ 300 do menor saldo e R$ 1.800 do fim de dez 2027." With one change it is
- * that change, in the singular ("A compra tira…"), and "Sozinha, tira…" in its own line.
+ * "As mudanças tiram R$ 300 do menor saldo e R$ 1.800 do fim de dez 2027", with no period, so the
+ * caller goes on. With one change it is that change, in the singular ("A compra tira…"), and
+ * "Sozinha, tira…" in its own line. The same amount on both reads once: "…do menor saldo e do fim".
  */
-internal fun deltaSentence(lowest: Long, end: Long, endLabel: String, who: String = "As mudanças", plural: Boolean = true): String {
+internal fun deltaSentence(lowest: Long, end: Long, endWhat: String, who: String = "As mudanças", plural: Boolean = true): String {
     fun verb(pl: String, sg: String) = if (plural) pl else sg
+    if (none(lowest) && none(end)) return "$who ${verb("não mexem", "não mexe")} no menor saldo nem no $endWhat"
+    val low = (lowest / 100.0).roundToLong()
+    if (low == (end / 100.0).roundToLong()) {
+        return if (low < 0) "$who ${verb("tiram", "tira")} ${roundMoney(-lowest)} do menor saldo e do $endWhat"
+        else "$who ${verb("somam", "soma")} ${roundMoney(lowest)} ao menor saldo e ao $endWhat"
+    }
     fun part(d: Long, what: String, withVerb: Boolean) = when {
         none(d) -> "${verb("não mexem", "não mexe")} no $what"
         d < 0 -> "${if (withVerb) "${verb("tiram", "tira")} " else ""}${roundMoney(-d)} do $what"
         else -> "${if (withVerb) "${verb("somam", "soma")} " else ""}${roundMoney(d)} ao $what"
     }
     val sameWay = lowest.sign == end.sign && !none(lowest) && !none(end)
-    return "$who ${part(lowest, "menor saldo", true)} e ${part(end, "fim de $endLabel", !sameWay)}."
+    return "$who ${part(lowest, "menor saldo", true)} e ${part(end, endWhat, !sameWay)}"
 }
 
-/** What the pace holds of the purchases: it moves no balance and leaves less of each month. */
-internal fun heldSentence(effects: List<ScenarioChangeEffect>, pace: String): String {
-    val held = effects.mapNotNull { it.inPace }
-    if (held.isEmpty()) return ""
-    val total = held.sumOf { it.amount }
-    val inside = PACE_INSIDE[pace] ?: ""
-    return if (held.sumOf { it.count } > 1) {
-        "${roundMoney(total)} em parcelas ficam $inside: não mexem no saldo, mas deixam menos para o resto de cada mês."
-    } else {
-        "${roundMoney(total)} da compra fica $inside: não mexe no saldo, mas deixa menos para o resto do mês."
-    }
+/** What the pace holds of the purchases, as a clause: "R$ 2.700 das parcelas ficam dentro do teto". */
+internal fun inPaceClause(effects: List<ScenarioChangeEffect>, pace: String): String {
+    val total = effects.sumOf { it.inPace?.amount ?: 0L }
+    return if (total > 0) "${roundMoney(total)} das parcelas ficam ${PACE_INSIDE[pace] ?: ""}" else ""
+}
+
+/** One quiet line under the answer: what the changes did to it, and what the pace kept of them. */
+internal fun headOf(v: ScenarioView, single: String?): String {
+    val e = v.effect ?: return ""
+    val last = v.months.lastOrNull() ?: return ""
+    val delta = deltaSentence(
+        e.lowest, e.end, "fim de ${monthLabel(last.year, last.month, v.today)}",
+        single?.let { KIND_NOUN.getValue(it) } ?: "As mudanças", single == null,
+    )
+    val held = if (v.firstNegative != null) "" else inPaceClause(v.effects, v.pace)
+    if (held.isEmpty()) return "$delta."
+    return "$delta${if (none(e.lowest) && none(e.end)) ":" else ";"} $held."
 }
 
 /**
- * The answer's sentence: the premise first, then the first red day or the lowest balance; a lowest
- * day in the sheet's last month may not be the bottom, and it says so.
+ * The answer's sentence: the premise first, then the lowest balance and its day, or in the red
+ * when it goes negative and how deep. A lowest day in the sheet's last month may not be the
+ * bottom, and it says so.
  */
 internal fun verdictOf(v: ScenarioView): String {
     val lead = PACE_LEAD[v.pace] ?: ""
-    v.firstNegative?.let { return "$lead, fica negativo em ${dayLabel(it.date, v.today)}." }
-    val lo = v.lowest ?: return ""
+    // Months whose bills take the whole pace leave the day to day out: the answer is the best case.
+    val best = v.full.isNotEmpty()
+    val lo = v.lowest ?: return v.firstNegative?.let { "$lead, fica negativo em ${dayLabel(it.date, v.today)}." } ?: ""
     val edge = if (lo.date.take(7) == v.end.take(7)) ", no último mês da planilha" else ""
-    return "$lead, o menor saldo é ${roundMoney(lo.balance)}, em ${dayLabel(lo.date, v.today)}$edge."
+    v.firstNegative?.let {
+        return "$lead, ${if (best) "mesmo no melhor caso " else ""}fica negativo em ${dayLabel(it.date, v.today)} " +
+            "e chega a ${roundMoney(lo.balance)}$edge."
+    }
+    return "$lead, ${if (best) "no melhor caso " else ""}o menor saldo é ${roundMoney(lo.balance)}, em ${dayLabel(lo.date, v.today)}$edge."
+}
+
+/**
+ * "Em nov", "Em nov e jan 2027", "De nov a set 2027, em 11 meses," or "Em 7 dos 9 meses de nov a
+ * jul 2027,": the months a premise leaves bare, never a count that reads as wrong arithmetic.
+ */
+private fun monthsSpan(months: List<String>, today: String): String {
+    val first = months.firstOrNull() ?: return ""
+    val last = months.last()
+    fun index(m: String) = m.take(4).toInt() * 12 + m.substring(5, 7).toInt()
+    val span = index(last) - index(first) + 1
+    return when {
+        months.size == 1 -> "Em ${monthOf(first, today)}"
+        months.size == 2 -> "Em ${monthOf(first, today)} e ${monthOf(last, today)}"
+        span == months.size -> "De ${monthOf(first, today)} a ${monthOf(last, today)}, em $span meses,"
+        else -> "Em ${months.size} dos $span meses de ${monthOf(first, today)} a ${monthOf(last, today)},"
+    }
+}
+
+/** Where the bills alone already take the pace, the answer counts nothing else that month. */
+internal fun bareOf(v: ScenarioView): String =
+    if (v.monthly == null || v.full.isEmpty()) ""
+    else "${monthsSpan(v.full, v.today)} as faturas já tomam ${if (v.pace == "teto") "o teto todo" else "a média toda"}. " +
+        "Nesses meses a conta não deixa nada para o dia a dia: é o melhor caso."
+
+/**
+ * What a purchase leaves of the plan it lands on, said as Simular says it: "Ainda cabem R$ 900 no
+ * diário de novembro", "Passa R$ 300 do teto das faturas de dezembro".
+ */
+private fun fitText(mode: String, due: String, today: String, amount: Long, over: Boolean): String {
+    val plan = when {
+        mode == "month" || due.length < 7 -> "diário de ${monthName(today.substring(5, 7).toInt())}"
+        mode == "cards" -> "teto das faturas de ${monthName(due.substring(5, 7).toInt())}"
+        else -> "plano da fatura de ${monthName(due.substring(5, 7).toInt())}"
+    }
+    return if (over) "Passa ${roundMoney(amount)} do $plan." else "Ainda cabem ${roundMoney(amount)} no $plan."
 }
 
 /**
@@ -251,6 +311,8 @@ fun SimularScreen(
     var pace by rememberSaveable { mutableStateOf<String?>(start?.pace) }
     var next by rememberSaveable { mutableStateOf((startRows.maxOfOrNull { it.key } ?: -1) + 1) }
     var focusKey by remember { mutableStateOf<Int?>(null) }
+    // The line just taken out, and where it was, until the next change: one tap puts it back.
+    var removed by remember { mutableStateOf<Pair<SimRow, Int>?>(null) }
     var view by remember { mutableStateOf(start) }
     // The lines the answer on screen was asked for: its effects follow them, in order.
     var answered by remember { mutableStateOf<List<Asked>?>(null) }
@@ -286,6 +348,7 @@ fun SimularScreen(
         val key = next++
         focusKey = key
         typing = false
+        removed = null
         rows = rows + SimRow(key, kind, date = v?.today?.let(::typedDate) ?: "")
     }
     // What the answer on screen used, line by line; the engine's refusals are left out of it.
@@ -407,15 +470,32 @@ fun SimularScreen(
                                 onFocused = { focusKey = null },
                                 onChange = { patch, typed ->
                                     typing = typed
+                                    removed = null
                                     rows = rows.map { if (it.key == row.key) patch else it }
                                 },
                                 onRemove = {
                                     typing = false
                                     // The focus goes to the line next to it.
                                     focusKey = (rows.getOrNull(i - 1) ?: rows.getOrNull(i + 1))?.key
+                                    removed = row to i
                                     rows = rows.filterNot { it.key == row.key }
                                 },
                             )
+                        }
+                        removed?.let { (row, at) ->
+                            Row(
+                                Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text("Tirou ${KIND_NOUN.getValue(row.kind).lowercase()}.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                                TextAction("Desfazer", {
+                                    typing = false
+                                    focusKey = row.key
+                                    removed = null
+                                    rows = rows.take(at) + row + rows.drop(at)
+                                }, color = l.accent)
+                            }
                         }
                         if (refused.isNotEmpty()) {
                             Text(
@@ -456,7 +536,9 @@ private fun Peek(v: ScenarioView, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            red?.let { "Negativo em ${dayLabel(it.date, v.today)}" } ?: v.lowest?.let { "Menor saldo ${roundMoney(it.balance)}" } ?: "",
+            red?.let { "Negativo em ${dayLabel(it.date, v.today)}" }
+                ?: v.lowest?.let { "Menor saldo ${roundMoney(it.balance)}${if (v.full.isNotEmpty()) " no melhor caso" else ""}" }
+                ?: "",
             color = if (red != null) l.neg else l.text,
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
         )
@@ -478,14 +560,7 @@ private fun Answer(v: ScenarioView, failed: Boolean, single: String?, onAjustes:
     val endLabel = end?.let { monthLabel(it.year, it.month, v.today) } ?: ""
     var table by rememberSaveable { mutableStateOf(false) }
     val verdict = verdictOf(v)
-    val delta = v.effect?.let {
-        deltaSentence(it.lowest, it.end, endLabel, single?.let { k -> KIND_NOUN.getValue(k) } ?: "As mudanças", single == null)
-    }
-    val held = heldSentence(v.effects, v.pace)
-    val lowest = v.lowest
-    val wayOut = if (v.firstNegative != null && lowest != null) {
-        "Para não ficar negativo, faltam ${roundMoney(-lowest.balance)} no pior dia, ${dayLabel(lowest.date, v.today)}."
-    } else null
+    val head = headOf(v, single)
     Panel {
         // One heading TalkBack reads again when the answer changes: the sentence and what changed it.
         Column(
@@ -493,9 +568,7 @@ private fun Answer(v: ScenarioView, failed: Boolean, single: String?, onAjustes:
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(verdict, style = MaterialTheme.typography.headlineSmall)
-            listOfNotNull(delta, held.takeIf { it.isNotEmpty() }, wayOut).forEach {
-                Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium)
-            }
+            if (head.isNotEmpty()) Text(head, color = l.muted, style = MaterialTheme.typography.bodyMedium)
         }
         PaceBlock(v, onAjustes, onPick)
         Row(Modifier.fillMaxWidth()) {
@@ -513,23 +586,28 @@ private fun Answer(v: ScenarioView, failed: Boolean, single: String?, onAjustes:
                 "Dá para guardar",
                 s?.let { roundMoney(it.amount) } ?: "Nada",
                 l.text,
-                when {
-                    s != null -> listOf(
-                        (if (s.date == v.today) "hoje" else "em ${dayLabel(s.date, v.today)}") +
-                            if (v.pace == "planilha") ", sem o gasto do dia a dia" else "",
-                        "Depois, menor saldo ${roundMoney(s.leftAtLowest)}",
-                    )
-                    v.firstNegative != null -> listOf("o saldo fica negativo")
-                    else -> listOf("sobra pouco no menor saldo")
-                },
+                listOf(
+                    when {
+                        s != null -> if (s.date == v.today) "hoje" else "em ${dayLabel(s.date, v.today)}"
+                        v.full.isNotEmpty() -> "as faturas tomam ${if (v.pace == "teto") "o teto" else "a média"}"
+                        v.firstNegative != null -> "o saldo fica negativo"
+                        else -> "sobra pouco no menor saldo"
+                    },
+                ),
                 Modifier.weight(1f),
                 end = true,
             )
         }
+        // What saving does to the lowest day, under both figures rather than under one.
+        v.saving?.let {
+            Text(
+                "Guardando esse valor, o menor saldo fica em ${roundMoney(it.leftAtLowest)}.",
+                color = l.faint,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
         if (failed) Text("Sem conexão: este é o último resultado.", color = l.warn, style = MaterialTheme.typography.bodyMedium)
-        val anyRed = v.days.any { it.sim < 0 }
-        val fromAt = v.paceFrom?.let { f -> v.days.indexOfFirst { it.date == f } } ?: -1
-        if (!same || anyRed || fromAt > 0) Legend(same, anyRed, if (fromAt > 0) v.paceFrom else null)
+        if (!same) Legend()
         SimChart(
             v.days, same, v.today, v.firstNegative ?: v.lowest,
             "Saldo de hoje até ${dayLabel(v.end, v.today)}. $verdict",
@@ -552,36 +630,20 @@ private fun Figure(label: String, value: String, color: Color, notes: List<Strin
     }
 }
 
-/** What each line on the chart is; the dashed rule is where the pace starts to count. */
+/** What each line on the chart is; the dashed rule says its own name on the plot. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Legend(same: Boolean, red: Boolean, from: String?) {
+private fun Legend() {
     val l = LocalLedger.current
-    val dash = with(LocalDensity.current) { 3.dp.toPx() to 4.dp.toPx() }
     FlowRow(
         Modifier.clearAndSetSemantics {},
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        buildList {
-            if (!same) add("Planilha" to l.borderInput)
-            if (!same) add("Simulação" to l.accent)
-            if (red) add("Abaixo de zero" to l.neg)
-        }.forEach { (name, color) ->
+        listOf("Planilha" to l.borderInput, "Simulação" to l.accent).forEach { (name, color) ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(Modifier.size(width = 14.dp, height = 2.dp).background(color))
                 Text(name, color = l.muted, style = MaterialTheme.typography.labelMedium)
-            }
-        }
-        if (from != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Canvas(Modifier.size(width = 2.dp, height = 12.dp)) {
-                    drawLine(
-                        l.faint, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), 1.5.dp.toPx(),
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash.first, dash.second)),
-                    )
-                }
-                Text("Previsão desde ${monthName(from.substring(5, 7).toInt()).take(3)}", color = l.muted, style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -658,19 +720,20 @@ private fun PaceBlock(v: ScenarioView, onAjustes: () -> Unit, onPick: (String) -
             ChipGrid(v.paces.map { PACE_LABEL[it] ?: it }, v.paces.indexOf(v.pace)) { onPick(v.paces[it]) }
         }
         Text(premiseOf(v, v.pace), color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        val bare = bareOf(v)
+        if (bare.isNotEmpty()) {
+            // A premise the answer leans on: the tone in one dot, as the alerts carry it.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.padding(top = 7.dp).size(6.dp).background(l.warn, CircleShape))
+                Text(bare, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         if (v.spends.teto == null) {
             TextAction("Para ver gastando o teto, defina o teto do mês em Ajustes ›", onAjustes, style = MaterialTheme.typography.bodyMedium)
         }
         TextAction("Como calculei", { how = !how }, open = how)
         if (how) Text(howOf(v, v.pace), color = l.muted, style = MaterialTheme.typography.bodyMedium)
     }
-}
-
-/** Hoje's "Ainda cabem" names what it measures: the bills it counts, or the month. */
-private fun figureScope(mode: String, due: String, today: String) = when {
-    mode == "month" || due.length < 7 -> "em ${monthName(today.substring(5, 7).toInt())}"
-    mode == "cards" -> "nas faturas de ${monthName(due.substring(5, 7).toInt())}"
-    else -> "na fatura de ${monthName(due.substring(5, 7).toInt())}"
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -753,41 +816,57 @@ private fun ChangeRow(
             counts.map { n -> if (compra) (if (n == 1) "À vista" else "$n×") else if (n == 1) "Uma vez" else "$n meses" },
             counts.indexOf(row.count),
         ) { onChange(row.copy(count = counts[it]), false) }
-        // What the line does, one fact a line: when it starts, what the pace holds, what the sheet
-        // reaches, and its own effect when there are others.
+        // Two lines at most: when it lands and what it leaves of the plan, then what it does on its
+        // own (and what the pace keeps of it); a third only when the sheet ends before the last parcel.
         val last = v.months.lastOrNull()?.let { monthLabel(it.year, it.month, v.today) } ?: monthOf(v.end.take(7), v.today)
         val inside = PACE_INSIDE[v.pace] ?: ""
         val note = buildList {
             if (compra) {
-                v.due?.let { add("${if (row.count > 1) "1ª parcela" else "Sai da conta"} em ${dayLabel(it, v.today)}." to l.faint) }
+                val first = buildList {
+                    v.due?.let { add("${if (row.count > 1) "1ª parcela" else "Sai da conta"} em ${dayLabel(it, v.today)}." to l.faint) }
+                    v.canSpend?.let { cs ->
+                        val fig = simFigure(cs.mode, cs.left, cs.overBy, if (amount != null) v.cycle else null)
+                        add(fitText(cs.mode, cs.due, v.today, fig.amount, fig.over) to (if (fig.over) l.neg else l.faint))
+                    }
+                }
+                if (first.isNotEmpty()) add(first)
+            } else if (outOfRange) {
+                add(listOf("Escolha um dia de hoje até ${dayLabel(v.end, v.today)}." to l.neg))
+            } else if (row.count > 1) {
+                add(listOf("Todo dia ${iso!!.takeLast(2).toInt()}, ${row.count} meses seguidos." to l.faint))
+            }
+            val own = buildList {
+                if (effect != null && alone) add(deltaSentence(effect.lowest, effect.end, "fim", "Sozinha,", false) + ".")
                 effect?.inPace?.let { h ->
+                    val within = inside.replaceFirstChar { it.uppercase() }
                     add(
-                        when {
-                            h.count == 1 ->
-                                "${if (effect.of == 1) "Fica" else "1 parcela fica"} $inside de ${monthOf(h.until, v.today)}: " +
-                                    "${roundMoney(h.amount)} a menos para o resto do mês."
-                            else -> "${if (h.count == effect.of) "As ${h.count} parcelas ficam" else "${h.count} parcelas ficam"} " +
-                                "$inside até ${monthOf(h.until, v.today)}: ${roundMoney(h.perMonth)} a menos por mês para o resto."
-                        } to l.faint,
+                        if (h.count == 1) {
+                            "$within de ${monthOf(h.until, v.today)}: ${roundMoney(h.amount)} a menos para o resto do mês."
+                        } else {
+                            "$within até ${monthOf(h.until, v.today)}: ${if (h.perMonth * h.count == h.amount) "" else "no máximo "}" +
+                                "${roundMoney(h.perMonth)} a menos por mês."
+                        },
                     )
                 }
-                v.canSpend?.let { cs ->
-                    val fig = simFigure(cs.mode, cs.left, cs.overBy, if (amount != null) v.cycle else null)
-                    add("${fig.label} ${roundMoney(fig.amount)} ${figureScope(cs.mode, cs.due, v.today)}." to (if (fig.over) l.neg else l.faint))
-                }
-            } else if (outOfRange) {
-                add("Escolha um dia de hoje até ${dayLabel(v.end, v.today)}." to l.neg)
-            } else if (row.count > 1) {
-                add("Todo dia ${iso!!.takeLast(2).toInt()}, ${row.count} meses seguidos." to l.faint)
             }
+            if (own.isNotEmpty()) add(listOf(own.joinToString(" ") to l.faint))
             if (effect != null && effect.counted < effect.of) {
-                add("A planilha vai até $last: ${effect.counted} de ${effect.of} ${if (compra) "parcelas entram" else "entram"} na conta." to l.faint)
+                add(listOf("A planilha vai até $last: ${effect.counted} de ${effect.of} ${if (compra) "parcelas entram" else "entram"} na conta." to l.faint))
             }
-            if (effect != null && alone) add(deltaSentence(effect.lowest, effect.end, last, "Sozinha,", false) to l.faint)
         }
         if (note.isNotEmpty()) {
             Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                note.forEach { (text, color) -> Text(text, color = color, style = MaterialTheme.typography.bodyMedium) }
+                note.forEach { line ->
+                    Text(
+                        buildAnnotatedString {
+                            line.forEachIndexed { k, (text, color) ->
+                                if (k > 0) append(" ")
+                                withStyle(SpanStyle(color = color)) { append(text) }
+                            }
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
         }
     }
@@ -905,7 +984,7 @@ private fun ChipGrid(labels: List<String>, selected: Int, onPick: (Int) -> Unit)
  * The site's SimChart: the sheet as it is (quiet) and the simulation (accent, red where it goes
  * below zero, on a red wash) from today to the sheet's last day, the amounts in a gutter of their
  * own, a dot on the day the answer names and a dashed rule where the pace starts to count. With a
- * pace the scale is the simulation's: the sheet runs off the top with its peak named there. A
+ * pace the scale is the simulation's: the sheet runs off the top, an arrow where it leaves. A
  * finger reads any day; the table carries every month's value for TalkBack.
  */
 @Composable
@@ -947,10 +1026,8 @@ private fun SimChart(
     val gutter = ticks.maxOf { measurer.measure(axisMoney(it), small).size.width } + with(density) { 10.dp.toPx() }
     val markAt = mark?.let { m -> days.indexOfFirst { it.date == m.date } } ?: -1
     val fromAt = from?.let { f -> days.indexOfFirst { it.date == f } } ?: -1
-    // The sheet's highest day when it runs off the top: its value is named where it leaves.
-    val peakAt = days.indices.maxByOrNull { days[it].sheet } ?: 0
-    val peak = days[peakAt].sheet
-    val offTop = !same && peak > ticks.last()
+    // Where the sheet's rosier line leaves the top, a small arrow says where it went.
+    val exitAt = if (same) -1 else days.indexOfFirst { it.sheet > ticks.last() }
     Canvas(
         Modifier
             .fillMaxWidth()
@@ -995,19 +1072,32 @@ private fun SimChart(
             )
         }
         if (!same) {
-            clipRect(top = padTop - 2.dp.toPx(), bottom = bottom + 2.dp.toPx()) {
+            clipRect(top = padTop, bottom = bottom) {
                 drawPath(path(days.map { it.sheet.toFloat() }, x, y), l.borderInput, style = line)
             }
         }
-        if (offTop) {
-            val text = measurer.measure("↑ planilha ${axisMoney(peak)}", small)
-            val cx = x(peakAt).coerceIn(gutter + text.size.width / 2f, size.width - padRight - text.size.width / 2f)
+        if (exitAt >= 0 && at == null) {
+            val text = measurer.measure("↑ planilha", small)
+            val cx = x(exitAt).coerceIn(gutter + text.size.width / 2f, size.width - padRight - text.size.width / 2f)
             drawText(text, topLeft = Offset(cx - text.size.width / 2f, padTop - 2.dp.toPx() - text.size.height * 0.85f))
         }
         // Below zero the line itself turns red, not only the wash behind it.
         val sim = path(shown, x, y)
         clipRect(top = 0f, bottom = zero) { drawPath(sim, if (same) l.muted else l.accent, style = line) }
         clipRect(top = zero, bottom = size.height) { drawPath(sim, l.neg, style = line) }
+        // Right of the rule the day to day is an assumption: said on the plot, on the panel's color
+        // where a line runs through it.
+        if (fromAt > 0) {
+            val text = measurer.measure("previsão →", small.copy(color = l.muted))
+            val tx = min(x(fromAt) + 5.dp.toPx(), size.width - padRight - text.size.width)
+            val ty = bottom - 6.dp.toPx() - text.firstBaseline
+            val pad = 2.dp.toPx()
+            drawRoundRect(
+                l.surface, Offset(tx - pad, ty), Size(text.size.width + 2 * pad, text.size.height.toFloat()),
+                CornerRadius(3.dp.toPx()),
+            )
+            drawText(text, topLeft = Offset(tx, ty))
+        }
         val ring = 2.dp.toPx()
         // The day the answer names: a dot on the line itself, so a one-day dip still reaches it.
         if (markAt >= 0) {
