@@ -318,6 +318,8 @@ export interface Mia2Numero {
  * comes first in pieces (`parcial`, each the whole text so far), then whole (`mensagem`), with its
  * money values checked.
  */
+export type Mia2Veredito = "cabe" | "aperta" | "nao_cabe";
+
 export type Mia2Line =
   | { readonly t: "sessao"; readonly id: string }
   | { readonly t: "status"; readonly texto: string }
@@ -332,6 +334,21 @@ export type Mia2Line =
   | { readonly t: "grafico"; readonly id: string; readonly grafico: Mia2Grafico }
   /** Two to four numbers side by side, label over value, every one checked. */
   | { readonly t: "numeros"; readonly id: string; readonly numeros: readonly Mia2Numero[] }
+  /**
+   * "Posso comprar?": the verdict of a purchase as the Neko computed it (tool posso_comprar), shown
+   * above her words, which give the reason. Never her own words.
+   */
+  | {
+      readonly t: "veredito";
+      readonly id: string;
+      readonly veredito: Mia2Veredito;
+      /** The purchase checked, so what was assumed (card, at once) shows. Reais. */
+      readonly valor: number;
+      readonly parcelas: number;
+      readonly meio: "cartao" | "pix";
+      /** The card it went on (the main one when she was not told); none in Pix. */
+      readonly cartao?: string | null | undefined;
+    }
   /** A number did not check: what this question showed so far gives way to a new answer. */
   | { readonly t: "refazendo" }
   | { readonly t: "fim" }

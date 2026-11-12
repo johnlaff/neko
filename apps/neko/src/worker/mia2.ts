@@ -39,6 +39,10 @@ Como responder
 - Uma série no tempo ou uma comparação de 3 ou mais pontos vai em ${CHART_TOOL}. Com entradas e saídas no mesmo gráfico, entradas vêm primeiro.
 - No máximo um quadro de números e um gráfico por resposta, e o texto não repete os valores deles.
 - Sem títulos e sem tabelas. Negrito só no número principal.
+- Em "posso comprar", use posso_comprar: sem meio dito, no cartão principal; sem parcelas, à vista. O Neko mostra o veredito acima da sua resposta (Cabe, Aperta ou Não cabe) e a compra conferida, então não escreva o veredito: comece pelo motivo, com o número que decide em negrito.
+- No quadro de "posso comprar", até 3 números, primeiro o do motivo: quando passa do teto deste mês, quanto ainda cabia sem a compra e o teto; quando aperta por um mês das parcelas, as faturas desse mês com a parcela; quando o saldo fica negativo, o primeiro saldo negativo. Depois a parcela, com a nota das vezes e da última fatura (ex.: 3x, última em jan); quando cabe, quanto dá para guardar no dia do salário com a compra. Não repita no quadro o número em negrito do texto, nem mostre número que tranquilize quando não cabe. Valores das notas com centavos, como no quadro (R$ 10.150,00). Notas falam "com a compra", nunca "com ela".
+- Em "e se eu parcelar" sem o número de vezes, pergunte em quantas vezes e o que é, antes de conferir: o método só parcela bem durável, em menos vezes do que ele dura.
+- Só quando a compra for parcelada e não for bem durável, ou tiver mais parcelas do que ele costuma durar, lembre em uma linha que o método só parcela bem durável, em menos vezes do que ele dura.
 - Não conte o que vai fazer nem quais ferramentas usou.
 - Se a ferramenta não tiver o dado, diga isso em vez de supor.
 - Use as palavras do Neko: teto (o limite do mês para cartões e Pix), fatura, reserva, Para lançar.
@@ -282,6 +286,32 @@ export const ensureSetup = async (
   };
 };
 
+export const PURCHASE_TOOL = "posso_comprar";
+
+/** posso_comprar's verdict, as the Neko computed it, for the line above her words. */
+const Verdict = z.object({
+  veredito: z.enum(["cabe", "aperta", "nao_cabe"]),
+  compra: z.object({
+    valor: z.number(),
+    parcelas: z.number().int(),
+    meio: z.enum(["cartao", "pix"]),
+    cartao: z.string().nullish(),
+  }),
+});
+
+type VerdictLine = Extract<Mia2Line, { t: "veredito" }>;
+
+export const verdictOf = (id: string, text: string): VerdictLine | null => {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const v = Verdict.safeParse(json);
+  return v.success ? { t: "veredito", id, veredito: v.data.veredito, ...v.data.compra } : null;
+};
+
 /** What the wait line says while she uses a tool. */
 const STATUS: Record<string, string> = {
   hoje: "Lendo o dia de hoje…",
@@ -295,6 +325,7 @@ const STATUS: Record<string, string> = {
   reserva: "Lendo a reserva…",
   semana: "Lendo a semana…",
   simular: "Simulando…",
+  [PURCHASE_TOOL]: "Conferindo a compra…",
   para_lancar: "Lendo o Para lançar…",
   propor_lancamento: "Deixando em Para lançar…",
   bash: "Fazendo as contas…",
@@ -448,6 +479,8 @@ const relay = async (deps: TurnDeps, id: string, pergunta: string) => {
     { signal: abort.signal },
   );
   const previews = new Map<string, string>();
+  /** Each purchase checked in this turn, once, by what was asked. */
+  const verdicts = new Map<string, VerdictLine>();
   let unchecked: string[] = [];
   let corrected = false;
   // The owner pressed Stop: what she said so far stays, and nothing is redone.
@@ -471,7 +504,14 @@ const relay = async (deps: TurnDeps, id: string, pergunta: string) => {
         write({ t: "status", texto: STATUS[ev.name] ?? "Lendo o Neko…" });
       } else if (ev.type === "agent.mcp_tool_result") {
         const use = uses.get(ev.mcp_tool_use_id);
-        if (!ev.is_error) seeToolResult(seen, use?.name ?? "", use?.input, textOf(ev.content));
+        if (ev.is_error) continue;
+        seeToolResult(seen, use?.name ?? "", use?.input, textOf(ev.content));
+        const v = use?.name === PURCHASE_TOOL ? verdictOf(ev.id, textOf(ev.content)) : null;
+        const key = v && `${v.veredito}:${v.valor}:${v.parcelas}:${v.meio}`;
+        if (v && key && !verdicts.has(key)) {
+          verdicts.set(key, v);
+          write(v);
+        }
       } else if (ev.type === "agent.tool_use") {
         const status = STATUS[ev.name];
         if (status) write({ t: "status", texto: status });
@@ -500,6 +540,8 @@ const relay = async (deps: TurnDeps, id: string, pergunta: string) => {
           const missing = [...new Set(unchecked)].join(", ");
           unchecked = [];
           write({ t: "refazendo" });
+          // The Neko's verdicts stand: her new words come under them again.
+          for (const v of verdicts.values()) write(v);
           write({ t: "status", texto: "Um número não bateu. Refazendo a conta…" });
           // A system message rides right after the user message it goes with, never before.
           await send(client, id, [

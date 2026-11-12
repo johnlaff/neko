@@ -1,11 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
 import { Fragment, type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { Mia2Grafico, Mia2Line, Mia2Numero, Mia2Rotina, Mia2Valor } from "../shared/types.ts";
+import { flushSync } from "react-dom";
+import type {
+  Mia2Grafico,
+  Mia2Line,
+  Mia2Numero,
+  Mia2Rotina,
+  Mia2Valor,
+  Mia2Veredito,
+} from "../shared/types.ts";
 import { ApiError, api } from "./api.ts";
 import { BrandMark } from "./BrandMark.tsx";
 import { HIDDEN_MONEY, money, monthName, shortDate } from "./format.ts";
-import { IconChevron, IconChevronLeft } from "./icons.tsx";
+import { IconAlert, IconCheck, IconChevron, IconChevronLeft, IconClose } from "./icons.tsx";
 import {
   type MiaTopic,
   miaTitle,
@@ -22,22 +30,52 @@ import { useValuesHidden } from "./privacy.ts";
 import { mixNumber, useMorph } from "./useMorph.ts";
 
 /** Questions that show what she does now: sums, charts, the future as a simulation. */
+/** What a purchase's answer already says: not suggested after one. */
+const ROOM = "Quanto ainda cabe este mês?";
 const MIA2_TOPICS: Record<MiaTopic, readonly string[]> = {
-  hoje: ["Quanto ainda cabe este mês?", "Como foram meus últimos 6 meses?"],
+  hoje: [ROOM, "Como foram meus últimos 6 meses?"],
   faturas: ["Quanto vem nas próximas faturas?", "Mostra as faturas dos próximos meses"],
   mes: ["Este mês está melhor que o anterior?", "Quanto gastei com mercado este ano?"],
 };
-const ANY = "E se eu comprar algo de R$ 2.000 em 10x?";
+/**
+ * A question the owner finishes: the chip puts its start in the field, the cursor after it, for
+ * what, how much and in how many times. Mia checks it against the teto (posso_comprar).
+ */
+export const MIA2_FILL = "Posso comprar…?";
+export const MIA2_FILL_TEXT = "Posso comprar ";
+/** Over the field while a purchase is being written: what she needs to answer it. */
+export const MIA2_FILL_HINT =
+  "O quê, quanto e como paga. Ex.: uma geladeira de R$\u00a03.000 no Pix ou em 5x";
+/** After "Não cabe" at once: the same purchase in parcels, how many finished in the field too. */
+export const MIA2_PARCEL = "E se eu parcelar…?";
+/**
+ * Questions finished in the field: the chip puts their start there, the cursor after it, and the
+ * line over the field says what to write until it is sent.
+ */
+const FILLS: Readonly<Record<string, { readonly text: string; readonly hint: string }>> = {
+  [MIA2_FILL]: { text: MIA2_FILL_TEXT, hint: MIA2_FILL_HINT },
+  [MIA2_PARCEL]: {
+    text: "E se eu parcelar em ",
+    hint: "Em quantas vezes. O método só parcela bem durável, em menos vezes do que ele dura.",
+  },
+};
 
 export const mia2Starters = (topic: MiaTopic = "hoje") =>
-  [...MIA2_TOPICS[topic], ANY, ...Object.values(MIA2_TOPICS).flat()]
+  [...MIA2_TOPICS[topic], MIA2_FILL, ...Object.values(MIA2_TOPICS).flat()]
     .filter((q, i, all) => all.indexOf(q) === i)
     .slice(0, 4);
 
 /** A question as asked, whatever its case or closing mark, so a typed one is not suggested again. */
-const same = (q: string) => q.toLowerCase().replace(/[\s?!.]+$/, "");
+const same = (q: string) => q.toLowerCase().replace(/[\s?!.…]+$/, "");
 const notAsked = (asked: readonly string[]) => (q: string) =>
-  !asked.some((a) => same(a) === same(q));
+  !asked.some((a) =>
+    q === MIA2_FILL ? same(a).startsWith(same(MIA2_FILL_TEXT)) : same(a) === same(q),
+  );
+/** The field holds a question's start ("Posso comprar") and not yet the rest: nothing to send. */
+const onlyStem = (typed: string) => Object.values(FILLS).some((f) => same(typed) === same(f.text));
+/** The question being finished: its hint stays until it is sent, so nothing jumps. */
+const fillOf = (typed: string) =>
+  Object.values(FILLS).find((f) => same(typed).startsWith(same(f.text)));
 
 /** After her routine, what one asks next about that week or that month. */
 const ROUTINE_NEXT: Record<Mia2Rotina["tipo"], readonly string[]> = {
@@ -45,12 +83,35 @@ const ROUTINE_NEXT: Record<Mia2Rotina["tipo"], readonly string[]> = {
   mes: ["Como guardo mais este mês?", "Quais foram as maiores saídas do mês passado?"],
 };
 
-const mia2Next = (asked: readonly string[], topic: MiaTopic, rotina?: Mia2Rotina["tipo"]) =>
-  (rotina ? ROUTINE_NEXT[rotina] : [])
-    .concat(mia2Starters(topic), Object.values(MIA2_TOPICS).flat())
+/**
+ * What to ask after a purchase checked. On the card: Pix first (the method's way), then in one
+ * parcel. After "Não cabe" at once, the method's next step: parcel it, if it lasts (she asks in how
+ * many times and what it is), and how to set more aside.
+ */
+const purchaseNext = (v: Purchase): string[] => {
+  if (v.veredito === "nao_cabe")
+    return [...(v.parcelas === 1 ? [MIA2_PARCEL] : []), "Como guardo mais este mês?"];
+  if (v.meio === "pix") return [];
+  return ["E no Pix?", ...(v.parcelas > 1 ? ["E em 1x no cartão?"] : [])];
+};
+
+/**
+ * After an answer, two questions not asked yet; after her routine, about its week or month first.
+ * After a purchase: that purchase another way, or another purchase, never what its answer said.
+ */
+const mia2Next = (
+  asked: readonly string[],
+  topic: MiaTopic,
+  rotina?: Mia2Rotina["tipo"],
+  compra?: Purchase,
+) => {
+  const after = compra ? [...purchaseNext(compra), MIA2_FILL] : [];
+  return (rotina ? ROUTINE_NEXT[rotina] : [])
+    .concat(after, mia2Starters(topic), Object.values(MIA2_TOPICS).flat())
     .filter((q, i, all) => all.indexOf(q) === i)
-    .filter(notAsked(asked))
+    .filter((q) => after.includes(q) || (notAsked(asked)(q) && !(compra && q === ROOM)))
     .slice(0, 2);
+};
 
 type Part =
   | {
@@ -61,7 +122,18 @@ type Part =
       readonly valores: Readonly<Record<string, Mia2Valor>> | null;
     }
   | { readonly k: "grafico"; readonly id: string; readonly grafico: Mia2Grafico }
-  | { readonly k: "numeros"; readonly id: string; readonly numeros: readonly Mia2Numero[] };
+  | { readonly k: "numeros"; readonly id: string; readonly numeros: readonly Mia2Numero[] }
+  | ({ readonly k: "veredito"; readonly id: string } & Purchase);
+
+/** A purchase the Neko checked for "Posso comprar?", and its verdict. */
+interface Purchase {
+  readonly veredito: Mia2Veredito;
+  readonly valor: number;
+  readonly parcelas: number;
+  readonly meio: "cartao" | "pix";
+  /** The card it went on, the main one when she was not told. */
+  readonly cartao?: string | null | undefined;
+}
 
 interface Turn {
   readonly n: number;
@@ -179,6 +251,23 @@ const ask = async (pergunta: string, onLimit: () => void) => {
         return patch(n, (t) => ({
           ...t,
           parts: [...t.parts, { k: "numeros", id: l.id, numeros: l.numeros }],
+        }));
+      case "veredito":
+        setChat({ status: null });
+        return patch(n, (t) => ({
+          ...t,
+          parts: [
+            ...t.parts,
+            {
+              k: "veredito",
+              id: l.id,
+              veredito: l.veredito,
+              valor: l.valor,
+              parcelas: l.parcelas,
+              meio: l.meio,
+              cartao: l.cartao,
+            },
+          ],
         }));
       case "refazendo":
         return patch(n, (t) => ({ ...t, parts: [] }));
@@ -486,6 +575,10 @@ const Rich = ({
   );
 };
 
+/** The last purchase an answer checked, for what to ask next about it. */
+const lastPurchase = (t: Turn | undefined) =>
+  t?.parts.findLast((p): p is Extract<Part, { k: "veredito" }> => p.k === "veredito");
+
 /** The screens an answer's checked values came from, two at most, as quiet ways out. */
 const sourcesOf = (t: Turn) => {
   const seen = new Map<
@@ -668,6 +761,50 @@ const PacedText = ({
 };
 
 /** Her answer's pieces, each text followed by the note on its values that came from nowhere. */
+/** A suggested question: sent on a tap, or, for "Posso comprar…?", started in the field. */
+const Suggestion = ({ q, pick }: { q: string; pick: (q: string) => void }) => (
+  <button
+    type="button"
+    className="chip-button"
+    onClick={() => pick(q)}
+    aria-describedby={q in FILLS ? "mia-fill-chip" : undefined}
+  >
+    {q}
+  </button>
+);
+
+const VERDICT = {
+  cabe: { word: "Cabe", tone: "pos", icon: <IconCheck /> },
+  aperta: { word: "Aperta", tone: "warn", icon: <IconAlert /> },
+  nao_cabe: { word: "Não cabe", tone: "neg", icon: <IconClose /> },
+} as const;
+
+/** The purchase as checked, so what she assumed (the main card, at once) is in sight. */
+export const purchaseLabel = (v: Omit<Purchase, "veredito">, hidden: boolean) => {
+  const value = hidden ? HIDDEN_MONEY : money(Math.round(v.valor * 100));
+  if (v.meio === "pix") return `${value} no Pix`;
+  const card = v.cartao || "cartão";
+  return v.parcelas > 1 ? `${value} em ${v.parcelas}x no ${card}` : `${value} à vista no ${card}`;
+};
+
+/**
+ * "Posso comprar?": the Neko's verdict, never her words, in the serif of every verdict here, its
+ * tone and an icon so it never rests on color alone; her text under it gives the reason.
+ */
+const Verdict = ({ v, hidden }: { v: Purchase; hidden: boolean }) => {
+  const look = VERDICT[v.veredito];
+  return (
+    <div className={`mia-verdict ${look.tone}`}>
+      <p className="mia-verdict-word">
+        {look.icon}
+        <span className="sr-only">Veredito do Neko: </span>
+        <span>{look.word}</span>
+      </p>
+      <p className="mia-verdict-what">{purchaseLabel(v, hidden)}</p>
+    </div>
+  );
+};
+
 const Answer = ({
   t,
   working,
@@ -681,12 +818,16 @@ const Answer = ({
   paced: boolean;
 }) => {
   useMoving();
-  const first = t.parts.find((p) => p.k === "texto")?.id;
+  // Her first paragraph is the answer, in the serif; under the Neko's verdict it is the reason.
+  const first = t.parts.some((p) => p.k === "veredito")
+    ? undefined
+    : t.parts.find((p) => p.k === "texto")?.id;
   const stoppedNote = stoppedValues(t) ? `mia-stopped-${t.n}` : undefined;
   // Her pieces come in order: a chart, or her next text, waits for the words before it.
   const shown = t.parts.findIndex((p) => moving.has(`${t.n}:${p.id}`));
   return t.parts.slice(0, shown < 0 ? undefined : shown + 1).map((p) => {
     if (p.k === "grafico") return <MiaChart key={p.id} grafico={p.grafico} />;
+    if (p.k === "veredito") return <Verdict key={p.id} v={p} hidden={hidden} />;
     const id = `${t.n}:${p.id}`;
     if (p.k === "numeros")
       return (
@@ -811,15 +952,18 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     if (finished <= 0) return;
     const here = document.activeElement;
     const end = chat.turns.at(-1)?.end ?? null;
+    // Said aloud when the focus stays in the field: that she answered, and the Neko's verdict.
+    const v = end === null ? lastPurchase(chat.turns.at(-1)) : undefined;
+    const answered = `A Mia respondeu.${v ? ` ${VERDICT[v.veredito].word}: ${purchaseLabel(v, hidden)}.` : ""}`;
     if (heldNow.current) {
       setHeld(false);
       if (end === null && typedNow.current.trim()) {
         send(typedNow.current);
-        return setTold("A Mia respondeu. Sua próxima pergunta foi enviada.");
+        return setTold(`${answered} Sua próxima pergunta foi enviada.`);
       }
     }
     if (here === input.current && (typedNow.current || end === "parou")) {
-      setTold(end === null ? "A Mia respondeu." : "");
+      setTold(end === null ? answered : "");
       return;
     }
     if (!last.current) return;
@@ -844,6 +988,17 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     setTold("");
     void ask(pergunta, onLimit);
   };
+  // "Posso comprar…?" is finished in the field: focused in the tap itself, so the phone's keyboard
+  // opens, and the cursor after the words.
+  // The words and the hint are on the page before the focus, so a screen reader says them.
+  const pick = (q: string) => {
+    const fill = FILLS[q];
+    if (!fill) return send(q);
+    const field = input.current;
+    flushSync(() => setTyped(fill.text));
+    field?.focus();
+    field?.setSelectionRange(fill.text.length, fill.text.length);
+  };
   // Parar takes Enviar's place: a second tap on Enviar right after it is not a stop.
   const halt = (tap: boolean) => {
     if (!chat.pending || (tap && Date.now() - chat.pending.since < 600)) return;
@@ -866,7 +1021,9 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const next =
     turns.length === 0 || typed.trim() || pending || showing || resting || full
       ? []
-      : mia2Next(asked, topic, turns[0]?.rotina);
+      : mia2Next(asked, topic, turns[0]?.rotina, lastPurchase(turns.at(-1)));
+  // A question being finished in the field, and what to write in it.
+  const fill = fillOf(typed);
 
   return (
     <>
@@ -924,12 +1081,11 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               Ela lê o Neko, faz as contas e mostra gráficos. Não muda a planilha. Valores
               sublinhados levam à tela de onde vieram.
             </p>
-            {!resting && (
+            {/* Hidden while a question is typed, as after an answer: a tap never loses it. */}
+            {!resting && !typed.trim() && (
               <div className="mia-starters">
                 {starters.map((q) => (
-                  <button key={q} type="button" className="chip-button" onClick={() => send(q)}>
-                    {q}
-                  </button>
+                  <Suggestion key={q} q={q} pick={pick} />
                 ))}
               </div>
             )}
@@ -1044,20 +1200,22 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
         <p className="sr-only" aria-live="polite">
           {told}
         </p>
+        <span id="mia-fill-chip" hidden>
+          Começa a pergunta no campo
+        </span>
       </div>
       {s?.ligada && !resting && !full && (
         <div className="mia-composer">
-          {held && pending && (
-            <p className="mia-held" role="status">
-              Sua pergunta vai quando ela terminar.
+          {held && pending && <p className="mia-held">Sua pergunta vai quando ela terminar.</p>}
+          {fill && (
+            <p className="mia-held" id="mia-fill-hint">
+              {fill.hint}
             </p>
           )}
           {next.length > 0 && (
             <div className="mia-suggest" key={turns.length}>
               {next.map((q) => (
-                <button key={q} type="button" className="chip-button" onClick={() => send(q)}>
-                  {q}
-                </button>
+                <Suggestion key={q} q={q} pick={pick} />
               ))}
             </div>
           )}
@@ -1066,13 +1224,19 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
             onSubmit={(e) => {
               e.preventDefault();
               // While she answers, Enter keeps the next question for when she is done.
+              // Only a question's start: the line over the field says what is missing.
+              if (onlyStem(typed)) return setTold(fill?.hint ?? "");
               if (!pending) send(typed);
-              else if (typed.trim()) setHeld(true);
+              else if (typed.trim()) {
+                setHeld(true);
+                setTold("Sua pergunta vai quando ela terminar.");
+              }
             }}
           >
             <input
               ref={input}
               aria-label="Pergunta para a Mia"
+              aria-describedby={fill ? "mia-fill-hint" : undefined}
               placeholder={turns.length > 0 ? "Outra pergunta?" : "Pergunte algo"}
               maxLength={1000}
               autoComplete="off"
@@ -1108,7 +1272,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                 Parar
               </button>
             ) : (
-              <button key="enviar" type="submit" disabled={!typed.trim()}>
+              <button key="enviar" type="submit" disabled={!typed.trim() || onlyStem(typed)}>
                 Enviar
               </button>
             )}

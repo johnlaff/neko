@@ -396,6 +396,51 @@ class ScreenshotTest {
         )
     }
 
+    // "Posso comprar?": the verdict in bold first, and the question started in the field from its chip.
+    @Test fun mia2CompraLight() = shot("mia2-compra-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Compra(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2CompraDark() = shot("mia2-compra-dark", night = true) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Compra(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2NaoCabeDark() = shot("mia2-nao-cabe-dark", night = true) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2NaoCabe(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
+    @Test fun mia2ComprarLight() = shot("mia2-comprar-light", night = false) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            dev.johnlaff.neko.ui.Mia2Chat().apply { typed = dev.johnlaff.neko.ui.MIA2_FILL_TEXT },
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
     @Test fun mia2VaziaLight() = shot("mia2-vazia-light", night = false) {
         dev.johnlaff.neko.ui.Mia2Screen(
             dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
