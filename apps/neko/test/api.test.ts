@@ -22,6 +22,7 @@ describe("api", () => {
       "/api/banks",
       "/api/banks/cards",
       "/api/scenario",
+      "/api/scenarios",
     ]) {
       expect((await call(path)).status).toBe(401);
     }

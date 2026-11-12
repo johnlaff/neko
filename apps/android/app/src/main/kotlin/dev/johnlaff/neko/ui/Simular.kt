@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -66,13 +67,14 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -95,10 +97,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.johnlaff.neko.R
-import dev.johnlaff.neko.data.ScenarioBody
 import dev.johnlaff.neko.data.ScenarioChange
 import dev.johnlaff.neko.data.ScenarioChangeEffect
 import dev.johnlaff.neko.data.ScenarioDay
@@ -127,8 +129,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 
-/** Asks the Worker for a scenario; it throws when there is no connection. */
-typealias AskScenario = suspend (ScenarioBody) -> ScenarioView
+/** Asks the Worker for every pace's answer, the one to open on first; throws when offline. */
+typealias AskScenarios = suspend (List<ScenarioChange>) -> List<ScenarioView>
 
 /** How Brazilian stores usually split a card purchase. */
 private val PARCELS = listOf(1, 2, 3, 6, 10, 12)
@@ -297,7 +299,7 @@ private fun fitText(mode: String, due: String, today: String, amount: Long, over
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SimularScreen(
-    ask: AskScenario,
+    ask: AskScenarios,
     onBack: () -> Unit,
     onAjustes: () -> Unit = {},
     /** For the prints: an answer drawn at once, and the lines it answers. */
@@ -311,20 +313,22 @@ fun SimularScreen(
     var focusKey by remember { mutableStateOf<Int?>(null) }
     // The line just taken out, and where it was, until the next change: one tap puts it back.
     var removed by remember { mutableStateOf<Pair<SimRow, Int>?>(null) }
-    var view by remember { mutableStateOf(start) }
     // The lines the answer on screen was asked for: its effects follow them, in order.
     var answered by remember { mutableStateOf<List<Asked>?>(null) }
     var leaving by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     var attempt by remember { mutableStateOf(0) }
-    // Only typing waits for a pause; a tapped chip asks at once.
+    // Only typing waits for a pause; a line added or taken out asks at once.
     var typing by remember { mutableStateOf(false) }
     // A first answer handed in (the prints) is drawn as it is; the next change asks.
     var first by remember { mutableStateOf(start != null) }
-    val v = view
+    // Every pace's answer for the lines on screen, asked at once: a tap on a chip only picks among
+    // them, so it draws in the same frame and never waits on the Worker.
+    var answers by remember { mutableStateOf(listOfNotNull(start)) }
+    val v = answers.firstOrNull { it.pace == pace } ?: answers.firstOrNull()
     val asked = changesOf(rows, v?.today, v?.card != null)
     val changes = asked.map { it.change }
-    LaunchedEffect(pace, changes, attempt) {
+    LaunchedEffect(changes, attempt) {
         if (first) {
             first = false
             answered = asked
@@ -332,7 +336,7 @@ fun SimularScreen(
         }
         if (typing) delay(TYPING_PAUSE)
         try {
-            view = ask(ScenarioBody(pace, changes))
+            answers = ask(changes)
             answered = asked
             failed = false
         } catch (c: CancellationException) {
@@ -446,7 +450,7 @@ fun SimularScreen(
                     return@LazyColumn
                 }
                 item(key = "answer") {
-                    Answer(v, failed, single = used.singleOrNull()?.kind, onAjustes = onAjustes) { typing = false; pace = it }
+                    Answer(v, failed, single = used.singleOrNull()?.kind, onAjustes = onAjustes) { pace = it }
                 }
                 item(key = "changes") {
                     Panel(Modifier.animateContentSize(tween(220, easing = Motion.Settle))) {
@@ -518,6 +522,23 @@ fun SimularScreen(
     }
 }
 
+/**
+ * A line that comes and goes with the answer: it opens and closes by height, keeping its last
+ * words while it closes, so what is under it glides instead of jumping. [top] is its gap above.
+ */
+@Composable
+private fun Line(text: String, top: Dp, content: @Composable (String) -> Unit) {
+    val last = remember { arrayOf(text) }
+    if (text.isNotEmpty()) last[0] = text
+    AnimatedVisibility(
+        text.isNotEmpty(),
+        enter = expandVertically(tween(MORPH_MS, easing = Motion.Settle)) + fadeIn(tween(200, 80)),
+        exit = shrinkVertically(tween(MORPH_MS, easing = Motion.Settle)) + fadeOut(tween(120)),
+    ) {
+        Box(Modifier.padding(top = top)) { content(last[0]) }
+    }
+}
+
 /** The answer in one line, under the bar, while the real one is scrolled away; a tap goes back to it. */
 @Composable
 private fun Peek(v: ScenarioView, onClick: () -> Unit) {
@@ -561,51 +582,52 @@ private fun Answer(v: ScenarioView, failed: Boolean, single: String?, onAjustes:
     val head = headOf(v, single)
     Panel {
         // One heading TalkBack reads again when the answer changes: the sentence and what changed it.
-        Column(
+        // A new answer fades through where the last one was, as its numbers count to theirs.
+        // Another pace, or the red, fades through; typing only changes the numbers in place.
+        Swap(
+            Triple(verdict, head, v.pace to (v.firstNegative != null)),
             Modifier.semantics(mergeDescendants = true) { heading(); liveRegion = LiveRegionMode.Polite },
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(verdict, style = MaterialTheme.typography.headlineSmall)
-            if (head.isNotEmpty()) Text(head, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            key = { it.third },
+        ) { (said, changed) ->
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(said, style = MaterialTheme.typography.headlineSmall)
+                if (changed.isNotEmpty()) Text(changed, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            }
         }
         PaceBlock(v, onAjustes, onPick)
-        Row(Modifier.fillMaxWidth()) {
-            if (end != null) {
+        // The figures and what saving does: one block, so the line under them opens without a jump.
+        Column {
+            Row(Modifier.fillMaxWidth()) {
+                if (end != null) {
+                    Figure(
+                        "Fim de $endLabel",
+                        end.endSim,
+                        listOfNotNull(if (v.pace != "planilha" && end.endSim != end.endSheet) "Planilha: ${roundMoney(end.endSheet)}" else null),
+                        Modifier.weight(1f),
+                    )
+                }
+                val s = v.saving
                 Figure(
-                    "Fim de $endLabel",
-                    roundMoney(end.endSim),
-                    if (end.endSim < 0) l.neg else l.text,
-                    listOfNotNull(if (v.pace != "planilha" && end.endSim != end.endSheet) "Planilha: ${roundMoney(end.endSheet)}" else null),
+                    "Dá para guardar",
+                    s?.amount,
+                    listOf(
+                        when {
+                            s != null -> if (s.date == v.today) "hoje" else "em ${dayOf(s.date, v.today)}"
+                            v.full.isNotEmpty() -> "as faturas usam ${if (v.pace == "teto") "o teto" else "a média"}"
+                            v.firstNegative != null -> "o saldo fica negativo"
+                            else -> "sobra pouco no menor saldo"
+                        },
+                    ),
                     Modifier.weight(1f),
+                    end = true,
                 )
             }
-            val s = v.saving
-            Figure(
-                "Dá para guardar",
-                s?.let { roundMoney(it.amount) } ?: "Nada",
-                l.text,
-                listOf(
-                    when {
-                        s != null -> if (s.date == v.today) "hoje" else "em ${dayOf(s.date, v.today)}"
-                        v.full.isNotEmpty() -> "as faturas usam ${if (v.pace == "teto") "o teto" else "a média"}"
-                        v.firstNegative != null -> "o saldo fica negativo"
-                        else -> "sobra pouco no menor saldo"
-                    },
-                ),
-                Modifier.weight(1f),
-                end = true,
-            )
-        }
-        // What saving does to the lowest day, under both figures rather than under one.
-        v.saving?.let {
-            Text(
-                "Guardando esse valor, o menor saldo fica em ${roundMoney(it.leftAtLowest)}.",
-                color = l.faint,
-                style = MaterialTheme.typography.labelMedium,
-            )
+            // What saving does to the lowest day, under both figures rather than under one.
+            Line(v.saving?.let { "Guardando esse valor, o menor saldo fica em ${roundMoney(it.leftAtLowest)}." } ?: "", top = 6.dp) {
+                Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium)
+            }
         }
         if (failed) Text("Sem conexão: este é o último resultado.", color = l.warn, style = MaterialTheme.typography.bodyMedium)
-        if (!same) Legend()
         SimChart(
             v.days, same, v.today, v.firstNegative ?: v.lowest,
             "Saldo de hoje até ${dayOf(v.end, v.today)}. $verdict",
@@ -617,24 +639,54 @@ private fun Answer(v: ScenarioView, failed: Boolean, single: String?, onAjustes:
     }
 }
 
+/**
+ * A figure: its label, the amount (or "Nada"), and a note. The amount counts to its new value as
+ * the chart moves to it, and up from zero the first time it shows, as Hoje's figures roll in; red
+ * while the count is below zero. TalkBack reads the amount itself, never the count.
+ */
 @Composable
-private fun Figure(label: String, value: String, color: Color, notes: List<String>, modifier: Modifier, end: Boolean = false) {
+private fun Figure(label: String, cents: Long?, notes: List<String>, modifier: Modifier, end: Boolean = false) {
     val l = LocalLedger.current
     val align = if (end) TextAlign.End else TextAlign.Start
-    Column(modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = if (end) Alignment.End else Alignment.Start) {
+    val shown = counted(cents ?: 0L)
+    Column(
+        modifier.semantics(mergeDescendants = true) {},
+        horizontalAlignment = if (end) Alignment.End else Alignment.Start,
+    ) {
         Text(label, color = l.faint, style = MaterialTheme.typography.labelMedium, textAlign = align)
-        Text(value, color = color, style = MaterialTheme.typography.titleLarge, textAlign = align)
+        Text(
+            if (cents == null) "Nada" else roundMoney(shown),
+            color = if (cents != null && shown < 0) l.neg else l.text,
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = align,
+            modifier = Modifier.clearAndSetSemantics { contentDescription = cents?.let(::roundMoney) ?: "Nada" },
+        )
         notes.forEach { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium, textAlign = align) }
     }
+}
+
+/** Cents counting to [target] from where they were, and from zero the first time. */
+@Composable
+private fun counted(target: Long): Long {
+    var from by remember { mutableStateOf(0L) }
+    var to by remember { mutableStateOf(0L) }
+    val e = remember { Animatable(1f) }
+    LaunchedEffect(target) {
+        from += ((to - from) * e.value).roundToLong()
+        to = target
+        e.snapTo(0f)
+        e.animateTo(1f, tween(MORPH_MS, easing = Motion.Settle))
+    }
+    return from + ((to - from) * e.value).roundToLong()
 }
 
 /** What each line on the chart is; the dashed rule says its own name on the plot. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Legend() {
+private fun Legend(modifier: Modifier = Modifier) {
     val l = LocalLedger.current
     FlowRow(
-        Modifier.clearAndSetSemantics {},
+        modifier.clearAndSetSemantics {},
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -727,13 +779,18 @@ private fun PaceBlock(v: ScenarioView, onAjustes: () -> Unit, onPick: (String) -
         if (v.paces.size > 1) {
             ChipGrid(v.paces.map { PACE_LABEL[it] ?: it }, v.paces.indexOf(v.pace)) { onPick(v.paces[it]) }
         }
-        Text(premiseOf(v, v.pace), color = l.muted, style = MaterialTheme.typography.bodyMedium)
-        val bare = bareOf(v)
-        if (bare.isNotEmpty()) {
-            // A premise the answer leans on: the tone in one dot, as the alerts carry it.
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.padding(top = 7.dp).size(6.dp).background(l.warn, CircleShape))
-                Text(bare, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        // The premise and what it leaves bare change with the pace: they fade through together and
+        // the space they take follows, so nothing under them jumps.
+        Swap(Triple(premiseOf(v, v.pace), bareOf(v), v.pace), key = { it.third }) { (premise, bare) ->
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(premise, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                if (bare.isNotEmpty()) {
+                    // A premise the answer leans on: the tone in one dot, as the alerts carry it.
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.padding(top = 7.dp).size(6.dp).background(l.warn, CircleShape))
+                        Text(bare, color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
         if (v.spends.teto == null) {
@@ -1000,6 +1057,7 @@ private fun ChipGrid(labels: List<String>, selected: Int, onPick: (Int) -> Unit)
  * pace the scale is the simulation's: the sheet runs off the top, an arrow where it leaves. A
  * finger reads any day; the table carries every month's value for TalkBack.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SimChart(
     days: List<ScenarioDay>,
@@ -1011,154 +1069,227 @@ private fun SimChart(
     from: String? = null,
 ) {
     val l = LocalLedger.current
-    val measurer = rememberTextMeasurer()
+    // The grid's labels of two answers at once, while one fades into the other.
+    val measurer = rememberTextMeasurer(cacheSize = 32)
     val density = LocalDensity.current
-    val target = remember(days) { days.map { it.sim.toFloat() } }
-    var shown by remember { mutableStateOf(target) }
-    // The simulation's line moves to a new answer instead of jumping; Android's "Remove
-    // animations" makes it jump, as the site's reduced motion does.
+    val target = remember(days, same, fit, mark, from) { frameOf(days, same, fit, mark, from) }
+    // The chart moves from the last answer to the new one: line, scale and grid together. A new
+    // answer midway starts from where the drawing is; "Remove animations" makes it jump there.
+    var was by remember { mutableStateOf(target) }
+    var goal by remember { mutableStateOf(target) }
+    val e = remember { Animatable(1f) }
     LaunchedEffect(target) {
-        val from = shown
-        if (from.size != target.size) {
-            shown = target
-            return@LaunchedEffect
-        }
-        val t = Animatable(0f)
-        t.animateTo(1f, tween(260, easing = Motion.Settle)) {
-            shown = List(target.size) { i -> from[i] + (target[i] - from[i]) * value }
-        }
-        shown = target
+        if (target === goal) return@LaunchedEffect
+        was = mix(was, goal, e.value)
+        goal = target
+        e.snapTo(0f)
+        e.animateTo(1f, tween(MORPH_MS, easing = Motion.Settle))
     }
     var at by remember(days.size) { mutableStateOf<Int?>(null) }
     val small = TextStyle(fontFamily = Geist, fontSize = 11.sp, color = l.faint)
     val tip = MaterialTheme.typography.labelMedium
     if (days.size < 2) return
-    val values = (if (fit) emptyList() else days.map { it.sheet }) + days.map { it.sim } + 0L
-    val ticks = remember(days, fit) { ticksFor(values.min(), values.max()) }
     // The left side is a gutter for the amounts, so no line ever runs through a label.
-    val gutter = ticks.maxOf { measurer.measure(axisMoney(it), small).size.width } + with(density) { 10.dp.toPx() }
-    val markAt = mark?.let { m -> days.indexOfFirst { it.date == m.date } } ?: -1
-    val fromAt = from?.let { f -> days.indexOfFirst { it.date == f } } ?: -1
-    // Where the sheet's rosier line leaves the top, a small arrow says where it went.
-    val exitAt = if (same) -1 else days.indexOfFirst { it.sheet > ticks.last() }
-    Canvas(
-        Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .semantics { contentDescription = label }
-            .pointerInput(days.size, gutter) {
-                val right = 8.dp.toPx()
-                val pick = { x: Float -> ((x - gutter) / (size.width - gutter - right) * (days.size - 1)).roundToInt().coerceIn(0, days.size - 1) }
-                detectTapGestures { at = pick(it.x) }
+    val gutterOf = { ticks: List<Long> -> ticks.maxOf { measurer.measure(axisMoney(it), small).size.width } + with(density) { 10.dp.toPx() } }
+    val gutter = gutterOf(goal.ticks)
+    Column {
+        // Always in its place, only fading, so the plot never slides while the line moves.
+        val legend by animateFloatAsState(if (same) 0f else 1f, tween(160), label = "legend")
+        Legend(Modifier.padding(bottom = 12.dp).graphicsLayer { alpha = legend })
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .semantics { contentDescription = label }
+                .pointerInput(days.size, gutter) {
+                    val right = 8.dp.toPx()
+                    val pick = { x: Float -> ((x - gutter) / (size.width - gutter - right) * (days.size - 1)).roundToInt().coerceIn(0, days.size - 1) }
+                    detectTapGestures { at = pick(it.x) }
+                }
+                .pointerInput(days.size, gutter) {
+                    val right = 8.dp.toPx()
+                    val pick = { x: Float -> ((x - gutter) / (size.width - gutter - right) * (days.size - 1)).roundToInt().coerceIn(0, days.size - 1) }
+                    detectHorizontalDragGestures(onDragStart = { at = pick(it.x) }) { change, _ -> at = pick(change.position.x) }
+                },
+        ) {
+            val p = e.value
+            // What is on screen now: the line, the scale and the sheet's line between two answers.
+            val now = mix(was, goal, p)
+            val padTop = 12.dp.toPx()
+            val padRight = 8.dp.toPx()
+            val padBottom = 26.dp.toPx()
+            val lo = now.lo
+            val hi = now.hi
+            val left = gutterOf(was.ticks) + (gutter - gutterOf(was.ticks)) * p
+            val plotW = size.width - left - padRight
+            val plotH = size.height - padTop - padBottom
+            val bottom = size.height - padBottom
+            val x = { i: Int -> left + i.toFloat() / (days.size - 1) * plotW }
+            val y = { v: Float -> padTop + (hi - v) / (if (hi - lo == 0f) 1f else hi - lo) * plotH }
+            val zero = y(0f)
+            if (zero > padTop && zero < bottom) {
+                drawRect(l.neg.copy(alpha = 0.09f), Offset(left, zero), Size(plotW, bottom - zero))
             }
-            .pointerInput(days.size, gutter) {
-                val right = 8.dp.toPx()
-                val pick = { x: Float -> ((x - gutter) / (size.width - gutter - right) * (days.size - 1)).roundToInt().coerceIn(0, days.size - 1) }
-                detectHorizontalDragGestures(onDragStart = { at = pick(it.x) }) { change, _ -> at = pick(change.position.x) }
-            },
-    ) {
-        val padTop = 12.dp.toPx()
-        val padRight = 8.dp.toPx()
-        val padBottom = 26.dp.toPx()
-        val lo = ticks.first().toFloat()
-        val hi = ticks.last().toFloat()
-        val plotW = size.width - gutter - padRight
-        val plotH = size.height - padTop - padBottom
-        val bottom = size.height - padBottom
-        val x = { i: Int -> gutter + i.toFloat() / (days.size - 1) * plotW }
-        val y = { v: Float -> padTop + (hi - v) / (if (hi - lo == 0f) 1f else hi - lo) * plotH }
-        val zero = y(0f)
-        if (zero > padTop && zero < bottom) {
-            drawRect(l.neg.copy(alpha = 0.09f), Offset(gutter, zero), Size(plotW, bottom - zero))
-        }
-        ticks.forEach { t ->
-            val ty = y(t.toFloat())
-            drawLine(if (t == 0L) l.borderInput else l.border, Offset(gutter, ty), Offset(size.width - padRight, ty), 1.dp.toPx())
-            val text = measurer.measure(axisMoney(t), small)
-            drawText(text, topLeft = Offset(gutter - 8.dp.toPx() - text.size.width, ty - text.size.height / 2f))
-        }
-        val line = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-        if (fromAt > 0) {
-            drawLine(
-                l.faint, Offset(x(fromAt), padTop), Offset(x(fromAt), bottom), 1.5.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())),
-            )
-        }
-        if (!same) {
-            clipRect(top = padTop, bottom = bottom) {
-                drawPath(path(days.map { it.sheet.toFloat() }, x, y), l.borderInput, style = line)
+            // The grid moves with the scale: a line both answers share stays, the old ones fade out
+            // as the new ones fade in, and any of them fades as it leaves the plot.
+            val grid = goal.ticks.map { it to if (it in was.ticks) 1f else p } +
+                was.ticks.filter { it !in goal.ticks }.map { it to 1f - p }
+            grid.forEach { (t, o) ->
+                val ty = y(t.toFloat())
+                val out = max(max(padTop - ty, ty - bottom), 0f)
+                val a = o * (1f - out / 16.dp.toPx()).coerceIn(0f, 1f)
+                if (a <= 0.01f) return@forEach
+                val color = if (t == 0L) l.borderInput else l.border
+                drawLine(color.copy(alpha = color.alpha * a), Offset(left, ty), Offset(size.width - padRight, ty), 1.dp.toPx())
+                val text = measurer.measure(axisMoney(t), small)
+                drawText(text, topLeft = Offset(left - 8.dp.toPx() - text.size.width, ty - text.size.height / 2f), alpha = a)
             }
-        }
-        if (exitAt >= 0 && at == null) {
-            val text = measurer.measure("↑ planilha", small)
-            val cx = x(exitAt).coerceIn(gutter + text.size.width / 2f, size.width - padRight - text.size.width / 2f)
-            drawText(text, topLeft = Offset(cx - text.size.width / 2f, padTop - 2.dp.toPx() - text.size.height * 0.85f))
-        }
-        // Below zero the line itself turns red, not only the wash behind it.
-        val sim = path(shown, x, y)
-        clipRect(top = 0f, bottom = zero) { drawPath(sim, if (same) l.muted else l.accent, style = line) }
-        clipRect(top = zero, bottom = size.height) { drawPath(sim, l.neg, style = line) }
-        // Right of the rule the day to day is an assumption: said on the plot, on the panel's color
-        // where a line runs through it.
-        if (fromAt > 0) {
-            val text = measurer.measure("previsão →", small.copy(color = l.muted))
-            val tx = min(x(fromAt) + 5.dp.toPx(), size.width - padRight - text.size.width)
-            val ty = bottom - 6.dp.toPx() - text.firstBaseline
-            val pad = 2.dp.toPx()
-            drawRoundRect(
-                l.surface, Offset(tx - pad, ty), Size(text.size.width + 2 * pad, text.size.height.toFloat()),
-                CornerRadius(3.dp.toPx()),
-            )
-            drawText(text, topLeft = Offset(tx, ty))
-        }
-        val ring = 2.dp.toPx()
-        // The day the answer names: a dot on the line itself, so a one-day dip still reaches it.
-        if (markAt >= 0) {
-            val v = shown.getOrElse(markAt) { 0f }
-            drawCircle(if (v < 0) l.neg else if (same) l.muted else l.accent, 3.5.dp.toPx(), Offset(x(markAt), y(v)))
-        }
-        // A month's name at each first day, every second or third month on a narrow screen; the
-        // year on the first one when the chart spans more than one, and where it turns.
-        val firsts = days.indices.filter { days[it].date.endsWith("-01") }
-        val every = ceil(firsts.size / max(2f, floor(plotW / 64.dp.toPx()))).toInt().coerceAtLeast(1)
-        var was = if (today.take(4) != days.last().date.take(4)) "" else today.take(4)
-        firsts.filterIndexed { k, _ -> k % every == 0 }.forEach { i ->
-            val d = days[i].date
-            val name = monthName(d.substring(5, 7).toInt()).take(3) + if (d.take(4) == was) "" else " ${d.take(4)}"
-            was = d.take(4)
-            val text = measurer.measure(name, small)
-            drawText(text, topLeft = Offset(x(i) - text.size.width / 2f, size.height - 8.dp.toPx() - text.size.height * 0.8f))
-        }
-        val i = at ?: return@Canvas
-        val d = days[i]
-        val cx = x(i)
-        drawLine(l.faint, Offset(cx, padTop), Offset(cx, bottom), 1.dp.toPx())
-        if (!same && d.sheet <= ticks.last()) {
-            drawCircle(l.surface, 4.dp.toPx() + ring, Offset(cx, y(d.sheet.toFloat())))
-            drawCircle(l.borderInput, 4.dp.toPx(), Offset(cx, y(d.sheet.toFloat())))
-        }
-        drawCircle(l.surface, 4.dp.toPx() + ring, Offset(cx, y(d.sim.toFloat())))
-        drawCircle(if (d.sim < 0) l.neg else if (same) l.muted else l.accent, 4.dp.toPx(), Offset(cx, y(d.sim.toFloat())))
-        // The day read, beside the line on the side with more room, so it never covers the dots.
-        val lines = buildList {
-            add(measurer.measure(dayOf(d.date, today), tip.copy(color = l.faint)))
-            add(measurer.measure("${roundMoney(d.sim)}${if (same) "" else " simulação"}", tip.copy(color = l.text)))
-            if (!same) add(measurer.measure("${roundMoney(d.sheet)} planilha", tip.copy(color = l.muted)))
-        }
-        val padIn = 10.dp.toPx()
-        val w = lines.maxOf { it.size.width } + 2 * padIn
-        val h = lines.sumOf { it.size.height } + 2 * 8.dp.toPx()
-        val left = if (cx > size.width / 2) cx - 12.dp.toPx() - w else cx + 12.dp.toPx()
-        val top = 4.dp.toPx()
-        drawRoundRect(l.surface2, Offset(left, top), Size(w, h), CornerRadius(8.dp.toPx()))
-        drawRoundRect(l.border, Offset(left, top), Size(w, h), CornerRadius(8.dp.toPx()), style = Stroke(1.dp.toPx()))
-        var ly = top + 8.dp.toPx()
-        lines.forEach {
-            drawText(it, topLeft = Offset(left + padIn, ly))
-            ly += it.size.height
+            val line = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            fades(was.fromAt, goal.fromAt, p).forEach { (i, a) ->
+                if (i > 0 && a > 0.01f) {
+                    drawLine(
+                        l.faint.copy(alpha = l.faint.alpha * a), Offset(x(i), padTop), Offset(x(i), bottom), 1.5.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())),
+                    )
+                }
+            }
+            if (now.sheet > 0.01f) {
+                clipRect(top = padTop, bottom = bottom) {
+                    drawPath(path(days.map { it.sheet.toFloat() }, x, y), l.borderInput, alpha = now.sheet, style = line)
+                }
+            }
+            if (at == null) {
+                fades(was.exitAt, goal.exitAt, p).forEach { (i, a) ->
+                    if (i < 0 || a <= 0.01f) return@forEach
+                    val text = measurer.measure("↑ planilha", small)
+                    val cx = x(i).coerceIn(left + text.size.width / 2f, size.width - padRight - text.size.width / 2f)
+                    drawText(text, topLeft = Offset(cx - text.size.width / 2f, padTop - 2.dp.toPx() - text.size.height * 0.85f), alpha = a)
+                }
+            }
+            // Below zero the line itself turns red, not only the wash behind it; alone, the sheet
+            // is the answer and reads in full ink, taking the accent as the simulation leaves it.
+            val sim = path(now.sim, x, y)
+            clipRect(top = 0f, bottom = zero) { drawPath(sim, lerp(l.muted, l.accent, now.sheet), style = line) }
+            clipRect(top = zero, bottom = size.height) { drawPath(sim, l.neg, style = line) }
+            // Right of the rule the day to day is an assumption: said on the plot, on the panel's
+            // color where a line runs through it.
+            fades(was.fromAt, goal.fromAt, p).forEach { (i, a) ->
+                if (i <= 0 || a <= 0.01f) return@forEach
+                val text = measurer.measure("previsão →", small.copy(color = l.muted))
+                val tx = min(x(i) + 5.dp.toPx(), size.width - padRight - text.size.width)
+                val ty = bottom - 6.dp.toPx() - text.firstBaseline
+                val pad = 2.dp.toPx()
+                drawRoundRect(
+                    l.surface, Offset(tx - pad, ty), Size(text.size.width + 2 * pad, text.size.height.toFloat()),
+                    CornerRadius(3.dp.toPx()), alpha = a,
+                )
+                drawText(text, topLeft = Offset(tx, ty), alpha = a)
+            }
+            val ring = 2.dp.toPx()
+            val simAt = { i: Int -> now.sim.getOrElse(i) { 0f } }
+            val dot = { v: Float -> if (v < 0) l.neg else lerp(l.muted, l.accent, now.sheet) }
+            // The day the answer names: a dot on the line itself, so a one-day dip still reaches it.
+            // It rides the moving line, or hands over to the new day.
+            fades(was.markAt, goal.markAt, p).forEach { (i, a) ->
+                if (i >= 0 && a > 0.01f) drawCircle(dot(simAt(i)), 3.5.dp.toPx(), Offset(x(i), y(simAt(i))), alpha = a)
+            }
+            // A month's name at each first day, every second or third month on a narrow screen; the
+            // year on the first one when the chart spans more than one, and where it turns.
+            val firsts = days.indices.filter { days[it].date.endsWith("-01") }
+            val every = ceil(firsts.size / max(2f, floor(plotW / 64.dp.toPx()))).toInt().coerceAtLeast(1)
+            var year = if (today.take(4) != days.last().date.take(4)) "" else today.take(4)
+            firsts.filterIndexed { k, _ -> k % every == 0 }.forEach { i ->
+                val d = days[i].date
+                val name = monthName(d.substring(5, 7).toInt()).take(3) + if (d.take(4) == year) "" else " ${d.take(4)}"
+                year = d.take(4)
+                val text = measurer.measure(name, small)
+                drawText(text, topLeft = Offset(x(i) - text.size.width / 2f, size.height - 8.dp.toPx() - text.size.height * 0.8f))
+            }
+            val i = at ?: return@Canvas
+            val d = days[i]
+            val cx = x(i)
+            drawLine(l.faint, Offset(cx, padTop), Offset(cx, bottom), 1.dp.toPx())
+            if (!same && d.sheet <= hi) {
+                drawCircle(l.surface, 4.dp.toPx() + ring, Offset(cx, y(d.sheet.toFloat())))
+                drawCircle(l.borderInput, 4.dp.toPx(), Offset(cx, y(d.sheet.toFloat())))
+            }
+            drawCircle(l.surface, 4.dp.toPx() + ring, Offset(cx, y(simAt(i))))
+            drawCircle(dot(simAt(i)), 4.dp.toPx(), Offset(cx, y(simAt(i))))
+            // The day read, beside the line on the side with more room, so it never covers the dots.
+            val lines = buildList {
+                add(measurer.measure(dayOf(d.date, today), tip.copy(color = l.faint)))
+                add(measurer.measure("${roundMoney(d.sim)}${if (same) "" else " simulação"}", tip.copy(color = l.text)))
+                if (!same) add(measurer.measure("${roundMoney(d.sheet)} planilha", tip.copy(color = l.muted)))
+            }
+            val padIn = 10.dp.toPx()
+            val w = lines.maxOf { it.size.width } + 2 * padIn
+            val h = lines.sumOf { it.size.height } + 2 * 8.dp.toPx()
+            val boxLeft = if (cx > size.width / 2) cx - 12.dp.toPx() - w else cx + 12.dp.toPx()
+            val top = 4.dp.toPx()
+            drawRoundRect(l.surface2, Offset(boxLeft, top), Size(w, h), CornerRadius(8.dp.toPx()))
+            drawRoundRect(l.border, Offset(boxLeft, top), Size(w, h), CornerRadius(8.dp.toPx()), style = Stroke(1.dp.toPx()))
+            var ly = top + 8.dp.toPx()
+            lines.forEach {
+                drawText(it, topLeft = Offset(boxLeft + padIn, ly))
+                ly += it.size.height
+            }
         }
     }
 }
+
+/**
+ * What the chart draws for one answer: the simulation, the scale and what sits on it. A new
+ * answer mixes the last one into it, so the line, the scale and the grid move together.
+ */
+private class Frame(
+    val sim: List<Float>,
+    val lo: Float,
+    val hi: Float,
+    val ticks: List<Long>,
+    /** The sheet's own line: 1 drawn, 0 while the simulation is the sheet itself. */
+    val sheet: Float,
+    val markAt: Int,
+    val fromAt: Int,
+    /** Where the sheet's rosier line leaves the top; -1 when it never does. */
+    val exitAt: Int,
+)
+
+private fun frameOf(days: List<ScenarioDay>, same: Boolean, fit: Boolean, mark: ScenarioPoint?, from: String?): Frame {
+    if (days.isEmpty()) return Frame(emptyList(), 0f, 1f, listOf(0L), 0f, -1, -1, -1)
+    val values = (if (fit) emptyList() else days.map { it.sheet }) + days.map { it.sim } + 0L
+    val ticks = ticksFor(values.min(), values.max())
+    return Frame(
+        days.map { it.sim.toFloat() },
+        ticks.first().toFloat(),
+        ticks.last().toFloat(),
+        ticks,
+        if (same) 0f else 1f,
+        mark?.let { m -> days.indexOfFirst { it.date == m.date } } ?: -1,
+        from?.let { f -> days.indexOfFirst { it.date == f } } ?: -1,
+        if (same) -1 else days.indexOfFirst { it.sheet > ticks.last() },
+    )
+}
+
+/** Two answers mixed by [e]; another day count (the sheet read again on a new day) jumps. */
+private fun mix(a: Frame, b: Frame, e: Float): Frame {
+    if (a.sim.size != b.sim.size) return b
+    val by = { x: Float, y: Float -> x + (y - x) * e }
+    val half = if (e < 0.5f) a else b
+    return Frame(
+        List(b.sim.size) { by(a.sim[it], b.sim[it]) },
+        by(a.lo, b.lo),
+        by(a.hi, b.hi),
+        half.ticks,
+        by(a.sheet, b.sheet),
+        half.markAt,
+        half.fromAt,
+        half.exitAt,
+    )
+}
+
+/** One mark in each answer: kept where it stays, else the old one fades out as the new one comes. */
+private fun fades(a: Int, b: Int, e: Float): List<Pair<Int, Float>> =
+    if (a == b) listOf(b to 1f) else listOf(a to 1f - e, b to e)
 
 private fun path(values: List<Float>, x: (Int) -> Float, y: (Float) -> Float) = Path().apply {
     values.forEachIndexed { i, v -> if (i == 0) moveTo(x(i), y(v)) else lineTo(x(i), y(v)) }

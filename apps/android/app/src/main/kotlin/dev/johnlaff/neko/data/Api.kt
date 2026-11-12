@@ -124,10 +124,10 @@ class Api(
     suspend fun simulate(amount: Long, count: Int): InstallmentSimulation? =
         json.decodeFromString(call("/simulate?amount=$amount&count=$count"))
 
-    /** Simular: read only, nothing is saved. */
-    suspend fun scenario(ask: ScenarioBody): ScenarioView {
+    /** Simular: every pace's answer for the same what-ifs, the one to open on first. Read only. */
+    suspend fun scenarios(ask: ScenarioBody): List<ScenarioView> {
         val body = json.encodeToString(ScenarioBody.serializer(), ask).toRequestBody(jsonType)
-        return json.decodeFromString(call("/scenario", body))
+        return json.decodeFromString(call("/scenarios", body))
     }
 
     suspend fun settings(): UserSettings = json.decodeFromString(call("/settings"))

@@ -221,7 +221,7 @@ class MainActivity : ComponentActivity() {
                                 label = "over",
                             ) { place ->
                             if (place == "simular") {
-                                SimularScreen(model::scenario, onBack = { simOpen = false }, onAjustes = { simOpen = false; go(Tab.Ajustes) })
+                                SimularScreen(model::scenarios, onBack = { simOpen = false }, onAjustes = { simOpen = false; go(Tab.Ajustes) })
                             } else if (place == "mia") {
                                 MiaScreen(
                                     mia, model::askMia, model.miaChat, model.viewModelScope,
