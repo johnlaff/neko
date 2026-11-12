@@ -11,6 +11,7 @@ import type {
   RefValue,
   SaldoCheck,
   Subscription,
+  SubscriptionNews,
   TransferDue,
   WeekSpend,
 } from "@neko/engine";
@@ -123,6 +124,8 @@ export interface SubscriptionsView {
   readonly total: Cents;
   /** One month of the ones marked to cancel. */
   readonly toCancel: Cents;
+  /** A new one, or one that went up, this week (the 06:00 read says each once); absent before. */
+  readonly news?: readonly SubscriptionNews[];
 }
 
 export interface HistoryPoint {

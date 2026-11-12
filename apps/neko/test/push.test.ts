@@ -229,6 +229,12 @@ describe("morning", () => {
       body: "",
     });
     expect(sunday(null, 0)).toBeNull();
+    // Mia's Sunday summary already said it: the morning stays quiet about the week.
+    expect(
+      morningMessage(response({ today: SUNDAY } as never, { week, habit: { lastWeek: 5 } }), {
+        weekSaid: true,
+      }),
+    ).toBeNull();
     // Any other day, the week waits for Sunday.
     expect(morningMessage(response({}, { week, habit: { lastWeek: 5 } }))).toBeNull();
   });
