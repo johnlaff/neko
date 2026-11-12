@@ -88,11 +88,11 @@ class StressScreensTest {
     }
 
     @Test fun simular() = compose.shot(path("simular"), night = true, Device.SmallLargeText) {
-        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
+        SimularScreen(Fakes.askScenarios, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
     }
 
     @Test fun simularHugeText() = compose.shot(path("simular-200"), night = false, Device.HugeText) {
-        SimularScreen(Fakes.askScenario, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
+        SimularScreen(Fakes.askScenarios, {}, start = Fakes.scenario, startRows = Fakes.scenarioRows)
     }
 
     @Test fun faturas() = compose.shot(path("faturas"), night = true, Device.SmallLargeText, Tab.Faturas) {

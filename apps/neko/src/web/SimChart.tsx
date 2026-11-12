@@ -1,7 +1,8 @@
 import type { ScenarioDay, ScenarioPoint } from "@neko/engine";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { dayLabel, monthName, roundMoney } from "./format.ts";
 import { valuesHidden } from "./privacy.ts";
+import { useMorph } from "./useMorph.ts";
 
 const HEIGHT = 200;
 /** The left side is a gutter for the amounts, so no line ever runs through a label. */
@@ -10,9 +11,6 @@ const PAD = { top: 12, right: 8, bottom: 26 } as const;
 const CHAR_PX = 6.2;
 /** Beside the dashed rule: from there on, the spending is assumed. */
 const FROM_TEXT = "previsão →";
-/** How long the simulation line takes to move to a new answer; none with reduced motion. */
-const MORPH_MS = 260;
-
 /** "20 mil", "−5 mil", "0": an axis reads in thousands of reais, never in cents. */
 const axisMoney = (cents: number) => {
   if (valuesHidden()) return cents === 0 ? "0" : "";
@@ -35,35 +33,48 @@ const ticksFor = (lo: number, hi: number): number[] => {
   return out;
 };
 
-const reducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+/**
+ * What the chart draws for one answer: the simulation, the scale and what sits on it. A new answer
+ * mixes the last one into it, so the line, the scale and the grid move together.
+ */
+interface Frame {
+  readonly sim: readonly number[];
+  readonly lo: number;
+  readonly hi: number;
+  readonly ticks: readonly number[];
+  /** The sheet's own line: 1 drawn, 0 while the simulation is the sheet itself. */
+  readonly sheet: number;
+  readonly markAt: number;
+  readonly fromAt: number;
+  /** Where the sheet's rosier line leaves the top; -1 when it never does. */
+  readonly exitAt: number;
+}
 
-/** The simulation's values, eased from the last answer to the new one. */
-const useMorph = (values: readonly number[]): readonly number[] => {
-  const [shown, setShown] = useState(values);
-  const from = useRef(values);
-  useEffect(() => {
-    const start = from.current;
-    if (start.length !== values.length || reducedMotion()) {
-      from.current = values;
-      setShown(values);
-      return;
-    }
-    const t0 = performance.now();
-    let frame = 0;
-    const step = (now: number) => {
-      const t = Math.min(1, (now - t0) / MORPH_MS);
-      const e = 1 - (1 - t) ** 3;
-      const next = values.map((v, i) => (start[i] ?? v) + (v - (start[i] ?? v)) * e);
-      from.current = next;
-      setShown(next);
-      if (t < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [values]);
-  return shown;
+const mix = (a: Frame, b: Frame, e: number): Frame => {
+  // Another day count (the sheet read again on a new day): nothing to match, it jumps.
+  if (a.sim.length !== b.sim.length) return b;
+  const by = (x: number, y: number) => x + (y - x) * e;
+  const half = e < 0.5 ? a : b;
+  return {
+    sim: b.sim.map((v, i) => by(a.sim[i] ?? v, v)),
+    lo: by(a.lo, b.lo),
+    hi: by(a.hi, b.hi),
+    sheet: by(a.sheet, b.sheet),
+    ticks: half.ticks,
+    markAt: half.markAt,
+    fromAt: half.fromAt,
+    exitAt: half.exitAt,
+  };
 };
+
+/** One mark in each answer: kept where it stays, else the old one fades out as the new one comes. */
+const fades = (a: number, b: number, e: number): [number, number][] =>
+  a === b
+    ? [[b, 1]]
+    : [
+        [a, 1 - e],
+        [b, e],
+      ];
 
 const path = (xs: readonly number[], ys: readonly number[]) =>
   xs.map((x, i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${(ys[i] ?? 0).toFixed(1)}`).join("");
@@ -113,15 +124,31 @@ export const SimChart = ({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const sim = useMorph(days.map((d) => d.sim));
-  if (days.length < 2) return null;
 
   const sims = days.map((d) => d.sim);
   const values = fit ? [...sims, 0] : [...days.map((d) => d.sheet), ...sims, 0];
-  const ticks = ticksFor(Math.min(...values), Math.max(...values));
-  const lo = ticks[0] ?? 0;
-  const hi = ticks.at(-1) ?? 1;
-  const left = Math.ceil(Math.max(...ticks.map((t) => axisMoney(t).length)) * CHAR_PX) + 10;
+  const goal = ticksFor(Math.min(...values), Math.max(...values));
+  const top = goal.at(-1) ?? 1;
+  const target: Frame = {
+    sim: sims,
+    lo: goal[0] ?? 0,
+    hi: top,
+    ticks: goal,
+    sheet: same ? 0 : 1,
+    markAt: mark ? days.findIndex((d) => d.date === mark.date) : -1,
+    fromAt: from ? days.findIndex((d) => d.date === from) : -1,
+    exitAt: same ? -1 : days.findIndex((d) => d.sheet > top),
+  };
+  const sig = [target.sheet, target.lo, target.hi, target.markAt, target.fromAt, ...sims].join();
+  const { from: before, to: after, e } = useMorph(target, sig, mix);
+  if (days.length < 2) return null;
+
+  // What is on screen now: the line, the scale and the sheet's line between the two answers.
+  const now = mix(before, after, e);
+  const { lo, hi } = now;
+  const gutter = (ts: readonly number[]) =>
+    Math.ceil(Math.max(...ts.map((t) => axisMoney(t).length)) * CHAR_PX) + 10;
+  const left = gutter(before.ticks) + (gutter(after.ticks) - gutter(before.ticks)) * e;
   const plotW = width - left - PAD.right;
   const plotH = HEIGHT - PAD.top - PAD.bottom;
   const X = (i: number) => left + (i / (days.length - 1)) * plotW;
@@ -130,16 +157,24 @@ export const SimChart = ({
   const today = days[0]?.date ?? "";
   const zero = Y(0);
   const bottom = HEIGHT - PAD.bottom;
-  const markAt = mark ? days.findIndex((d) => d.date === mark.date) : -1;
-  const fromAt = from ? days.findIndex((d) => d.date === from) : -1;
-  // Where the sheet's rosier line leaves the top, a small arrow says where it went.
-  const exitAt = same ? -1 : days.findIndex((d) => d.sheet > hi);
+  // The grid moves with the scale: a line both answers share stays, the old ones fade out as the
+  // new ones fade in, and any of them fades as it leaves the plot.
+  const grid = [
+    ...after.ticks.map((t) => [t, before.ticks.includes(t) ? 1 : e] as const),
+    ...before.ticks.filter((t) => !after.ticks.includes(t)).map((t) => [t, 1 - e] as const),
+  ].flatMap(([t, o]) => {
+    const y = Y(t);
+    const out = Math.max(PAD.top - y, y - bottom, 0);
+    const shown = o * Math.max(0, 1 - out / 16);
+    return shown > 0.01 ? [{ t, y, o: shown }] : [];
+  });
   const exitText = "↑ planilha";
   // A month name at each first day, every second or third month on a narrow screen.
   const firsts = days.flatMap((d, i) => (d.date.endsWith("-01") ? [i] : []));
   const every = Math.ceil(firsts.length / Math.max(2, Math.floor(plotW / 64)));
   const marks = firsts.filter((_, k) => k % every === 0);
   const hover = at === null ? null : days[at];
+  const simAt = (i: number) => now.sim[i] ?? 0;
 
   const pick = (clientX: number) => {
     const r = box.current?.getBoundingClientRect();
@@ -147,29 +182,30 @@ export const SimChart = ({
     const i = Math.round(((clientX - r.left - left) / plotW) * (days.length - 1));
     setAt(Math.min(days.length - 1, Math.max(0, i)));
   };
-  const key = (e: React.KeyboardEvent) => {
-    const step = { ArrowRight: 1, ArrowLeft: -1, PageDown: 30, PageUp: -30 }[e.key];
+  const key = (ev: React.KeyboardEvent) => {
+    const step = { ArrowRight: 1, ArrowLeft: -1, PageDown: 30, PageUp: -30 }[ev.key];
     // Esc first lets go of the crosshair; only a second one leaves the screen.
-    if (e.key === "Escape") {
+    if (ev.key === "Escape") {
       if (at === null) return;
-      e.preventDefault();
+      ev.preventDefault();
       return setAt(null);
     }
-    if (e.key === "Home") return setAt(0);
-    if (e.key === "End") return setAt(days.length - 1);
+    if (ev.key === "Home") return setAt(0);
+    if (ev.key === "End") return setAt(days.length - 1);
     if (step === undefined) return;
-    e.preventDefault();
+    ev.preventDefault();
     setAt((a) => Math.min(days.length - 1, Math.max(0, (a ?? 0) + step)));
   };
 
   return (
     <figure className={same ? "sim-chart same" : "sim-chart"}>
-      {!same && (
-        <figcaption className="sim-legend">
+      {/* Always in its place, only fading, so the plot never slides while the line moves. */}
+      <figcaption className="sim-legend" aria-hidden={same || undefined}>
+        <span className="sim-legend-in">
           <span className="sheet">Planilha</span>
           <span className="sim">Simulação</span>
-        </figcaption>
-      )}
+        </span>
+      </figcaption>
       {/* biome-ignore lint/a11y/useSemanticElements: a chart read by pointer and keys, not a form; the table says it all without it */}
       <div
         ref={box}
@@ -179,9 +215,9 @@ export const SimChart = ({
         aria-describedby={`${id}-read`}
         // biome-ignore lint/a11y/noNoninteractiveTabindex: arrow keys move the crosshair day by day
         tabIndex={0}
-        onPointerMove={(e) => pick(e.clientX)}
-        onPointerDown={(e) => pick(e.clientX)}
-        onPointerLeave={(e) => e.pointerType === "mouse" && setAt(null)}
+        onPointerMove={(ev) => pick(ev.clientX)}
+        onPointerDown={(ev) => pick(ev.clientX)}
+        onPointerLeave={(ev) => ev.pointerType === "mouse" && setAt(null)}
         onKeyDown={key}
         onBlur={() => setAt(null)}
       >
@@ -200,10 +236,10 @@ export const SimChart = ({
           {zero > PAD.top && zero < bottom && (
             <rect className="below" x={left} y={zero} width={plotW} height={bottom - zero} />
           )}
-          {ticks.map((t) => (
-            <g key={t} className={t === 0 ? "zero" : "grid"}>
-              <line x1={left} x2={width - PAD.right} y1={Y(t)} y2={Y(t)} />
-              <text className="amount" x={left - 8} y={Y(t) + 4}>
+          {grid.map(({ t, y, o }) => (
+            <g key={t} className={t === 0 ? "zero" : "grid"} opacity={o < 1 ? o : undefined}>
+              <line x1={left} x2={width - PAD.right} y1={y} y2={y} />
+              <text className="amount" x={left - 8} y={y + 4}>
                 {axisMoney(t)}
               </text>
             </g>
@@ -225,23 +261,26 @@ export const SimChart = ({
               </text>
             );
           })}
-          {fromAt > 0 && (
-            <>
-              <line className="from" x1={X(fromAt)} x2={X(fromAt)} y1={PAD.top} y2={bottom} />
-              {/* Right of the rule the day to day is an assumption: said on the plot, not apart. */}
-              <text
-                className="from"
-                x={Math.min(X(fromAt) + 5, width - PAD.right - FROM_TEXT.length * CHAR_PX)}
-                y={bottom - 6}
-              >
-                {FROM_TEXT}
-              </text>
-            </>
+          {fades(before.fromAt, after.fromAt, e).map(([i, o]) =>
+            i > 0 && o > 0.01 ? (
+              <g key={`from${i}`} opacity={o < 1 ? o : undefined}>
+                <line className="from" x1={X(i)} x2={X(i)} y1={PAD.top} y2={bottom} />
+                {/* Right of the rule the day to day is an assumption: said on the plot, not apart. */}
+                <text
+                  className="from"
+                  x={Math.min(X(i) + 5, width - PAD.right - FROM_TEXT.length * CHAR_PX)}
+                  y={bottom - 6}
+                >
+                  {FROM_TEXT}
+                </text>
+              </g>
+            ) : null,
           )}
-          {!same && (
+          {now.sheet > 0.01 && (
             <path
               className="line sheet"
               clipPath={`url(#${clip}-plot)`}
+              opacity={now.sheet < 1 ? now.sheet : undefined}
               d={path(
                 xs,
                 days.map((d) => Y(d.sheet)),
@@ -255,29 +294,39 @@ export const SimChart = ({
               clipPath={`url(#${clip}-${side})`}
               d={path(
                 xs,
-                sim.map((v) => Y(v)),
+                now.sim.map((v) => Y(v)),
               )}
             />
           ))}
-          {exitAt >= 0 && at === null && (
-            <text
-              className="peak"
-              x={Math.min(
-                Math.max(X(exitAt), left + exitText.length * CHAR_PX * 0.5),
-                width - PAD.right - exitText.length * CHAR_PX * 0.5,
-              )}
-              y={PAD.top - 2}
-            >
-              {exitText}
-            </text>
-          )}
-          {markAt >= 0 && (
-            <circle
-              className={(sim[markAt] ?? 0) < 0 ? "mark neg" : "mark"}
-              cx={X(markAt)}
-              cy={Y(sim[markAt] ?? 0)}
-              r={3.5}
-            />
+          {at === null &&
+            fades(before.exitAt, after.exitAt, e).map(([i, o]) =>
+              i >= 0 && o > 0.01 ? (
+                <text
+                  key={`exit${i}`}
+                  className="peak"
+                  opacity={o < 1 ? o : undefined}
+                  x={Math.min(
+                    Math.max(X(i), left + exitText.length * CHAR_PX * 0.5),
+                    width - PAD.right - exitText.length * CHAR_PX * 0.5,
+                  )}
+                  y={PAD.top - 2}
+                >
+                  {exitText}
+                </text>
+              ) : null,
+            )}
+          {/* The day the answer names rides the moving line, or hands over to the new day. */}
+          {fades(before.markAt, after.markAt, e).map(([i, o]) =>
+            i >= 0 && o > 0.01 ? (
+              <circle
+                key={`mark${i}`}
+                className={simAt(i) < 0 ? "mark neg" : "mark"}
+                opacity={o < 1 ? o : undefined}
+                cx={X(i)}
+                cy={Y(simAt(i))}
+                r={3.5}
+              />
+            ) : null,
           )}
           {hover && at !== null && (
             <g className="cross">
@@ -285,7 +334,7 @@ export const SimChart = ({
               {!same && hover.sheet <= hi && (
                 <circle className="sheet" cx={X(at)} cy={Y(hover.sheet)} r={4} />
               )}
-              <circle className={same ? "sheet" : "sim"} cx={X(at)} cy={Y(hover.sim)} r={4} />
+              <circle className={same ? "sheet" : "sim"} cx={X(at)} cy={Y(simAt(at))} r={4} />
             </g>
           )}
         </svg>

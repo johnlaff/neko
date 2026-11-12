@@ -16,6 +16,7 @@ import dev.johnlaff.neko.data.MiaEntry
 import dev.johnlaff.neko.data.Device
 import dev.johnlaff.neko.data.HistoryView
 import dev.johnlaff.neko.data.ScenarioBody
+import dev.johnlaff.neko.data.ScenarioChange
 import dev.johnlaff.neko.data.ScenarioView
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.MiaAsk
@@ -367,7 +368,7 @@ class AppModel(
     val miaChat = MiaChat()
 
     /** Simular; the Worker does the math, as for every other figure, and saves nothing. */
-    suspend fun scenario(ask: ScenarioBody): ScenarioView = neko.api.scenario(ask)
+    suspend fun scenarios(changes: List<ScenarioChange>): List<ScenarioView> = neko.api.scenarios(ScenarioBody(changes = changes))
 
     /** When each screen was last read well, on [clock]; a screen not read this run is missing. */
     private val readAt = mutableMapOf<MutableStateFlow<out ScreenState<*>>, Long>()

@@ -1,7 +1,9 @@
 package dev.johnlaff.neko.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +39,31 @@ object Motion {
     val Settle = CubicBezierEasing(0.2f, 0.7f, 0.2f, 1f)
     /** Entering screens and rolling digits. */
     val Enter = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
+}
+
+/**
+ * How long a new answer takes to move into place (the site's MORPH_MS): long enough to follow a
+ * line, short enough that a tap still feels instant (Material's medium durations run 250-400 ms).
+ */
+const val MORPH_MS = 360
+
+/**
+ * Words that change with an answer fade through, as Material's fade through: the old ones leave
+ * quickly, the new ones come in, and the space they take follows the new size instead of jumping.
+ * Only a new [key] fades; the same key takes the new words in place (a number while typing).
+ */
+@Composable
+fun <T> Swap(state: T, modifier: Modifier = Modifier, key: (T) -> Any? = { it }, content: @Composable (T) -> Unit) {
+    AnimatedContent(
+        state,
+        modifier,
+        contentKey = key,
+        transitionSpec = {
+            (fadeIn(tween(210, delayMillis = 90, easing = Motion.Settle)) togetherWith fadeOut(tween(90)))
+                .using(SizeTransform(clip = false) { _, _ -> tween(MORPH_MS, easing = Motion.Settle) })
+        },
+        label = "swap",
+    ) { content(it) }
 }
 
 /**
