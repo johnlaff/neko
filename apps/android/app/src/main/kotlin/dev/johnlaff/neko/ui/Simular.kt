@@ -153,7 +153,9 @@ private val KIND_LABEL = mapOf("compra" to "Compra", "entrada" to "Entrada", "sa
 /** One change on its own is the subject of the answer's sentence. */
 private val KIND_NOUN = mapOf("compra" to "A compra", "entrada" to "A entrada", "saida" to "A saída")
 /** Where a purchase's parcels go when the pace already fills the month. */
-private val PACE_INSIDE = mapOf("teto" to "dentro do teto", "media" to "dentro da média")
+private val PACE_IN = mapOf("teto" to "no teto", "media" to "na média")
+/** What the bills alone already take, in the months the day to day gets nothing. */
+private val PACE_ALL = mapOf("teto" to "o teto todo", "media" to "a média toda")
 
 /** One "E se…" line as typed; kept across a rotation, forgotten when the screen closes. */
 @Serializable
@@ -202,17 +204,18 @@ private fun changesOf(rows: List<SimRow>, today: String?, card: Boolean): List<A
 private fun none(d: Long) = (d / 100.0).roundToLong() == 0L
 
 /**
- * "As mudanças tiram R$ 300 do menor saldo e R$ 1.800 do fim de dez 2027", with no period, so the
+ * "As mudanças tiram R$ 300 do menor saldo e R$ 1.800 do saldo final", with no period, so the
  * caller goes on. With one change it is that change, in the singular ("A compra tira…"), and
- * "Sozinha, tira…" in its own line. The same amount on both reads once: "…do menor saldo e do fim".
+ * "Sozinha, tira…" in its own line. The same amount on both reads once: "…do menor saldo e do
+ * saldo final"; nothing at all is "não mexe no saldo".
  */
-internal fun deltaSentence(lowest: Long, end: Long, endWhat: String, who: String = "As mudanças", plural: Boolean = true): String {
+internal fun deltaSentence(lowest: Long, end: Long, who: String = "As mudanças", plural: Boolean = true): String {
     fun verb(pl: String, sg: String) = if (plural) pl else sg
-    if (none(lowest) && none(end)) return "$who ${verb("não mexem", "não mexe")} no menor saldo nem no $endWhat"
+    if (none(lowest) && none(end)) return "$who ${verb("não mexem", "não mexe")} no saldo"
     val low = (lowest / 100.0).roundToLong()
     if (low == (end / 100.0).roundToLong()) {
-        return if (low < 0) "$who ${verb("tiram", "tira")} ${roundMoney(-lowest)} do menor saldo e do $endWhat"
-        else "$who ${verb("somam", "soma")} ${roundMoney(lowest)} ao menor saldo e ao $endWhat"
+        return if (low < 0) "$who ${verb("tiram", "tira")} ${roundMoney(-lowest)} do menor saldo e do saldo final"
+        else "$who ${verb("somam", "soma")} ${roundMoney(lowest)} ao menor saldo e ao saldo final"
     }
     fun part(d: Long, what: String, withVerb: Boolean) = when {
         none(d) -> "${verb("não mexem", "não mexe")} no $what"
@@ -220,26 +223,19 @@ internal fun deltaSentence(lowest: Long, end: Long, endWhat: String, who: String
         else -> "${if (withVerb) "${verb("somam", "soma")} " else ""}${roundMoney(d)} ao $what"
     }
     val sameWay = lowest.sign == end.sign && !none(lowest) && !none(end)
-    return "$who ${part(lowest, "menor saldo", true)} e ${part(end, endWhat, !sameWay)}"
+    return "$who ${part(lowest, "menor saldo", true)} e ${part(end, "saldo final", !sameWay)}"
 }
 
-/** What the pace holds of the purchases, as a clause: "R$ 2.700 das parcelas ficam dentro do teto". */
-internal fun inPaceClause(effects: List<ScenarioChangeEffect>, pace: String): String {
-    val total = effects.sumOf { it.inPace?.amount ?: 0L }
-    return if (total > 0) "${roundMoney(total)} das parcelas ficam ${PACE_INSIDE[pace] ?: ""}" else ""
-}
-
-/** One quiet line under the answer: what the changes did to it, and what the pace kept of them. */
+/**
+ * One quiet line under the answer: what the changes did to it. Parcels the pace holds leave the
+ * balance as it was, and the line says why; each line says what they take from the day to day.
+ */
 internal fun headOf(v: ScenarioView, single: String?): String {
     val e = v.effect ?: return ""
-    val last = v.months.lastOrNull() ?: return ""
-    val delta = deltaSentence(
-        e.lowest, e.end, "fim de ${monthLabel(last.year, last.month, v.today)}",
-        single?.let { KIND_NOUN.getValue(it) } ?: "As mudanças", single == null,
-    )
-    val held = if (v.firstNegative != null) "" else inPaceClause(v.effects, v.pace)
-    if (held.isEmpty()) return "$delta."
-    return "$delta${if (none(e.lowest) && none(e.end)) ":" else ";"} $held."
+    if (v.months.isEmpty()) return ""
+    val delta = deltaSentence(e.lowest, e.end, single?.let { KIND_NOUN.getValue(it) } ?: "As mudanças", single == null)
+    val held = v.effects.any { (it.inPace?.amount ?: 0L) > 0 }
+    return if (none(e.lowest) && none(e.end) && held) "$delta: as parcelas cabem ${PACE_IN[v.pace] ?: ""}." else "$delta."
 }
 
 /**
@@ -261,27 +257,23 @@ internal fun verdictOf(v: ScenarioView): String {
 }
 
 /**
- * "Em nov", "Em nov e jan 2027", "De nov a set 2027, em 11 meses," or "Em 7 dos 9 meses de nov a
- * jul 2027,": the months a premise leaves bare, never a count that reads as wrong arithmetic.
+ * "em nov", "em nov e jan 2027" or "em 7 meses até jul 2027": the months a premise leaves bare,
+ * short enough to read at a glance and never a count that reads as wrong arithmetic.
  */
 private fun monthsSpan(months: List<String>, today: String): String {
     val first = months.firstOrNull() ?: return ""
     val last = months.last()
-    fun index(m: String) = m.take(4).toInt() * 12 + m.substring(5, 7).toInt()
-    val span = index(last) - index(first) + 1
-    return when {
-        months.size == 1 -> "Em ${monthOf(first, today)}"
-        months.size == 2 -> "Em ${monthOf(first, today)} e ${monthOf(last, today)}"
-        span == months.size -> "De ${monthOf(first, today)} a ${monthOf(last, today)}, em $span meses,"
-        else -> "Em ${months.size} dos $span meses de ${monthOf(first, today)} a ${monthOf(last, today)},"
+    return when (months.size) {
+        1 -> "em ${monthOf(first, today)}"
+        2 -> "em ${monthOf(first, today)} e ${monthOf(last, today)}"
+        else -> "em ${months.size} meses até ${monthOf(last, today)}"
     }
 }
 
 /** Where the bills alone already take the pace, the answer counts nothing else that month. */
 internal fun bareOf(v: ScenarioView): String =
     if (v.monthly == null || v.full.isEmpty()) ""
-    else "${monthsSpan(v.full, v.today)} as faturas já tomam ${if (v.pace == "teto") "o teto todo" else "a média toda"}. " +
-        "Nesses meses a conta não deixa nada para o dia a dia: é o melhor caso."
+    else "Melhor caso: ${monthsSpan(v.full, v.today)}, só as faturas já usam ${PACE_ALL[v.pace] ?: ""}, sem sobrar nada para o dia a dia."
 
 /**
  * What a purchase leaves of the plan it lands on, said as Simular says it: "Ainda cabem R$ 900 no
@@ -370,7 +362,7 @@ fun SimularScreen(
             title = { Text("Sair e apagar as mudanças?", style = MaterialTheme.typography.headlineSmall) },
             text = {
                 Text(
-                    "Nada daqui foi salvo, e a planilha não mudou. Ao sair, ${if (rows.size == 1) "a mudança some" else "as ${rows.size} mudanças somem"}.",
+                    "Nada foi salvo. Ao sair, ${if (rows.size == 1) "a mudança some" else "as ${rows.size} mudanças somem"}.",
                     color = l.muted,
                 )
             },
@@ -426,7 +418,7 @@ fun SimularScreen(
                 item(key = "lead") {
                     Text(
                         (v?.readAt?.let(::readAtText)?.takeIf { it.isNotEmpty() }?.let { "Planilha lida $it. " } ?: "") +
-                            "Nada aqui muda a planilha; quando você sai, tudo some.",
+                            "Nada aqui é salvo.",
                         color = l.faint,
                         style = MaterialTheme.typography.labelMedium,
                     )
@@ -447,7 +439,7 @@ fun SimularScreen(
                 if (v.days.size < 2) {
                     item(key = "short") {
                         Text(
-                            "A planilha termina hoje: não há meses à frente para simular. Abra a aba do próximo ano na planilha e volte aqui.",
+                            "Não há meses à frente na planilha. Crie a aba do próximo ano e volte aqui.",
                             color = l.muted,
                         )
                     }
@@ -461,7 +453,7 @@ fun SimularScreen(
                         PanelHead("E se…")
                         if (rows.isEmpty()) {
                             Text(
-                                "Uma compra parcelada, um freela, um empréstimo: veja como fica antes de decidir. Um empréstimo é uma Entrada e uma Saída por vários meses.",
+                                "Teste antes de decidir: uma compra parcelada, um freela, um empréstimo.",
                                 color = l.muted,
                                 style = MaterialTheme.typography.bodyMedium,
                             )
@@ -494,7 +486,7 @@ fun SimularScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Text("Tirou ${KIND_NOUN.getValue(row.kind).lowercase()}.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                                Text("${KIND_LABEL.getValue(row.kind)} removida.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
                                 TextAction("Desfazer", {
                                     typing = false
                                     focusKey = row.key
@@ -505,8 +497,8 @@ fun SimularScreen(
                         }
                         if (refused.isNotEmpty()) {
                             Text(
-                                "Não consegui somar ${refused.map { KIND_NOUN.getValue(it.kind).lowercase() }.distinct().joinToString(" e ")}: " +
-                                    "${if (refused.size > 1) "ficaram" else "ficou"} de fora. Confira o valor e o dia.",
+                                capitalize(refused.map { KIND_NOUN.getValue(it.kind).lowercase() }.distinct().joinToString(" e ")) +
+                                    " ${if (refused.size > 1) "ficaram" else "ficou"} de fora da conta. Confira o valor e o dia.",
                                 color = l.neg,
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -595,7 +587,7 @@ private fun Answer(v: ScenarioView, failed: Boolean, single: String?, onAjustes:
                 listOf(
                     when {
                         s != null -> if (s.date == v.today) "hoje" else "em ${dayOf(s.date, v.today)}"
-                        v.full.isNotEmpty() -> "as faturas tomam ${if (v.pace == "teto") "o teto" else "a média"}"
+                        v.full.isNotEmpty() -> "as faturas usam ${if (v.pace == "teto") "o teto" else "a média"}"
                         v.firstNegative != null -> "o saldo fica negativo"
                         else -> "sobra pouco no menor saldo"
                     },
@@ -679,41 +671,51 @@ private fun MonthTable(v: ScenarioView, same: Boolean) {
 /** The premise in one line: the spending of the day to day the months ahead take, and from when. */
 internal fun premiseOf(v: ScenarioView, pace: String): String {
     val now = v.today.substring(5, 7).toInt()
-    val from = "${capitalize(monthName(now))} segue a planilha; de ${monthName((now % 12) + 1)} em diante"
+    val from = "De ${monthName((now % 12) + 1)} em diante"
     val monthly = v.monthly
     return when {
-        pace == "planilha" || monthly == null -> "Só o que já está na planilha: os meses à frente ainda sem o gasto do dia a dia."
+        pace == "planilha" || monthly == null -> "Só o que já está lançado, sem o gasto do dia a dia."
         pace == "teto" -> "$from, ${roundMoney(monthly)} por mês em cartões e Pix."
         else -> "$from, ${roundMoney(monthly)} por mês, a média dos últimos 3 meses."
     }
 }
 
-/** How the premise is counted, and which of the ceiling and the average is the cautious one. */
-internal fun howOf(v: ScenarioView, pace: String): String {
+/**
+ * How the premise is counted, one short idea a line so it reads at a glance even open, and which of
+ * the ceiling and the average is the cautious one.
+ */
+internal fun howOf(v: ScenarioView, pace: String): List<String> {
     val monthly = v.monthly
     val teto = v.spends.teto
     val media = v.spends.media
-    val inside = "As faturas que já estão na planilha ficam dentro dele: cada mês só gasta o que falta para chegar lá. " +
-        "Por isso uma compra parcelada que cabe não mexe no saldo; ela deixa menos para o resto do mês."
-    return when {
-        pace == "planilha" || monthly == null ->
-            "Os meses à frente só têm o que já está lançado: salário, contas fixas, parcelas. O gasto do dia a dia ainda não está neles, " +
-                "então parecem melhores do que vão ser. Teto e Média somam esse gasto."
-        pace == "teto" ->
-            "O teto é o que você definiu em Ajustes para cartões e Pix. $inside" +
-                when {
-                    media == null || media == monthly -> ""
-                    media > monthly -> " Nos últimos 3 meses a média foi ${roundMoney(media)}, acima dele: a Média é a conta mais cautelosa."
-                    else -> " Nos últimos 3 meses a média foi ${roundMoney(media)}, abaixo dele: esta é a conta mais cautelosa."
-                }
-        else ->
-            "A média soma o diário real e as faturas dos seus cartões nos 3 últimos meses completos. ${inside.replace("dentro dele", "dentro dela")}" +
-                when {
-                    teto == null || teto == monthly -> ""
-                    monthly > teto -> " Passa do teto de ${roundMoney(teto)}: esta é a conta mais cautelosa."
-                    else -> " Fica abaixo do teto de ${roundMoney(teto)}: o Teto é a conta mais cautelosa."
-                }
+    if (pace == "planilha" || monthly == null) {
+        return listOf(
+            "Só entra o que já está lançado: salário, contas fixas, parcelas.",
+            "Falta o gasto do dia a dia, então os meses parecem melhores do que vão ser.",
+            "Teto e Média somam esse gasto.",
+        )
     }
+    val now = v.today.substring(5, 7).toInt()
+    return listOfNotNull(
+        if (pace == "teto") "Teto de ${roundMoney(monthly)} por mês em cartões e Pix, definido em Ajustes."
+        else "Média do diário real mais as faturas dos cartões, nos 3 últimos meses completos.",
+        "As faturas já lançadas saem desses ${roundMoney(monthly)}; o resto fica para o dia a dia.",
+        "Uma parcela que cabe não mexe no saldo: só deixa menos para o dia a dia.",
+        "${capitalize(monthName(now))} segue só a planilha.",
+        if (pace == "teto") {
+            when {
+                media == null || media == monthly -> null
+                media > monthly -> "A média dos últimos 3 meses foi ${roundMoney(media)}, acima do teto: a média é a conta mais cautelosa."
+                else -> "A média dos últimos 3 meses foi ${roundMoney(media)}, abaixo do teto: o teto é a conta mais cautelosa."
+            }
+        } else {
+            when {
+                teto == null || teto == monthly -> null
+                monthly > teto -> "A média passa do teto de ${roundMoney(teto)}: é a conta mais cautelosa."
+                else -> "A média fica abaixo do teto de ${roundMoney(teto)}: o teto é a conta mais cautelosa."
+            }
+        },
+    )
 }
 
 /** The premise under the answer it decides: chips, one line, and how it is counted on demand. */
@@ -735,10 +737,14 @@ private fun PaceBlock(v: ScenarioView, onAjustes: () -> Unit, onPick: (String) -
             }
         }
         if (v.spends.teto == null) {
-            TextAction("Para ver gastando o teto, defina o teto do mês em Ajustes ›", onAjustes, style = MaterialTheme.typography.bodyMedium)
+            TextAction("Defina um teto em Ajustes para simular com ele ›", onAjustes, style = MaterialTheme.typography.bodyMedium)
         }
         TextAction("Como calculei", { how = !how }, open = how)
-        if (how) Text(howOf(v, v.pace), color = l.muted, style = MaterialTheme.typography.bodyMedium)
+        if (how) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                howOf(v, v.pace).forEach { Text(it, color = l.muted, style = MaterialTheme.typography.bodyMedium) }
+            }
+        }
     }
 }
 
@@ -769,6 +775,8 @@ private fun ChangeRow(
     val colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput)
     val iso = if (compra) null else isoDate(row.date, v.today.take(4))
     val outOfRange = !compra && (iso == null || iso < v.today || iso > v.end)
+    // A day outside the sheet says only that: no effect next to the error.
+    val shown = if (outOfRange) null else effect
     val typed = row.typed.trim()
     val tooBig = PT_MONEY.matches(typed) && (toCents(typed) ?: 0L) > MAX_AMOUNT
     // A zero on its way to "0,50" is not wrong yet: it only does not count.
@@ -822,10 +830,9 @@ private fun ChangeRow(
             counts.map { n -> if (compra) (if (n == 1) "À vista" else "$n×") else if (n == 1) "Uma vez" else "$n meses" },
             counts.indexOf(row.count),
         ) { onChange(row.copy(count = counts[it]), false) }
-        // Two lines at most: when it lands and what it leaves of the plan, then what it does on its
-        // own (and what the pace keeps of it); a third only when the sheet ends before the last parcel.
+        // One short idea a line: when it lands and what it leaves of the plan, what the pace takes from
+        // the day to day, what it does on its own among others, and when the sheet ends before it does.
         val last = v.months.lastOrNull()?.let { monthLabel(it.year, it.month, v.today) } ?: monthOf(v.end.take(7), v.today)
-        val inside = PACE_INSIDE[v.pace] ?: ""
         val note = buildList {
             if (compra) {
                 val first = buildList {
@@ -841,23 +848,23 @@ private fun ChangeRow(
             } else if (row.count > 1) {
                 add(listOf("Todo dia ${iso!!.takeLast(2).toInt()}, ${row.count} meses seguidos." to l.faint))
             }
-            val own = buildList {
-                if (effect != null && alone) add(deltaSentence(effect.lowest, effect.end, "fim", "Sozinha,", false) + ".")
-                effect?.inPace?.let { h ->
-                    val within = inside.replaceFirstChar { it.uppercase() }
-                    add(
-                        if (h.count == 1) {
-                            "$within de ${monthOf(h.until, v.today)}: ${roundMoney(h.amount)} a menos para o resto do mês."
-                        } else {
-                            "$within até ${monthOf(h.until, v.today)}: ${if (h.perMonth * h.count == h.amount) "" else "no máximo "}" +
-                                "${roundMoney(h.perMonth)} a menos por mês."
-                        },
-                    )
-                }
+            shown?.inPace?.let { h ->
+                add(
+                    listOf(
+                        (
+                            if (h.count == 1) {
+                                "Em ${monthOf(h.until, v.today)}, o dia a dia perde ${roundMoney(h.amount)}."
+                            } else {
+                                "Até ${monthOf(h.until, v.today)}, o dia a dia perde " +
+                                    "${if (h.perMonth * h.count == h.amount) "" else "no máximo "}${roundMoney(h.perMonth)} por mês."
+                            }
+                            ) to l.faint,
+                    ),
+                )
             }
-            if (own.isNotEmpty()) add(listOf(own.joinToString(" ") to l.faint))
-            if (effect != null && effect.counted < effect.of) {
-                add(listOf("A planilha vai até $last: ${effect.counted} de ${effect.of} ${if (compra) "parcelas entram" else "entram"} na conta." to l.faint))
+            if (shown != null && alone) add(listOf(deltaSentence(shown.lowest, shown.end, "Sozinha,", false) + "." to l.faint))
+            if (shown != null && shown.counted < shown.of) {
+                add(listOf("A planilha vai até $last: ${shown.counted} de ${shown.of} ${if (compra) "parcelas entram" else "entram"} na conta." to l.faint))
             }
         }
         if (note.isNotEmpty()) {

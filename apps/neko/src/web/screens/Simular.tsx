@@ -54,10 +54,16 @@ const PACE_LEAD: Record<Pace, string> = {
   media: "Gastando a média",
 };
 /** Where a purchase's parcels go when the pace already fills the month. */
-const PACE_INSIDE: Record<Pace, string> = {
+const PACE_IN: Record<Pace, string> = {
   planilha: "",
-  teto: "dentro do teto",
-  media: "dentro da média",
+  teto: "no teto",
+  media: "na média",
+};
+/** What the bills alone already take, in the months the day to day gets nothing. */
+const PACE_ALL: Record<Pace, string> = {
+  planilha: "",
+  teto: "o teto todo",
+  media: "a média toda",
 };
 const KIND_LABEL: Record<Kind, string> = { compra: "Compra", entrada: "Entrada", saida: "Saída" };
 /** One key adds each kind, as the tabs have theirs; never while typing a value. */
@@ -128,20 +134,19 @@ const changesOf = (rows: readonly Row[], today: string, card: boolean): Asked[] 
 const none = (d: number) => Math.round(d / 100) === 0;
 
 /**
- * "As mudanças tiram R$ 300 do menor saldo e R$ 1.800 do fim de dez 2027", with no period, so the
+ * "As mudanças tiram R$ 300 do menor saldo e R$ 1.800 do saldo final", with no period, so the
  * caller can go on. With one change it is that change, in the singular: "A compra tira…", and
  * "Sozinha, tira…" in its own row. The same amount on both reads once: "tira R$ 300 do menor saldo
- * e do fim".
+ * e do saldo final"; nothing at all is "não mexe no saldo".
  */
-const deltaSentence = (e: Effect, end: string, who: string, plural: boolean) => {
+const deltaSentence = (e: Effect, who: string, plural: boolean) => {
   const verb = (pl: string, sg: string) => (plural ? pl : sg);
   const low = Math.round(e.lowest / 100);
-  if (none(e.lowest) && none(e.end))
-    return `${who} ${verb("não mexem", "não mexe")} no menor saldo nem no ${end}`;
+  if (none(e.lowest) && none(e.end)) return `${who} ${verb("não mexem", "não mexe")} no saldo`;
   if (low === Math.round(e.end / 100))
     return low < 0
-      ? `${who} ${verb("tiram", "tira")} ${roundMoney(-e.lowest)} do menor saldo e do ${end}`
-      : `${who} ${verb("somam", "soma")} ${roundMoney(e.lowest)} ao menor saldo e ao ${end}`;
+      ? `${who} ${verb("tiram", "tira")} ${roundMoney(-e.lowest)} do menor saldo e do saldo final`
+      : `${who} ${verb("somam", "soma")} ${roundMoney(e.lowest)} ao menor saldo e ao saldo final`;
   const part = (d: number, what: string, withVerb: boolean) =>
     none(d)
       ? `${verb("não mexem", "não mexe")} no ${what}`
@@ -149,30 +154,20 @@ const deltaSentence = (e: Effect, end: string, who: string, plural: boolean) => 
         ? `${withVerb ? `${verb("tiram", "tira")} ` : ""}${roundMoney(-d)} do ${what}`
         : `${withVerb ? `${verb("somam", "soma")} ` : ""}${roundMoney(d)} ao ${what}`;
   const sameWay = Math.sign(e.lowest) === Math.sign(e.end) && !none(e.lowest) && !none(e.end);
-  return `${who} ${part(e.lowest, "menor saldo", true)} e ${part(e.end, end, !sameWay)}`;
-};
-
-/** What the pace holds of the purchases, as a clause: "R$ 2.700 das parcelas ficam dentro do teto". */
-const inPaceClause = (effects: readonly ChangeEffect[], pace: Pace) => {
-  const total = effects.reduce((t, e) => t + (e.inPace?.amount ?? 0), 0);
-  return total > 0 ? `${roundMoney(total)} das parcelas ficam ${PACE_INSIDE[pace]}` : "";
+  return `${who} ${part(e.lowest, "menor saldo", true)} e ${part(e.end, "saldo final", !sameWay)}`;
 };
 
 /**
- * "Em nov", "Em nov e jan 2027", "De nov a set 2027, em 11 meses,", or "Em 7 dos 9 meses de nov a
- * jul 2027,": the months a premise leaves bare, never a count that reads as wrong arithmetic.
+ * "em nov", "em nov e jan 2027" or "em 7 meses até jul 2027": the months a premise leaves bare,
+ * short enough to read at a glance and never a count that reads as wrong arithmetic.
  */
 const monthsSpan = (months: readonly string[], today: string) => {
   const first = months[0];
   const last = months.at(-1);
   if (!first || !last) return "";
-  if (months.length === 1) return `Em ${monthOf(first, today)}`;
-  if (months.length === 2) return `Em ${monthOf(first, today)} e ${monthOf(last, today)}`;
-  const index = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7));
-  const span = index(last) - index(first) + 1;
-  return span === months.length
-    ? `De ${monthOf(first, today)} a ${monthOf(last, today)}, em ${span} meses,`
-    : `Em ${months.length} dos ${span} meses de ${monthOf(first, today)} a ${monthOf(last, today)},`;
+  if (months.length === 1) return `em ${monthOf(first, today)}`;
+  if (months.length === 2) return `em ${monthOf(first, today)} e ${monthOf(last, today)}`;
+  return `em ${months.length} meses até ${monthOf(last, today)}`;
 };
 
 /** A live text that waits for the typing to settle, so a screen reader reads the answer once. */
@@ -400,19 +395,16 @@ const Sandbox = ({
         ? `${lead}, ${best ? "no melhor caso " : ""}o menor saldo é ${roundMoney(lowest.balance)}, em ${dayOf(lowest.date, p.today)}${edge}.`
         : "";
   const single = used.length === 1 ? used[0] : undefined;
-  // One quiet line under the answer: what the changes did to it, and what the pace kept of them.
+  // One quiet line under the answer: what the changes did to it. Parcels the pace holds leave the
+  // balance as it was, and the line says why; each row says what they take from the day to day.
   const headText = (() => {
     if (!r?.effect || !endMonth) return "";
     const e = r.effect;
-    const delta = deltaSentence(
-      e,
-      `fim de ${endLabel}`,
-      single ? KIND_NOUN[single.kind] : "As mudanças",
-      !single,
-    );
-    const held = red ? "" : inPaceClause(r.effects, r.pace);
-    if (!held) return `${delta}.`;
-    return `${delta}${none(e.lowest) && none(e.end) ? ":" : ";"} ${held}.`;
+    const delta = deltaSentence(e, single ? KIND_NOUN[single.kind] : "As mudanças", !single);
+    const held = r.effects.some((x) => (x.inPace?.amount ?? 0) > 0);
+    return none(e.lowest) && none(e.end) && held
+      ? `${delta}: as parcelas cabem ${PACE_IN[r.pace]}.`
+      : `${delta}.`;
   })();
   const status = useSettled([verdict, headText].filter(Boolean).join(" "));
 
@@ -448,8 +440,7 @@ const Sandbox = ({
   if (!r || r.days.length < 2)
     return (
       <p className="muted">
-        A planilha termina hoje: não há meses à frente para simular. Abra a aba do próximo ano na
-        planilha e volte aqui.
+        Não há meses à frente na planilha. Crie a aba do próximo ano e volte aqui.
       </p>
     );
   const same = r.days.every((d) => d.sim === d.sheet);
@@ -462,10 +453,7 @@ const Sandbox = ({
 
   return (
     <>
-      <p className="sim-lead">
-        Planilha lida {readAtLabel(data.sheet.readAt)}. Nada aqui muda a planilha; quando você sai,
-        tudo some.
-      </p>
+      <p className="sim-lead">Planilha lida {readAtLabel(data.sheet.readAt)}. Nada aqui é salvo.</p>
       <p className="sr-only" role="status">
         {status}
       </p>
@@ -532,7 +520,7 @@ const Sandbox = ({
                   ? "hoje"
                   : `em ${dayOf(saving.date, p.today)}`
                 : best
-                  ? `as faturas tomam ${r.pace === "teto" ? "o teto" : "a média"}`
+                  ? `as faturas usam ${r.pace === "teto" ? "o teto" : "a média"}`
                   : red
                     ? "o saldo fica negativo"
                     : "sobra pouco no menor saldo"}
@@ -561,8 +549,7 @@ const Sandbox = ({
         </h2>
         {rows.length === 0 ? (
           <p className="hint">
-            Uma compra parcelada, um freela, um empréstimo: veja como fica antes de decidir. Um
-            empréstimo é uma Entrada e uma Saída por vários meses.
+            Teste antes de decidir: uma compra parcelada, um freela, um empréstimo.
           </p>
         ) : (
           <ul className="sim-rows">
@@ -585,7 +572,7 @@ const Sandbox = ({
         )}
         {removed && (
           <p className="sim-undo" role="status">
-            Tirou {KIND_NOUN[removed.row.kind].toLowerCase()}.{" "}
+            {KIND_LABEL[removed.row.kind]} removida.{" "}
             <button type="button" className="text-link" onClick={undo}>
               Desfazer
             </button>
@@ -593,9 +580,10 @@ const Sandbox = ({
         )}
         {refused.length > 0 && (
           <p className="hint error" role="alert">
-            Não consegui somar{" "}
-            {[...new Set(refused.map((a) => KIND_NOUN[a.kind].toLowerCase()))].join(" e ")}:{" "}
-            {refused.length > 1 ? "ficaram" : "ficou"} de fora. Confira o valor e o dia.
+            {capitalize(
+              [...new Set(refused.map((a) => KIND_NOUN[a.kind].toLowerCase()))].join(" e "),
+            )}{" "}
+            {refused.length > 1 ? "ficaram" : "ficou"} de fora da conta. Confira o valor e o dia.
           </p>
         )}
         <div className="sim-add">
@@ -690,39 +678,51 @@ const PacePicker = ({
   const id = useId();
   const { today, pace, monthly, spends, full } = r;
   const now = Number(today.slice(5, 7));
-  const from = `${capitalize(monthName(now))} segue a planilha; de ${monthName((now % 12) + 1)} em diante`;
+  const from = `De ${monthName((now % 12) + 1)} em diante`;
   const { teto, media } = spends;
   const line =
     pace === "planilha" || monthly === null
-      ? "Só o que já está na planilha: os meses à frente ainda sem o gasto do dia a dia."
+      ? "Só o que já está lançado, sem o gasto do dia a dia."
       : pace === "teto"
         ? `${from}, ${roundMoney(monthly)} por mês em cartões e Pix.`
         : `${from}, ${roundMoney(monthly)} por mês, a média dos últimos 3 meses.`;
   // Where the bills alone already take the pace, the answer counts nothing else that month.
   const bare =
     monthly !== null && full.length > 0
-      ? `${monthsSpan(full, today)} as faturas já tomam ${pace === "teto" ? "o teto todo" : "a média toda"}. Nesses meses a conta não deixa nada para o dia a dia: é o melhor caso.`
+      ? `Melhor caso: ${monthsSpan(full, today)}, só as faturas já usam ${PACE_ALL[pace]}, sem sobrar nada para o dia a dia.`
       : "";
-  const inside =
-    "As faturas que já estão na planilha ficam dentro dele: cada mês só gasta o que falta para chegar lá. Por isso uma compra parcelada que cabe não mexe no saldo; ela deixa menos para o resto do mês.";
-  const how =
+  // One short idea a line, so the formula reads at a glance even open.
+  const current = `${capitalize(monthName(now))} segue só a planilha.`;
+  const how: string[] =
     pace === "planilha" || monthly === null
-      ? "Os meses à frente só têm o que já está lançado: salário, contas fixas, parcelas. O gasto do dia a dia ainda não está neles, então parecem melhores do que vão ser. Teto e Média somam esse gasto."
-      : pace === "teto"
-        ? `O teto é o que você definiu em Ajustes para cartões e Pix. ${inside}${
-            media === null || media === monthly
-              ? ""
-              : media > monthly
-                ? ` Nos últimos 3 meses a média foi ${roundMoney(media)}, acima dele: a Média é a conta mais cautelosa.`
-                : ` Nos últimos 3 meses a média foi ${roundMoney(media)}, abaixo dele: esta é a conta mais cautelosa.`
-          }`
-        : `A média soma o diário real e as faturas dos seus cartões nos 3 últimos meses completos. ${inside.replace("dentro dele", "dentro dela")}${
-            teto === null || teto === monthly
-              ? ""
-              : monthly > teto
-                ? ` Passa do teto de ${roundMoney(teto)}: esta é a conta mais cautelosa.`
-                : ` Fica abaixo do teto de ${roundMoney(teto)}: o Teto é a conta mais cautelosa.`
-          }`;
+      ? [
+          "Só entra o que já está lançado: salário, contas fixas, parcelas.",
+          "Falta o gasto do dia a dia, então os meses parecem melhores do que vão ser.",
+          "Teto e Média somam esse gasto.",
+        ]
+      : [
+          pace === "teto"
+            ? `Teto de ${roundMoney(monthly)} por mês em cartões e Pix, definido em Ajustes.`
+            : `Média do diário real mais as faturas dos cartões, nos 3 últimos meses completos.`,
+          `As faturas já lançadas saem desses ${roundMoney(monthly)}; o resto fica para o dia a dia.`,
+          "Uma parcela que cabe não mexe no saldo: só deixa menos para o dia a dia.",
+          current,
+          ...(pace === "teto"
+            ? media === null || media === monthly
+              ? []
+              : [
+                  media > monthly
+                    ? `A média dos últimos 3 meses foi ${roundMoney(media)}, acima do teto: a média é a conta mais cautelosa.`
+                    : `A média dos últimos 3 meses foi ${roundMoney(media)}, abaixo do teto: o teto é a conta mais cautelosa.`,
+                ]
+            : teto === null || teto === monthly
+              ? []
+              : [
+                  monthly > teto
+                    ? `A média passa do teto de ${roundMoney(teto)}: é a conta mais cautelosa.`
+                    : `A média fica abaixo do teto de ${roundMoney(teto)}: o teto é a conta mais cautelosa.`,
+                ]),
+        ];
   return (
     <div className="sim-pace">
       {r.paces.length > 1 && (
@@ -745,7 +745,7 @@ const PacePicker = ({
       )}
       {settingsFailed ? (
         <p className="hint">
-          Não consegui ler seus Ajustes, então o teto ficou de fora.{" "}
+          Não consegui ler o teto em Ajustes.{" "}
           <button
             type="button"
             className="text-link"
@@ -761,7 +761,7 @@ const PacePicker = ({
       ) : (
         teto === null && (
           <p className="hint">
-            Para ver gastando o teto, defina o teto do mês em <Link to="/ajustes">Ajustes</Link>.
+            Defina um teto em <Link to="/ajustes">Ajustes</Link> para simular com ele.
           </p>
         )
       )}
@@ -770,7 +770,9 @@ const PacePicker = ({
           <IconChevron />
           Como calculei
         </summary>
-        <p>{how}</p>
+        {how.map((h) => (
+          <p key={h}>{h}</p>
+        ))}
       </details>
     </div>
   );
@@ -838,9 +840,11 @@ const ChangeRow = ({
     const m = r.months.at(-1);
     return m ? monthLabel(m.year, m.month, today) : endLabel;
   })();
-  const held = effect?.inPace ?? null;
-  // Two lines at most: when it lands and what it leaves of the plan, then what it does on its own
-  // (and what the pace keeps of it); a third only when the sheet ends before its last parcel.
+  // A day outside the sheet says only that: no effect next to the error.
+  const shown = outOfRange ? null : effect;
+  const held = shown?.inPace ?? null;
+  // One short idea a line: when it lands and what it leaves of the plan, what the pace takes from
+  // the day to day, what it does on its own among others, and when the sheet ends before it does.
   const lines: { text: string; neg?: boolean }[][] = [];
   if (compra) {
     const first: { text: string; neg?: boolean }[] = [];
@@ -855,20 +859,20 @@ const ChangeRow = ({
   } else if (row.count > 1) {
     lines.push([{ text: `Todo dia ${day}, ${row.count} meses seguidos.` }]);
   }
-  const own: { text: string }[] = [];
-  if (effect && alone) own.push({ text: `${deltaSentence(effect, "fim", "Sozinha,", false)}.` });
   if (held)
-    own.push({
-      text:
-        held.count === 1
-          ? `${capitalize(PACE_INSIDE[r.pace])} de ${monthOf(held.until, today)}: ${roundMoney(held.amount)} a menos para o resto do mês.`
-          : `${capitalize(PACE_INSIDE[r.pace])} até ${monthOf(held.until, today)}: ${held.perMonth * held.count === held.amount ? "" : "no máximo "}${roundMoney(held.perMonth)} a menos por mês.`,
-    });
-  if (own.length > 0) lines.push(own);
-  if (effect && effect.counted < effect.of)
     lines.push([
       {
-        text: `A planilha vai até ${lastLabel}: ${effect.counted} de ${effect.of} ${compra ? "parcelas entram" : "entram"} na conta.`,
+        text:
+          held.count === 1
+            ? `Em ${monthOf(held.until, today)}, o dia a dia perde ${roundMoney(held.amount)}.`
+            : `Até ${monthOf(held.until, today)}, o dia a dia perde ${held.perMonth * held.count === held.amount ? "" : "no máximo "}${roundMoney(held.perMonth)} por mês.`,
+      },
+    ]);
+  if (shown && alone) lines.push([{ text: `${deltaSentence(shown, "Sozinha,", false)}.` }]);
+  if (shown && shown.counted < shown.of)
+    lines.push([
+      {
+        text: `A planilha vai até ${lastLabel}: ${shown.counted} de ${shown.of} ${compra ? "parcelas entram" : "entram"} na conta.`,
       },
     ]);
   const choices = compra
