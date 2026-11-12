@@ -29,7 +29,7 @@ const API: Record<string, unknown> = {
       { event: "hoje", label: "Hoje", count: 31 },
       { event: "faturas", label: "Faturas", count: 6 },
     ],
-    taps: [{ event: "simular", label: "Simular compra", count: 0 }],
+    taps: [{ event: "simular", label: "Simular", count: 0 }],
     notices: [
       { event: "notificacao_manha", label: "Contas e teto", count: 3 },
       { event: "notificacao_noite", label: "Lançar o dia", count: 8 },
@@ -470,6 +470,40 @@ test("with the month's ceiling, Hoje shows what still fits for cards and Pix", a
   expect(errors).toEqual([]);
 });
 
+test("Simular opens apart from Hoje, moves only copies of the balances and forgets them", async ({
+  page,
+}) => {
+  const errors = await open(page, "/");
+  await page.getByRole("link", { name: "Simular" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Simular" })).toBeFocused();
+  await expect(page.getByText("Nada aqui muda a planilha")).toBeVisible();
+  // No ceiling in Ajustes: the sheet as it is, or the last months' average.
+  await expect(page.getByRole("button", { name: "Planilha" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByRole("button", { name: "Teto" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /^Fica no azul até/ })).toBeVisible();
+  await page.getByRole("button", { name: "Compra", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: /Compra no Cartão Azul/ })).toBeFocused();
+  await page.keyboard.type("600");
+  await page.getByRole("button", { name: "3×" }).click();
+  await expect(page.getByText("1ª parcela em 12 out")).toBeVisible();
+  await page.getByRole("button", { name: "Saída", exact: true }).click();
+  await page.keyboard.type("50000");
+  await expect(page.getByRole("heading", { name: "Fica negativo em 5 out." })).toBeVisible();
+  await expect(page.getByRole("figure").getByText("Simulação")).toBeVisible();
+  await page.getByText("Mês a mês").click();
+  await expect(page.getByRole("columnheader", { name: "Planilha" })).toBeVisible();
+  await page.screenshot({ path: "test-results/simular.png", fullPage: true });
+  // Leaving forgets it: back on Hoje, and a new visit starts clean.
+  await page.getByRole("button", { name: "Voltar" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Hoje" })).toBeVisible();
+  await page.getByRole("link", { name: "Simular" }).click();
+  await expect(page.getByRole("heading", { name: /^Fica no azul até/ })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test("Lançar à mão asks the value, how it was paid and the name, then offers Desfazer", async ({
   page,
 }) => {
@@ -569,7 +603,7 @@ test("Neko counts the screens it shows, and Ajustes tells what was used", async 
   await usage.getByText("Aberto em 12 dos últimos 30 dias").click();
   await expect(usage).toContainText("OndeNo app Android10 dias");
   await expect(usage).toContainText("TelasHoje31 vezes");
-  await expect(usage).toContainText("BotõesSimular compraNunca");
+  await expect(usage).toContainText("BotõesSimularNunca");
   await expect(usage).toContainText(
     "Notificações tocadasContas e teto3 vezesLançar o dia8 vezesAvisosNunca",
   );

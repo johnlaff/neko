@@ -35,6 +35,7 @@ const screens = {
   faturas: () => import("./screens/Faturas.tsx"),
   mes: () => import("./screens/Mes.tsx"),
   ajustes: () => import("./screens/Ajustes.tsx"),
+  simular: () => import("./screens/Simular.tsx"),
 };
 const prefetchScreens = () => {
   const run = () => {
@@ -170,10 +171,10 @@ const Shell = () => {
     window.addEventListener("keydown", onShortcut);
     return () => window.removeEventListener("keydown", onShortcut);
   }, []);
-  // Mia's screen is the whole page: her own bar on top, the question field where the dock was.
-  if (path === "/mia")
+  // Mia's and Simular's screens are the whole page, with their own bar on top and no dock.
+  if (path === "/mia" || path === "/simular")
     return (
-      <main className="mia-page">
+      <main className={path === "/mia" ? "mia-page" : "sim-page"}>
         <Fragment key={hidden ? "hidden" : "shown"}>
           <Outlet />
         </Fragment>
@@ -240,6 +241,11 @@ const routeTree = rootRoute.addChildren([
     component: lazyRouteComponent(screens.ajustes, "Ajustes"),
   }),
   miaRoute,
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/simular",
+    component: lazyRouteComponent(screens.simular, "Simular"),
+  }),
 ]);
 // A screen that breaks says so in the app's words and offers a way out, not a stack trace.
 function ScreenError({ error, reset }: { error: unknown; reset: () => void }) {
@@ -275,7 +281,7 @@ window.addEventListener("unhandledrejection", (e) => {
 
 const TAB_ORDER = ["/", "/faturas", "/mes", "/ajustes"];
 router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
-  // Mia's screen sits past the tabs: opening it goes forward, leaving it goes back.
+  // Mia's and Simular's screens sit past the tabs: opening one goes forward, leaving it goes back.
   const place = (path: string) => {
     const i = TAB_ORDER.indexOf(path);
     return i === -1 ? TAB_ORDER.length : i;

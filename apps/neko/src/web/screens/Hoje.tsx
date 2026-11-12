@@ -39,7 +39,6 @@ import {
 } from "../icons.tsx";
 import { LaunchToast, ManualLaunch, ParaLancar } from "../Launch.tsx";
 import { CARDS_COME_FROM, dailySourceText, HINTS } from "../learn.ts";
-import { Simulator } from "../Pace.tsx";
 import { PrevistoReview } from "../Previsto.tsx";
 import { Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
@@ -488,7 +487,15 @@ export const Hoje = () => (
                       </a>
                     )
                   )}
-                  {cs && <Simulator cs={cs} months={p.months} />}
+                  <Link
+                    to="/simular"
+                    className="button ghost"
+                    onClick={() => used("simular")}
+                    aria-keyshortcuts="S"
+                    title="Simular (S)"
+                  >
+                    Simular
+                  </Link>
                 </div>
               ),
               // What asks for a tap comes right after Lançar: the sheet's points (none when all is

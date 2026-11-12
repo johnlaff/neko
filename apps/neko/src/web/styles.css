@@ -2581,14 +2581,16 @@ form.setting.bank-add > label > input {
 
 /* Mia's screen: the whole page, her bar on top, the question field pinned where the dock was.
    The page itself scrolls, so a phone keyboard that shrinks it keeps the field in sight. */
-.mia-page {
+.mia-page,
+.sim-page {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
   max-width: 40rem;
   margin: 0 auto;
 }
-.mia-bar {
+.mia-bar,
+.sim-bar {
   position: sticky;
   top: 0;
   z-index: 1;
@@ -2599,7 +2601,8 @@ form.setting.bank-add > label > input {
   background: var(--bg);
   box-shadow: 0 1px 0 var(--border);
 }
-.mia-bar > h1 {
+.mia-bar > h1,
+.sim-bar > h1 {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2629,7 +2632,8 @@ p.mia-lead {
     display: none;
   }
 }
-.mia-bar > h1:focus {
+.mia-bar > h1:focus,
+.sim-bar > h1:focus {
   outline: none;
 }
 .mia-bar > button.mia-restart:disabled {
@@ -3715,4 +3719,268 @@ details.bank-lines summary {
 .statement p {
   margin: 0;
   font-size: 0.8125rem;
+}
+
+/* Simular: how the months ahead would look, on demand. Its own page like Mia's, nothing saved.
+   The sheet is the quiet line, the simulation the accent one: two scenarios side by side, both
+   solid, since a dashed line over a year of daily balances reads as noise. */
+.sim-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 16px;
+  padding: 16px var(--gutter) calc(env(safe-area-inset-bottom) + 32px);
+}
+p.sim-lead {
+  color: var(--faint);
+  font-size: 0.8125rem;
+}
+h2.sim-verdict {
+  font: 400 1.375rem / 1.2 var(--serif);
+}
+.figures dd.fig-note {
+  color: var(--faint);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+p.sim-save {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+p.sim-save > strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.sim-chart {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin: 0;
+}
+.sim-legend {
+  display: flex;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.sim-legend > span,
+.sim-tip > span.sheet,
+.sim-tip > span.sim {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sim-legend > span::before,
+.sim-tip > span.sheet::before,
+.sim-tip > span.sim::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  border-top: 2px solid var(--border-input);
+}
+.sim-legend > span.sim::before,
+.sim-tip > span.sim::before {
+  border-top-color: var(--accent);
+}
+/* The plot takes the column's width and the drawing follows it, never the other way round. */
+.sim-plot {
+  position: relative;
+  height: 200px;
+  border-radius: 8px;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+.sim-plot:focus-visible {
+  outline-offset: 4px;
+}
+.sim-plot > svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.sim-plot .below {
+  fill: color-mix(in oklch, var(--neg) 9%, transparent);
+}
+.sim-plot .grid > line {
+  stroke: var(--border);
+}
+.sim-plot .zero > line {
+  stroke: var(--border-input);
+}
+/* A halo in the panel's color keeps a label readable where a line runs through it. */
+.sim-plot text {
+  fill: var(--faint);
+  font: 400 11px var(--sans);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.sim-plot text.month {
+  text-anchor: middle;
+}
+.sim-plot .line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sim-plot .line.sheet {
+  stroke: var(--border-input);
+}
+/* Alone, the sheet is the answer: it reads in full ink. */
+.sim-chart.same .line.sheet {
+  stroke: var(--muted);
+}
+.sim-plot .line.sim {
+  stroke: var(--accent);
+}
+.sim-plot .cross > line {
+  stroke: var(--faint);
+}
+.sim-plot .cross > circle {
+  stroke: var(--surface);
+  stroke-width: 2;
+  fill: var(--border-input);
+}
+.sim-chart.same .cross > circle.sheet {
+  fill: var(--muted);
+}
+.sim-plot .cross > circle.sim {
+  fill: var(--accent);
+}
+.sim-tip {
+  position: absolute;
+  top: 4px;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sim-tip > .date {
+  color: var(--faint);
+}
+.sim-tip b {
+  color: var(--text);
+  font-weight: 600;
+}
+.sim-months table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.sim-months th,
+.sim-months td {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-weight: 400;
+  text-align: right;
+}
+.sim-months thead th {
+  border-top: 0;
+  color: var(--faint);
+  font-size: 0.8125rem;
+}
+.sim-months th:first-child {
+  color: var(--muted);
+  text-align: left;
+}
+.sim-months td.neg {
+  color: var(--neg);
+}
+fieldset.sim-pace-pick {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+.sim-rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sim-row {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.sim-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sim-row {
+    animation: day-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+.sim-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -10px -10px -6px 0;
+}
+.sim-row-head > h3 {
+  color: var(--text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.sim-row-head > button.icon svg {
+  width: 20px;
+  height: 20px;
+}
+.sim-row-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+}
+.sim-row-fields.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sim-row-fields input[type="date"] {
+  min-width: 0;
+  min-height: 56px;
+}
+fieldset.sim-repeat {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.sim-repeat > button.chip-button {
+  padding: 0 6px;
+}
+p.sim-row-note {
+  display: flex;
+  flex-wrap: wrap;
+}
+p.sim-row-note > span + span::before {
+  content: "·";
+  margin: 0 6px;
+  color: var(--faint);
+}
+.sim-add {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.sim-add > button.ghost.small {
+  padding: 6px 8px;
+  gap: 6px;
+}
+.sim-add > button > svg {
+  width: 16px;
+  height: 16px;
 }
