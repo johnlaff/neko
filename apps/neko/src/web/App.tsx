@@ -78,12 +78,16 @@ const TITLES: Record<string, string> = {
  * the tabs, R read again, L Lançar, arrows the month, M Mia, Esc out of her), so the hint and the action never drift.
  * Never while typing in a field or with a dialog open.
  */
-const isTyping = (t: EventTarget | null) =>
-  t instanceof HTMLElement &&
-  (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
+/** A chip (radio or checkbox) only takes arrows and space: a letter or a digit is a shortcut there. */
+const isTyping = (t: EventTarget | null, key: string) => {
+  if (!(t instanceof HTMLElement)) return false;
+  if (t instanceof HTMLInputElement && ["radio", "checkbox"].includes(t.type))
+    return key.length !== 1 || key === " ";
+  return t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName);
+};
 const onShortcut = (e: KeyboardEvent) => {
   // A widget that used the key itself (the Mês calendar's arrows) keeps it.
-  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.repeat || isTyping(e.target))
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.repeat || isTyping(e.target, e.key))
     return;
   if (document.querySelector("dialog[open]")) return;
   const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;

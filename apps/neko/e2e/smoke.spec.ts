@@ -493,7 +493,9 @@ test("Simular opens apart from Hoje, moves only copies of the balances and forge
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("radio", { name: "3×" })).toBeChecked();
   await expect(page.getByText("1ª parcela em 12 out")).toBeVisible();
-  await page.getByRole("button", { name: "Saída", exact: true }).click();
+  // On a chip a letter is still a shortcut: S adds a Saída.
+  await page.keyboard.press("s");
+  await expect(page.getByRole("textbox", { name: /Saída/ })).toBeFocused();
   await page.keyboard.type("50000");
   // In the red, the answer says when, and how deep it goes.
   await expect(

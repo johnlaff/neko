@@ -164,9 +164,15 @@ private val RowsSaver = Saver<List<SimRow>, String>(
     restore = { json.decodeFromString(ListSerializer(SimRow.serializer()), it) },
 )
 
-/** "dez", or "dez 2027" when it is not this year: the same month in every place on the screen. */
+/**
+ * "dez", or "dez 2027" when it is not this year: the same month in every place on the screen,
+ * never broken across two lines.
+ */
 private fun monthLabel(year: Int, month: Int, today: String) =
-    monthName(month).take(3) + if (year.toString() == today.take(4)) "" else " $year"
+    monthName(month).take(3) + if (year.toString() == today.take(4)) "" else "\u00a0$year"
+
+/** "12 mai 2027" in one piece: a date never breaks across lines in a sentence. */
+private fun dayOf(iso: String, today: String) = dayLabel(iso, today).replace(' ', '\u00a0')
 
 private fun monthOf(yyyyMm: String, today: String) = monthLabel(yyyyMm.take(4).toInt(), yyyyMm.substring(5, 7).toInt(), today)
 
@@ -245,13 +251,13 @@ internal fun verdictOf(v: ScenarioView): String {
     val lead = PACE_LEAD[v.pace] ?: ""
     // Months whose bills take the whole pace leave the day to day out: the answer is the best case.
     val best = v.full.isNotEmpty()
-    val lo = v.lowest ?: return v.firstNegative?.let { "$lead, fica negativo em ${dayLabel(it.date, v.today)}." } ?: ""
+    val lo = v.lowest ?: return v.firstNegative?.let { "$lead, fica negativo em ${dayOf(it.date, v.today)}." } ?: ""
     val edge = if (lo.date.take(7) == v.end.take(7)) ", no último mês da planilha" else ""
     v.firstNegative?.let {
-        return "$lead, ${if (best) "mesmo no melhor caso " else ""}fica negativo em ${dayLabel(it.date, v.today)} " +
-            "e chega a ${roundMoney(lo.balance)}$edge."
+        return "$lead, ${if (best) "mesmo no melhor caso " else ""}fica negativo em ${dayOf(it.date, v.today)} " +
+            "e chega a ${roundMoney(lo.balance)}${if (best) "" else edge}."
     }
-    return "$lead, ${if (best) "no melhor caso " else ""}o menor saldo é ${roundMoney(lo.balance)}, em ${dayLabel(lo.date, v.today)}$edge."
+    return "$lead, ${if (best) "no melhor caso " else ""}o menor saldo é ${roundMoney(lo.balance)}, em ${dayOf(lo.date, v.today)}$edge."
 }
 
 /**
@@ -536,7 +542,7 @@ private fun Peek(v: ScenarioView, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            red?.let { "Negativo em ${dayLabel(it.date, v.today)}" }
+            red?.let { "Negativo em ${dayOf(it.date, v.today)}" }
                 ?: v.lowest?.let { "Menor saldo ${roundMoney(it.balance)}${if (v.full.isNotEmpty()) " no melhor caso" else ""}" }
                 ?: "",
             color = if (red != null) l.neg else l.text,
@@ -588,7 +594,7 @@ private fun Answer(v: ScenarioView, failed: Boolean, single: String?, onAjustes:
                 l.text,
                 listOf(
                     when {
-                        s != null -> if (s.date == v.today) "hoje" else "em ${dayLabel(s.date, v.today)}"
+                        s != null -> if (s.date == v.today) "hoje" else "em ${dayOf(s.date, v.today)}"
                         v.full.isNotEmpty() -> "as faturas tomam ${if (v.pace == "teto") "o teto" else "a média"}"
                         v.firstNegative != null -> "o saldo fica negativo"
                         else -> "sobra pouco no menor saldo"
@@ -610,7 +616,7 @@ private fun Answer(v: ScenarioView, failed: Boolean, single: String?, onAjustes:
         if (!same) Legend()
         SimChart(
             v.days, same, v.today, v.firstNegative ?: v.lowest,
-            "Saldo de hoje até ${dayLabel(v.end, v.today)}. $verdict",
+            "Saldo de hoje até ${dayOf(v.end, v.today)}. $verdict",
             fit = v.pace != "planilha",
             from = v.paceFrom,
         )
@@ -823,7 +829,7 @@ private fun ChangeRow(
         val note = buildList {
             if (compra) {
                 val first = buildList {
-                    v.due?.let { add("${if (row.count > 1) "1ª parcela" else "Sai da conta"} em ${dayLabel(it, v.today)}." to l.faint) }
+                    v.due?.let { add("${if (row.count > 1) "1ª parcela" else "Sai da conta"} em ${dayOf(it, v.today)}." to l.faint) }
                     v.canSpend?.let { cs ->
                         val fig = simFigure(cs.mode, cs.left, cs.overBy, if (amount != null) v.cycle else null)
                         add(fitText(cs.mode, cs.due, v.today, fig.amount, fig.over) to (if (fig.over) l.neg else l.faint))
@@ -831,7 +837,7 @@ private fun ChangeRow(
                 }
                 if (first.isNotEmpty()) add(first)
             } else if (outOfRange) {
-                add(listOf("Escolha um dia de hoje até ${dayLabel(v.end, v.today)}." to l.neg))
+                add(listOf("Escolha um dia de hoje até ${dayOf(v.end, v.today)}." to l.neg))
             } else if (row.count > 1) {
                 add(listOf("Todo dia ${iso!!.takeLast(2).toInt()}, ${row.count} meses seguidos." to l.faint))
             }
@@ -1128,7 +1134,7 @@ private fun SimChart(
         drawCircle(if (d.sim < 0) l.neg else if (same) l.muted else l.accent, 4.dp.toPx(), Offset(cx, y(d.sim.toFloat())))
         // The day read, beside the line on the side with more room, so it never covers the dots.
         val lines = buildList {
-            add(measurer.measure(dayLabel(d.date, today), tip.copy(color = l.faint)))
+            add(measurer.measure(dayOf(d.date, today), tip.copy(color = l.faint)))
             add(measurer.measure("${roundMoney(d.sim)}${if (same) "" else " simulação"}", tip.copy(color = l.text)))
             if (!same) add(measurer.measure("${roundMoney(d.sheet)} planilha", tip.copy(color = l.muted)))
         }
