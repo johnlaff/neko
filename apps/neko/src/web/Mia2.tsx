@@ -1355,7 +1355,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               </button>
             )}
           </form>
-          {/* At a desk, the keys she answers to, quiet under the field as in desktop chats. */}
+          {/* At a desk, before the first question, the keys she answers to, quiet under the field. */}
           <p className="mia-keys">
             <kbd>Enter</kbd> envia · <kbd>↑</kbd> traz a última pergunta · <kbd>/</kbd> volta ao
             campo · <kbd>Esc</kbd> para, apaga ou sai

@@ -774,8 +774,9 @@ test.describe("at a desk", () => {
       }),
     );
     const field = page.getByRole("textbox", { name: "Pergunta para a Mia" });
-    // The field is ready for the first words, as in every desktop chat.
+    // The field is ready for the first words, as in every desktop chat, the keys named under it.
     await expect(field).toBeFocused();
+    await expect(page.getByText("volta ao campo")).toBeVisible();
     // The tabs stay at hand as the rail, none of them current: her bar says where he is.
     const rail = page.getByRole("navigation", { name: "Telas" });
     await expect(rail.getByRole("link")).toHaveCount(4);
@@ -812,7 +813,8 @@ test.describe("at a desk", () => {
     await page.keyboard.press("/");
     await expect(field).toBeFocused();
     await expect(field).toHaveValue("");
-    await expect(page.getByText("volta ao campo")).toBeVisible();
+    // In the conversation the keys give their room to her answers.
+    await expect(page.getByText("volta ao campo")).toBeHidden();
     expect(errors).toEqual([]);
   });
 });
