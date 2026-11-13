@@ -343,9 +343,10 @@ private fun Purchases(p: PurchasesSwitch, trust: List<PhoneTrust>) {
             title = { Text("Ler os avisos de compra?", style = MaterialTheme.typography.headlineSmall) },
             text = {
                 Text(
-                    "O Neko lê só os avisos de compra e de cartão dos apps Bradesco, Itaú, Inter e Mercado Pago. " +
+                    "O Neko lê só os avisos de compra e de cartão dos apps Bradesco, Itaú, Inter e Mercado Pago, " +
+                        "e os de pagamento da Carteira do Google e da Samsung Wallet. " +
                         "Manda ao seu Neko o valor, a loja, o final do cartão e o texto do aviso, guardado 15 dias. " +
-                        "Avisos de outros apps e de Pix são ignorados.\n\n" +
+                        "Avisos de outros apps, de Pix e de cashback são ignorados.\n\n" +
                         "Por enquanto é só para aprender: o Neko confere cada aviso com o banco, e o teto não muda " +
                         "com eles.\n\nNa próxima tela, ative o Neko.",
                     color = l.muted,

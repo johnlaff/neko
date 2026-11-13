@@ -90,7 +90,8 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
 - **Avisos de compra** (só no app, Ajustes › Neste celular): com a permissão de ler notificações do
   Android, o app olha só os avisos dos apps do Bradesco, Itaú, Inter e Mercado Pago (bancos ligados
   por Open Finance; um cartão fora dele contaria duas vezes ao lado da fatura por e-mail). De uma
-  compra aprovada à vista e em reais que não fale de débito nem de Pix (`PurchaseText`), manda o valor, a loja e o final
+  compra aprovada à vista e em reais que não fale de débito, Pix nem cashback (`PurchaseText`; no
+  Mercado Pago, "Você pagou R$ X a LOJA" que "vai entrar na próxima fatura"), manda o valor, a loja e o final
   do cartão a `POST /api/purchases` (tabela `phone_purchase`, 15 dias). O mesmo aviso dos dois apps
   do banco conta uma vez (`onePerPurchase`).
   - **Por enquanto, só aprende** (modo sombra, por banco): o Open Finance confere cada leitura
@@ -101,9 +102,12 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
     do banco; liberado, conta enquanto o banco confirmou as 3 últimas leituras seguidas
     (`phoneReads`), e a cópia do celular sai quando o banco traz a mesma cobrança.
   - **Texto real dos avisos**: dos avisos desses apps com valor em reais que falam de compra ou de
-    cartão, e nunca de Pix (`PurchaseText.keep`), o app manda também o texto, lido ou não, a
-    `POST /api/purchases/notice` (tabela `bank_notice`, 15 dias), para a leitura ser conferida com o
-    jeito real de cada banco escrever.
+    cartão, e nunca de Pix nem cashback (`PurchaseText.keep`), o app manda também o texto, lido ou
+    não, a `POST /api/purchases/notice` (tabela `bank_notice`, 15 dias), para a leitura ser
+    conferida com o jeito real de cada banco escrever. Da Carteira do Google e da Samsung Wallet
+    (o aviso sai na hora em que o cartão é aproximado no caixa) vai só o texto dos avisos com valor
+    em reais, para aprender como falam: nenhuma compra é lida delas, porque o banco do cartão
+    avisa a mesma.
   - Nunca vira linha da planilha nem item de Para lançar: o lançamento vem só do banco. Antes de
     abrir a permissão, o app diz em claro o que lê, o que manda e quanto tempo guarda.
 - **Fatura debitada de uma conta só**: o banco tira a fatura do cartão da conta dele, não do Saldo

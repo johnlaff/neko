@@ -1,5 +1,6 @@
 package dev.johnlaff.neko
 
+import androidx.lifecycle.viewModelScope
 import dev.johnlaff.neko.data.Neko
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.ui.AppModel
@@ -15,7 +16,9 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -53,6 +56,9 @@ class AppModelTest {
     /** Path → a gate its answer waits behind, to look at the screen while a read is on its way. */
     private val gates = ConcurrentHashMap<String, CountDownLatch>()
 
+    /** Every model a test made, stopped before Main is reset (stop). */
+    private val models: MutableList<AppModel> = Collections.synchronizedList(mutableListOf())
+
     /** The model's clock, in ms; moved by hand. */
     @Volatile private var now = 0L
 
@@ -83,6 +89,9 @@ class AppModelTest {
 
     @After fun stop() {
         gates.values.forEach { it.countDown() }
+        // A read still running after the test would come back to Main while it is being reset,
+        // which coroutines-test refuses ("used concurrently with setting it"): stop them first.
+        runBlocking { withTimeout(20_000) { models.toList().forEach { it.viewModelScope.coroutineContext.job.cancelAndJoin() } } }
         server.close()
         Dispatchers.resetMain()
         dir.deleteRecursively()
@@ -90,7 +99,7 @@ class AppModelTest {
 
     private fun neko() = Neko.create(dir, server.url("/").toString().trimEnd('/'), "test", lazyOf(null))
 
-    private fun model(neko: Neko = neko()) = AppModel(neko, clock = { now }) { todayChanges += it }
+    private fun model(neko: Neko = neko()) = AppModel(neko, clock = { now }) { todayChanges += it }.also { models += it }
 
     /**
      * Waits for [check]. The first test of a run pays the JVM's cold start while CI also runs lint
