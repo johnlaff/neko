@@ -749,28 +749,60 @@ test("on a desktop the tabs stand on the left and the panels in three columns", 
   expect(errors).toEqual([]);
 });
 
-test("on a desktop Mia is a chat in the middle: her bar spans the window, the field under her intro", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const errors = await open(page, "/mia", projection, {
-    ...API,
-    "/api/mia": { ligada: true, usadoPct: 3, pausadaAte: null, versao: 2 },
+test.describe("at a desk", () => {
+  // A mouse, no on-screen keyboard: the pointer is fine, as on a laptop.
+  test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
+
+  test("Mia is a chat in the middle, beside the rail, the field under her intro and in focus", async ({
+    page,
+  }) => {
+    const errors = await open(page, "/mia", projection, {
+      ...API,
+      "/api/mia": { ligada: true, usadoPct: 3, pausadaAte: null, versao: 2 },
+    });
+    await page.route("**/api/mia2", (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { "content-type": "application/x-ndjson" },
+        body: [
+          { t: "sessao", id: "sesn_teste" },
+          { t: "mensagem", id: "m1", texto: "Cabem R$ 300,00 até o fim do mês.", valores: {} },
+          { t: "fim" },
+        ]
+          .map((l) => `${JSON.stringify(l)}\n`)
+          .join(""),
+      }),
+    );
+    const field = page.getByRole("textbox", { name: "Pergunta para a Mia" });
+    // The field is ready for the first words, as in every desktop chat.
+    await expect(field).toBeFocused();
+    // The tabs stay at hand as the rail, none of them current: her bar says where he is.
+    const rail = page.getByRole("navigation", { name: "Telas" });
+    await expect(rail.getByRole("link")).toHaveCount(4);
+    await expect(rail.locator("[aria-current]")).toHaveCount(0);
+    const side = await rail.boundingBox();
+    const bar = await page.locator(".mia-bar").boundingBox();
+    const form = await page.locator("form.mia-form").boundingBox();
+    const title = await page.getByRole("heading", { name: /Pergunte/ }).boundingBox();
+    // Her bar runs from the rail to the window's edge; one column of 48rem in the room left.
+    expect(side && bar && bar.x >= side.x + side.width && bar.x + bar.width === 1440).toBe(true);
+    expect(form && Math.round(form.width)).toBe(768);
+    expect(form && bar && Math.abs(form.x + form.width / 2 - (bar.x + bar.width / 2))).toBeLessThan(
+      2,
+    );
+    expect(form && title && form.y > title.y && form.y < 900 * 0.7).toBe(true);
+    // Starting a question keeps the field where it was.
+    await page.getByRole("button", { name: "Posso comprar…?" }).click();
+    expect((await page.locator("form.mia-form").boundingBox())?.y).toBe(form?.y);
+    // After her answer the field keeps the focus: the next question is typed right away.
+    await field.fill("Quanto ainda cabe?");
+    await field.press("Enter");
+    await expect(page.getByText("Cabem R$ 300,00 até o fim do mês.")).toBeVisible();
+    await expect(field).toBeFocused();
+    await page.keyboard.type("E dezembro?");
+    await expect(field).toHaveValue("E dezembro?");
+    expect(errors).toEqual([]);
   });
-  const field = page.getByRole("textbox", { name: "Pergunta para a Mia" });
-  await expect(field).toBeVisible();
-  const bar = await page.locator(".mia-bar").boundingBox();
-  const form = await page.locator("form.mia-form").boundingBox();
-  const title = await page.getByRole("heading", { name: /Pergunte/ }).boundingBox();
-  expect(bar?.width).toBe(1440);
-  // One centered column of 48rem, the field in the middle of the window, right under her intro.
-  expect(form && Math.round(form.width)).toBe(768);
-  expect(form && Math.abs(form.x + form.width / 2 - 720)).toBeLessThan(2);
-  expect(form && title && form.y > title.y && form.y < 900 * 0.7).toBe(true);
-  // Starting a question keeps the field where it was.
-  await page.getByRole("button", { name: "Posso comprar…?" }).click();
-  expect((await page.locator("form.mia-form").boundingBox())?.y).toBe(form?.y);
-  expect(errors).toEqual([]);
 });
 
 test("Neko counts the screens it shows, and Ajustes tells what was used", async ({ page }) => {
