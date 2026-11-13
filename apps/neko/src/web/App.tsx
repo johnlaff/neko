@@ -99,9 +99,13 @@ const onShortcut = (e: KeyboardEvent) => {
   if (document.querySelector("dialog[open]")) return;
   const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
   const target = document.querySelector<HTMLElement>(`[aria-keyshortcuts="${CSS.escape(key)}"]`);
-  if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
+  // Only what is on screen answers: Mia's rail is hidden on a phone, and so are its digits.
+  if (!target || target.getClientRects().length === 0) return;
+  if (target instanceof HTMLButtonElement && target.disabled) return;
   e.preventDefault();
-  target.click();
+  // A field takes the keyboard; anything else is pressed.
+  if (target instanceof HTMLInputElement) target.focus();
+  else target.click();
 };
 
 /**
@@ -163,6 +167,28 @@ const Masthead = () => {
   );
 };
 
+/** The four tabs: a dock under the page on a phone, a rail beside it on a wide screen. */
+const Tabs = ({ wide = false }: { wide?: boolean }) => (
+  <nav className={wide ? "dock wide-only" : "dock"} aria-label="Telas">
+    <Link to="/" activeOptions={{ exact: true }} aria-keyshortcuts="1" title="Hoje (1)">
+      <IconToday />
+      Hoje
+    </Link>
+    <Link to="/faturas" aria-keyshortcuts="2" title="Faturas (2)">
+      <IconCard />
+      Faturas
+    </Link>
+    <Link to="/mes" aria-keyshortcuts="3" title="Mês (3)">
+      <IconMonth />
+      Mês
+    </Link>
+    <Link to="/ajustes" aria-keyshortcuts="4" title="Ajustes (4)">
+      <IconSettings />
+      Ajustes
+    </Link>
+  </nav>
+);
+
 const Shell = () => {
   // Amounts are formatted while rendering, so the screen remounts when values hide or show.
   const hidden = useValuesHidden();
@@ -182,36 +208,25 @@ const Shell = () => {
     window.addEventListener("keydown", onShortcut);
     return () => window.removeEventListener("keydown", onShortcut);
   }, []);
-  // Mia's and Simular's screens are the whole page, with their own bar on top and no dock.
+  // Mia's and Simular's screens are the whole page, with their own bar on top and no dock. On a
+  // wide screen Mia keeps the rail, as chat apps keep their side menu: her answers send him to the
+  // tabs, one click away. Simular stays a task of its own.
   if (path === "/mia" || path === "/simular")
     return (
-      <main className={path === "/mia" ? "mia-page" : "sim-page"}>
-        <Fragment key={hidden ? "hidden" : "shown"}>
-          <Outlet />
-        </Fragment>
-      </main>
+      <>
+        {path === "/mia" && <Tabs wide />}
+        {/* Its own page: nothing of it is reused by the tabs' page, nor theirs by it. */}
+        <main key="whole" className={path === "/mia" ? "mia-page" : "sim-page"}>
+          <Fragment key={hidden ? "hidden" : "shown"}>
+            <Outlet />
+          </Fragment>
+        </main>
+      </>
     );
   return (
     <>
       {/* The tabs come first, as they read on a wide screen: the rail before the page. */}
-      <nav className="dock" aria-label="Telas">
-        <Link to="/" activeOptions={{ exact: true }} aria-keyshortcuts="1" title="Hoje (1)">
-          <IconToday />
-          Hoje
-        </Link>
-        <Link to="/faturas" aria-keyshortcuts="2" title="Faturas (2)">
-          <IconCard />
-          Faturas
-        </Link>
-        <Link to="/mes" aria-keyshortcuts="3" title="Mês (3)">
-          <IconMonth />
-          Mês
-        </Link>
-        <Link to="/ajustes" aria-keyshortcuts="4" title="Ajustes (4)">
-          <IconSettings />
-          Ajustes
-        </Link>
-      </nav>
+      <Tabs />
       <main className="page">
         <Masthead />
         <Fragment key={hidden ? "hidden" : "shown"}>
