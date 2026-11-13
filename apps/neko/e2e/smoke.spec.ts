@@ -260,13 +260,72 @@ test("Parar on Mia 2 keeps a question typed during her answer, unsent", async ({
   const field = page.getByRole("textbox", { name: "Pergunta para a Mia" });
   await field.fill("E a fatura de dezembro?");
   await field.press("Enter");
-  await expect(page.getByText("Sua pergunta vai quando ela terminar.")).toBeVisible();
+  await expect(page.locator("p.mia-held")).toHaveText("Sua pergunta vai quando ela terminar.");
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: "Parar" }).click();
   await expect(page.getByText("Você parou esta resposta.")).toBeVisible();
   await expect(field).toHaveValue("E a fatura de dezembro?");
   await expect(page.getByRole("button", { name: "Enviar" })).toBeEnabled();
   expect(asked).toEqual(["Quanto ainda cabe este mês?"]);
+  expect(errors).toEqual([]);
+});
+
+test("Posso comprar on Mia 2 starts the question in the field and sends nothing", async ({
+  page,
+}) => {
+  const errors = await open(page, "/mia", projection, {
+    ...API,
+    "/api/mia": { ligada: true, usadoPct: 3, pausadaAte: null, versao: 2 },
+  });
+  const asked: string[] = [];
+  const lines = [
+    { t: "sessao", id: "sesn_teste" },
+    {
+      t: "veredito",
+      id: "v1",
+      veredito: "aperta",
+      valor: 400,
+      parcelas: 2,
+      meio: "cartao",
+      dura: 96,
+    },
+    {
+      t: "mensagem",
+      id: "m1",
+      texto: "Em dezembro, as faturas com a parcela passam do teto.",
+      valores: {},
+    },
+    { t: "fim" },
+  ];
+  await page.route("**/api/mia2", async (route) => {
+    asked.push(route.request().postDataJSON().pergunta);
+    await route.fulfill({
+      status: 200,
+      headers: { "content-type": "application/x-ndjson" },
+      body: lines.map((l) => `${JSON.stringify(l)}\n`).join(""),
+    });
+  });
+  await page.getByRole("button", { name: "Posso comprar…?" }).click();
+  const field = page.getByRole("textbox", { name: "Pergunta para a Mia" });
+  await expect(field).toBeFocused();
+  await expect(field).toHaveValue("Posso comprar ");
+  // Only the start: nothing to send yet, and the line under it says what she needs.
+  await expect(page.getByRole("button", { name: "Enviar" })).toBeDisabled();
+  await expect(field).toHaveAccessibleDescription(/O quê, quanto e como paga/);
+  await expect(page.getByRole("button", { name: "Quanto ainda cabe este mês?" })).toHaveCount(0);
+  // The cursor waits after the words: what is typed next finishes the question.
+  await page.keyboard.type("um tênis de R$ 400 em 2x?");
+  await expect(field).toHaveValue("Posso comprar um tênis de R$ 400 em 2x?");
+  expect(asked).toEqual([]);
+  await field.press("Enter");
+  await expect.poll(() => asked).toEqual(["Posso comprar um tênis de R$ 400 em 2x?"]);
+  // The verdict is the Neko's, over her reason, with the purchase as it was checked.
+  const answer = page.getByRole("list", { name: "Conversa com a Mia" });
+  await expect(answer.getByText("Aperta", { exact: true })).toBeVisible();
+  await expect(answer.getByText("R$ 400,00 em 2x no cartão, dura uns 8 anos")).toBeVisible();
+  // Next, the same purchase another way.
+  await expect(page.getByRole("button", { name: "E em 1x no cartão?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "E no Pix?" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 

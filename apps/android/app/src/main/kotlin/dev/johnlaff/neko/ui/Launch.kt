@@ -561,7 +561,7 @@ private fun SaySentence(cards: List<String>, fill: suspend (String, List<String>
     }
 }
 /** A stroke icon from an SVG path on a 24px grid, drawn like the site's icons (web/icons.tsx). */
-private fun stroke(name: String, path: String): ImageVector =
+internal fun stroke(name: String, path: String): ImageVector =
     ImageVector.Builder(name = name, defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
         .addPath(
             pathData = PathParser().parsePathString(path).toNodes(),
@@ -574,7 +574,7 @@ private fun stroke(name: String, path: String): ImageVector =
         .build()
 
 private val TodayIcon = stroke("today", "M6.5 5h11a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3zM3.5 10h17M8 3v4M16 3v4M12 14.25a0.75 0.75 0 1 1 0 1.5a0.75 0.75 0 1 1 0-1.5")
-private val CheckIcon = stroke("check", "m5 12.5 4.5 4.5L19 7.5")
+internal val CheckIcon = stroke("check", "m5 12.5 4.5 4.5L19 7.5")
 private val RefreshIcon = stroke("refresh", "M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5")
 private val ExternalIcon = stroke("external", "M14 4h6v6M20 4l-9 9M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10")
 private val PrevIcon = stroke("prev", "m15 6-6 6 6 6")

@@ -3,6 +3,7 @@ import {
   type Cents,
   type Change,
   cents,
+  checkPurchase,
   type EntryInput,
   entryFromMia,
   localDate,
@@ -11,11 +12,13 @@ import {
   MAX_REPEAT,
   MIA_PERIODS,
   type MonthView,
+  type PurchaseReason,
   refBook,
   runMiaTool,
+  type ScenarioPoint,
 } from "@neko/engine";
 import { z } from "zod";
-import { scenarioView } from "../shared/screens.ts";
+import { scenarioInput, scenarioView } from "../shared/screens.ts";
 import type { ProjectionResponse } from "../shared/types.ts";
 
 /**
@@ -237,6 +240,118 @@ const simulateTool = (d: McpData, input: z.infer<typeof SimulateInput>): CallToo
   }
 };
 
+const PurchaseInput = z.object({
+  valor: Reais.describe("Valor total da compra, em reais."),
+  parcelas: z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_INSTALLMENTS)
+    .default(1)
+    .describe("No cartão, em quantas vezes. No Pix, 1."),
+  meio: z
+    .enum(["cartao", "pix"])
+    .default("cartao")
+    .describe(
+      "cartao: no cartão principal, a primeira parcela na próxima fatura. pix: hoje, de uma vez, no Pix ou no débito.",
+    ),
+  dura_meses: z
+    .number()
+    .int()
+    .min(0)
+    .max(1200)
+    .optional()
+    .describe(
+      "Obrigatório ao parcelar. Quantos meses o bem dura: o que o dono disse ou sua estimativa pelo que é (geladeira uns 120). 0 para o que se consome logo, como comida ou serviço; viagem, os meses até ela.",
+    ),
+});
+
+/** What Hoje's "Ainda cabem" measures this month. */
+const MEASURE = {
+  cards: "teto do mês (faturas do mês que vem e Pix deste mês)",
+  month: "diário previsto do mês",
+  cycle: "ciclo do cartão principal",
+} as const;
+
+const REASON: Record<PurchaseReason, string> = {
+  teto: "passa do que ainda cabe neste mês",
+  negativo: "deixa o saldo negativo, ou negativo mais cedo",
+  meses: "num mês das parcelas, as faturas com a parcela chegam ao teto",
+  duracao: "as parcelas duram mais que o bem; o método só parcela o que dura, e não além disso",
+  ja_negativo: "o saldo já fica negativo sem a compra, e ela piora",
+};
+
+const purchaseTool = (d: McpData, input: z.infer<typeof PurchaseInput>): CallToolResult => {
+  const { projection: p, sheet } = d.data;
+  if (input.meio === "pix" && input.parcelas !== 1)
+    return refuse("Pix é de uma vez: use parcelas 1.");
+  const usual = p.cards.find((c) => c.usual)?.card.name ?? null;
+  if (input.meio === "cartao" && usual === null)
+    return refuse("Não há cartão principal para pôr a compra. Pergunte se vai no Pix.");
+  if (input.parcelas > 1 && input.dura_meses === undefined)
+    return refuse(
+      "Parcelado: mande dura_meses, quanto o bem dura. Se não souber o que é, pergunte.",
+    );
+  try {
+    const c = checkPurchase(scenarioInput(d.data, d.ceiling), {
+      amount: cents(Math.round(input.valor * 100)),
+      count: input.parcelas,
+      via: input.meio,
+      lifeMonths: input.dura_meses,
+    });
+    const cs = p.canSpend;
+    const first = c.parcels[0];
+    const last = c.parcels.at(-1);
+    const pair = (x: { with: ScenarioPoint | null; without: ScenarioPoint | null }) => ({
+      sem_a_compra: point(x.without),
+      com_a_compra: point(x.with),
+    });
+    const saving = c.saving.without ?? c.saving.with;
+    return answer({
+      hoje: p.today,
+      planilha_lida_em: sheet.readAt,
+      veredito: c.verdict,
+      motivos: c.reasons.map((r) => REASON[r]),
+      compra: {
+        valor: input.valor,
+        meio: input.meio,
+        cartao: input.meio === "cartao" ? usual : null,
+        parcelas: c.parcels.length,
+        dura_meses: input.dura_meses ?? null,
+        valor_da_parcela: first ? reais(first.amount) : null,
+        primeira: first?.date ?? null,
+        ultima: last?.date ?? null,
+      },
+      ainda_cabem:
+        cs && c.now
+          ? {
+              medido_por: MEASURE[cs.mode],
+              limite: reais(cs.budget),
+              gasto_ate_agora: reais(cs.accumulated),
+              antes: reais(cs.budget - cs.accumulated),
+              depois: reais(c.now.remaining),
+            }
+          : null,
+      ritmo: c.pace,
+      teto_por_mes: d.ceiling === null ? null : reais(d.ceiling),
+      meses_sem_folga: c.tight.map((t) => ({
+        mes: t.month,
+        faturas_com_a_parcela: reais(t.bills),
+      })),
+      menor_saldo: pair(c.lowest),
+      primeiro_dia_negativo: pair(c.firstNegative),
+      dia_de_guardar: saving && {
+        dia: saving.date,
+        sem_a_compra: c.saving.without ? reais(c.saving.without.amount) : null,
+        com_a_compra: c.saving.with ? reais(c.saving.with.amount) : null,
+      },
+    });
+  } catch (e) {
+    if (e instanceof RangeError) return refuse(`Não dá para conferir: ${e.message}`);
+    throw e;
+  }
+};
+
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } as const;
 
 /**
@@ -405,6 +520,18 @@ export const nekoServer = (load: () => Promise<McpData>, propose?: Propose): Mcp
       annotations: READ_ONLY,
     },
     async (input) => simulateTool(await data(), input),
+  );
+
+  server.registerTool(
+    "posso_comprar",
+    {
+      title: "Posso comprar?",
+      description:
+        "Confere uma compra contra as regras do dono: o que ainda cabe neste mês (como o Hoje mostra), as faturas dos meses das parcelas contra o teto e se o saldo fica negativo, com os meses à frente no teto. Devolve o veredito (cabe, aperta ou nao_cabe), os motivos, a parcela, o que ainda cabe antes e depois, o menor saldo e o dia de guardar, com e sem a compra. Nada é salvo.",
+      inputSchema: PurchaseInput,
+      annotations: READ_ONLY,
+    },
+    async (input) => purchaseTool(await data(), input),
   );
 
   server.registerTool(

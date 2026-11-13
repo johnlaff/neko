@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -72,6 +73,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -85,6 +88,7 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalDensity
@@ -92,6 +96,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withLink
@@ -117,21 +122,58 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 /** Questions that show what she does now: sums, charts, the future as a simulation (the site's MIA2_TOPICS). */
+/** What a purchase's answer already says: not suggested after one. */
+private const val ROOM = "Quanto ainda cabe este mês?"
 private val MIA2_TOPICS = mapOf(
-    "hoje" to listOf("Quanto ainda cabe este mês?", "Como foram meus últimos 6 meses?"),
+    "hoje" to listOf(ROOM, "Como foram meus últimos 6 meses?"),
     "faturas" to listOf("Quanto vem nas próximas faturas?", "Mostra as faturas dos próximos meses"),
     "mes" to listOf("Este mês está melhor que o anterior?", "Quanto gastei com mercado este ano?"),
 )
-private const val ANY = "E se eu comprar algo de R$ 2.000 em 10x?"
+/**
+ * A question the owner finishes (the site's MIA2_FILL): the chip puts its start in the field, the cursor
+ * after it, for what, how much and in how many times. Mia checks it against the teto (posso_comprar).
+ */
+const val MIA2_FILL = "Posso comprar…?"
+const val MIA2_FILL_TEXT = "Posso comprar "
+/** Over the field while a purchase is being written: what she needs to answer it. */
+const val MIA2_FILL_HINT = "O quê, quanto e como paga. Ex.: uma geladeira de R$\u00A03.000 no Pix ou em 5x"
+/** After "Não cabe" at once: the same purchase in parcels, how many finished in the field too. */
+const val MIA2_PARCEL = "E se eu parcelar…?"
+
+/** A question finished in the field: its start, and the line over the field saying what to write. */
+data class Mia2Fill(val text: String, val hint: String)
+
+/** The questions finished in the field (the site's FILLS), by their chip. */
+val MIA2_FILLS = mapOf(
+    MIA2_FILL to Mia2Fill(MIA2_FILL_TEXT, MIA2_FILL_HINT),
+    MIA2_PARCEL to Mia2Fill(PARCEL_TEXT, "Em quantas vezes, $PARCEL_HINT"),
+)
+
+private const val PARCEL_TEXT = "E se eu parcelar em "
+/** What the method asks before parcels: in how many, and how long the thing lasts. */
+private const val PARCEL_HINT = "e quanto tempo dura. Ex.: em 5x, dura uns 8 anos."
+
+/** The line over the field (the site's hintFor); splitting a purchase names it, so the question keeps its context. */
+fun mia2HintFor(fill: Mia2Fill, compra: Mia2Veredicto?): String =
+    if (fill.text != PARCEL_TEXT || compra == null) fill.hint
+    else "Em quantas vezes os ${Format.money(Math.round(compra.valor * 100))} no ${compra.cartao?.takeIf { it.isNotBlank() } ?: "cartão"}, $PARCEL_HINT"
 
 /** Four questions, those about the screen she was opened from first. */
 fun mia2Starters(topic: String = "hoje"): List<String> =
-    (MIA2_TOPICS[topic].orEmpty() + ANY + MIA2_TOPICS.values.flatten()).distinct().take(4)
+    (MIA2_TOPICS[topic].orEmpty() + MIA2_FILL + MIA2_TOPICS.values.flatten()).distinct().take(4)
 
 /** A question as asked, whatever its case or closing mark, so a typed one is not suggested again. */
-private fun same(q: String) = q.lowercase().replace(Regex("""[\s?!.]+$"""), "")
+private fun same(q: String) = q.lowercase().replace(Regex("""[\s?!.…]+$"""), "")
 
-fun mia2NotAsked(asked: List<String>): (String) -> Boolean = { q -> asked.none { same(it) == same(q) } }
+fun mia2NotAsked(asked: List<String>): (String) -> Boolean = { q ->
+    asked.none { if (q == MIA2_FILL) same(it).startsWith(same(MIA2_FILL_TEXT)) else same(it) == same(q) }
+}
+
+/** The field holds a question's start ("Posso comprar") and not yet the rest: nothing to send. */
+fun mia2OnlyStem(typed: String) = MIA2_FILLS.values.any { same(typed) == same(it.text) }
+
+/** The question being finished: its hint stays until it is sent, so nothing jumps. */
+fun mia2FillOf(typed: String): Mia2Fill? = MIA2_FILLS.values.firstOrNull { same(typed).startsWith(same(it.text)) }
 
 /** After her routine, what one asks next about that week or that month (the site's ROUTINE_NEXT). */
 private val ROUTINE_NEXT = mapOf(
@@ -139,10 +181,40 @@ private val ROUTINE_NEXT = mapOf(
     "mes" to listOf("Como guardo mais este mês?", "Quais foram as maiores saídas do mês passado?"),
 )
 
-/** After an answer, two questions not asked yet; after her routine, about its week or month first. */
-fun mia2Next(asked: List<String>, topic: String = "hoje", rotina: String? = null): List<String> =
-    (ROUTINE_NEXT[rotina].orEmpty() + mia2Starters(topic) + MIA2_TOPICS.values.flatten())
-        .distinct().filter(mia2NotAsked(asked)).take(2)
+/**
+ * What to ask after a purchase checked (the site's purchaseNext). On the card: Pix first (the
+ * method's way), then in one parcel. After "Não cabe" at once, the method's next step: parcel it,
+ * if it lasts (she asks in how many times and what it is), and how to set more aside.
+ */
+private fun purchaseNext(v: Mia2Veredicto): List<String> = when {
+    v.veredito == "nao_cabe" -> listOfNotNull(MIA2_PARCEL.takeIf { v.parcelas == 1 }, "Como guardo mais este mês?")
+    v.meio == "pix" -> emptyList()
+    else -> listOfNotNull("E no Pix?", "E em 1x no cartão?".takeIf { v.parcelas > 1 })
+}
+
+/**
+ * After an answer, two questions not asked yet; after her routine, about its week or month first.
+ * After a purchase: that purchase another way, or another purchase, never what its answer said.
+ */
+fun mia2Next(asked: List<String>, topic: String = "hoje", rotina: String? = null, compra: Mia2Veredicto? = null): List<String> {
+    val after = compra?.let { purchaseNext(it) + MIA2_FILL }.orEmpty()
+    val notAsked = mia2NotAsked(asked)
+    return (ROUTINE_NEXT[rotina].orEmpty() + after + mia2Starters(topic) + MIA2_TOPICS.values.flatten())
+        .distinct().filter { it in after || (notAsked(it) && !(compra != null && it == ROOM)) }.take(2)
+}
+
+/** The last purchase checked in an answer, for what to ask next. */
+/**
+ * The purchase to ask next about: the last answer's, or, after a follow-up that failed or was
+ * stopped, the one before it, so its ways on are not lost.
+ */
+fun mia2LastPurchase(turns: List<Mia2Turno>): Mia2Veredicto? {
+    for (t in turns.asReversed()) {
+        val v = t.parts.lastOrNull { it is Mia2Veredicto } as Mia2Veredicto?
+        if (v != null || t.end !in setOf("falhou", "rede", "parou")) return v
+    }
+    return null
+}
 
 /** A piece of her answer: text (values checked once it is whole), a chart or a board of numbers. */
 sealed interface Mia2Part {
@@ -156,6 +228,18 @@ data class Mia2Desenho(override val id: String, val grafico: Mia2Grafico) : Mia2
 
 /** Her board: two to four numbers side by side, every one checked by the Worker. */
 data class Mia2Numeros(override val id: String, val numeros: List<Mia2Numero>) : Mia2Part
+
+/** "Posso comprar?": the Neko's verdict ("cabe", "aperta", "nao_cabe") on the purchase it checked, in reais. */
+data class Mia2Veredicto(
+    override val id: String,
+    val veredito: String,
+    val valor: Double,
+    val parcelas: Int,
+    val meio: String,
+    val cartao: String? = null,
+    /** Split, the months it lasts, as said or as she guessed: it can turn Cabe into Aperta. */
+    val dura: Int? = null,
+) : Mia2Part
 
 /**
  * One question and her answer; `end` says how it ended when it did not simply end ("parou", "cheia",
@@ -251,6 +335,11 @@ class Mia2Chat {
                 status = null
                 val ns = l.numeros ?: return false
                 patch(n) { it.copy(parts = it.parts + Mia2Numeros(l.id.orEmpty(), ns)) }
+            }
+            "veredito" -> {
+                status = null
+                val v = Mia2Veredicto(l.id.orEmpty(), l.veredito ?: return false, l.valor ?: return false, l.parcelas ?: 1, l.meio ?: "cartao", l.cartao, l.dura)
+                patch(n) { it.copy(parts = it.parts + v) }
             }
             "refazendo" -> patch(n) { it.copy(parts = emptyList()) }
             "fim" -> return true
@@ -494,6 +583,7 @@ fun Mia2Screen(
     val focus = LocalFocusManager.current
     val density = LocalDensity.current
     val input = remember { FocusRequester() }
+    var field by remember { mutableStateOf(TextFieldValue(chat.typed, TextRange(chat.typed.length))) }
     val list = rememberLazyListState()
     var seconds by remember { mutableStateOf(0) }
     DisposableEffect(Unit) { onDispose { chat.typing = false } }
@@ -520,6 +610,17 @@ fun Mia2Screen(
     val moving = remember { mutableStateListOf<String>() }
     val send = { q: String ->
         if (q.isNotBlank() && chat.pending == null) chat.ask(q.trim(), scope, talk)
+    }
+    // "Posso comprar…?" is finished in the field, focused with the keyboard up and the cursor after the words.
+    val keyboard = LocalSoftwareKeyboardController.current
+    val view = LocalView.current
+    val pick = { q: String ->
+        val fill = MIA2_FILLS[q]
+        if (fill == null) send(q) else {
+            chat.typed = fill.text
+            runCatching { input.requestFocus() }
+            keyboard?.show()
+        }
     }
     // Her routine, the first time her screen opens after it came.
     LaunchedEffect(Unit) {
@@ -554,7 +655,7 @@ fun Mia2Screen(
     val full = turns.lastOrNull()?.end == "cheia"
     val doing = chat.status ?: if (chat.pending?.let { n -> turns.firstOrNull { it.n == n }?.parts?.isEmpty() } == true) miaWaiting(seconds) else null
     val asked = turns.map { it.pergunta }
-    val next = if (turns.isEmpty() || resting || full || chat.typed.isNotBlank() || chat.pending != null || moving.isNotEmpty()) emptyList() else mia2Next(asked, topic, turns.firstOrNull()?.rotina)
+    val next = if (turns.isEmpty() || resting || full || chat.typed.isNotBlank() || chat.pending != null || moving.isNotEmpty()) emptyList() else mia2Next(asked, topic, turns.firstOrNull()?.rotina, mia2LastPurchase(turns))
 
     Column(
         Modifier.fillMaxSize().background(l.bg).safeDrawingPadding().semantics { paneTitle = "Mia" },
@@ -624,7 +725,8 @@ fun Mia2Screen(
                             color = l.muted,
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
-                        if (!resting) mia2Starters(topic).filter(mia2NotAsked(asked)).forEach { q -> Suggestion(q, wrap = true) { send(q) } }
+                        // Out of the way once a question is being written.
+                        if (!resting && chat.typed.isEmpty()) mia2Starters(topic).filter(mia2NotAsked(asked)).forEach { q -> Mia2Suggestion(q, wrap = true) { pick(q) } }
                     }
                 }
                 items(turns, key = { "t${it.n}" }) { t ->
@@ -673,10 +775,21 @@ fun Mia2Screen(
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         )
                     }
+                    val hint = mia2FillOf(chat.typed)?.let { mia2HintFor(it, mia2LastPurchase(turns)) }
+                    if (hint != null) {
+                        Text(
+                            hint,
+                            color = l.muted,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                    }
                     if (next.isNotEmpty() && !chat.typing) key(turns.size) {
                         Row(
                             Modifier
                                 .rise()
+                                // As wide as the field, as on the site: only a row that goes on fades at the edge.
+                                .fillMaxWidth()
                                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                                 .drawWithContent {
                                     drawContent()
@@ -685,21 +798,28 @@ fun Mia2Screen(
                                 .horizontalScroll(key(turns.size) { rememberScrollState() }),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            next.forEach { q -> Suggestion(q) { send(q) } }
+                            next.forEach { q -> Mia2Suggestion(q) { pick(q) } }
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
-                            value = chat.typed,
+                            // Text put in from outside (a chip, a question sent) leaves the cursor at its end.
+                            value = if (field.text == chat.typed) field else TextFieldValue(chat.typed, TextRange(chat.typed.length)),
                             onValueChange = {
-                                chat.typed = it.take(1000)
-                                if (it.isBlank()) chat.held = false
+                                field = if (it.text.length <= 1000) it else TextFieldValue(it.text.take(1000), TextRange(1000))
+                                chat.typed = field.text
+                                if (field.text.isBlank()) chat.held = false
                             },
                             singleLine = true,
                             placeholder = { Text(if (turns.isEmpty()) "Pergunte algo" else "Outra pergunta?", color = l.faint) },
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                             // While she answers, Send keeps the next question for when she is done.
                             keyboardActions = KeyboardActions(onSend = {
+                                // Only a question's start: said again, what is missing (Enviar is off).
+                                if (mia2OnlyStem(chat.typed)) {
+                                    mia2FillOf(chat.typed)?.let { @Suppress("DEPRECATION") view.announceForAccessibility(mia2HintFor(it, mia2LastPurchase(turns))) }
+                                    return@KeyboardActions
+                                }
                                 if (chat.pending == null) send(chat.typed) else if (chat.typed.isNotBlank()) chat.held = true
                             }),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
@@ -720,7 +840,7 @@ fun Mia2Screen(
                         } else {
                             Button(
                                 onClick = { send(chat.typed) },
-                                enabled = chat.typed.isNotBlank(),
+                                enabled = chat.typed.isNotBlank() && !mia2OnlyStem(chat.typed),
                                 colors = ButtonDefaults.buttonColors(containerColor = l.text, contentColor = l.bg),
                                 shape = RoundedCornerShape(10.dp),
                                 // The theme's text styles carry a color, which would win over the button's: dark on light
@@ -755,7 +875,8 @@ private fun Mia2TurnItem(
     seen: MutableSet<String> = remember { HashSet() },
 ) {
     val l = LocalLedger.current
-    val first = t.parts.firstOrNull { it is Mia2Texto }?.id
+    // Her first paragraph is the answer, in the serif; under the Neko's verdict it is the reason.
+    val first = if (t.parts.any { it is Mia2Veredicto }) null else t.parts.firstOrNull { it is Mia2Texto }?.id
     // Her pieces come in order: a chart, or her next text, waits for the words before it.
     val at = t.parts.indexOfFirst { "${t.n}:${it.id}" in moving }
     val parts = if (at < 0) t.parts else t.parts.take(at + 1)
@@ -811,6 +932,7 @@ private fun Mia2TurnItem(
                                 if (loose.isNotEmpty() && id !in moving) Box(Modifier.rise(on = fresh)) { LooseNote(loose) }
                             }
                             is Mia2Desenho -> Box(Modifier.rise(on = fresh)) { MiaChart(p.grafico) }
+                            is Mia2Veredicto -> Box(Modifier.rise(on = fresh)) { Mia2Verdict(p) }
                             is Mia2Numeros -> {
                                 val id = "${t.n}:${p.id}"
                                 Box(Modifier.rise(on = fresh)) { Mia2Board(p.numeros, count = paced && id !in seen) }
@@ -865,6 +987,66 @@ private fun Mia2TurnItem(
                 sources.forEach { src -> TextAction("${src.label} ›", { open(src.tela, src.mes) }, color = l.accent) }
             }
         }
+    }
+}
+
+/** A suggested question: sent on a tap, or, for "Posso comprar…?", started in the field. */
+@Composable
+private fun Mia2Suggestion(q: String, wrap: Boolean = false, onClick: () -> Unit) =
+    Suggestion(q, wrap, onClickLabel = if (q in MIA2_FILLS) "começar a pergunta no campo" else null, onClick = onClick)
+
+private val AlertIcon = stroke("alert", "M12 4 2.8 19.5h18.4zM12 10v4.5M12 17.2v.3")
+private val CloseIcon = stroke("close", "M6.5 6.5l11 11M17.5 6.5l-11 11")
+
+/** How long it lasts, in the words of the parcel hint; never rounded, so it reads as checked. */
+private fun lasts(months: Int): String = when {
+    months == 0 -> "se consome logo"
+    months == 1 -> "dura um mês"
+    months % 12 != 0 -> "dura uns $months meses"
+    months == 12 -> "dura um ano"
+    else -> "dura uns ${months / 12} anos"
+}
+
+/** The purchase as checked, so what she assumed (the main card, at once, how long it lasts) is in sight. */
+fun mia2PurchaseLabel(v: Mia2Veredicto): String {
+    val value = Format.money(Math.round(v.valor * 100))
+    val card = v.cartao?.takeIf { it.isNotBlank() } ?: "cartão"
+    return when {
+        v.meio == "pix" -> "$value no Pix"
+        v.parcelas == 1 -> "$value à vista no $card"
+        v.dura == null -> "$value em ${v.parcelas}x no $card"
+        else -> "$value em ${v.parcelas}x no $card, ${lasts(v.dura)}"
+    }
+}
+
+/**
+ * "Posso comprar?": the Neko's verdict, never her words, in the serif of every verdict here, its
+ * tone and an icon so it never rests on color alone; her text under it gives the reason.
+ */
+@Composable
+private fun Mia2Verdict(v: Mia2Veredicto) {
+    val l = LocalLedger.current
+    val (word, tone, icon) = when (v.veredito) {
+        "cabe" -> Triple("Cabe", l.pos, CheckIcon)
+        "aperta" -> Triple("Aperta", l.warn, AlertIcon)
+        else -> Triple("Não cabe", l.neg, CloseIcon)
+    }
+    val label = mia2PurchaseLabel(v)
+    Column(
+        Modifier.clearAndSetSemantics { contentDescription = "Veredito do Neko: $word. $label" },
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Grows with the word when the text is enlarged.
+            Icon(icon, contentDescription = null, tint = tone, modifier = Modifier.size(with(LocalDensity.current) { 22.sp.toDp() }))
+            Text(word, color = tone, style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Faustina, fontSize = 22.sp, lineHeight = 26.sp))
+        }
+        Text(
+            label,
+            color = l.muted,
+            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+            modifier = Modifier.padding(start = 30.dp),
+        )
     }
 }
 

@@ -92,6 +92,7 @@ describe("mcp", () => {
       "resumo_meses",
       "dias_do_mes",
       "simular",
+      "posso_comprar",
       "para_lancar",
     ]);
     expect(
@@ -145,6 +146,41 @@ describe("mcp", () => {
       mudancas: [{ tipo: "compra", valor: 1200, parcelas: 3 }],
     });
     expect(buy.out.efeito_das_mudancas.no_fim).toBe(-1200);
+  });
+
+  it("checks a purchase against the ceiling and the balance, in reais", async () => {
+    const buy = await call("posso_comprar", { valor: 600, parcelas: 3, dura_meses: 60 });
+    expect(buy.error).toBe(false);
+    expect(["cabe", "aperta", "nao_cabe"]).toContain(buy.out.veredito);
+    expect(buy.out.ritmo).toBe("teto");
+    expect(buy.out.compra).toMatchObject({
+      valor: 600,
+      meio: "cartao",
+      parcelas: 3,
+      dura_meses: 60,
+    });
+    // Split, how long it lasts is asked for: the method's rule can't be skipped by leaving it out.
+    expect((await call("posso_comprar", { valor: 600, parcelas: 3 })).error).toBe(true);
+    expect(buy.out.compra.valor_da_parcela).toBe(200);
+    const fits = buy.out.ainda_cabem;
+    if (fits) expect(fits.depois).toBeCloseTo(fits.antes - 200, 2);
+    expect(buy.out.teto_por_mes).toBe(3800);
+    expect(buy.out.menor_saldo.com_a_compra.saldo).toBeLessThanOrEqual(
+      buy.out.menor_saldo.sem_a_compra.saldo,
+    );
+
+    const pix = await call("posso_comprar", { valor: 50, meio: "pix" });
+    expect(pix.out.compra).toMatchObject({ meio: "pix", parcelas: 1, primeira: pix.out.hoje });
+    expect((await call("posso_comprar", { valor: 50, meio: "pix", parcelas: 2 })).error).toBe(true);
+    // A Pix far bigger than the balance never fits.
+    const huge = await call("posso_comprar", { valor: 9_000_000, meio: "pix" });
+    expect(huge.out.veredito).toBe("nao_cabe");
+    // A dinner in 3x: the parcels outlast it, so it never comes back as a plain "cabe".
+    const dinner = await call("posso_comprar", { valor: 90, parcelas: 3, dura_meses: 0 });
+    expect(dinner.out.veredito).not.toBe("cabe");
+    expect(dinner.out.motivos).toContain(
+      "as parcelas duram mais que o bem; o método só parcela o que dura, e não além disso",
+    );
   });
 
   it("reads the last whole week, as Sunday's summary does", async () => {

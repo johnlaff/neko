@@ -519,7 +519,7 @@ fun MiaText(reply: MiaReply, onOpen: (String, String?) -> Unit) {
 }
 
 @Composable
-internal fun Suggestion(text: String, wrap: Boolean = false, onClick: () -> Unit) {
+internal fun Suggestion(text: String, wrap: Boolean = false, onClickLabel: String? = null, onClick: () -> Unit) {
     val l = LocalLedger.current
     val shape = RoundedCornerShape(50)
     Text(
@@ -532,7 +532,7 @@ internal fun Suggestion(text: String, wrap: Boolean = false, onClick: () -> Unit
             .minimumInteractiveComponentSize()
             .background(l.surface2, shape)
             .border(1.dp, l.border, shape)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(role = Role.Button, onClickLabel = onClickLabel, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
     )
 }
