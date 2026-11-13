@@ -348,6 +348,8 @@ export type Mia2Line =
       readonly meio: "cartao" | "pix";
       /** The card it went on (the main one when she was not told); none in Pix. */
       readonly cartao?: string | null | undefined;
+      /** Split, the months the thing lasts, as said or as she guessed; 0 when used up at once. */
+      readonly dura?: number | null | undefined;
     }
   /** A number did not check: what this question showed so far gives way to a new answer. */
   | { readonly t: "refazendo" }

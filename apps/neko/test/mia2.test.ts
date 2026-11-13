@@ -691,7 +691,14 @@ describe("mia2 posso comprar", () => {
   const verdict = {
     veredito: "aperta",
     motivos: ["num mês das parcelas, as faturas com a parcela chegam ao teto"],
-    compra: { valor: 600, meio: "cartao", cartao: "Azul", parcelas: 3, valor_da_parcela: 200 },
+    compra: {
+      valor: 600,
+      meio: "cartao",
+      cartao: "Azul",
+      parcelas: 3,
+      valor_da_parcela: 200,
+      dura_meses: 60,
+    },
     teto_por_mes: 3800,
     meses_sem_folga: [{ mes: "2026-12", faturas_com_a_parcela: 3904.32 }],
   };
@@ -700,7 +707,7 @@ describe("mia2 posso comprar", () => {
     const api = fakeApi({
       streams: [
         [
-          toolUse("u1", "posso_comprar", { valor: 600, parcelas: 3 }),
+          toolUse("u1", "posso_comprar", { valor: 600, parcelas: 3, dura_meses: 60 }),
           toolResult("u1", verdict),
           message(
             "m1",
@@ -708,13 +715,13 @@ describe("mia2 posso comprar", () => {
           ),
           idle("end_turn"),
           // Redone: she asks again the same purchase, and one at once.
-          toolUse("u2", "posso_comprar", { valor: 600, parcelas: 3 }),
+          toolUse("u2", "posso_comprar", { valor: 600, parcelas: 3, dura_meses: 60 }),
           toolResult("u2", verdict),
           toolUse("u3", "posso_comprar", { valor: 600 }),
           toolResult("u3", {
             ...verdict,
             veredito: "cabe",
-            compra: { ...verdict.compra, parcelas: 1 },
+            compra: { ...verdict.compra, parcelas: 1, dura_meses: null },
           }),
           message("m2", "Em dezembro, as faturas chegam a **R$ 3.904,32**."),
           idle("end_turn"),
@@ -743,8 +750,9 @@ describe("mia2 posso comprar", () => {
       parcelas: 3,
       meio: "cartao",
       cartao: "Azul",
+      dura: 60,
     });
-    expect(shown[5]).toMatchObject({ veredito: "cabe", parcelas: 1 });
+    expect(shown[5]).toMatchObject({ veredito: "cabe", parcelas: 1, dura: null });
     expect(lines).toContainEqual({ t: "status", texto: "Conferindo a compra…" });
   });
 
@@ -757,7 +765,7 @@ describe("mia2 posso comprar", () => {
     const api = fakeApi({
       streams: [
         [
-          toolUse("u1", "posso_comprar", { valor: 600, parcelas: 3 }),
+          toolUse("u1", "posso_comprar", { valor: 600, parcelas: 3, dura_meses: 60 }),
           toolResult("u1", verdict),
           message("m1", "Em dezembro, as faturas com a parcela passam do teto de **R$ 3.800**."),
           idle("end_turn"),

@@ -133,6 +133,8 @@ interface Purchase {
   readonly meio: "cartao" | "pix";
   /** The card it went on, the main one when she was not told. */
   readonly cartao?: string | null | undefined;
+  /** Split, the months it lasts, as said or as she guessed: it can turn Cabe into Aperta. */
+  readonly dura?: number | null | undefined;
 }
 
 interface Turn {
@@ -266,6 +268,7 @@ const ask = async (pergunta: string, onLimit: () => void) => {
               parcelas: l.parcelas,
               meio: l.meio,
               cartao: l.cartao,
+              dura: l.dura,
             },
           ],
         }));
@@ -816,12 +819,22 @@ const VERDICT = {
   nao_cabe: { word: "Não cabe", tone: "neg", icon: <IconClose /> },
 } as const;
 
-/** The purchase as checked, so what she assumed (the main card, at once) is in sight. */
+/** How long it lasts, in the words of the parcel hint. */
+const lasts = (months: number) => {
+  if (months === 0) return "se consome logo";
+  if (months < 12) return months === 1 ? "dura um mês" : `dura uns ${months} meses`;
+  const years = Math.round(months / 12);
+  return years === 1 ? "dura um ano" : `dura uns ${years} anos`;
+};
+
+/** The purchase as checked, so what she assumed (the main card, at once, how long it lasts) is in sight. */
 export const purchaseLabel = (v: Omit<Purchase, "veredito">, hidden: boolean) => {
   const value = hidden ? HIDDEN_MONEY : money(Math.round(v.valor * 100));
   if (v.meio === "pix") return `${value} no Pix`;
   const card = v.cartao || "cartão";
-  return v.parcelas > 1 ? `${value} em ${v.parcelas}x no ${card}` : `${value} à vista no ${card}`;
+  if (v.parcelas === 1) return `${value} à vista no ${card}`;
+  const split = `${value} em ${v.parcelas}x no ${card}`;
+  return v.dura == null ? split : `${split}, ${lasts(v.dura)}`;
 };
 
 /**

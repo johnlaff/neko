@@ -149,11 +149,18 @@ describe("mcp", () => {
   });
 
   it("checks a purchase against the ceiling and the balance, in reais", async () => {
-    const buy = await call("posso_comprar", { valor: 600, parcelas: 3 });
+    const buy = await call("posso_comprar", { valor: 600, parcelas: 3, dura_meses: 60 });
     expect(buy.error).toBe(false);
     expect(["cabe", "aperta", "nao_cabe"]).toContain(buy.out.veredito);
     expect(buy.out.ritmo).toBe("teto");
-    expect(buy.out.compra).toMatchObject({ valor: 600, meio: "cartao", parcelas: 3 });
+    expect(buy.out.compra).toMatchObject({
+      valor: 600,
+      meio: "cartao",
+      parcelas: 3,
+      dura_meses: 60,
+    });
+    // Split, how long it lasts is asked for: the method's rule can't be skipped by leaving it out.
+    expect((await call("posso_comprar", { valor: 600, parcelas: 3 })).error).toBe(true);
     expect(buy.out.compra.valor_da_parcela).toBe(200);
     const fits = buy.out.ainda_cabem;
     if (fits) expect(fits.depois).toBeCloseTo(fits.antes - 200, 2);
