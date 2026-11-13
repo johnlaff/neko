@@ -1134,9 +1134,10 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               Ela lê o Neko, faz as contas e mostra gráficos. Não muda a planilha. Valores
               sublinhados levam à tela de onde vieram.
             </p>
-            {/* Hidden while a question is typed, as after an answer: a tap never loses it. */}
-            {!resting && !typed.trim() && (
-              <div className="mia-starters">
+            {/* Out of sight while a question is typed, as after an answer, so a tap never loses
+                it; they keep their room, so the field never moves. */}
+            {!resting && (
+              <div className={typed.trim() ? "mia-starters away" : "mia-starters"}>
                 {starters.map((q) => (
                   <Suggestion key={q} q={q} pick={pick} />
                 ))}

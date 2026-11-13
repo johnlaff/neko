@@ -749,6 +749,30 @@ test("on a desktop the tabs stand on the left and the panels in three columns", 
   expect(errors).toEqual([]);
 });
 
+test("on a desktop Mia is a chat in the middle: her bar spans the window, the field under her intro", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const errors = await open(page, "/mia", projection, {
+    ...API,
+    "/api/mia": { ligada: true, usadoPct: 3, pausadaAte: null, versao: 2 },
+  });
+  const field = page.getByRole("textbox", { name: "Pergunta para a Mia" });
+  await expect(field).toBeVisible();
+  const bar = await page.locator(".mia-bar").boundingBox();
+  const form = await page.locator("form.mia-form").boundingBox();
+  const title = await page.getByRole("heading", { name: /Pergunte/ }).boundingBox();
+  expect(bar?.width).toBe(1440);
+  // One centered column of 48rem, the field in the middle of the window, right under her intro.
+  expect(form && Math.round(form.width)).toBe(768);
+  expect(form && Math.abs(form.x + form.width / 2 - 720)).toBeLessThan(2);
+  expect(form && title && form.y > title.y && form.y < 900 * 0.7).toBe(true);
+  // Starting a question keeps the field where it was.
+  await page.getByRole("button", { name: "Posso comprar…?" }).click();
+  expect((await page.locator("form.mia-form").boundingBox())?.y).toBe(form?.y);
+  expect(errors).toEqual([]);
+});
+
 test("Neko counts the screens it shows, and Ajustes tells what was used", async ({ page }) => {
   const counted: string[] = [];
   page.on("request", (r) => {
