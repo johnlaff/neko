@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -145,8 +146,17 @@ data class Mia2Fill(val text: String, val hint: String)
 /** The questions finished in the field (the site's FILLS), by their chip. */
 val MIA2_FILLS = mapOf(
     MIA2_FILL to Mia2Fill(MIA2_FILL_TEXT, MIA2_FILL_HINT),
-    MIA2_PARCEL to Mia2Fill("E se eu parcelar em ", "Em quantas vezes. O método só parcela bem durável, em menos vezes do que ele dura."),
+    MIA2_PARCEL to Mia2Fill(PARCEL_TEXT, "Em quantas vezes, $PARCEL_HINT"),
 )
+
+private const val PARCEL_TEXT = "E se eu parcelar em "
+/** What the method asks before parcels: in how many, and how long the thing lasts. */
+private const val PARCEL_HINT = "e quanto tempo dura. Ex.: em 5x, dura uns 8 anos."
+
+/** The line over the field (the site's hintFor); splitting a purchase names it, so the question keeps its context. */
+fun mia2HintFor(fill: Mia2Fill, compra: Mia2Veredicto?): String =
+    if (fill.text != PARCEL_TEXT || compra == null) fill.hint
+    else "Em quantas vezes os ${Format.money(Math.round(compra.valor * 100))} no ${compra.cartao?.takeIf { it.isNotBlank() } ?: "cartão"}, $PARCEL_HINT"
 
 /** Four questions, those about the screen she was opened from first. */
 fun mia2Starters(topic: String = "hoje"): List<String> =
@@ -194,7 +204,17 @@ fun mia2Next(asked: List<String>, topic: String = "hoje", rotina: String? = null
 }
 
 /** The last purchase checked in an answer, for what to ask next. */
-fun mia2LastPurchase(t: Mia2Turno?): Mia2Veredicto? = t?.parts?.lastOrNull { it is Mia2Veredicto } as Mia2Veredicto?
+/**
+ * The purchase to ask next about: the last answer's, or, after a follow-up that failed or was
+ * stopped, the one before it, so its ways on are not lost.
+ */
+fun mia2LastPurchase(turns: List<Mia2Turno>): Mia2Veredicto? {
+    for (t in turns.asReversed()) {
+        val v = t.parts.lastOrNull { it is Mia2Veredicto } as Mia2Veredicto?
+        if (v != null || t.end !in setOf("falhou", "rede", "parou")) return v
+    }
+    return null
+}
 
 /** A piece of her answer: text (values checked once it is whole), a chart or a board of numbers. */
 sealed interface Mia2Part {
@@ -591,6 +611,7 @@ fun Mia2Screen(
     }
     // "Posso comprar…?" is finished in the field, focused with the keyboard up and the cursor after the words.
     val keyboard = LocalSoftwareKeyboardController.current
+    val view = LocalView.current
     val pick = { q: String ->
         val fill = MIA2_FILLS[q]
         if (fill == null) send(q) else {
@@ -632,7 +653,7 @@ fun Mia2Screen(
     val full = turns.lastOrNull()?.end == "cheia"
     val doing = chat.status ?: if (chat.pending?.let { n -> turns.firstOrNull { it.n == n }?.parts?.isEmpty() } == true) miaWaiting(seconds) else null
     val asked = turns.map { it.pergunta }
-    val next = if (turns.isEmpty() || resting || full || chat.typed.isNotBlank() || chat.pending != null || moving.isNotEmpty()) emptyList() else mia2Next(asked, topic, turns.firstOrNull()?.rotina, mia2LastPurchase(turns.lastOrNull()))
+    val next = if (turns.isEmpty() || resting || full || chat.typed.isNotBlank() || chat.pending != null || moving.isNotEmpty()) emptyList() else mia2Next(asked, topic, turns.firstOrNull()?.rotina, mia2LastPurchase(turns))
 
     Column(
         Modifier.fillMaxSize().background(l.bg).safeDrawingPadding().semantics { paneTitle = "Mia" },
@@ -752,10 +773,10 @@ fun Mia2Screen(
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         )
                     }
-                    val fill = mia2FillOf(chat.typed)
-                    if (fill != null) {
+                    val hint = mia2FillOf(chat.typed)?.let { mia2HintFor(it, mia2LastPurchase(turns)) }
+                    if (hint != null) {
                         Text(
-                            fill.hint,
+                            hint,
                             color = l.muted,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -792,7 +813,11 @@ fun Mia2Screen(
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                             // While she answers, Send keeps the next question for when she is done.
                             keyboardActions = KeyboardActions(onSend = {
-                                if (mia2OnlyStem(chat.typed)) return@KeyboardActions
+                                // Only a question's start: said again, what is missing (Enviar is off).
+                                if (mia2OnlyStem(chat.typed)) {
+                                    mia2FillOf(chat.typed)?.let { @Suppress("DEPRECATION") view.announceForAccessibility(mia2HintFor(it, mia2LastPurchase(turns))) }
+                                    return@KeyboardActions
+                                }
                                 if (chat.pending == null) send(chat.typed) else if (chat.typed.isNotBlank()) chat.held = true
                             }),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
@@ -1000,7 +1025,8 @@ private fun Mia2Verdict(v: Mia2Veredicto) {
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(icon, contentDescription = null, tint = tone, modifier = Modifier.size(22.dp))
+            // Grows with the word when the text is enlarged.
+            Icon(icon, contentDescription = null, tint = tone, modifier = Modifier.size(with(LocalDensity.current) { 22.sp.toDp() }))
             Text(word, color = tone, style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Faustina, fontSize = 22.sp, lineHeight = 26.sp))
         }
         Text(

@@ -248,7 +248,17 @@ class Mia2ChatTest {
         assertEquals("R$\u00A0600,00 à vista no cartão", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(parcelas = 1, cartao = null)))
         val asked = chat.turns.map { it.pergunta }
         // Pix first, the method's way, then in one parcel.
-        assertEquals(listOf("E no Pix?", "E em 1x no cartão?"), mia2Next(asked, compra = dev.johnlaff.neko.ui.mia2LastPurchase(t)))
+        assertEquals(listOf("E no Pix?", "E em 1x no cartão?"), mia2Next(asked, compra = dev.johnlaff.neko.ui.mia2LastPurchase(chat.turns)))
+        // A follow-up that failed keeps the purchase's ways on; one that ended well without a purchase does not.
+        val failed = dev.johnlaff.neko.ui.Mia2Turno(1, "E no Pix?", end = "falhou")
+        assertEquals(v, dev.johnlaff.neko.ui.mia2LastPurchase(chat.turns + failed))
+        assertNull(dev.johnlaff.neko.ui.mia2LastPurchase(chat.turns + failed.copy(end = null)))
+        // Splitting it names the purchase over the field.
+        val parcel = dev.johnlaff.neko.ui.MIA2_FILLS.getValue(dev.johnlaff.neko.ui.MIA2_PARCEL)
+        assertEquals(
+            "Em quantas vezes os R$\u00A0600,00 no Azul, e quanto tempo dura. Ex.: em 5x, dura uns 8 anos.",
+            dev.johnlaff.neko.ui.mia2HintFor(parcel, v),
+        )
         assertEquals("E no Pix?", mia2Next(asked, compra = v.copy(parcelas = 1)).first())
         // "Não cabe" at once: parcel it (if it lasts), or set more aside; in parcels, only the latter.
         val no = v.copy(veredito = "nao_cabe", parcelas = 1)

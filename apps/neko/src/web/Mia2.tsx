@@ -48,16 +48,16 @@ export const MIA2_FILL_HINT =
   "O quê, quanto e como paga. Ex.: uma geladeira de R$\u00a03.000 no Pix ou em 5x";
 /** After "Não cabe" at once: the same purchase in parcels, how many finished in the field too. */
 export const MIA2_PARCEL = "E se eu parcelar…?";
+const PARCEL_TEXT = "E se eu parcelar em ";
+/** What the method asks before parcels: in how many, and how long the thing lasts. */
+const PARCEL_HINT = "e quanto tempo dura. Ex.: em 5x, dura uns 8 anos.";
 /**
  * Questions finished in the field: the chip puts their start there, the cursor after it, and the
  * line over the field says what to write until it is sent.
  */
 const FILLS: Readonly<Record<string, { readonly text: string; readonly hint: string }>> = {
   [MIA2_FILL]: { text: MIA2_FILL_TEXT, hint: MIA2_FILL_HINT },
-  [MIA2_PARCEL]: {
-    text: "E se eu parcelar em ",
-    hint: "Em quantas vezes. O método só parcela bem durável, em menos vezes do que ele dura.",
-  },
+  [MIA2_PARCEL]: { text: PARCEL_TEXT, hint: `Em quantas vezes, ${PARCEL_HINT}` },
 };
 
 export const mia2Starters = (topic: MiaTopic = "hoje") =>
@@ -575,9 +575,32 @@ const Rich = ({
   );
 };
 
-/** The last purchase an answer checked, for what to ask next about it. */
-const lastPurchase = (t: Turn | undefined) =>
+/** The last purchase an answer checked. */
+const verdictIn = (t: Turn | undefined) =>
   t?.parts.findLast((p): p is Extract<Part, { k: "veredito" }> => p.k === "veredito");
+
+/**
+ * The purchase to ask next about: the last answer's, or, after a follow-up that failed or was
+ * stopped, the one before it, so its ways on are not lost.
+ */
+const lastPurchase = (turns: readonly Turn[]) => {
+  for (const t of [...turns].reverse()) {
+    const v = verdictIn(t);
+    if (v || (t.end !== "falhou" && t.end !== "rede" && t.end !== "parou")) return v;
+  }
+  return undefined;
+};
+
+/** The line over the field; splitting a purchase names it, so the question keeps its context. */
+const hintFor = (
+  fill: { readonly text: string; readonly hint: string },
+  compra: Purchase | undefined,
+  hidden: boolean,
+) => {
+  if (fill.text !== PARCEL_TEXT || !compra) return fill.hint;
+  const value = hidden ? HIDDEN_MONEY : money(Math.round(compra.valor * 100));
+  return `Em quantas vezes os ${value} no ${compra.cartao || "cartão"}, ${PARCEL_HINT}`;
+};
 
 /** The screens an answer's checked values came from, two at most, as quiet ways out. */
 const sourcesOf = (t: Turn) => {
@@ -760,13 +783,27 @@ const PacedText = ({
   );
 };
 
-/** Her answer's pieces, each text followed by the note on its values that came from nowhere. */
+/**
+ * Reached with Tab, a chip half in the row's fade slides into full view. Only its row moves:
+ * scrollIntoView would also scroll the page, which keeps fields clear of the dock.
+ */
+const revealChip = (chip: HTMLElement) => {
+  const row = chip.parentElement;
+  if (!row) return;
+  const c = chip.getBoundingClientRect();
+  const r = row.getBoundingClientRect();
+  const fade = r.width * 0.15;
+  if (c.right > r.right - fade) row.scrollLeft += c.right - r.right + fade;
+  else if (c.left < r.left) row.scrollLeft -= r.left - c.left + 4;
+};
+
 /** A suggested question: sent on a tap, or, for "Posso comprar…?", started in the field. */
 const Suggestion = ({ q, pick }: { q: string; pick: (q: string) => void }) => (
   <button
     type="button"
     className="chip-button"
     onClick={() => pick(q)}
+    onFocus={(e) => revealChip(e.currentTarget)}
     aria-describedby={q in FILLS ? "mia-fill-chip" : undefined}
   >
     {q}
@@ -805,6 +842,7 @@ const Verdict = ({ v, hidden }: { v: Purchase; hidden: boolean }) => {
   );
 };
 
+/** Her answer's pieces, each text followed by the note on its values that came from nowhere. */
 const Answer = ({
   t,
   working,
@@ -953,7 +991,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     const here = document.activeElement;
     const end = chat.turns.at(-1)?.end ?? null;
     // Said aloud when the focus stays in the field: that she answered, and the Neko's verdict.
-    const v = end === null ? lastPurchase(chat.turns.at(-1)) : undefined;
+    const v = end === null ? verdictIn(chat.turns.at(-1)) : undefined;
     const answered = `A Mia respondeu.${v ? ` ${VERDICT[v.veredito].word}: ${purchaseLabel(v, hidden)}.` : ""}`;
     if (heldNow.current) {
       setHeld(false);
@@ -996,7 +1034,8 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     if (!fill) return send(q);
     const field = input.current;
     flushSync(() => setTyped(fill.text));
-    field?.focus();
+    // The answer above stays where it was read.
+    field?.focus({ preventScroll: true });
     field?.setSelectionRange(fill.text.length, fill.text.length);
   };
   // Parar takes Enviar's place: a second tap on Enviar right after it is not a stop.
@@ -1021,9 +1060,10 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const next =
     turns.length === 0 || typed.trim() || pending || showing || resting || full
       ? []
-      : mia2Next(asked, topic, turns[0]?.rotina, lastPurchase(turns.at(-1)));
+      : mia2Next(asked, topic, turns[0]?.rotina, lastPurchase(turns));
   // A question being finished in the field, and what to write in it.
   const fill = fillOf(typed);
+  const hint = fill && hintFor(fill, lastPurchase(turns), hidden);
 
   return (
     <>
@@ -1207,9 +1247,9 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
       {s?.ligada && !resting && !full && (
         <div className="mia-composer">
           {held && pending && <p className="mia-held">Sua pergunta vai quando ela terminar.</p>}
-          {fill && (
+          {hint && (
             <p className="mia-held" id="mia-fill-hint">
-              {fill.hint}
+              {hint}
             </p>
           )}
           {next.length > 0 && (
@@ -1224,8 +1264,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
             onSubmit={(e) => {
               e.preventDefault();
               // While she answers, Enter keeps the next question for when she is done.
-              // Only a question's start: the line over the field says what is missing.
-              if (onlyStem(typed)) return setTold(fill?.hint ?? "");
+              if (onlyStem(typed)) return;
               if (!pending) send(typed);
               else if (typed.trim()) {
                 setHeld(true);
@@ -1236,7 +1275,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
             <input
               ref={input}
               aria-label="Pergunta para a Mia"
-              aria-describedby={fill ? "mia-fill-hint" : undefined}
+              aria-describedby={hint ? "mia-fill-hint" : undefined}
               placeholder={turns.length > 0 ? "Outra pergunta?" : "Pergunte algo"}
               maxLength={1000}
               autoComplete="off"
@@ -1247,6 +1286,12 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
                 if (!e.target.value.trim()) setHeld(false);
               }}
               onKeyDown={(e) => {
+                // Enter on only a question's start: said again, what is missing (Enviar is off).
+                if (e.key === "Enter" && onlyStem(typed)) {
+                  e.preventDefault();
+                  flushSync(() => setTold(""));
+                  return setTold(hint ?? "");
+                }
                 // ↑ in an empty field brings back the last question, to change and send again.
                 const lastAsked = turns.at(-1);
                 if (e.key === "ArrowUp" && !typed && !pending && lastAsked && !lastAsked.rotina) {
