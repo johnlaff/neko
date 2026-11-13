@@ -801,6 +801,18 @@ test.describe("at a desk", () => {
     await expect(field).toBeFocused();
     await page.keyboard.type("E dezembro?");
     await expect(field).toHaveValue("E dezembro?");
+    // Back from a tab of the rail, the field has the focus again, under the same conversation.
+    await rail.getByRole("link", { name: "Faturas", exact: true }).click();
+    await expect(page).toHaveURL(/\/faturas$/);
+    await page.goBack();
+    await expect(page.getByText("Cabem R$ 300,00 até o fim do mês.")).toBeVisible();
+    await expect(field).toBeFocused();
+    // From anywhere on the page, "/" goes back to the field, and types nothing.
+    await page.getByRole("button", { name: "Nova conversa" }).focus();
+    await page.keyboard.press("/");
+    await expect(field).toBeFocused();
+    await expect(field).toHaveValue("");
+    await expect(page.getByText("volta ao campo")).toBeVisible();
     expect(errors).toEqual([]);
   });
 });

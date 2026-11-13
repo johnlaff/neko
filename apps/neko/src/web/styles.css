@@ -2758,6 +2758,10 @@ main.mia-page .mia-empty > p {
 .mia-starters.away {
   display: none;
 }
+/* The keys under her field: only where there is a keyboard, never on a phone. */
+.mia-keys {
+  display: none;
+}
 /* Her suggestions keep an edge, as on Android: a question to tap, not a filled field. */
 .mia-starters > button.chip-button,
 .mia-suggest > button.chip-button {
@@ -3154,7 +3158,13 @@ form.mia-form > button:disabled {
   main.mia-page form.mia-form > button {
     border-radius: 12px;
   }
-  /* Nothing to send yet: a quiet word in the box, not a grey block beside the text. */
+  /* Nothing to send yet: a quiet word in the box, not a grey block beside the text. It turns
+     at once, never fading through grey when the field is emptied. */
+  main.mia-page form.mia-form > button {
+    transition:
+      opacity 160ms ease-out,
+      scale 120ms ease-out;
+  }
   main.mia-page form.mia-form > button:disabled {
     background: transparent;
   }
@@ -3208,6 +3218,15 @@ form.mia-form > button:disabled {
   .mia-starters.away {
     display: flex;
     visibility: hidden;
+  }
+}
+@media (min-width: 52.5rem) and (pointer: fine) {
+  .mia-keys {
+    display: block;
+    margin: 10px 0 -8px;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--faint);
   }
 }
 
@@ -3495,7 +3514,8 @@ details.mia-chart-table th[scope="row"] {
 }
 
 /* Keyboard shortcuts, named only where a keyboard is likely */
-.learn-text.keys kbd {
+.learn-text.keys kbd,
+.mia-keys > kbd {
   display: inline-block;
   min-width: 1.5em;
   padding: 0 4px;

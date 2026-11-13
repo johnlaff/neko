@@ -99,9 +99,13 @@ const onShortcut = (e: KeyboardEvent) => {
   if (document.querySelector("dialog[open]")) return;
   const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
   const target = document.querySelector<HTMLElement>(`[aria-keyshortcuts="${CSS.escape(key)}"]`);
-  if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
+  // Only what is on screen answers: Mia's rail is hidden on a phone, and so are its digits.
+  if (!target || target.getClientRects().length === 0) return;
+  if (target instanceof HTMLButtonElement && target.disabled) return;
   e.preventDefault();
-  target.click();
+  // A field takes the keyboard; anything else is pressed.
+  if (target instanceof HTMLInputElement) target.focus();
+  else target.click();
 };
 
 /**

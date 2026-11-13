@@ -453,7 +453,7 @@ const HowItWorks = ({ reviewed: s }: { reviewed: UserSettings }) => {
         <p className="learn-text keys">
           Atalhos: <kbd>1</kbd> a <kbd>4</kbd> trocam de tela, <kbd>R</kbd> lê a planilha,{" "}
           <kbd>L</kbd> abre o lançamento, <kbd>←</kbd> <kbd>→</kbd> trocam o mês, <kbd>M</kbd> abre
-          a Mia e <kbd>Esc</kbd> volta dela.
+          a Mia, <kbd>/</kbd> leva ao campo dela e <kbd>Esc</kbd> volta dela.
         </p>
         <button
           type="button"
