@@ -280,7 +280,15 @@ test("Posso comprar on Mia 2 starts the question in the field and sends nothing"
   const asked: string[] = [];
   const lines = [
     { t: "sessao", id: "sesn_teste" },
-    { t: "veredito", id: "v1", veredito: "aperta", valor: 400, parcelas: 2, meio: "cartao" },
+    {
+      t: "veredito",
+      id: "v1",
+      veredito: "aperta",
+      valor: 400,
+      parcelas: 2,
+      meio: "cartao",
+      dura: 96,
+    },
     {
       t: "mensagem",
       id: "m1",
@@ -314,7 +322,7 @@ test("Posso comprar on Mia 2 starts the question in the field and sends nothing"
   // The verdict is the Neko's, over her reason, with the purchase as it was checked.
   const answer = page.getByRole("list", { name: "Conversa com a Mia" });
   await expect(answer.getByText("Aperta", { exact: true })).toBeVisible();
-  await expect(answer.getByText("R$ 400,00 em 2x no cartão")).toBeVisible();
+  await expect(answer.getByText("R$ 400,00 em 2x no cartão, dura uns 8 anos")).toBeVisible();
   // Next, the same purchase another way.
   await expect(page.getByRole("button", { name: "E em 1x no cartão?" })).toBeVisible();
   await expect(page.getByRole("button", { name: "E no Pix?" })).toBeVisible();

@@ -237,6 +237,8 @@ data class Mia2Veredicto(
     val parcelas: Int,
     val meio: String,
     val cartao: String? = null,
+    /** Split, the months it lasts, as said or as she guessed: it can turn Cabe into Aperta. */
+    val dura: Int? = null,
 ) : Mia2Part
 
 /**
@@ -336,7 +338,7 @@ class Mia2Chat {
             }
             "veredito" -> {
                 status = null
-                val v = Mia2Veredicto(l.id.orEmpty(), l.veredito ?: return false, l.valor ?: return false, l.parcelas ?: 1, l.meio ?: "cartao", l.cartao)
+                val v = Mia2Veredicto(l.id.orEmpty(), l.veredito ?: return false, l.valor ?: return false, l.parcelas ?: 1, l.meio ?: "cartao", l.cartao, l.dura)
                 patch(n) { it.copy(parts = it.parts + v) }
             }
             "refazendo" -> patch(n) { it.copy(parts = emptyList()) }
@@ -996,14 +998,22 @@ private fun Mia2Suggestion(q: String, wrap: Boolean = false, onClick: () -> Unit
 private val AlertIcon = stroke("alert", "M12 4 2.8 19.5h18.4zM12 10v4.5M12 17.2v.3")
 private val CloseIcon = stroke("close", "M6.5 6.5l11 11M17.5 6.5l-11 11")
 
-/** The purchase as checked, so what she assumed (the main card, at once) is in sight. */
+/** How long it lasts, in the words of the parcel hint. */
+private fun lasts(months: Int): String = when {
+    months == 0 -> "se consome logo"
+    months < 12 -> if (months == 1) "dura um mês" else "dura uns $months meses"
+    else -> Math.round(months / 12.0).toInt().let { if (it == 1) "dura um ano" else "dura uns $it anos" }
+}
+
+/** The purchase as checked, so what she assumed (the main card, at once, how long it lasts) is in sight. */
 fun mia2PurchaseLabel(v: Mia2Veredicto): String {
     val value = Format.money(Math.round(v.valor * 100))
     val card = v.cartao?.takeIf { it.isNotBlank() } ?: "cartão"
     return when {
         v.meio == "pix" -> "$value no Pix"
-        v.parcelas > 1 -> "$value em ${v.parcelas}x no $card"
-        else -> "$value à vista no $card"
+        v.parcelas == 1 -> "$value à vista no $card"
+        v.dura == null -> "$value em ${v.parcelas}x no $card"
+        else -> "$value em ${v.parcelas}x no $card, ${lasts(v.dura)}"
     }
 }
 

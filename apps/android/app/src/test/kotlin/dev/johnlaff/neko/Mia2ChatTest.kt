@@ -244,7 +244,12 @@ class Mia2ChatTest {
         assertEquals("cartao", v.meio)
         assertTrue(t.parts[1] is Mia2Texto)
         assertEquals("Azul", v.cartao)
-        assertEquals("R$\u00A0600,00 em 3x no Azul", dev.johnlaff.neko.ui.mia2PurchaseLabel(v))
+        assertEquals(60, v.dura)
+        assertEquals("R$\u00A0600,00 em 3x no Azul, dura uns 5 anos", dev.johnlaff.neko.ui.mia2PurchaseLabel(v))
+        assertEquals("R$\u00A0600,00 em 3x no Azul, se consome logo", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = 0)))
+        assertEquals("R$\u00A0600,00 em 3x no Azul, dura uns 6 meses", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = 6)))
+        assertEquals("R$\u00A0600,00 em 3x no Azul, dura um ano", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = 12)))
+        assertEquals("R$\u00A0600,00 em 3x no Azul", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = null)))
         assertEquals("R$\u00A0600,00 à vista no cartão", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(parcelas = 1, cartao = null)))
         val asked = chat.turns.map { it.pergunta }
         // Pix first, the method's way, then in one parcel.

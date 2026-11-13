@@ -262,7 +262,7 @@ const PurchaseInput = z.object({
     .max(1200)
     .optional()
     .describe(
-      "Quantos meses o bem dura: o que o dono disse ou sua estimativa pelo que é (geladeira uns 120). 0 para o que se consome logo: comida, viagem, serviço. Mande sempre que parcelar.",
+      "Obrigatório ao parcelar. Quantos meses o bem dura: o que o dono disse ou sua estimativa pelo que é (geladeira uns 120). 0 para o que se consome logo, como comida ou serviço; viagem, os meses até ela.",
     ),
 });
 
@@ -288,6 +288,10 @@ const purchaseTool = (d: McpData, input: z.infer<typeof PurchaseInput>): CallToo
   const usual = p.cards.find((c) => c.usual)?.card.name ?? null;
   if (input.meio === "cartao" && usual === null)
     return refuse("Não há cartão principal para pôr a compra. Pergunte se vai no Pix.");
+  if (input.parcelas > 1 && input.dura_meses === undefined)
+    return refuse(
+      "Parcelado: mande dura_meses, quanto o bem dura. Se não souber o que é, pergunte.",
+    );
   try {
     const c = checkPurchase(scenarioInput(d.data, d.ceiling), {
       amount: cents(Math.round(input.valor * 100)),
@@ -313,6 +317,7 @@ const purchaseTool = (d: McpData, input: z.infer<typeof PurchaseInput>): CallToo
         meio: input.meio,
         cartao: input.meio === "cartao" ? usual : null,
         parcelas: c.parcels.length,
+        dura_meses: input.dura_meses ?? null,
         valor_da_parcela: first ? reais(first.amount) : null,
         primeira: first?.date ?? null,
         ultima: last?.date ?? null,

@@ -2752,12 +2752,12 @@ main.mia-page .mia-empty > p {
   border: 1px solid var(--border);
 }
 /* No dock on Mia's screen: the field and the chips are pinned at the bottom, so focusing them
-   never scrolls the page; what the conversation holds stays clear of them instead. */
+   never scrolls the page; what the conversation holds stays clear of them, and of the bar. */
 html:has(main.mia-page) {
   scroll-padding-bottom: env(safe-area-inset-bottom);
 }
-main.mia-page .mia-talk :is(a, button, [tabindex]) {
-  scroll-margin-bottom: 9rem;
+main.mia-page .mia-talk > li :is(a, button, summary, [tabindex]) {
+  scroll-margin: calc(env(safe-area-inset-top) + 5rem) 0 9rem;
 }
 .mia-composer {
   position: sticky;

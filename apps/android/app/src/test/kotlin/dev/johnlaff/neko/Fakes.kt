@@ -156,7 +156,7 @@ object Fakes {
                 0,
                 "Posso comprar uma cadeira de R$ 600 em 3x?",
                 listOf(
-                    dev.johnlaff.neko.ui.Mia2Veredicto("r-u1", "aperta", 600.0, 3, "cartao", "Azul"),
+                    dev.johnlaff.neko.ui.Mia2Veredicto("r-u1", "aperta", 600.0, 3, "cartao", "Azul", dura = 60),
                     dev.johnlaff.neko.ui.Mia2Texto(
                         "m1",
                         "Em dezembro, as faturas com a parcela passam do teto de **R$ 3.800**.",

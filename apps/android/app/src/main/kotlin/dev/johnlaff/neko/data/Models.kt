@@ -436,6 +436,8 @@ data class Mia2Line(
     val meio: String? = null,
     /** The card it went on, the main one when she was not told; none in Pix. */
     val cartao: String? = null,
+    /** Split, the months the thing lasts, as said or as she guessed; 0 when used up at once. */
+    val dura: Int? = null,
 )
 
 /**

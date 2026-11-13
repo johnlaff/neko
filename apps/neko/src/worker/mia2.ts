@@ -295,6 +295,7 @@ const Verdict = z.object({
     parcelas: z.number().int(),
     meio: z.enum(["cartao", "pix"]),
     cartao: z.string().nullish(),
+    dura_meses: z.number().int().nullish(),
   }),
 });
 
@@ -308,7 +309,9 @@ export const verdictOf = (id: string, text: string): VerdictLine | null => {
     return null;
   }
   const v = Verdict.safeParse(json);
-  return v.success ? { t: "veredito", id, veredito: v.data.veredito, ...v.data.compra } : null;
+  if (!v.success) return null;
+  const { dura_meses, ...compra } = v.data.compra;
+  return { t: "veredito", id, veredito: v.data.veredito, ...compra, dura: dura_meses };
 };
 
 /** What the wait line says while she uses a tool. */
@@ -506,7 +509,7 @@ const relay = async (deps: TurnDeps, id: string, pergunta: string) => {
         if (ev.is_error) continue;
         seeToolResult(seen, use?.name ?? "", use?.input, textOf(ev.content));
         const v = use?.name === PURCHASE_TOOL ? verdictOf(ev.id, textOf(ev.content)) : null;
-        const key = v && `${v.veredito}:${v.valor}:${v.parcelas}:${v.meio}`;
+        const key = v && `${v.veredito}:${v.valor}:${v.parcelas}:${v.meio}:${v.dura}`;
         if (v && key && !verdicts.has(key)) {
           verdicts.set(key, v);
           write(v);
