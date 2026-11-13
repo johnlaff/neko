@@ -1089,8 +1089,9 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   // At a desk the field holds the focus as soon as it is on the page, ready for the first words.
   useEffect(() => {
     if (!atDesk()) return;
+    // Back from a tab of the rail, its link (the same one on every screen) still holds the focus.
     const at = document.activeElement;
-    if (at && at !== document.body && at !== title.current) return;
+    if (at && at !== document.body && at !== title.current && !at.closest(".dock")) return;
     if (composing) input.current?.focus({ preventScroll: true });
     else if (chat.turns.length === 0) title.current?.focus({ preventScroll: true });
   }, [composing]);
@@ -1307,6 +1308,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               ref={input}
               aria-label="Pergunta para a Mia"
               aria-describedby={hint ? "mia-fill-hint" : undefined}
+              aria-keyshortcuts="/"
               placeholder={turns.length > 0 ? "Outra pergunta?" : "Pergunte algo"}
               maxLength={1000}
               autoComplete="off"
@@ -1353,6 +1355,11 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               </button>
             )}
           </form>
+          {/* At a desk, the keys she answers to, quiet under the field as in desktop chats. */}
+          <p className="mia-keys">
+            <kbd>Enter</kbd> envia · <kbd>↑</kbd> traz a última pergunta · <kbd>/</kbd> volta ao
+            campo · <kbd>Esc</kbd> para, apaga ou sai
+          </p>
         </div>
       )}
     </>
