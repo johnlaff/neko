@@ -3228,6 +3228,10 @@ form.mia-form > button:disabled {
     font-size: 0.8125rem;
     color: var(--faint);
   }
+  /* Learned before the first question; in the conversation the room goes to her answers. */
+  main.mia-page:has(.mia-talk) .mia-keys {
+    display: none;
+  }
 }
 
 /* A chart in the conversation: title and legend above, a quiet grid, her values in the series
