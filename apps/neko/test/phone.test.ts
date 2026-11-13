@@ -56,6 +56,15 @@ describe("card purchases the phone read", () => {
     expect((await kept()).results).toEqual([{ id: "notice-0001", text: notice.text, read: 1 }]);
     expect(BankNotice.safeParse({ ...notice, bank: "Outro" }).success).toBe(false);
     expect(BankNotice.safeParse({ ...notice, app: "../x" }).success).toBe(false);
+    // A phone wallet's notice is kept too, only to learn its words.
+    const wallet = {
+      ...notice,
+      app: "com.google.android.apps.walletnfcrel",
+      bank: "Carteira do Google",
+      read: false,
+    };
+    expect(BankNotice.safeParse(wallet).success).toBe(true);
+    expect(BankNotice.safeParse({ ...wallet, bank: "Samsung Wallet" }).success).toBe(true);
   });
 
   it("takes only a purchase it can trust: a known bank, cents, four digits", () => {

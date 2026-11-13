@@ -22,15 +22,30 @@ object PurchaseText {
         "com.mercadopago.wallet" to "Mercado Pago",
     )
 
+    /**
+     * The phone's wallets, whose notice comes the moment a card is tapped at the till. Only their
+     * words are kept, to learn how they speak (keep): no purchase is read from them yet, as the
+     * same purchase also comes from the card's bank and its own app.
+     */
+    val WALLETS = mapOf(
+        "com.google.android.apps.walletnfcrel" to "Carteira do Google",
+        "com.samsung.android.spay" to "Samsung Wallet",
+    )
+
+    /** The name a listed app's notice is kept under, or null for any other app. */
+    fun source(pkg: String): String? = BANKS[pkg] ?: WALLETS[pkg]
+
     /** What the ceiling takes from a notice. */
     data class Read(val bank: String, val amount: Long, val last4: String?, val merchant: String)
 
     private val I = RegexOption.IGNORE_CASE
     private val SAID = Regex("""\bcompr(a|ou)\b""", I)
     private val APPROVED = Regex("""aprovad|realizad|efetuad|\bcomprou\b""", I)
+    /** Mercado Pago's way: "Você pagou R$ 12,90 a LOJA. O valor vai entrar na próxima fatura...". */
+    private val PAID_ON_BILL = Regex("""\bpagou\b.*\bvai entrar na (?:pr[óo]xima )?fatura\b""", I)
     private val NOT = Regex(
         """\bpix\b|d[ée]bito|negad|recusad|n[ãa]o\s+(foi\s+)?aprovad|estorn|cancelad|bloquead|""" +
-            """contesta|boleto|transfer|saque|parcel|\b\d{1,2}\s?x\b|\bvezes\b|US\$|U\$|€""",
+            """contesta|boleto|transfer|saque|parcel|cashback|\b\d{1,2}\s?x\b|\bvezes\b|US\$|U\$|€""",
         I,
     )
     private val AMOUNT = Regex("""R\$\s?(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{2}))?""")
@@ -39,13 +54,15 @@ object PurchaseText {
     /** Where a shop's name stops: a comma, a full stop, or the words that follow it in a notice. */
     private const val END = """(?=\s*(?:[,;!]|\.(?:\s|$)|\s-\s|$)|\s(?:no|na|com|para|foi|às|as|valor|em)\s|\sde\sR\$)"""
     private val LOCAL = Regex("""\blocal\s*:\s*(.+?)$END""", I)
+    private val PAID_TO = Regex("""\bpagou\s+R\$\s?[\d.,]+\s+(?:a|para)\s+(.+?)$END""", I)
     private val AT = Regex("""\s(?:em|no estabelecimento|na loja)\s+(?!\d)(?!(?:seu|sua|cart)\w*)(.+?)$END""", I)
 
     /** The purchase in a notice of [pkg], or null when it is not one this reader trusts. */
     fun read(pkg: String, title: String?, text: String?): Read? {
         val bank = BANKS[pkg] ?: return null
         val all = listOfNotNull(title, text).joinToString(". ").replace(Regex("""\s+"""), " ").trim()
-        if (!SAID.containsMatchIn(all) || !APPROVED.containsMatchIn(all) || NOT.containsMatchIn(all)) return null
+        val purchase = (SAID.containsMatchIn(all) && APPROVED.containsMatchIn(all)) || PAID_ON_BILL.containsMatchIn(all)
+        if (!purchase || NOT.containsMatchIn(all)) return null
         // The purchase's amount, not the limit or balance some banks add after it.
         val amount = AMOUNT.findAll(all)
             .firstOrNull { m -> !LIMIT.containsMatchIn(all.substring(maxOf(0, m.range.first - 25), m.range.first)) }
@@ -53,23 +70,24 @@ object PurchaseText {
             ?.takeIf { it in 1..MAX_CENTS }
             ?: return null
         val last4 = LAST4.find(all)?.let { m -> m.groupValues[1].ifEmpty { m.groupValues[2] } }
-        val merchant = (LOCAL.find(all) ?: AT.find(all))?.groupValues?.get(1)?.trim()?.take(80).orEmpty()
+        val merchant = (LOCAL.find(all) ?: PAID_TO.find(all) ?: AT.find(all))?.groupValues?.get(1)?.trim()?.take(80).orEmpty()
         return Read(bank, amount, last4, merchant)
     }
 
     private val MONEY = Regex("""R\$\s?\d""")
     private val ABOUT = Regex("""compr|cart[ãa]o|transa[çc]""", I)
-    private val PIX = Regex("""\bpix\b""", I)
+    private val SKIP = Regex("""\bpix\b|cashback""", I)
 
     /**
      * Whether a notice's words go to the Neko too, read or not, so this reader is checked against
      * how each bank really words its notices: a listed bank's notice with an amount in reais that
-     * speaks of a purchase or a card, never one of Pix. Kept 15 days (worker/phone.ts).
+     * speaks of a purchase or a card, or a wallet's notice with an amount in reais; never one of
+     * Pix or cashback. Kept 15 days (worker/phone.ts).
      */
     fun keep(pkg: String, title: String?, text: String?): Boolean {
-        if (pkg !in BANKS) return false
         val all = listOfNotNull(title, text).joinToString(". ")
-        return MONEY.containsMatchIn(all) && ABOUT.containsMatchIn(all) && !PIX.containsMatchIn(all)
+        if (!MONEY.containsMatchIn(all) || SKIP.containsMatchIn(all)) return false
+        return pkg in WALLETS || (pkg in BANKS && ABOUT.containsMatchIn(all))
     }
 
     /** The Worker takes up to R$ 100.000,00 at once. */
