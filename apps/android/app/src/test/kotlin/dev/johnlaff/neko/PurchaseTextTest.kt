@@ -37,6 +37,20 @@ class PurchaseTextTest {
     }
 
     @Test
+    fun `takes Mercado Pago's paid notice, the one that goes on the card's next bill`() {
+        val mp = "com.mercadopago.wallet"
+        val bill = "O valor vai entrar na próxima fatura do seu Cartão Mercado Pago."
+        assertEquals(Read("Mercado Pago", 1590, null, "FARMACIA CENTRO"), read(mp, "Você pagou R$ 15,90 a FARMACIA CENTRO", bill))
+        assertEquals(Read("Mercado Pago", 3100, null, "LOJA DE JOGOS"), read(mp, "Você pagou R$ 31 a LOJA DE JOGOS", bill))
+        assertEquals(Read("Mercado Pago", 8250, null, "CHOCOLATES FINOS"), read(mp, "Você pagou R$ 82,50 a CHOCOLATES  FINOS", bill))
+        // Cashback, a Pix, the bill itself or installments are no purchase paid at once.
+        assertNull(read(mp, "Você ganhou R$ 0,30 de cashback", "Continue usando seu Cartão de Crédito Mercado Pago para ganhar mais."))
+        assertNull(read(mp, "Você pagou R$ 40,00 a FULANO", "Pix enviado da sua conta."))
+        assertNull(read(mp, "Você pagou a fatura de R$ 900,00", "Seu Cartão Mercado Pago está em dia."))
+        assertNull(read(mp, "Você pagou R$ 300 em 3x a LOJA", bill))
+    }
+
+    @Test
     fun `takes the purchase's amount, not the limit after it, and no shop when the notice names none`() {
         assertEquals(
             Read("Bradesco", 4590, null, "LOJA DO BAIRRO"),
@@ -80,5 +94,21 @@ class PurchaseTextTest {
         assertFalse(PurchaseText.keep(bradesco, "Compra aprovada", "Sua compra foi aprovada"))
         assertFalse(PurchaseText.keep(bradesco, "Bom dia", "Confira as ofertas de hoje"))
         assertFalse(PurchaseText.keep("com.example.chat", "Compra aprovada", "Compra de R$ 45,90 em LOJA"))
+        assertFalse(PurchaseText.keep("com.mercadopago.wallet", "Você ganhou R$ 0,30 de cashback", "Continue usando seu Cartão"))
+    }
+
+    @Test
+    fun `keeps the phone wallets' payment words only to learn, and reads no purchase from them`() {
+        val google = "com.google.android.apps.walletnfcrel"
+        val samsung = "com.samsung.android.spay"
+        assertEquals("Carteira do Google", PurchaseText.source(google))
+        assertEquals("Samsung Wallet", PurchaseText.source(samsung))
+        assertEquals("Bradesco", PurchaseText.source("com.bradesco"))
+        assertNull(PurchaseText.source("com.example.chat"))
+        assertTrue(PurchaseText.keep(google, "PADARIA BOA VISTA", "R$ 12,50 com Visa •••• 1234"))
+        assertTrue(PurchaseText.keep(samsung, "Pagamento concluído", "R$ 12,50 em PADARIA BOA VISTA"))
+        assertFalse(PurchaseText.keep(google, "Cartão de embarque", "Seu voo sai às 10:00"))
+        assertFalse(PurchaseText.keep(google, "Pix", "Você enviou um Pix de R$ 50,00"))
+        assertNull(read(google, "Compra aprovada", "Compra de R$ 45,90 em LOJA"))
     }
 }

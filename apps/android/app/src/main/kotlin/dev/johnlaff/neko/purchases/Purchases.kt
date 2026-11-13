@@ -34,7 +34,8 @@ import java.util.concurrent.TimeUnit
 /**
  * Avisos de compra (specs/002): with the owner's leave in Android's settings, the phone reads the
  * card purchase in a bank app's notice and sends the Worker its amount, shop and card digits, and
- * the words of that bank's notices of a purchase or a card (PurchaseText.keep), kept 15 days. For
+ * the words of that bank's notices of a purchase or a card, and of the phone wallets' notices of a
+ * payment (PurchaseText.keep), kept 15 days. For
  * now this only learns: the Worker checks each read against what Open Finance brings, and the
  * ceiling moves with a bank app's reads only once that app is released by hand (worker/phone.ts
  * PHONE_RELEASED). Nothing of other apps' notices leaves the phone, and nothing is written to the
@@ -116,10 +117,10 @@ object Purchases {
     }
 }
 
-/** Android hands it every notice; only the bank apps' are looked at (PurchaseText.BANKS). */
+/** Android hands it every notice; only the bank apps' and the wallets' are looked at (PurchaseText). */
 class PurchaseListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (sbn.packageName !in PurchaseText.BANKS) return
+        val source = PurchaseText.source(sbn.packageName) ?: return
         val n = sbn.notification
         // A group's summary repeats its notices; an ongoing one is no purchase.
         if (n.flags and (Notification.FLAG_GROUP_SUMMARY or Notification.FLAG_ONGOING_EVENT) != 0) return
@@ -134,7 +135,7 @@ class PurchaseListener : NotificationListenerService() {
                 BankNotice(
                     id = Purchases.noticeKey(sbn.key, at, "$title|$text"),
                     app = sbn.packageName,
-                    bank = PurchaseText.BANKS.getValue(sbn.packageName),
+                    bank = source,
                     title = title.orEmpty().take(300),
                     text = text.orEmpty().take(2000),
                     at = Instant.ofEpochMilli(at).toString(),
