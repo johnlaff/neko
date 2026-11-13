@@ -168,6 +168,12 @@ describe("mcp", () => {
     // A Pix far bigger than the balance never fits.
     const huge = await call("posso_comprar", { valor: 9_000_000, meio: "pix" });
     expect(huge.out.veredito).toBe("nao_cabe");
+    // A dinner in 3x: the parcels outlast it, so it never comes back as a plain "cabe".
+    const dinner = await call("posso_comprar", { valor: 90, parcelas: 3, dura_meses: 0 });
+    expect(dinner.out.veredito).not.toBe("cabe");
+    expect(dinner.out.motivos).toContain(
+      "as parcelas duram mais que o bem; o método só parcela o que dura, e não além disso",
+    );
   });
 
   it("reads the last whole week, as Sunday's summary does", async () => {
