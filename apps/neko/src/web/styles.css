@@ -182,6 +182,10 @@ button.icon svg {
 .dock a > svg {
   color: var(--icon, inherit);
 }
+/* Mia's own copy of the tabs: only as the rail of a wide screen, never over her field. */
+.dock.wide-only {
+  display: none;
+}
 
 /* Panels: hairline border on a slightly lifted warm surface, never nested */
 .panel {
@@ -1277,6 +1281,11 @@ fieldset.columns {
 @media (min-width: 52.5rem) {
   :root {
     --rail: 100px;
+    /* Beside the content, wherever the page sits; Mia's page starts where the rail ends. */
+    --rail-left: max(
+      calc(env(safe-area-inset-left) + 16px),
+      calc((100% - var(--content) - var(--rail) - 2 * var(--side)) / 2 + 16px)
+    );
   }
   .page {
     max-width: calc(var(--content) + var(--rail) + 2 * var(--side));
@@ -1284,16 +1293,16 @@ fieldset.columns {
     padding-bottom: 64px;
   }
   .dock {
-    /* Beside the content, level with the screen's title, wherever the page sits */
-    left: max(
-      calc(env(safe-area-inset-left) + 16px),
-      calc((100% - var(--content) - var(--rail) - 2 * var(--side)) / 2 + 16px)
-    );
+    /* Level with the screen's title */
+    left: var(--rail-left);
     top: 20px;
     bottom: auto;
     translate: none;
     width: calc(var(--rail) - 28px);
     grid-template-columns: minmax(0, 1fr);
+  }
+  .dock.wide-only {
+    display: grid;
   }
   .dock a {
     min-height: 60px;
@@ -2747,7 +2756,7 @@ main.mia-page .mia-empty > p {
   padding: 0 16px;
 }
 .mia-starters.away {
-  visibility: hidden;
+  display: none;
 }
 /* Her suggestions keep an edge, as on Android: a question to tap, not a filled field. */
 .mia-starters > button.chip-button,
@@ -3096,6 +3105,11 @@ form.mia-form > button:disabled {
   .mia-page {
     max-width: none;
   }
+  /* The rail stands where it does on the tabs; her bar and column take the room beside it, a
+     step away so the bar's line never touches the rail. */
+  main.mia-page {
+    padding-left: calc(var(--rail-left) + var(--rail) - 28px + 16px);
+  }
   .mia-bar {
     padding-inline: 14px 24px;
   }
@@ -3119,10 +3133,14 @@ form.mia-form > button:disabled {
     background: var(--surface);
     box-shadow: 0 10px 30px -18px rgb(0 0 0 / 0.55);
   }
-  /* The ring goes round the whole box, which reads as the field. */
+  /* The box's own edge turns to the ring, one line round what reads as the field. The clear
+     outline shows only where forced colors drop the shadow. */
   main.mia-page form.mia-form:has(> input:focus-visible) {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    border-color: var(--accent);
+    outline: 2px solid transparent;
+    box-shadow:
+      0 0 0 1px var(--accent),
+      0 10px 30px -18px rgb(0 0 0 / 0.55);
   }
   main.mia-page form.mia-form > input {
     min-height: 48px;
@@ -3135,6 +3153,10 @@ form.mia-form > button:disabled {
   }
   main.mia-page form.mia-form > button {
     border-radius: 12px;
+  }
+  /* Nothing to send yet: a quiet word in the box, not a grey block beside the text. */
+  main.mia-page form.mia-form > button:disabled {
+    background: transparent;
   }
   /* Read at a desk, at arm's length: her text and the question a step up from the phone's. */
   main.mia-page p.mia-q,
@@ -3175,10 +3197,17 @@ form.mia-form > button:disabled {
   main.mia-page .mia-empty > p {
     max-width: 44ch;
   }
+  /* Two by two, no question left alone on a row. */
   .mia-starters {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    max-width: 38rem;
+  }
+  /* Typing, they keep their room, so the field never moves. */
+  .mia-starters.away {
+    display: flex;
+    visibility: hidden;
   }
 }
 

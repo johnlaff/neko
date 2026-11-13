@@ -117,7 +117,9 @@ export const MiaChart = ({ grafico }: { grafico: Mia2Grafico }) => {
   const anchor = (i: number) =>
     bars || n === 1 ? "label" : i === 0 ? "label first" : i === n - 1 ? "label last" : "label";
   const zero = Y(0);
-  const groupW = Math.min(slot * 0.72, 18 * series.length + 2 * (series.length - 1));
+  // Wider bars in a desk's wide plot, so six months never stand as needles far apart.
+  const most = width >= 600 ? 28 : 18;
+  const groupW = Math.min(slot * 0.72, most * series.length + 2 * (series.length - 1));
   const barW = Math.max(2, (groupW - 2 * (series.length - 1)) / series.length);
 
   // Line end labels, nudged apart so two never sit on each other.
