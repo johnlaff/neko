@@ -34,6 +34,7 @@ import {
   type ReserveSteps,
   reserveSteps,
   type Saving,
+  type ScenarioInput,
   type ScenarioResult,
   simulate,
   simulateInstallments,
@@ -492,6 +493,21 @@ const paceSpends = (r: ProjectionResponse, ceiling: Cents | null) => {
 };
 
 /**
+ * What Simular and "Posso comprar?" read: the sheet's months, the usual card's next bill (where a
+ * purchase's first parcel lands), the ceiling and Hoje's "Ainda cabem".
+ */
+export const scenarioInput = (r: ProjectionResponse, ceiling: Cents | null): ScenarioInput => {
+  const p = r.projection;
+  return {
+    today: p.today,
+    months: p.months,
+    due: p.cards.find((c) => c.usual)?.cycle.due ?? null,
+    ceiling,
+    canSpend: p.canSpend,
+  };
+};
+
+/**
  * Simular: the sheet's balances under a pace and what-ifs (engine `simulate`). Nothing is saved:
  * the same answer for the site, the Android app and Mia, computed on every ask. Without a pace,
  * or with one this sheet does not allow, it is the ceiling when there is one (the owner's own plan
@@ -514,13 +530,7 @@ export const scenarioView = (
     ask.pace && paces.includes(ask.pace) ? ask.pace : paces.includes("teto") ? "teto" : "planilha";
   const last = p.months.at(-1);
   const lastDay = last?.days.at(-1)?.day;
-  const input = {
-    today: p.today,
-    months: p.months,
-    due: usual?.cycle.due ?? null,
-    ceiling,
-    canSpend: p.canSpend,
-  };
+  const input = scenarioInput(r, ceiling);
   const run = (changes: readonly Change[]) => simulate(input, { pace, changes });
   // One change the engine refuses never takes the others with it: the answer without it, named.
   let refused: number[] = [];

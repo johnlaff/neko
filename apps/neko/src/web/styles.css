@@ -2746,6 +2746,19 @@ main.mia-page .mia-empty > p {
   flex: none;
   padding: 0 16px;
 }
+/* Her suggestions keep an edge, as on Android: a question to tap, not a filled field. */
+.mia-starters > button.chip-button,
+.mia-suggest > button.chip-button {
+  border: 1px solid var(--border);
+}
+/* No dock on Mia's screen: the field and the chips are pinned at the bottom, so focusing them
+   never scrolls the page; what the conversation holds stays clear of them, and of the bar. */
+html:has(main.mia-page) {
+  scroll-padding-bottom: env(safe-area-inset-bottom);
+}
+main.mia-page .mia-talk > li :is(a, button, summary, [tabindex]) {
+  scroll-margin: calc(env(safe-area-inset-top) + 5rem) 0 9rem;
+}
 .mia-composer {
   position: sticky;
   bottom: 0;
@@ -2842,6 +2855,7 @@ a.mia-value {
   .mia-talk.v2 > li.fresh p.mia-sources,
   .mia-talk.v2 > li.fresh figure.mia-chart,
   .mia-talk.v2 > li.fresh dl.mia-numbers,
+  .mia-talk.v2 > li.fresh .mia-verdict,
   .mia-page .mia-suggest {
     animation: mia-rise 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
@@ -2936,6 +2950,9 @@ a.mia-source > svg {
   overflow-x: auto;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
+  /* Room for the focus ring, which the scrolling row would otherwise cut */
+  margin: -4px;
+  padding: 4px;
   /* The last chip fades out at the edge, a hint that the row goes on */
   mask-image: linear-gradient(to right, #000 88%, transparent);
 }
@@ -2977,8 +2994,48 @@ main.mia-page form.mia-form > input {
   gap: 4px;
   padding-left: 1.25em;
 }
+/* A plain dot, not the hollow one a list inside her answer's list item would get. */
+.mia-rich > ul {
+  list-style-type: disc;
+}
 .mia-rich > ul > li::marker {
   color: var(--faint);
+}
+/* "Posso comprar?": the Neko's verdict over her words, in the serif and tone of every verdict here
+   (Lançar's .q-verdict), with an icon; the purchase checked under it, so an assumption shows. */
+.mia-verdict {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+.mia-verdict-word {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 400 1.375rem / 1.2 var(--serif);
+}
+.mia-verdict-word > svg {
+  flex: none;
+  /* Grows with the word when the text is enlarged */
+  width: 1em;
+  height: 1em;
+}
+.mia-verdict.pos .mia-verdict-word {
+  color: var(--pos);
+}
+.mia-verdict.warn .mia-verdict-word {
+  color: var(--warn);
+}
+.mia-verdict.neg .mia-verdict-word {
+  color: var(--neg);
+}
+.mia-verdict-what {
+  margin: 0;
+  padding-left: 30px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
 }
 /* Her first paragraph is the answer, set in the book serif like every verdict in the Neko. */
 .mia-rich > p.lead {

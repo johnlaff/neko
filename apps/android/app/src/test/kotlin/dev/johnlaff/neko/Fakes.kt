@@ -149,6 +149,57 @@ object Fakes {
         )
     }
 
+    /** "Posso comprar?" answered: the Neko's verdict, her reason and her board (what posso_comprar gives on the e2e fixture). */
+    fun mia2Compra() = dev.johnlaff.neko.ui.Mia2Chat().apply {
+        turns = listOf(
+            dev.johnlaff.neko.ui.Mia2Turno(
+                0,
+                "Posso comprar uma cadeira de R$ 600 em 3x?",
+                listOf(
+                    dev.johnlaff.neko.ui.Mia2Veredicto("r-u1", "aperta", 600.0, 3, "cartao", "Azul", dura = 60),
+                    dev.johnlaff.neko.ui.Mia2Texto(
+                        "m1",
+                        "Em dezembro, as faturas com a parcela passam do teto de **R$ 3.800**.",
+                        mapOf("R$ 3.800" to dev.johnlaff.neko.data.Mia2Valor(true, "simular", null)),
+                    ),
+                    dev.johnlaff.neko.ui.Mia2Numeros(
+                        "n1",
+                        listOf(
+                            dev.johnlaff.neko.data.Mia2Numero("Faturas de dez", 3904.32, "com a parcela", "simular", "2026-12"),
+                            dev.johnlaff.neko.data.Mia2Numero("Parcela", 200.0, "3x, última em dez", "simular"),
+                            dev.johnlaff.neko.data.Mia2Numero("Ainda cabe", 2012.8, "este mês, com a compra", "simular"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    /** "Não cabe": a TV at once on the card goes past what is left of the month's ceiling (the e2e fixture's numbers). */
+    fun mia2NaoCabe() = dev.johnlaff.neko.ui.Mia2Chat().apply {
+        turns = listOf(
+            dev.johnlaff.neko.ui.Mia2Turno(
+                0,
+                "Posso comprar uma TV de R$ 2.500?",
+                listOf(
+                    dev.johnlaff.neko.ui.Mia2Veredicto("r-u1", "nao_cabe", 2500.0, 1, "cartao", "Azul"),
+                    dev.johnlaff.neko.ui.Mia2Texto(
+                        "m1",
+                        "Passa em **R$ 287,20** do que ainda cabe neste mês.",
+                        mapOf("R$ 287,20" to dev.johnlaff.neko.data.Mia2Valor(true, "simular", null)),
+                    ),
+                    dev.johnlaff.neko.ui.Mia2Numeros(
+                        "n1",
+                        listOf(
+                            dev.johnlaff.neko.data.Mia2Numero("Ainda cabe", 2212.8, "este mês, sem a compra", "simular"),
+                            dev.johnlaff.neko.data.Mia2Numero("Teto do mês", 3800.0, "cartões e Pix", "simular"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+    }
+
     fun mia2Chat() = dev.johnlaff.neko.ui.Mia2Chat().apply {
         val ok = { tela: String, mes: String? -> dev.johnlaff.neko.data.Mia2Valor(true, tela, mes) }
         val months = listOf("jun", "jul", "ago", "set", "out", "nov")

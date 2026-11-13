@@ -162,6 +162,18 @@ class StressScreensTest {
         )
     }
 
+    // "Posso comprar?" at 200% text: the verdict, the purchase and the chips must fit.
+    @Test fun mia2CompraHugeText() = compose.shot(path("mia2-compra-200"), night = false, Device.HugeText) {
+        dev.johnlaff.neko.ui.Mia2Screen(
+            dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
+            Fakes.mia2Talk,
+            Fakes.mia2Compra(),
+            androidx.compose.runtime.rememberCoroutineScope(),
+            onBack = {},
+            onScreen = {},
+        )
+    }
+
     @Test fun mia2HugeText() = compose.shot(path("mia2-200"), night = true, Device.HugeText) {
         dev.johnlaff.neko.ui.Mia2Screen(
             dev.johnlaff.neko.data.MiaStatus(ligada = true, versao = 2),
