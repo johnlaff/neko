@@ -998,11 +998,13 @@ private fun Mia2Suggestion(q: String, wrap: Boolean = false, onClick: () -> Unit
 private val AlertIcon = stroke("alert", "M12 4 2.8 19.5h18.4zM12 10v4.5M12 17.2v.3")
 private val CloseIcon = stroke("close", "M6.5 6.5l11 11M17.5 6.5l-11 11")
 
-/** How long it lasts, in the words of the parcel hint. */
+/** How long it lasts, in the words of the parcel hint; never rounded, so it reads as checked. */
 private fun lasts(months: Int): String = when {
     months == 0 -> "se consome logo"
-    months < 12 -> if (months == 1) "dura um mês" else "dura uns $months meses"
-    else -> Math.round(months / 12.0).toInt().let { if (it == 1) "dura um ano" else "dura uns $it anos" }
+    months == 1 -> "dura um mês"
+    months % 12 != 0 -> "dura uns $months meses"
+    months == 12 -> "dura um ano"
+    else -> "dura uns ${months / 12} anos"
 }
 
 /** The purchase as checked, so what she assumed (the main card, at once, how long it lasts) is in sight. */

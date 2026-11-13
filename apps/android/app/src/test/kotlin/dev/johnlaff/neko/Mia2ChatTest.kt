@@ -249,6 +249,8 @@ class Mia2ChatTest {
         assertEquals("R$\u00A0600,00 em 3x no Azul, se consome logo", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = 0)))
         assertEquals("R$\u00A0600,00 em 3x no Azul, dura uns 6 meses", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = 6)))
         assertEquals("R$\u00A0600,00 em 3x no Azul, dura um ano", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = 12)))
+        // Never rounded: 18 months is not "2 anos", or a split in 20x would seem to break the rule it shows.
+        assertEquals("R$\u00A0600,00 em 3x no Azul, dura uns 18 meses", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = 18)))
         assertEquals("R$\u00A0600,00 em 3x no Azul", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(dura = null)))
         assertEquals("R$\u00A0600,00 à vista no cartão", dev.johnlaff.neko.ui.mia2PurchaseLabel(v.copy(parcelas = 1, cartao = null)))
         val asked = chat.turns.map { it.pergunta }

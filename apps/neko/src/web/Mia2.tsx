@@ -819,12 +819,12 @@ const VERDICT = {
   nao_cabe: { word: "Não cabe", tone: "neg", icon: <IconClose /> },
 } as const;
 
-/** How long it lasts, in the words of the parcel hint. */
+/** How long it lasts, in the words of the parcel hint; never rounded, so it reads as checked. */
 const lasts = (months: number) => {
   if (months === 0) return "se consome logo";
-  if (months < 12) return months === 1 ? "dura um mês" : `dura uns ${months} meses`;
-  const years = Math.round(months / 12);
-  return years === 1 ? "dura um ano" : `dura uns ${years} anos`;
+  if (months === 1) return "dura um mês";
+  if (months % 12 !== 0) return `dura uns ${months} meses`;
+  return months === 12 ? "dura um ano" : `dura uns ${months / 12} anos`;
 };
 
 /** The purchase as checked, so what she assumed (the main card, at once, how long it lasts) is in sight. */
