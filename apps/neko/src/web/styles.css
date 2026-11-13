@@ -2746,6 +2746,9 @@ main.mia-page .mia-empty > p {
   flex: none;
   padding: 0 16px;
 }
+.mia-starters.away {
+  visibility: hidden;
+}
 /* Her suggestions keep an edge, as on Android: a question to tap, not a filled field. */
 .mia-starters > button.chip-button,
 .mia-suggest > button.chip-button {
@@ -3082,6 +3085,101 @@ form.mia-form > button:disabled {
   background: var(--surface-2);
   color: var(--faint);
   opacity: 1;
+}
+
+/* From the expanded width Mia's screen is a desktop chat, as ChatGPT, Claude and Gemini set one:
+   her bar spans the window, the conversation and the field share one centered column of 48rem
+   (their ~768px), and the field is one rounded box with Enviar inside, over the end of the
+   conversation, instead of a phone's strip cut at the column's edges. Before the first question,
+   what she does and the field stand together in the middle. The phone keeps its own. */
+@media (min-width: 52.5rem) {
+  .mia-page {
+    max-width: none;
+  }
+  .mia-bar {
+    padding-inline: 14px 24px;
+  }
+  .mia-body,
+  .mia-composer {
+    width: 100%;
+    max-width: calc(48rem + 2 * var(--gutter));
+    margin-inline: auto;
+  }
+  .mia-composer {
+    padding-top: 24px;
+    padding-bottom: 24px;
+    background: linear-gradient(to bottom, transparent, var(--bg) 24px);
+    box-shadow: none;
+  }
+  main.mia-page form.mia-form {
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid var(--border-input);
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: 0 10px 30px -18px rgb(0 0 0 / 0.55);
+  }
+  /* The ring goes round the whole box, which reads as the field. */
+  main.mia-page form.mia-form:has(> input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  main.mia-page form.mia-form > input {
+    min-height: 48px;
+    padding: 6px 12px;
+    border: 0;
+    background: transparent;
+  }
+  main.mia-page form.mia-form > input:focus-visible {
+    outline: none;
+  }
+  main.mia-page form.mia-form > button {
+    border-radius: 12px;
+  }
+  /* Read at a desk, at arm's length: her text and the question a step up from the phone's. */
+  main.mia-page p.mia-q,
+  main.mia-page .mia-rich > p:not(.lead),
+  main.mia-page .mia-rich > ul {
+    font-size: 1rem;
+  }
+  /* The field and the bar take about 15rem of a desk's window. */
+  main.mia-page .mia-talk > li:last-child {
+    min-height: calc(100dvh - 15rem);
+  }
+  /* Before the first question: centered, the field right under what she does. */
+  main.mia-page:has(.mia-empty) .mia-body {
+    flex: none;
+    margin-top: auto;
+  }
+  main.mia-page:has(.mia-empty):not(:has(.mia-composer)) .mia-body {
+    margin-bottom: auto;
+  }
+  main.mia-page:has(.mia-empty) .mia-composer {
+    position: relative;
+    margin-bottom: auto;
+    padding-top: 4px;
+    padding-bottom: 12vh;
+    background: none;
+  }
+  /* A started question's hint takes the room the suggestions leave, so the field stays put. */
+  main.mia-page:has(.mia-empty) .mia-composer > p.mia-held {
+    position: absolute;
+    inset: auto var(--gutter) calc(100% + 8px);
+    text-align: center;
+  }
+  .mia-empty {
+    justify-items: center;
+    padding-top: 0;
+    text-align: center;
+  }
+  main.mia-page .mia-empty > p {
+    max-width: 44ch;
+  }
+  .mia-starters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 /* A chart in the conversation: title and legend above, a quiet grid, her values in the series
