@@ -23,6 +23,8 @@ export interface PurchaseAsk {
   readonly count: number;
   /** `pix`: today, all at once, Pix or debit. */
   readonly via: "cartao" | "pix";
+  /** How many months the thing lasts, when said or guessed; 0 for what is used up at once. */
+  readonly lifeMonths?: number | undefined;
 }
 
 /** Fits, fits but leaves a month or the balance with no room, or does not fit. */
@@ -31,9 +33,11 @@ export type Verdict = "cabe" | "aperta" | "nao_cabe";
 /**
  * `teto`: past what is left of this month's ceiling. `negativo`: the balance goes below zero
  * where, or earlier than, it would without it. `meses`: a later parcel's month has bills that
- * reach the ceiling. `ja_negativo`: the balance goes below zero without it too.
+ * reach the ceiling. `duracao`: the parcels outlast the thing; the method splits only what lasts,
+ * and not past it ("é um negócio durável?", aulas/01-aprofundamento-do-metodo, "à vista ou
+ * parcelado", [10:35] and [12:04]). `ja_negativo`: the balance goes below zero without it too.
  */
-export type PurchaseReason = "teto" | "negativo" | "meses" | "ja_negativo";
+export type PurchaseReason = "teto" | "negativo" | "meses" | "duracao" | "ja_negativo";
 
 export interface PurchaseCheck {
   readonly verdict: Verdict;
@@ -98,6 +102,8 @@ export const checkPurchase = (input: ScenarioInput, ask: PurchaseAsk): PurchaseC
   if (now && now.remaining < 0) reasons.push("teto");
   if (red && (wasRed === null || red.date < wasRed.date)) reasons.push("negativo");
   if (tight.length > 0) reasons.push("meses");
+  if (ask.lifeMonths !== undefined && parcels.length > Math.max(1, ask.lifeMonths))
+    reasons.push("duracao");
   if (red && wasRed && red.date >= wasRed.date) reasons.push("ja_negativo");
   const verdict: Verdict =
     reasons.includes("teto") || reasons.includes("negativo")

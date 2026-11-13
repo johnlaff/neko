@@ -255,6 +255,15 @@ const PurchaseInput = z.object({
     .describe(
       "cartao: no cartão principal, a primeira parcela na próxima fatura. pix: hoje, de uma vez, no Pix ou no débito.",
     ),
+  dura_meses: z
+    .number()
+    .int()
+    .min(0)
+    .max(1200)
+    .optional()
+    .describe(
+      "Quantos meses o bem dura: o que o dono disse ou sua estimativa pelo que é (geladeira uns 120). 0 para o que se consome logo: comida, viagem, serviço. Mande sempre que parcelar.",
+    ),
 });
 
 /** What Hoje's "Ainda cabem" measures this month. */
@@ -268,6 +277,7 @@ const REASON: Record<PurchaseReason, string> = {
   teto: "passa do que ainda cabe neste mês",
   negativo: "deixa o saldo negativo, ou negativo mais cedo",
   meses: "num mês das parcelas, as faturas com a parcela chegam ao teto",
+  duracao: "as parcelas duram mais que o bem; o método só parcela o que dura, e não além disso",
   ja_negativo: "o saldo já fica negativo sem a compra, e ela piora",
 };
 
@@ -283,6 +293,7 @@ const purchaseTool = (d: McpData, input: z.infer<typeof PurchaseInput>): CallToo
       amount: cents(Math.round(input.valor * 100)),
       count: input.parcelas,
       via: input.meio,
+      lifeMonths: input.dura_meses,
     });
     const cs = p.canSpend;
     const first = c.parcels[0];

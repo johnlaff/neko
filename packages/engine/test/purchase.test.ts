@@ -91,6 +91,21 @@ describe("checkPurchase", () => {
     ]);
   });
 
+  it("is tight when the parcels outlast the thing, the method's rule for splitting", () => {
+    // R$ 100 a month for 3 months is fine for the money, but a dinner is gone the same night.
+    const dinner = checkPurchase(input(), { ...card(300_00, 3), lifeMonths: 0 });
+    expect(dinner.verdict).toBe("aperta");
+    expect(dinner.reasons).toEqual(["duracao"]);
+    // A chair that lasts years, or one paid off as it wears out, is not held back.
+    expect(checkPurchase(input(), { ...card(300_00, 3), lifeMonths: 60 }).reasons).toEqual([]);
+    expect(checkPurchase(input(), { ...card(300_00, 3), lifeMonths: 3 }).reasons).toEqual([]);
+    // At once, nothing outlasts it; and a purchase that does not fit stays that way.
+    expect(checkPurchase(input(), { ...card(300_00), lifeMonths: 0 }).reasons).toEqual([]);
+    const tv = checkPurchase(input(), { ...card(2_400_00, 2), lifeMonths: 1 });
+    expect(tv.verdict).toBe("nao_cabe");
+    expect(tv.reasons).toEqual(["teto", "meses", "duracao"]);
+  });
+
   it("lists every parcel, even past the sheet's last month", () => {
     const r = checkPurchase(input(), card(1_000_00, 3));
     expect(r.parcels).toEqual([
