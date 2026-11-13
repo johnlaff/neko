@@ -215,7 +215,8 @@ const Shell = () => {
     return (
       <>
         {path === "/mia" && <Tabs wide />}
-        <main className={path === "/mia" ? "mia-page" : "sim-page"}>
+        {/* Its own page: nothing of it is reused by the tabs' page, nor theirs by it. */}
+        <main key="whole" className={path === "/mia" ? "mia-page" : "sim-page"}>
           <Fragment key={hidden ? "hidden" : "shown"}>
             <Outlet />
           </Fragment>
