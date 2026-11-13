@@ -803,7 +803,7 @@ test.describe("at a desk", () => {
     await expect(field).toHaveValue("E dezembro?");
     // Back from a tab of the rail, the field has the focus again, under the same conversation.
     await rail.getByRole("link", { name: "Faturas", exact: true }).click();
-    await expect(page).toHaveURL(/\/faturas$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Faturas" })).toBeVisible();
     await page.goBack();
     await expect(page.getByText("Cabem R$ 300,00 até o fim do mês.")).toBeVisible();
     await expect(field).toBeFocused();
