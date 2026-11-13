@@ -182,6 +182,10 @@ button.icon svg {
 .dock a > svg {
   color: var(--icon, inherit);
 }
+/* Mia's own copy of the tabs: only as the rail of a wide screen, never over her field. */
+.dock.wide-only {
+  display: none;
+}
 
 /* Panels: hairline border on a slightly lifted warm surface, never nested */
 .panel {
@@ -1277,6 +1281,11 @@ fieldset.columns {
 @media (min-width: 52.5rem) {
   :root {
     --rail: 100px;
+    /* Beside the content, wherever the page sits; Mia's page starts where the rail ends. */
+    --rail-left: max(
+      calc(env(safe-area-inset-left) + 16px),
+      calc((100% - var(--content) - var(--rail) - 2 * var(--side)) / 2 + 16px)
+    );
   }
   .page {
     max-width: calc(var(--content) + var(--rail) + 2 * var(--side));
@@ -1284,16 +1293,16 @@ fieldset.columns {
     padding-bottom: 64px;
   }
   .dock {
-    /* Beside the content, level with the screen's title, wherever the page sits */
-    left: max(
-      calc(env(safe-area-inset-left) + 16px),
-      calc((100% - var(--content) - var(--rail) - 2 * var(--side)) / 2 + 16px)
-    );
+    /* Level with the screen's title */
+    left: var(--rail-left);
     top: 20px;
     bottom: auto;
     translate: none;
     width: calc(var(--rail) - 28px);
     grid-template-columns: minmax(0, 1fr);
+  }
+  .dock.wide-only {
+    display: grid;
   }
   .dock a {
     min-height: 60px;
@@ -2746,6 +2755,13 @@ main.mia-page .mia-empty > p {
   flex: none;
   padding: 0 16px;
 }
+.mia-starters.away {
+  display: none;
+}
+/* The keys under her field: only where there is a keyboard, never on a phone. */
+.mia-keys {
+  display: none;
+}
 /* Her suggestions keep an edge, as on Android: a question to tap, not a filled field. */
 .mia-starters > button.chip-button,
 .mia-suggest > button.chip-button {
@@ -3084,6 +3100,140 @@ form.mia-form > button:disabled {
   opacity: 1;
 }
 
+/* From the expanded width Mia's screen is a desktop chat, as ChatGPT, Claude and Gemini set one:
+   her bar spans the window, the conversation and the field share one centered column of 48rem
+   (their ~768px), and the field is one rounded box with Enviar inside, over the end of the
+   conversation, instead of a phone's strip cut at the column's edges. Before the first question,
+   what she does and the field stand together in the middle. The phone keeps its own. */
+@media (min-width: 52.5rem) {
+  .mia-page {
+    max-width: none;
+  }
+  /* The rail stands where it does on the tabs; her bar and column take the room beside it, a
+     step away so the bar's line never touches the rail. */
+  main.mia-page {
+    padding-left: calc(var(--rail-left) + var(--rail) - 28px + 16px);
+  }
+  .mia-bar {
+    padding-inline: 14px 24px;
+  }
+  .mia-body,
+  .mia-composer {
+    width: 100%;
+    max-width: calc(48rem + 2 * var(--gutter));
+    margin-inline: auto;
+  }
+  .mia-composer {
+    padding-top: 24px;
+    padding-bottom: 24px;
+    background: linear-gradient(to bottom, transparent, var(--bg) 24px);
+    box-shadow: none;
+  }
+  main.mia-page form.mia-form {
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid var(--border-input);
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: 0 10px 30px -18px rgb(0 0 0 / 0.55);
+  }
+  /* The box's own edge turns to the ring, one line round what reads as the field. The clear
+     outline shows only where forced colors drop the shadow. */
+  main.mia-page form.mia-form:has(> input:focus-visible) {
+    border-color: var(--accent);
+    outline: 2px solid transparent;
+    box-shadow:
+      0 0 0 1px var(--accent),
+      0 10px 30px -18px rgb(0 0 0 / 0.55);
+  }
+  main.mia-page form.mia-form > input {
+    min-height: 48px;
+    padding: 6px 12px;
+    border: 0;
+    background: transparent;
+  }
+  main.mia-page form.mia-form > input:focus-visible {
+    outline: none;
+  }
+  main.mia-page form.mia-form > button {
+    border-radius: 12px;
+  }
+  /* Nothing to send yet: a quiet word in the box, not a grey block beside the text. It turns
+     at once, never fading through grey when the field is emptied. */
+  main.mia-page form.mia-form > button {
+    transition:
+      opacity 160ms ease-out,
+      scale 120ms ease-out;
+  }
+  main.mia-page form.mia-form > button:disabled {
+    background: transparent;
+  }
+  /* Read at a desk, at arm's length: her text and the question a step up from the phone's. */
+  main.mia-page p.mia-q,
+  main.mia-page .mia-rich > p:not(.lead),
+  main.mia-page .mia-rich > ul {
+    font-size: 1rem;
+  }
+  /* The field and the bar take about 15rem of a desk's window. */
+  main.mia-page .mia-talk > li:last-child {
+    min-height: calc(100dvh - 15rem);
+  }
+  /* Before the first question: centered, the field right under what she does. */
+  main.mia-page:has(.mia-empty) .mia-body {
+    flex: none;
+    margin-top: auto;
+  }
+  main.mia-page:has(.mia-empty):not(:has(.mia-composer)) .mia-body {
+    margin-bottom: auto;
+  }
+  main.mia-page:has(.mia-empty) .mia-composer {
+    position: relative;
+    margin-bottom: auto;
+    padding-top: 4px;
+    padding-bottom: 12vh;
+    background: none;
+  }
+  /* A started question's hint takes the room the suggestions leave, so the field stays put. */
+  main.mia-page:has(.mia-empty) .mia-composer > p.mia-held {
+    position: absolute;
+    inset: auto var(--gutter) calc(100% + 8px);
+    text-align: center;
+  }
+  .mia-empty {
+    justify-items: center;
+    padding-top: 0;
+    text-align: center;
+  }
+  main.mia-page .mia-empty > p {
+    max-width: 44ch;
+  }
+  /* Two by two, no question left alone on a row. */
+  .mia-starters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 38rem;
+  }
+  /* Typing, they keep their room, so the field never moves. */
+  .mia-starters.away {
+    display: flex;
+    visibility: hidden;
+  }
+}
+@media (min-width: 52.5rem) and (pointer: fine) {
+  .mia-keys {
+    display: block;
+    margin: 10px 0 -8px;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--faint);
+  }
+  /* Learned before the first question; in the conversation the room goes to her answers. */
+  main.mia-page:has(.mia-talk) .mia-keys {
+    display: none;
+  }
+}
+
 /* A chart in the conversation: title and legend above, a quiet grid, her values in the series
    colors, the exact numbers on hover or arrow keys, and a table for every value under it. */
 figure.mia-chart {
@@ -3368,7 +3518,8 @@ details.mia-chart-table th[scope="row"] {
 }
 
 /* Keyboard shortcuts, named only where a keyboard is likely */
-.learn-text.keys kbd {
+.learn-text.keys kbd,
+.mia-keys > kbd {
   display: inline-block;
   min-width: 1.5em;
   padding: 0 4px;

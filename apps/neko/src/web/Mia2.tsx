@@ -761,6 +761,8 @@ const usePaced = (key: string, texto: string, done: boolean, paced: boolean) => 
 };
 
 const lessMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** A mouse or a trackpad: no on-screen keyboard to open or to cover her answer. */
+const atDesk = () => window.matchMedia("(pointer: fine)").matches;
 
 /** One text of hers, shown at reading pace; what goes under it waits until it is all there. */
 const PacedText = ({
@@ -977,7 +979,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const showing = moving.size > 0;
   useKeyboardResizes();
   useEffect(() => {
-    if (chat.turns.length === 0) title.current?.focus({ preventScroll: true });
+    if (chat.turns.length === 0 && !atDesk()) title.current?.focus({ preventScroll: true });
     return () => {
       refocusOpener();
     };
@@ -987,7 +989,8 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   useEffect(() => {
     if (!pending) return;
     last.current?.scrollIntoView({ block: "start", behavior: smooth() });
-    if (document.activeElement === document.body) body.current?.focus({ preventScroll: true });
+    if (document.activeElement === document.body)
+      (atDesk() ? input.current : body.current)?.focus({ preventScroll: true });
   }, [pending]);
   const typedNow = useRef(typed);
   typedNow.current = typed;
@@ -1017,8 +1020,13 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
       setTold(end === null ? answered : "");
       return;
     }
-    if (!last.current) return;
     const ours = here === document.body || here === input.current || here === title.current;
+    // At a desk there is no keyboard to close: the field keeps the focus, as in every desktop chat.
+    if (atDesk() && input.current && (ours || here === body.current)) {
+      setTold(end === null ? answered : "");
+      return input.current.focus({ preventScroll: true });
+    }
+    if (!last.current) return;
     if (!ours && !body.current?.contains(here)) return;
     last.current.focus({ preventScroll: true });
   }, [finished]);
@@ -1077,6 +1085,16 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   // A question being finished in the field, and what to write in it.
   const fill = fillOf(typed);
   const hint = fill && hintFor(fill, lastPurchase(turns), hidden);
+  const composing = Boolean(s?.ligada && !resting && !full);
+  // At a desk the field holds the focus as soon as it is on the page, ready for the first words.
+  useEffect(() => {
+    if (!atDesk()) return;
+    // Back from a tab of the rail, its link (the same one on every screen) still holds the focus.
+    const at = document.activeElement;
+    if (at && at !== document.body && at !== title.current && !at.closest(".dock")) return;
+    if (composing) input.current?.focus({ preventScroll: true });
+    else if (chat.turns.length === 0) title.current?.focus({ preventScroll: true });
+  }, [composing]);
 
   return (
     <>
@@ -1134,9 +1152,10 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               Ela lê o Neko, faz as contas e mostra gráficos. Não muda a planilha. Valores
               sublinhados levam à tela de onde vieram.
             </p>
-            {/* Hidden while a question is typed, as after an answer: a tap never loses it. */}
-            {!resting && !typed.trim() && (
-              <div className="mia-starters">
+            {/* Out of sight while a question is typed, as after an answer, so a tap never loses
+                it; at a desk they keep their room, so the field never moves. */}
+            {!resting && (
+              <div className={typed.trim() ? "mia-starters away" : "mia-starters"}>
                 {starters.map((q) => (
                   <Suggestion key={q} q={q} pick={pick} />
                 ))}
@@ -1257,7 +1276,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
           Começa a pergunta no campo
         </span>
       </div>
-      {s?.ligada && !resting && !full && (
+      {composing && (
         <div className="mia-composer">
           {held && pending && <p className="mia-held">Sua pergunta vai quando ela terminar.</p>}
           {hint && (
@@ -1289,6 +1308,7 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               ref={input}
               aria-label="Pergunta para a Mia"
               aria-describedby={hint ? "mia-fill-hint" : undefined}
+              aria-keyshortcuts="/"
               placeholder={turns.length > 0 ? "Outra pergunta?" : "Pergunte algo"}
               maxLength={1000}
               autoComplete="off"
@@ -1335,6 +1355,11 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
               </button>
             )}
           </form>
+          {/* At a desk, before the first question, the keys she answers to, quiet under the field. */}
+          <p className="mia-keys">
+            <kbd>Enter</kbd> envia · <kbd>↑</kbd> traz a última pergunta · <kbd>/</kbd> volta ao
+            campo · <kbd>Esc</kbd> para, apaga ou sai
+          </p>
         </div>
       )}
     </>
