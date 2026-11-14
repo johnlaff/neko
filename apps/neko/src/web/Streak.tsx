@@ -9,9 +9,11 @@ const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"] as const;
 const WEEKDAY_NAMES = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
 /** The marks explained once, in the marks themselves, so the row needs no memory. */
-const LEGEND = (["edited", "rest", "missed"] as const).map(
-  (state) => [state, capitalize(HABIT.days[state])] as const,
-);
+const LEGEND = [
+  ["edited", HABIT.done],
+  ["rest", capitalize(HABIT.days.rest)],
+  ["missed", capitalize(HABIT.days.missed)],
+] as const;
 
 /**
  * The habit the method asks for, in one quiet line under Lançar: this week as seven marks and
@@ -56,6 +58,8 @@ export const Streak = ({ habit }: { habit: Habit }) => {
             <span>{HABIT.mended}</span>
           ) : habit.editedToday ? (
             <span>Hoje já lançado</span>
+          ) : habit.checkedToday ? (
+            <span>{HABIT.checkedToday}</span>
           ) : (
             // Missing on projections cached before it existed.
             habit.atRisk && <span>{HABIT.atRisk}</span>

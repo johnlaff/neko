@@ -1,4 +1,4 @@
-import type { Draft, MiaEntry } from "@neko/engine";
+import type { Draft, Habit, MiaEntry } from "@neko/engine";
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
@@ -261,6 +261,8 @@ export const api = {
     request<{ ok: boolean; signIn: boolean }>("/banks/refresh", { method: "POST" }, LONG_WAIT),
   /** Entrar no Meu Pluggy: the page where the owner asks for the e-mailed link. */
   meuPluggySignIn: () => request<{ url: string }>("/banks/meu-pluggy", { method: "POST" }),
+  /** Hoje shows Para lançar with "Tudo lançado": the day counts in the streak if the Worker agrees. */
+  checkHabit: () => request<{ counted: boolean; habit: Habit }>("/habit/check", { method: "POST" }),
   /** The review every 3 months, answered "keep the value". */
   keepPrevisto: () => request<{ ok: true }>("/queue/previsto/manter", { method: "POST" }),
   ignore: (key: string) =>

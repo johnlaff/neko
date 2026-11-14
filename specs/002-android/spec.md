@@ -107,7 +107,9 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
     conferida com o jeito real de cada banco escrever. Da Carteira do Google e da Samsung Wallet
     (o aviso sai na hora em que o cartão é aproximado no caixa) vai só o texto dos avisos com valor
     em reais, para aprender como falam: nenhuma compra é lida delas, porque o banco do cartão
-    avisa a mesma.
+    avisa a mesma. Do app Meu Alelo (vale-refeição e alimentação, fora do Open Finance) vai do
+    mesmo jeito só o texto dos avisos com valor em reais: esse dinheiro não está nas contas da
+    planilha e nenhum banco conferiria a compra (`PHONE_BENEFITS`).
   - Nunca vira linha da planilha nem item de Para lançar: o lançamento vem só do banco. Antes de
     abrir a permissão, o app diz em claro o que lê, o que manda e quanto tempo guarda.
 - **Fatura debitada de uma conta só**: o banco tira a fatura do cartão da conta dele, não do Saldo

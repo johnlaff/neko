@@ -906,7 +906,7 @@ fun ParaLancar(
     // Gone until the next read of Hoje, which leaves out what was done and brings back what was undone.
     var gone by remember(items) { mutableStateOf(emptySet<String>()) }
     val left = items.filter { it.key !in gone }
-    if (items.isEmpty() && saldo == null) return
+    if (items.isEmpty() && saldo == null && v.stalled.isEmpty()) return
     var at by rememberSaveable { mutableStateOf(0) }
     var back by remember { mutableStateOf(false) }
     val index = at.coerceIn(0, (left.size - 1).coerceAtLeast(0))
@@ -991,6 +991,9 @@ fun ParaLancar(
             }
             if (!v.writing && left.isNotEmpty())
                 Text("Para lançar daqui, ligue Lançar pelo Neko em Ajustes.", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+            // A quiet queue is not news when a bank stopped being read: Atualizar sits right below.
+            if (v.stalled.isNotEmpty())
+                Text(Format.stalledText(v.stalled), color = l.muted, style = MaterialTheme.typography.bodyMedium)
             Column {
                 Box(Modifier.bleed(16.dp).height(1.dp).background(l.border))
                 Refresh(v.bankSyncedAt, launcher)

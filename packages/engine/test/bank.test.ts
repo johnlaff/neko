@@ -8,6 +8,7 @@ import {
   linesBehind,
   localDate,
   movedToday,
+  stalledBanks,
   unmatchedMovements,
 } from "../src/index.ts";
 import { cell, item, ledger } from "./builders.ts";
@@ -549,5 +550,37 @@ describe("what moved today, before comparing with yesterday's Saldo", () => {
     const other = { ...m("2026-10-11", -40000, "Pagamento de conta"), account: "b" };
     // In account b, the older payment took the sheet line: today's parcel is new money moving.
     expect(movedToday(loan, today, [parcel], [parcel, other])).toBe(-40000);
+  });
+});
+
+describe("stalledBanks", () => {
+  const today = localDate("2026-11-14");
+  const read = (label: string, on: string) => ({ label, readOn: localDate(on) });
+
+  it("names a bank Meu Pluggy has not read for two days or more, the oldest first", () => {
+    expect(
+      stalledBanks(
+        [
+          read("Inter", "2026-11-12"),
+          read("Itaú", "2026-11-13"),
+          read("Nubank", "2026-11-14"),
+          read("Bradesco", "2026-11-09"),
+        ],
+        today,
+      ),
+    ).toEqual([
+      { label: "Bradesco", since: "2026-11-09" },
+      { label: "Inter", since: "2026-11-12" },
+    ]);
+  });
+
+  it("says a bank once, by its oldest read, when it has more than one connection", () => {
+    expect(stalledBanks([read("Inter", "2026-11-14"), read("Inter", "2026-11-11")], today)).toEqual(
+      [{ label: "Inter", since: "2026-11-11" }],
+    );
+  });
+
+  it("leaves out a bank never read yet: that is a new link, not a stall", () => {
+    expect(stalledBanks([{ label: "Inter", readOn: null }], today)).toEqual([]);
   });
 });

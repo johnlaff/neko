@@ -36,11 +36,14 @@
       }
     ],
     "habit": {
-      "rule": "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte.",
+      "rule": "Conta os dias em que a planilha mudou e os dias em que você abriu o Neko com tudo lançado. Um dia sem lançar não quebra a sequência se o dia seguinte contar.",
       "atRisk": "Lance hoje para continuar",
       "mended": "Ontem recuperado",
+      "checkedToday": "Hoje conferido",
+      "done": "Lançado ou conferido",
       "days": {
         "edited": "lançado",
+        "checked": "conferido",
         "rest": "recuperado",
         "missed": "sem lançar",
         "today": "hoje, em aberto",
@@ -232,6 +235,34 @@
           }
         ],
         "Despesas de Casa (R$ 300,00, 10 nov) e Aluguel (R$ 1.484,24, 10 nov) ainda não passaram pelo banco."
+      ]
+    ],
+    "stalled": [
+      [
+        [
+          {
+            "label": "Inter",
+            "since": "2026-11-12"
+          }
+        ],
+        "Sem atualizar: Inter desde 12 nov. O que mudou depois ainda não aparece aqui."
+      ],
+      [
+        [
+          {
+            "label": "Bradesco",
+            "since": "2026-11-09"
+          },
+          {
+            "label": "Inter",
+            "since": "2026-11-12"
+          },
+          {
+            "label": "Itaú",
+            "since": "2026-11-12"
+          }
+        ],
+        "Sem atualizar: Bradesco desde 9 nov, Inter desde 12 nov e Itaú desde 12 nov. O que mudou depois ainda não aparece aqui."
       ]
     ],
     "closesIn": [

@@ -76,7 +76,8 @@ fun widgetText(v: TodayView?): WidgetText {
     val bill = cs?.let { Format.money(it.accumulated) }
     val h = v?.habit
     val streak = h?.let { dev.johnlaff.neko.ui.Learn.streakLabel(it.streak, it.atRisk) }
-    val week = h?.week.orEmpty().map { it.state }
+    // A day checked with nothing to launch is in order: the widget marks it as a logged day.
+    val week = h?.week.orEmpty().map { if (it.state == "checked") "edited" else it.state }
     val waiting = v?.queue.orEmpty().size
     // With the Diário previsto on, the figure is the month's against the Diário, not a bill's.
     val month = cs?.mode == "month"

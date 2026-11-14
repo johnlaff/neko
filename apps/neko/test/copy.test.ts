@@ -22,6 +22,7 @@ import {
   relativeDay,
   shortDate,
   signed,
+  stalledText,
   waitingText,
 } from "../src/web/format.ts";
 import {
@@ -147,6 +148,15 @@ const contract = () => ({
         { date: "2026-11-10", column: "saida", description: "Aluguel", amount: 1_484_24 },
       ],
     ].map((w) => [w, waitingText(w as SaldoWaiting[])]),
+    // Banks Meu Pluggy stopped reading: one, and a few.
+    stalled: [
+      [{ label: "Inter", since: "2026-11-12" }],
+      [
+        { label: "Bradesco", since: "2026-11-09" },
+        { label: "Inter", since: "2026-11-12" },
+        { label: "Itaú", since: "2026-11-12" },
+      ],
+    ].map((b) => [b, stalledText(b)]),
     closesIn: [1, 2, 4].map((n) => [n, closesIn(n)]),
     bankText: [
       "PIX FEIRA DO BAIRRO",
@@ -219,6 +229,8 @@ describe("copy contract", () => {
       c.learn.habit.rule,
       c.learn.habit.atRisk,
       c.learn.habit.mended,
+      c.learn.habit.checkedToday,
+      c.learn.habit.done,
       ...Object.values(c.learn.totals),
       ...c.insights.flatMap((i) => [i.title ?? "", i.detail ?? ""]),
       ...c.issues.flatMap((i) => [i.title, i.detail]),
