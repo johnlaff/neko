@@ -32,8 +32,17 @@ object PurchaseText {
         "com.samsung.android.spay" to "Samsung Wallet",
     )
 
+    /**
+     * Benefit cards outside Open Finance (meal and food vouchers). Only their words are kept, to
+     * learn how they speak (keep): no purchase is read from them, as that money is not in the
+     * sheet's accounts and no bank would ever check it (worker/phone.ts PHONE_BENEFITS).
+     */
+    val BENEFITS = mapOf(
+        "air.br.com.alelo.mobile.android" to "Alelo",
+    )
+
     /** The name a listed app's notice is kept under, or null for any other app. */
-    fun source(pkg: String): String? = BANKS[pkg] ?: WALLETS[pkg]
+    fun source(pkg: String): String? = BANKS[pkg] ?: WALLETS[pkg] ?: BENEFITS[pkg]
 
     /** What the ceiling takes from a notice. */
     data class Read(val bank: String, val amount: Long, val last4: String?, val merchant: String)
@@ -81,13 +90,13 @@ object PurchaseText {
     /**
      * Whether a notice's words go to the Neko too, read or not, so this reader is checked against
      * how each bank really words its notices: a listed bank's notice with an amount in reais that
-     * speaks of a purchase or a card, or a wallet's notice with an amount in reais; never one of
-     * Pix or cashback. Kept 15 days (worker/phone.ts).
+     * speaks of a purchase or a card, or a wallet's or a benefit card's notice with an amount in
+     * reais; never one of Pix or cashback. Kept 15 days (worker/phone.ts).
      */
     fun keep(pkg: String, title: String?, text: String?): Boolean {
         val all = listOfNotNull(title, text).joinToString(". ")
         if (!MONEY.containsMatchIn(all) || SKIP.containsMatchIn(all)) return false
-        return pkg in WALLETS || (pkg in BANKS && ABOUT.containsMatchIn(all))
+        return pkg in WALLETS || pkg in BENEFITS || (pkg in BANKS && ABOUT.containsMatchIn(all))
     }
 
     /** The Worker takes up to R$ 100.000,00 at once. */

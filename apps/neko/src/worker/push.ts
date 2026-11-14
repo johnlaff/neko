@@ -331,7 +331,8 @@ const NAMED = 3;
 
 /**
  * The evening, at the owner's hour: what waits in Para lançar, by count and name, opening right
- * on it. With the queue empty, a nudge to log the day, quiet once the sheet changed today. With
+ * on it. With the queue empty, a nudge to log the day, quiet once today counts (the sheet changed,
+ * or Para lançar was checked with nothing left). With
  * writing off, nothing can be launched from Neko, so the nudge opens today's row in the sheet.
  */
 export const eveningMessage = ({
@@ -354,7 +355,7 @@ export const eveningMessage = ({
       tag: "evening",
     };
   }
-  if (p.todayLogged || habit?.editedToday) return null;
+  if (p.todayLogged || habit?.editedToday || habit?.checkedToday) return null;
   return {
     title: "Lançou o dia?",
     body: habit?.atRisk

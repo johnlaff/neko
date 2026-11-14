@@ -49,14 +49,19 @@ export const IDEAS: readonly { readonly title: string; readonly body: string }[]
 
 /** Hoje's streak, in the same words on the site and the app (ui/Learn.kt). */
 export const HABIT = {
-  rule: "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte.",
+  rule: "Conta os dias em que a planilha mudou e os dias em que você abriu o Neko com tudo lançado. Um dia sem lançar não quebra a sequência se o dia seguinte contar.",
   /** Yesterday went without a change: today's edit is what keeps the run. */
   atRisk: "Lance hoje para continuar",
   /** Today's edit mended yesterday. */
   mended: "Ontem recuperado",
-  /** Each day's mark, as the screen reader says it; the legend shows the first three. */
+  /** Today counts because Para lançar said "Tudo lançado", with no change to the sheet. */
+  checkedToday: "Hoje conferido",
+  /** The filled mark in the legend: a day the sheet changed and a day checked look the same. */
+  done: "Lançado ou conferido",
+  /** Each day's mark, as the screen reader says it. */
   days: {
     edited: "lançado",
+    checked: "conferido",
     rest: "recuperado",
     missed: "sem lançar",
     today: "hoje, em aberto",

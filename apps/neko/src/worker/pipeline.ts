@@ -41,7 +41,7 @@ import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./go
 import { loadSettings, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "94";
+const PIPELINE_VERSION = "95";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -273,18 +273,30 @@ export const pruneSnapshots = async (db: D1Database): Promise<void> => {
 /** Long enough for the 365-day milestone and the best run of the year. */
 const HABIT_WINDOW = 400;
 const EDITS_KEY = "sheet_edits";
+const CHECKS_KEY = "habit_checks";
+
+const loadDays = async (db: D1Database, key: string): Promise<LocalDate[] | null> => {
+  const row = await db
+    .prepare("SELECT value FROM setting WHERE key = ?")
+    .bind(key)
+    .first<{ value: string }>();
+  return row ? (JSON.parse(row.value) as LocalDate[]) : null;
+};
+
+const saveDays = async (db: D1Database, key: string, days: readonly LocalDate[]): Promise<void> => {
+  await db
+    .prepare(
+      "INSERT INTO setting (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')",
+    )
+    .bind(key, JSON.stringify(days))
+    .run();
+};
 
 /**
  * The São Paulo days the sheet changed, newest last, kept as one settings row. Before the first
  * edit Neko records, the projections already cached say when the sheet changed on earlier days.
  */
-const loadEditDays = async (db: D1Database): Promise<LocalDate[] | null> => {
-  const row = await db
-    .prepare("SELECT value FROM setting WHERE key = ?")
-    .bind(EDITS_KEY)
-    .first<{ value: string }>();
-  return row ? (JSON.parse(row.value) as LocalDate[]) : null;
-};
+const loadEditDays = (db: D1Database) => loadDays(db, EDITS_KEY);
 
 const cachedEditTimes = async (db: D1Database): Promise<string[]> => {
   const { results } = await db
@@ -301,16 +313,20 @@ export const recordEdits = async (db: D1Database, times: readonly string[]): Pro
   const before = known ?? (await cachedEditTimes(db)).map(editDay);
   const days = [...new Set([...before, ...times.map(editDay)])].sort().slice(-HABIT_WINDOW);
   if (known && days.length === known.length && days.every((d, i) => d === known[i])) return;
-  await db
-    .prepare(
-      "INSERT INTO setting (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')",
-    )
-    .bind(EDITS_KEY, JSON.stringify(days))
-    .run();
+  await saveDays(db, EDITS_KEY, days);
 };
 
-export const loadHabit = async (db: D1Database, today: LocalDate): Promise<Habit> =>
-  habit((await loadEditDays(db)) ?? [], today);
+/** A day Para lançar was checked with nothing left to launch; writes only when it is new. */
+export const recordCheck = async (db: D1Database, day: LocalDate): Promise<void> => {
+  const known = (await loadDays(db, CHECKS_KEY)) ?? [];
+  if (known.includes(day)) return;
+  await saveDays(db, CHECKS_KEY, [...known, day].sort().slice(-HABIT_WINDOW));
+};
+
+export const loadHabit = async (db: D1Database, today: LocalDate): Promise<Habit> => {
+  const [edits, checks] = await Promise.all([loadEditDays(db), loadDays(db, CHECKS_KEY)]);
+  return habit(edits ?? [], today, checks ?? []);
+};
 
 /**
  * Drive keeps the sheet's revision history: it fills in the days the sheet changed before Neko

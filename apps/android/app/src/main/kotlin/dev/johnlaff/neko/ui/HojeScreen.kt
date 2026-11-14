@@ -91,6 +91,8 @@ fun HojeScreen(
     launchOpen: Boolean = false,
     /** Counts a tap for Ajustes › Uso do Neko: "lancar", "simular", "calculo". */
     onUse: (String) -> Unit = {},
+    /** Para lançar says "Tudo lançado" and today does not count yet: count it (AppModel.checkDay). */
+    onDayChecked: () -> Unit = {},
 ) {
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
     // What Conferência's last tap hid: kept here, so the panel stays to bring them back.
@@ -101,6 +103,11 @@ fun HojeScreen(
     // A stale widget count can open Hoje with nothing waiting: the ask ends there, not on a later read.
     val nothingWaiting = !state.loading && state.view?.let { it.queue == null } == true
     LaunchedEffect(bringQueue, nothingWaiting) { if (bringQueue && nothingWaiting) onQueueShown() }
+    // A quiet day is a day in order: "Tudo lançado" on screen counts it, asked once per reading
+    // (as on the site); the reading after shows it counted.
+    val view = state.view
+    val dayDue = view != null && view.allLaunched && view.habit?.let { it.editedToday || it.checkedToday } != true
+    LaunchedEffect(dayDue, view?.readAt) { if (dayDue) onDayChecked() }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh, miaTopic = "hoje") { v ->
         item { Hero(v, onUse) }
         // Writing on, Lançar opens the form here; off, it opens today's row in the sheet.

@@ -65,6 +65,9 @@ describe("card purchases the phone read", () => {
     };
     expect(BankNotice.safeParse(wallet).success).toBe(true);
     expect(BankNotice.safeParse({ ...wallet, bank: "Samsung Wallet" }).success).toBe(true);
+    // So is a benefit card's, outside Open Finance.
+    const alelo = { ...wallet, app: "air.br.com.alelo.mobile.android", bank: "Alelo" };
+    expect(BankNotice.safeParse(alelo).success).toBe(true);
   });
 
   it("takes only a purchase it can trust: a known bank, cents, four digits", () => {

@@ -34,8 +34,8 @@ import java.util.concurrent.TimeUnit
 /**
  * Avisos de compra (specs/002): with the owner's leave in Android's settings, the phone reads the
  * card purchase in a bank app's notice and sends the Worker its amount, shop and card digits, and
- * the words of that bank's notices of a purchase or a card, and of the phone wallets' notices of a
- * payment (PurchaseText.keep), kept 15 days. For
+ * the words of that bank's notices of a purchase or a card, and of the phone wallets' and the
+ * benefit cards' notices with an amount (PurchaseText.keep), kept 15 days. For
  * now this only learns: the Worker checks each read against what Open Finance brings, and the
  * ceiling moves with a bank app's reads only once that app is released by hand (worker/phone.ts
  * PHONE_RELEASED). Nothing of other apps' notices leaves the phone, and nothing is written to the
@@ -117,7 +117,7 @@ object Purchases {
     }
 }
 
-/** Android hands it every notice; only the bank apps' and the wallets' are looked at (PurchaseText). */
+/** Android hands it every notice; only the listed apps' are looked at (PurchaseText.source). */
 class PurchaseListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val source = PurchaseText.source(sbn.packageName) ?: return

@@ -2469,7 +2469,9 @@ button.setting.quiet:disabled {
   border-radius: 50%;
   border: 1.5px solid var(--border-input);
 }
+/* Checked with nothing to launch: the day is in order, so it reads as Lançado. */
 .week .edited .mark,
+.week .checked .mark,
 .week-legend .edited .mark {
   background: var(--text);
   border-color: var(--text);
@@ -2502,7 +2504,8 @@ button.setting.quiet:disabled {
   color: var(--muted);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .week .edited .mark {
+  .week .edited .mark,
+  .week .checked .mark {
     animation: mark-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .week > li:nth-child(2) .mark {

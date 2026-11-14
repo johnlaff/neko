@@ -318,6 +318,15 @@ export interface SaldoView extends SaldoCheck {
   readonly draft: Draft | null;
 }
 
+/**
+ * Para lançar says "Tudo lançado": nothing left to launch, and the Saldo bate with the bank or
+ * only waits on lines the bank has not moved yet. The day it says so counts in the streak.
+ */
+export const allLaunched = (
+  queue: readonly unknown[] | null | undefined,
+  saldo: SaldoCheck | null | undefined,
+): boolean => queue?.length === 0 && saldoView(saldo)?.draft === null;
+
 export const saldoView = (s: SaldoCheck | null | undefined): SaldoView | null => {
   if (!s) return null;
   // A projection kept from before the bank's late lines were named has none.
