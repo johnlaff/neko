@@ -21,6 +21,13 @@ export type PhoneBank = (typeof PHONE_BANKS)[number];
 export const PHONE_WALLETS = ["Carteira do Google", "Samsung Wallet"] as const;
 
 /**
+ * Benefit cards outside Open Finance (meal and food vouchers): only the words of their notices
+ * come, to learn how they speak. No purchase is read from them: that money is not in the sheet's
+ * accounts, and no bank would check it.
+ */
+export const PHONE_BENEFITS = ["Alelo"] as const;
+
+/**
  * The bank apps whose reads may move the ceiling, added here by hand, in a reviewed change, once
  * their real notices (bank_notice) and the bank's checks show the reading is right. Empty: the
  * phone's reads only learn, and the ceiling moves when the bank brings the purchase.
@@ -80,15 +87,16 @@ export const loadPhonePurchases = async (
 };
 
 /**
- * A bank app's notice that speaks of a purchase or a card, or a phone wallet's notice of a payment,
- * word for word (PurchaseText.kt keeps): read or not, it shows how each one words its notices.
+ * A bank app's notice that speaks of a purchase or a card, or a phone wallet's or a benefit card's
+ * notice with an amount, word for word (PurchaseText.kt keeps): read or not, it shows how each one
+ * words its notices.
  */
 export const BankNotice = z.object({
   /** The phone's key for the notice, so the same one is kept once. */
   id: z.string().trim().min(8).max(80),
   /** The bank app's package: one bank may word its two apps' notices differently. */
   app: z.string().regex(/^[a-z][\w.]{2,99}$/i),
-  bank: z.enum([...PHONE_BANKS, ...PHONE_WALLETS]),
+  bank: z.enum([...PHONE_BANKS, ...PHONE_WALLETS, ...PHONE_BENEFITS]),
   title: z.string().max(300),
   text: z.string().max(2000),
   at: z.string().datetime(),

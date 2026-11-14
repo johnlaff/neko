@@ -47,7 +47,8 @@ private val LETTERS = listOf("D", "S", "T", "Q", "Q", "S", "S")
 private val NAMES = listOf("domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado")
 
 /** The marks explained once, in the marks themselves, so the row needs no memory. */
-private val LEGEND = listOf("edited", "rest", "missed").map { it to Format.capitalize(Learn.HABIT_DAYS.getValue(it)) }
+private val LEGEND = listOf("edited" to Learn.HABIT_DONE) +
+    listOf("rest", "missed").map { it to Format.capitalize(Learn.HABIT_DAYS.getValue(it)) }
 
 private fun stateLabel(state: String) = Learn.HABIT_DAYS[state] ?: Learn.HABIT_DAYS.getValue("missed")
 
@@ -83,6 +84,7 @@ fun Streak(h: Habit) {
                     h.record != null -> Text("Novo recorde", color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.mended -> Text(Learn.HABIT_MENDED, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.editedToday -> Text("Hoje já lançado", color = l.muted, style = MaterialTheme.typography.bodyMedium)
+                    h.checkedToday -> Text(Learn.HABIT_CHECKED_TODAY, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                     h.atRisk -> Text(Learn.HABIT_AT_RISK, color = l.muted, style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -149,11 +151,11 @@ private fun Week(week: List<HabitDay>) {
     }
 }
 
-/** One day: filled when the sheet changed, dashed on a missed day the next one mended, ringed for today. */
+/** One day: filled when it counted, dashed on a missed day the next one mended, ringed for today. */
 @Composable
 private fun Mark(state: String, delay: Int, pop: Boolean = true) {
     val l = LocalLedger.current
-    var shown by rememberSaveable { mutableStateOf(!pop || state != "edited") }
+    var shown by rememberSaveable { mutableStateOf(!pop || (state != "edited" && state != "checked")) }
     val scale = remember { Animatable(if (shown) 1f else 0.3f) }
     LaunchedEffect(Unit) {
         if (!shown) {
@@ -167,7 +169,8 @@ private fun Mark(state: String, delay: Int, pop: Boolean = true) {
         val c = Offset(size.width / 2, size.height / 2)
         val stroke = 1.5.dp.toPx()
         when (state) {
-            "edited" -> drawCircle(l.text, r, c)
+            // Checked with nothing to launch: the day is in order, so it reads as Lançado.
+            "edited", "checked" -> drawCircle(l.text, r, c)
             "rest" -> drawCircle(
                 l.muted,
                 r,

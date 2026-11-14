@@ -2,6 +2,7 @@ import type { Cents, Draft, EntryKind, LocalDate, MiaEntry } from "@neko/engine"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import {
+  allLaunched,
   type PurchasesView,
   type QueueItemView,
   type QueueLine,
@@ -16,6 +17,7 @@ import {
   money,
   readAtLabel,
   shortDate,
+  stalledText,
   toCents,
   waitingText,
 } from "./format.ts";
@@ -934,6 +936,27 @@ const Refresh = ({ syncedAt }: { syncedAt: string | null }) => {
   );
 };
 
+/**
+ * Para lançar on screen saying "Tudo lançado" counts the day in the streak: a quiet day is a day
+ * in order. Asked once per reading of the bank; the Worker checks the queue again before it counts,
+ * and the reading after shows the day counted.
+ */
+const useCheckDay = (due: boolean, reading: BankView) => {
+  const queryClient = useQueryClient();
+  const asked = useRef<BankView | null>(null);
+  const { mutate } = useMutation({
+    mutationFn: api.checkHabit,
+    onSuccess: (r) => {
+      if (r.counted) queryClient.invalidateQueries({ queryKey: ["projection"] });
+    },
+  });
+  useEffect(() => {
+    if (!due || asked.current === reading) return;
+    asked.current = reading;
+    mutate();
+  }, [due, reading, mutate]);
+};
+
 /** Where the evening notification lands (worker/push.ts PARA_LANCAR). */
 const PARA_LANCAR_ID = "para-lancar";
 
@@ -945,12 +968,16 @@ export const ParaLancar = ({
   bank,
   writing,
   today,
+  counted,
 }: {
   bank: BankView;
   writing: boolean;
   today: LocalDate;
+  /** Today already counts in the streak: the sheet changed or this was already checked. */
+  counted: boolean;
 }) => {
   const queue = bank.queue;
+  useCheckDay(allLaunched(queue, bank.saldo) && !counted, bank);
   // Hidden until the next read of the queue, which leaves out what was launched and brings back
   // what was undone.
   const [hidden, setHidden] = useState<{ of: unknown; keys: ReadonlySet<string> }>({
@@ -978,7 +1005,8 @@ export const ParaLancar = ({
   }, [drawn]);
   if (!queue) return null;
   const items = queue.filter((i) => !gone.has(i.key));
-  if (items.length === 0 && !bank.saldo) return null;
+  const stalled = bank.stalled ?? [];
+  if (items.length === 0 && !bank.saldo && stalled.length === 0) return null;
   const index = Math.min(at, Math.max(items.length - 1, 0));
   const item = items[index];
   const total = items.length + gone.size;
@@ -1073,6 +1101,8 @@ export const ParaLancar = ({
       {!writing && items.length > 0 && (
         <p className="hint">Para lançar daqui, ligue Lançar pelo Neko em Ajustes.</p>
       )}
+      {/* A quiet queue is not news when a bank stopped being read: Atualizar sits right below. */}
+      {stalled.length > 0 && <p className="hint">{stalledText(stalled)}</p>}
       <div className="q-tail">
         <Refresh syncedAt={bank.syncedAt} />
         <Ignored items={bank.ignored ?? []} />

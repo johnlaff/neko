@@ -93,6 +93,12 @@ class TodayViewTest {
         val logged = view.copy(habit = view.habit!!.copy(editedToday = true))
         assertEquals(false, dev.johnlaff.neko.tile.tileText(logged).active)
         assertEquals("Hoje já lançado", dev.johnlaff.neko.tile.tileText(logged).subtitle)
+        // Para lançar said "Tudo lançado": the day counts, and the widget marks it as logged.
+        val h = view.habit!!
+        val checked = view.copy(habit = h.copy(checkedToday = true, week = h.week.map { if (it.state == "today") it.copy(state = "checked") else it }))
+        assertEquals(false, dev.johnlaff.neko.tile.tileText(checked).active)
+        assertEquals("Hoje conferido", dev.johnlaff.neko.tile.tileText(checked).subtitle)
+        assertEquals(false, widgetText(checked).week.contains("checked"))
     }
 
     @Test fun everyWarningHasText() {

@@ -39,7 +39,7 @@ object Learn {
     const val MES = "O saldo de cada dia vem da planilha. Com o gasto dos dias à frente previsto, ele fica realista."
 
     /** Hoje's streak, word for word with the site (web/learn.ts HABIT). */
-    const val HABIT_RULE = "Conta os dias em que a planilha mudou. Um dia sem lançar não quebra a sequência se você lançar no dia seguinte."
+    const val HABIT_RULE = "Conta os dias em que a planilha mudou e os dias em que você abriu o Neko com tudo lançado. Um dia sem lançar não quebra a sequência se o dia seguinte contar."
 
     /** Yesterday went without a change: today's edit is what keeps the run. */
     const val HABIT_AT_RISK = "Lance hoje para continuar"
@@ -47,9 +47,16 @@ object Learn {
     /** Today's edit mended yesterday. */
     const val HABIT_MENDED = "Ontem recuperado"
 
-    /** Each day's mark, as TalkBack says it; the legend shows the first three. */
+    /** Today counts because Para lançar said "Tudo lançado", with no change to the sheet. */
+    const val HABIT_CHECKED_TODAY = "Hoje conferido"
+
+    /** The filled mark in the legend: a day the sheet changed and a day checked look the same. */
+    const val HABIT_DONE = "Lançado ou conferido"
+
+    /** Each day's mark, as TalkBack says it. */
     val HABIT_DAYS = mapOf(
         "edited" to "lançado",
+        "checked" to "conferido",
         "rest" to "recuperado",
         "missed" to "sem lançar",
         "today" to "hoje, em aberto",

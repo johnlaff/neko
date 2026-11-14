@@ -1,6 +1,6 @@
-import { cents, localDate } from "@neko/engine";
+import { cents, localDate, type SaldoWaiting } from "@neko/engine";
 import { describe, expect, it } from "vitest";
-import { draftLines } from "../src/shared/queue.ts";
+import { allLaunched, draftLines } from "../src/shared/queue.ts";
 
 describe("queue lines", () => {
   it("shows a saving as the Saída it adds and the change to the month's Economia", () => {
@@ -71,5 +71,34 @@ describe("queue lines", () => {
         cell: { label: "Saída do dia", before: 41941, after: 50255 },
       },
     ]);
+  });
+});
+
+describe("allLaunched", () => {
+  const saldo = (diff: number, waiting: SaldoWaiting[] = []) => ({
+    date: localDate("2026-10-14"),
+    sheet: cents(100000),
+    bank: cents(100000 - diff),
+    diff: cents(diff),
+    stale: [],
+    waiting,
+  });
+  it("is the day Para lançar says Tudo lançado", () => {
+    expect(allLaunched([], saldo(0))).toBe(true);
+    // Only planned lines the bank has not moved yet: nothing to fix either.
+    const english: SaldoWaiting = {
+      date: localDate("2026-10-14"),
+      column: "saida",
+      description: "Inglês",
+      amount: cents(23200),
+    };
+    expect(allLaunched([], saldo(23200, [english]))).toBe(true);
+  });
+  it("is not while something waits, the Saldo does not bate, or there is no bank", () => {
+    expect(allLaunched([{}], saldo(0))).toBe(false);
+    expect(allLaunched([], saldo(1990))).toBe(false);
+    expect(allLaunched([], null)).toBe(false);
+    expect(allLaunched(null, saldo(0))).toBe(false);
+    expect(allLaunched(undefined, undefined)).toBe(false);
   });
 });

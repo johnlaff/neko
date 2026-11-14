@@ -510,6 +510,8 @@
       "description": "Diferença do banco"
     }
   },
+  "allLaunched": false,
+  "stalled": [],
   "writing": true,
   "entryCards": [],
   "previsto": {

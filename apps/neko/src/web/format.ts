@@ -59,6 +59,13 @@ export const days = (n: number) => (n === 1 ? "1 dia" : `${n} dias`);
  * Under the Saldo, the planned lines the bank has not moved yet: "Aulas Inglês (R$ 232,00, 29
  * out) ainda não saiu do banco." The Android app (Format.waitingText) says it the same way.
  */
+/** Banks Meu Pluggy stopped reading, under Para lançar: what they moved since is not there yet. */
+export const stalledText = (stalled: readonly { label: string; since: string }[]) => {
+  const names = stalled.map((b) => `${b.label} desde ${shortDate(b.since)}`);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} e ${names.at(-1)}` : names[0];
+  return `Sem atualizar: ${list}. O que mudou depois ainda não aparece aqui.`;
+};
+
 export const waitingText = (waiting: readonly SaldoWaiting[]) => {
   const names = waiting.map((w) => `${w.description} (${money(w.amount)}, ${shortDate(w.date)})`);
   const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} e ${names.at(-1)}` : names[0];

@@ -181,6 +181,50 @@ describe("habit", () => {
     expect(h.streak).toBe(0);
     expect(h.atRisk).toBe(false);
   });
+
+  describe("days checked with nothing to log", () => {
+    it("counts a checked day in the run, marked apart from an edit", () => {
+      const h = habit(days("2026-10-04", "2026-10-05", "2026-10-07"), today, days("2026-10-06"));
+      expect(h.streak).toBe(4);
+      expect(h.week.map((w) => w.state).slice(0, 5)).toEqual([
+        "edited",
+        "edited",
+        "checked",
+        "edited",
+        "today",
+      ]);
+    });
+
+    it("says today counts by a check, and an edit the same day wins", () => {
+      const checked = habit(days("2026-10-07"), today, days("2026-10-08"));
+      expect(checked.streak).toBe(2);
+      expect(checked.editedToday).toBe(false);
+      expect(checked.checkedToday).toBe(true);
+      expect(checked.week[4]?.state).toBe("checked");
+      const both = habit(days("2026-10-08"), today, days("2026-10-08"));
+      expect(both.streak).toBe(1);
+      expect(both.editedToday).toBe(true);
+      expect(both.week[4]?.state).toBe("edited");
+    });
+
+    it("keeps a run at risk safe and mends yesterday", () => {
+      const h = habit(range("2026-10-04", "2026-10-06"), today, days("2026-10-08"));
+      expect(h.atRisk).toBe(false);
+      expect(h.mended).toBe(true);
+      expect(h.week[3]?.state).toBe("rest");
+    });
+
+    it("counts toward milestones, last week and the first day seen", () => {
+      const h = habit(range("2026-10-02", "2026-10-05"), today, range("2026-09-26", "2026-10-01"));
+      expect(h.since).toBe("2026-09-26");
+      expect(h.lastWeek).toBe(7);
+      expect(habit(range("2026-10-02", "2026-10-07"), today, days("2026-10-08")).milestone).toBe(7);
+    });
+
+    it("ignores checks after today", () => {
+      expect(habit(days("2026-10-08"), today, days("2026-10-09")).streak).toBe(1);
+    });
+  });
 });
 
 describe("editDay", () => {

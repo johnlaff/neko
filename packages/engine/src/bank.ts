@@ -587,3 +587,33 @@ export const unmatchedMovements = (
   movements: readonly BankMovement[],
   today: LocalDate,
 ): BankMovement[] => [...matchMovements(ledger, movements, today).unmatched];
+
+/** A whole day went by without a read: what the bank moved since may be missing from Para lançar. */
+export const STALLED_DAYS = 2;
+
+export interface StalledBank {
+  readonly label: string;
+  /** The last day Meu Pluggy read it. */
+  readonly since: LocalDate;
+}
+
+/**
+ * Banks Meu Pluggy has not read for STALLED_DAYS days or more, the one read longest ago first. A
+ * bank with more than one connection is said once, by its oldest read; one never read yet is a new
+ * link, not a stall.
+ */
+export const stalledBanks = (
+  reads: readonly { readonly label: string; readonly readOn: LocalDate | null }[],
+  today: LocalDate,
+): StalledBank[] => {
+  const oldest = new Map<string, LocalDate>();
+  for (const { label, readOn } of reads) {
+    if (readOn === null) continue;
+    const at = oldest.get(label);
+    if (at === undefined || readOn < at) oldest.set(label, readOn);
+  }
+  return [...oldest]
+    .filter(([, since]) => diffDays(since, today) >= STALLED_DAYS)
+    .map(([label, since]) => ({ label, since }))
+    .sort((a, b) => a.since.localeCompare(b.since) || a.label.localeCompare(b.label));
+};

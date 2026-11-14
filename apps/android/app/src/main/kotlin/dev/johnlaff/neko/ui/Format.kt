@@ -1,6 +1,7 @@
 package dev.johnlaff.neko.ui
 
 import dev.johnlaff.neko.data.SaldoWaiting
+import dev.johnlaff.neko.data.StalledBank
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
@@ -51,6 +52,13 @@ object Format {
      * Under the Saldo, the planned lines the bank has not moved yet: "Aulas Inglês (R$ 232,00, 29
      * out) ainda não saiu do banco." Word for word with the site (web/format.ts waitingText).
      */
+    /** Banks Meu Pluggy stopped reading, under Para lançar, word for word with the site (web/format.ts). */
+    fun stalledText(stalled: List<StalledBank>): String {
+        val names = stalled.map { "${it.label} desde ${shortDate(it.since)}" }
+        val list = if (names.size > 1) "${names.dropLast(1).joinToString(", ")} e ${names.last()}" else names.firstOrNull().orEmpty()
+        return "Sem atualizar: $list. O que mudou depois ainda não aparece aqui."
+    }
+
     fun waitingText(waiting: List<SaldoWaiting>): String {
         val names = waiting.map { "${it.description} (${money(it.amount)}, ${shortDate(it.date)})" }
         val list = if (names.size > 1) "${names.dropLast(1).joinToString(", ")} e ${names.last()}" else names.firstOrNull().orEmpty()

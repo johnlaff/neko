@@ -11,11 +11,12 @@ import {
   type Reserve,
   type Saving,
   type SavingStep,
+  type StalledBank,
   savingStep,
   sub,
   type UpcomingDay,
 } from "@neko/engine";
-import { type QueueItemView, type SaldoView, saldoView } from "./queue.ts";
+import { allLaunched, type QueueItemView, type SaldoView, saldoView } from "./queue.ts";
 import { sheetCellUrl } from "./sheet.ts";
 import type { DailySource, IgnoredItem, PrevistoView, ProjectionResponse } from "./types.ts";
 
@@ -115,6 +116,10 @@ export interface TodayView {
   readonly bankSyncedAt: string | null;
   /** "Saldo bate" against the bank, shown when the queue is empty. */
   readonly saldo: SaldoView | null;
+  /** Para lançar says "Tudo lançado": Hoje on screen counts the day in the streak. */
+  readonly allLaunched: boolean;
+  /** Banks Meu Pluggy has not read for two days or more: Para lançar may be missing their news. */
+  readonly stalled: readonly StalledBank[];
   /** Off in Ajustes, or no writer key yet: the app shows no launch buttons. */
   readonly writing: boolean;
   /** Cards a purchase can be launched on: the closing day is known. */
@@ -160,6 +165,8 @@ export const todayView = (r: ProjectionResponse, reviewed: readonly string[]): T
     ignored: r.bank?.ignored ?? [],
     bankSyncedAt: r.bank?.syncedAt ?? null,
     saldo: saldoView(r.bank?.saldo),
+    allLaunched: allLaunched(r.bank?.queue, r.bank?.saldo),
+    stalled: r.bank?.stalled ?? [],
     writing: r.writing ?? false,
     entryCards: r.cardsKnown.filter((c) => !c.closingEstimated).map((c) => c.name),
     previsto: r.previsto ?? null,
