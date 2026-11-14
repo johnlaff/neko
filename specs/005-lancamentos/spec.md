@@ -120,6 +120,15 @@ com valores diferentes, valor negativo.
      (`queue_decision`, migração 0009); desfazer traz o item de volta.
    - "Saldo bate": o Saldo de ontem contra a soma das contas correntes (sem as de guardar), com o
      banco que não atualizou hoje nomeado. A diferença pode ser lançada como Entrada ou Saída.
+   - Banco parado: um banco que o Meu Pluggy não lê há 2 dias ou mais aparece embaixo de Para
+     lançar ("Sem atualizar: Inter desde 12 nov"), porque a fila calma pode estar só sem notícia
+     dele (`stalledBanks`). Sem aviso no celular: quando ele volta, o que chegar entra na fila e o
+     aviso da noite já conta.
+   - Dia conferido: com Hoje aberto e Para lançar dizendo "Tudo lançado" (fila vazia e Saldo
+     batendo, ou só esperando o banco), o dia conta na sequência mesmo sem a planilha mudar
+     (`POST /api/habit/check`, que confere a fila de novo; guarda o dia em `setting`
+     `habit_checks`). Só a tela aberta pede; widget, bloco e leitura em segundo plano nunca. Nada
+     é escrito na planilha.
    O app manda um rascunho (`Draft`), nunca células: o Worker transforma em lançamentos
    (`placeDraft`), mostra a prévia e grava (`/api/entries`, um por vez, trava no D1), com Desfazer
    e o interruptor em Ajustes. Lançar à mão no botão Lançar da tela Hoje. O aviso das 21h abre o

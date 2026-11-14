@@ -27,6 +27,13 @@ describe("api", () => {
       expect((await call(path)).status).toBe(401);
     }
   });
+  it("counts a checked day only for a signed-in device", async () => {
+    const res = await call("/api/habit/check", {
+      method: "POST",
+      headers: { origin: "https://neko.test" },
+    });
+    expect(res.status).toBe(401);
+  });
   it("reports login as not configured while there is no Google client id", async () => {
     expect(await (await call("/api/config")).json()).toEqual({ googleClientId: null });
     const res = await call("/api/auth/google", {

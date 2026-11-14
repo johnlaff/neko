@@ -5,6 +5,7 @@ import dev.johnlaff.neko.data.ReserveSteps
 import dev.johnlaff.neko.data.SavingStep
 import dev.johnlaff.neko.data.Insight
 import dev.johnlaff.neko.data.SaldoWaiting
+import dev.johnlaff.neko.data.StalledBank
 import dev.johnlaff.neko.data.Win
 import dev.johnlaff.neko.data.json
 import dev.johnlaff.neko.ui.Copy
@@ -56,6 +57,8 @@ class CopyContractTest {
         assertEquals(habit.str("rule"), Learn.HABIT_RULE)
         assertEquals(habit.str("atRisk"), Learn.HABIT_AT_RISK)
         assertEquals(habit.str("mended"), Learn.HABIT_MENDED)
+        assertEquals(habit.str("checkedToday"), Learn.HABIT_CHECKED_TODAY)
+        assertEquals(habit.str("done"), Learn.HABIT_DONE)
         assertEquals(habit.obj("days").mapValues { it.value.s }, Learn.HABIT_DAYS)
         habit.obj("milestones").forEach { (m, text) -> assertEquals(text.s, Learn.milestone(m.toInt())) }
 
@@ -90,6 +93,9 @@ class CopyContractTest {
         f.cases("days").forEach { (n, want) -> assertEquals(want.s, Format.days(n.jsonPrimitive.int)) }
         f.cases("waiting").forEach { (w, want) ->
             assertEquals(want.s, Format.waitingText(json.decodeFromJsonElement(ListSerializer(SaldoWaiting.serializer()), w)))
+        }
+        f.cases("stalled").forEach { (b, want) ->
+            assertEquals(want.s, Format.stalledText(json.decodeFromJsonElement(ListSerializer(StalledBank.serializer()), b)))
         }
         f.cases("closesIn").forEach { (n, want) -> assertEquals(want.s, Format.closesIn(n.jsonPrimitive.int)) }
         f.cases("bankText").forEach { (t, want) -> assertEquals(want.s, Format.bankText(t.s)) }

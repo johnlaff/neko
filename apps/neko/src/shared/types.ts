@@ -10,6 +10,7 @@ import type {
   Projection,
   RefValue,
   SaldoCheck,
+  StalledBank,
   Subscription,
   SubscriptionNews,
   TransferDue,
@@ -115,6 +116,8 @@ export interface BankView {
   readonly transfers?: readonly TransferDue[];
   /** Avisos de compra: how each bank app's reads fared against the bank; absent before. */
   readonly phone?: readonly PhoneTrust[];
+  /** Banks Meu Pluggy has not read for two days or more; absent from a Worker that predates it. */
+  readonly stalled?: readonly StalledBank[];
 }
 
 export interface SubscriptionsView {

@@ -17,6 +17,7 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
+import { allLaunched } from "../shared/queue.ts";
 import {
   ajustesView,
   invoicesView,
@@ -78,7 +79,14 @@ import {
   saveBankNotice,
   savePhonePurchase,
 } from "./phone.ts";
-import { backfillEdits, getProjection, monthEndHistory, pruneSnapshots } from "./pipeline.ts";
+import {
+  backfillEdits,
+  getProjection,
+  loadHabit,
+  monthEndHistory,
+  pruneSnapshots,
+  recordCheck,
+} from "./pipeline.ts";
 import {
   configured,
   ensureWebhook,
@@ -177,6 +185,7 @@ app.post("/auth/logout", async (c) => {
 
 app.use("/projection", requireSession);
 app.use("/today", requireSession);
+app.use("/habit/*", requireSession);
 app.use("/invoices", requireSession);
 app.use("/months", requireSession);
 app.use("/ajustes", requireSession);
@@ -740,6 +749,19 @@ app.get("/today", async (c) => {
     loadSettings(c.env.DB),
   ]);
   return c.json(todayView(data, settings.reviewed));
+});
+
+/**
+ * Hoje on screen with Para lançar saying "Tudo lançado": the day counts in the streak. Only the
+ * open screen sends it (never a widget or a background refresh), and the Worker checks the queue
+ * again itself; nothing is written to the sheet.
+ */
+app.post("/habit/check", async (c) => {
+  const today = todayIn(new Date());
+  const { bank } = await getProjection(c.env, today);
+  const counted = allLaunched(bank?.queue, bank?.saldo);
+  if (counted) await recordCheck(c.env.DB, today);
+  return c.json({ counted, habit: await loadHabit(c.env.DB, today) });
 });
 
 /** Faturas, Mês and Ajustes ready to draw, for the Android app (see shared/screens.ts). */

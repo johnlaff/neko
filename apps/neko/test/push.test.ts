@@ -331,6 +331,9 @@ describe("evening", () => {
       "Ontem ficou sem lançar. Lance hoje e a sequência de 1 dia continua.",
     );
     expect(eveningMessage(withQueue([], { habit: { editedToday: true, streak: 4 } }))).toBeNull();
+    // Para lançar was checked today with nothing left: the day already counts.
+    const checked = { habit: { editedToday: false, checkedToday: true, streak: 4 } };
+    expect(eveningMessage(withQueue([], checked))).toBeNull();
     expect(eveningMessage(response({ todayLogged: true }, { writing: true }))).toBeNull();
   });
 

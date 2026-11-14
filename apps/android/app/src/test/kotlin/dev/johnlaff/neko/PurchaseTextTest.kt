@@ -111,4 +111,14 @@ class PurchaseTextTest {
         assertFalse(PurchaseText.keep(google, "Pix", "Você enviou um Pix de R$ 50,00"))
         assertNull(read(google, "Compra aprovada", "Compra de R$ 45,90 em LOJA"))
     }
+
+    @Test
+    fun `keeps the benefit card's words only to learn, and reads no purchase from it`() {
+        val alelo = "air.br.com.alelo.mobile.android"
+        assertEquals("Alelo", PurchaseText.source(alelo))
+        assertTrue(PurchaseText.keep(alelo, "Compra aprovada", "R$ 32,90 em RESTAURANTE SABOR com seu Alelo Refeição"))
+        assertTrue(PurchaseText.keep(alelo, "Benefício disponível", "R$ 800,00 já estão no seu cartão"))
+        assertFalse(PurchaseText.keep(alelo, "Novidade", "Conheça a nova área de ofertas"))
+        assertNull(read(alelo, "Compra aprovada", "Compra de R$ 32,90 em RESTAURANTE SABOR"))
+    }
 }

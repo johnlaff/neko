@@ -284,6 +284,12 @@ class ScreenshotTest {
         HojeScreen(TodayState(view.copy(queue = emptyList(), saldo = saldo)), {}, {}, launcher = Fakes.launcher)
     }
 
+    // A bank Meu Pluggy stopped reading: the quiet queue says what it may be missing.
+    @Test fun bancoParadoLight() = shot("banco-parado-light", night = false, scrollTo = "Para lançar") {
+        val stalled = listOf(dev.johnlaff.neko.data.StalledBank("Banco Azul", "2026-10-02"))
+        HojeScreen(TodayState(view.copy(queue = emptyList(), stalled = stalled)), {}, {}, launcher = Fakes.launcher)
+    }
+
     @Test fun lancarDark() = shot("lancar-dark", night = true) {
         HojeScreen(TodayState(view.copy(entryCards = listOf("Cartão Azul"))), {}, {}, launcher = Fakes.launcher, launchOpen = true)
     }

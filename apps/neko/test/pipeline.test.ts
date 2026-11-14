@@ -1,7 +1,13 @@
 import { localDate } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import type { ProjectionResponse } from "../src/shared/types.ts";
-import { checkedAt, loadHabit, monthEndHistory, recordEdits } from "../src/worker/pipeline.ts";
+import {
+  checkedAt,
+  loadHabit,
+  monthEndHistory,
+  recordCheck,
+  recordEdits,
+} from "../src/worker/pipeline.ts";
 import { sqliteD1 } from "./d1.ts";
 
 describe("checkedAt", () => {
@@ -63,5 +69,17 @@ describe("sheet edits", () => {
     const h = await loadHabit(d1, localDate("2026-10-08"));
     expect(h.streak).toBe(2);
     expect(h.since).toBe("2026-10-07");
+  });
+  it("counts the days Para lançar was checked with nothing left, beside the edits", async () => {
+    const db = sqliteD1() as unknown as D1Database;
+    await recordEdits(db, ["2026-10-06T15:00:00.000Z"]);
+    await recordCheck(db, localDate("2026-10-07"));
+    await recordCheck(db, localDate("2026-10-08"));
+    await recordCheck(db, localDate("2026-10-08"));
+    const h = await loadHabit(db, localDate("2026-10-08"));
+    expect(h.streak).toBe(3);
+    expect(h.editedToday).toBe(false);
+    expect(h.checkedToday).toBe(true);
+    expect(h.week.map((w) => w.state).slice(2, 5)).toEqual(["edited", "checked", "checked"]);
   });
 });

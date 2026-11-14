@@ -36,6 +36,10 @@ data class TodayView(
     val bankSyncedAt: String? = null,
     /** "Saldo bate": yesterday's Saldo against the accounts, shown when the queue is empty. */
     val saldo: SaldoView? = null,
+    /** Para lançar says "Tudo lançado": Hoje on screen counts the day in the streak. */
+    val allLaunched: Boolean = false,
+    /** Banks Meu Pluggy has not read for two days or more (engine bank.ts); empty from an older Worker. */
+    val stalled: List<StalledBank> = emptyList(),
     /** Off in Ajustes, or no writer key yet: no launch buttons. */
     val writing: Boolean = false,
     /** Cards a purchase can be launched on: their closing day is known. */
@@ -145,6 +149,10 @@ data class SaldoView(
     val draft: JsonObject? = null,
 )
 
+/** A bank Meu Pluggy stopped reading, and the last day it did (engine bank.ts). */
+@Serializable
+data class StalledBank(val label: String, val since: String)
+
 /** A planned Entrada or Saída the sheet already counts and the bank has not moved yet (engine queue.ts). */
 @Serializable
 data class SaldoWaiting(val date: String, val column: String, val description: String, val amount: Long)
@@ -166,13 +174,18 @@ data class MissingMovement(
 @Serializable
 data class Win(val kind: String, val months: Int? = null, val share: Int? = null)
 
-/** Days the sheet changed, as a streak (engine habit.ts); a lone missed day the next day mends keeps it. */
+/**
+ * Days the sheet changed or Para lançar said "Tudo lançado", as a streak (engine habit.ts); a lone
+ * missed day the next day mends keeps it.
+ */
 @Serializable
 data class Habit(
     val streak: Int,
     val best: Int,
     val editedToday: Boolean,
-    /** Yesterday went without a change: only an edit today keeps the run. */
+    /** Para lançar was checked today with nothing left to launch; false from an older Worker. */
+    val checkedToday: Boolean = false,
+    /** Yesterday did not count: only today counting keeps the run. */
     val atRisk: Boolean = false,
     /** Today's edit mended yesterday: the day the repair is worth saying. */
     val mended: Boolean = false,
@@ -187,9 +200,13 @@ data class Habit(
     val lastWeek: Int? = null,
 )
 
-/** `state` is "edited", "rest", "missed", "today" or "future". */
+/** `state` is "edited", "checked", "rest", "missed", "today" or "future". */
 @Serializable
 data class HabitDay(val date: String, val state: String)
+
+/** What POST /habit/check answers: whether today now counts in the streak. */
+@Serializable
+data class HabitCheck(val counted: Boolean)
 
 @Serializable
 data class CanSpend(

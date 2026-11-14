@@ -20,6 +20,7 @@ import {
   phoneReads,
   type Statement,
   saldoCheck,
+  stalledBanks,
   subscriptionNews,
   subscriptions,
   todayIn,
@@ -448,6 +449,13 @@ export const bankView = (
       today,
     ),
     phone: input.phoneTrust,
+    stalled: stalledBanks(
+      (rows.itemRows ?? []).map((i) => {
+        const at = i.read_at ?? i.synced_at;
+        return { label: i.label, readOn: at ? todayIn(new Date(at)) : null };
+      }),
+      today,
+    ),
   };
 };
 

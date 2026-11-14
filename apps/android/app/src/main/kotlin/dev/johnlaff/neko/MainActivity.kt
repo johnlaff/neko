@@ -261,6 +261,7 @@ class MainActivity : ComponentActivity() {
                                             onScreen = toScreen,
                                             onMonth = toMonth,
                                             onUse = model::used,
+                                            onDayChecked = model::checkDay,
                                         )
                                     }
                                     Tab.Faturas -> {

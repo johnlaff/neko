@@ -161,6 +161,13 @@ class AppModel(
      */
     fun used(event: String) = side { neko.api.used(event) }
 
+    /**
+     * Hoje on screen with Para lançar saying "Tudo lançado": the day counts in the streak (the
+     * Worker checks the queue again), and Hoje is read again quietly to show it. Never from the
+     * widget or a background refresh.
+     */
+    fun checkDay() = side { if (neko.api.checkHabit()) readToday(shown = false, after = true) }
+
     /** The evening message's hour, for the account (Ajustes › Neste celular). */
     fun saveEveningHour(hour: Int) = side { neko.api.saveEveningHour(hour) }
 

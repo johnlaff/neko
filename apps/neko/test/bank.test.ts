@@ -597,6 +597,37 @@ describe("Saldo against the bank", () => {
   });
 });
 
+describe("a bank Meu Pluggy stopped reading", () => {
+  it("is named with the last day it was read, once a whole day went by", async () => {
+    const { ledger } = await import("../../../packages/engine/test/builders.ts");
+    const view = (today: string) =>
+      bankView(
+        {
+          ...rows,
+          itemRows: [
+            { item_id: "a", label: "Banco A", synced_at: "2026-10-08T09:00:00.000Z" },
+            // Neko asked today, but the bank itself was last read two days ago.
+            {
+              item_id: "b",
+              label: "Banco B",
+              synced_at: "2026-10-08T09:00:00.000Z",
+              read_at: "2026-10-06T11:00:00.000Z",
+            },
+          ],
+          accounts: [],
+          txns: [],
+          bills: [],
+        },
+        ledger("2026-10-01", 92, 100000),
+        cards,
+        UserSettings.parse({ bankCards: map }),
+        localDate(today),
+      );
+    expect(view("2026-10-08")?.stalled).toEqual([{ label: "Banco B", since: "2026-10-06" }]);
+    expect(view("2026-10-07")?.stalled).toEqual([]);
+  });
+});
+
 describe("money to move before the bank debits a bill", () => {
   // The bank debited last month's bill from its own account, so it debits this one there too.
   const debiting: BankRows = {

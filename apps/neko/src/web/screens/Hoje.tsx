@@ -504,7 +504,14 @@ export const Hoje = () => (
               // well), then what the bank found, then on payday what to save (pay yourself first).
               // What to know follows.
               conference: issues.length > 0 && <Conference issues={issues} sheet={sheet} />,
-              queue: bank && <ParaLancar bank={bank} writing={writing ?? false} today={p.today} />,
+              queue: bank && (
+                <ParaLancar
+                  bank={bank}
+                  writing={writing ?? false}
+                  today={p.today}
+                  counted={habit?.editedToday === true || habit?.checkedToday === true}
+                />
+              ),
               save: save && <SaveCard save={save} step={saveStep(save, p.reserve)} />,
               streak: showsStreak(habit) && <Streak habit={habit} />,
               previsto: <PrevistoReview previsto={previsto} writing={writing ?? false} />,

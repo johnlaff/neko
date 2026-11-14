@@ -230,6 +230,10 @@ class Api(
             ),
         )
 
+    /** Hoje shows Para lançar with "Tudo lançado": the day counts in the streak if the Worker agrees. */
+    suspend fun checkHabit(): Boolean =
+        json.decodeFromString<HabitCheck>(call("/habit/check", JsonObject(emptyMap()).asBody())).counted
+
     /** Keeps the Diário previsto's value: the review comes back in 3 months. */
     suspend fun keepPrevisto() {
         call("/queue/previsto/manter", JsonObject(emptyMap()).asBody())
