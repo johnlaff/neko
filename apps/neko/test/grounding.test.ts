@@ -43,8 +43,8 @@ describe("grounding", () => {
   it("allows whole reais rounded or cut from a checked value, never other cents", () => {
     const seen = fresh();
     seeToolResult(seen, "faturas", {}, JSON.stringify({ total: 4718.62 }));
-    expect(checkText(seen, "Cerca de R$ 4.940 nas faturas.")[0]?.conferido).toBe(true);
-    expect(checkText(seen, "Cerca de R$ 4.939 nas faturas.")[0]?.conferido).toBe(true);
+    expect(checkText(seen, "Cerca de R$ 4.719 nas faturas.")[0]?.conferido).toBe(true);
+    expect(checkText(seen, "Cerca de R$ 4.718 nas faturas.")[0]?.conferido).toBe(true);
     expect(checkText(seen, "Exatos R$ 4.718,60.")[0]?.conferido).toBe(false);
     expect(checkText(seen, "Uns R$ 5.000.")[0]?.conferido).toBe(false);
   });

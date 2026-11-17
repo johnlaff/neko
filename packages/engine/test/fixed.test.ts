@@ -7,33 +7,33 @@ describe("monthFixed", () => {
     "2026-07-05": {
       saida: cell(1_350_00 + 890_00, [
         item(1_350_00, "Aluguel", "contas"),
-        item(890_00, "Financiamento Carro 10/36", "contas"),
+        item(890_00, "Financiamento Carro 4/48", "contas"),
       ]),
     },
     "2026-08-05": {
       saida: cell(1_350_00 + 890_00 + 3_000_00, [
         item(1_350_00, "Aluguel", "contas"),
-        item(890_00, "Financiamento Carro 11/36", "contas"),
+        item(890_00, "Financiamento Carro 5/48", "contas"),
         item(3_000_00, "Cartão Azul"),
       ]),
     },
     "2026-09-05": {
       saida: cell(890_00 + 3_000_00 + 200_00, [
-        item(890_00, "Financiamento Carro 12/36", "contas"),
+        item(890_00, "Financiamento Carro 6/48", "contas"),
         item(3_000_00, "Cartão Azul"),
-        item(200_00, "Faculdade", "contas"),
+        item(200_00, "Escola", "contas"),
       ]),
     },
     "2026-10-05": {
       saida: cell(1_350_00 + 890_00 + 3_000_00 + 175_00 + 90_00, [
         item(1_350_00, "aluguel ", "contas"),
-        item(890_00, "Financiamento Carro 13/36", "contas"),
+        item(890_00, "Financiamento Carro 7/48", "contas"),
         item(3_000_00, "Cartão Azul"),
         item(175_00, "Curso Online 1/2", null),
         item(90_00, "Presente", null),
       ]),
     },
-    "2026-10-20": { saida: cell(200_00, [item(200_00, "Faculdade #faculdade", "contas")]) },
+    "2026-10-20": { saida: cell(200_00, [item(200_00, "Escola #faculdade", "contas")]) },
   });
 
   it("lists installments and bills seen in at least two of the three months before", () => {
@@ -42,7 +42,7 @@ describe("monthFixed", () => {
       {
         label: "Financiamento Carro",
         amount: 890_00,
-        installment: { paid: 13, total: 36, ends: { year: 2028, month: 9 }, left: 23 * 890_00 },
+        installment: { paid: 7, total: 48, ends: { year: 2030, month: 3 }, left: 41 * 890_00 },
       },
       {
         label: "Curso Online",
@@ -59,9 +59,9 @@ describe("monthFixed", () => {
     );
     expect(byLabel).toEqual({
       "Cartão Azul": null,
-      "Financiamento Carro 13/36": "Financiamento Carro",
+      "Financiamento Carro 7/48": "Financiamento Carro",
       aluguel: "Aluguel",
-      Faculdade: null,
+      Escola: null,
       "Curso Online 1/2": "Curso Online",
       Presente: null,
     });
@@ -77,7 +77,7 @@ describe("monthFixed", () => {
     const labels = monthFixed(rows, 2026, 10).map((f) => f.label);
     expect(labels).not.toContain("Cartão Azul");
     expect(labels).not.toContain("Presente");
-    expect(labels).not.toContain("Faculdade");
+    expect(labels).not.toContain("Escola");
   });
 
   it("is empty without history", () => {

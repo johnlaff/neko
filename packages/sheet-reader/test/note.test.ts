@@ -39,9 +39,9 @@ describe("parseNote", () => {
 
 describe("parseCeilingNote", () => {
   const REAL_SHAPE =
-    "Mensal\tR$ 300,00\tTransporte\nMensal\tR$ 200,00\tFarmácia\nMensal\tR$ 300,00\tAlimentação\nMensal\tR$ 200,00\tLazer\nMensal\tR$ 250,00\tCompras\n\nTotal = R$ 1250,00\n\nR$ 1250,00 / 31 Dias = R$ 37,10";
+    "Mensal\tR$ 280,00\tTransporte\nMensal\tR$ 180,00\tFarmácia\nMensal\tR$ 320,00\tAlimentação\nMensal\tR$ 150,00\tLazer\nMensal\tR$ 220,00\tCompras\n\nTotal = R$ 1150,00\n\nR$ 1150,00 / 31 Dias = R$ 37,10";
   it("reads the planned daily spend", () => {
-    expect(parseCeilingNote(REAL_SHAPE)).toEqual({ perDay: 3710, total: 125000, days: 31 });
+    expect(parseCeilingNote(REAL_SHAPE)).toEqual({ perDay: 3710, total: 115000, days: 31 });
     expect(parseCeilingNote("R$ 900,00 / 30 dias = R$ 30,00")?.perDay).toBe(3000);
     expect(
       parseCeilingNote("previsão do diário\nR$ 600,00 / 30 Dias = R$ 20,00\nrevisar em julho")

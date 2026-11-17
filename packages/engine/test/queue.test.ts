@@ -1192,7 +1192,7 @@ describe("saldo bate", () => {
     const s = saldoCheck(
       planned,
       today,
-      [{ ...at(today, 106800), today: cents(-19900) }],
+      [{ ...at(today, 110100), today: cents(-19900) }],
       [mov("2026-10-18", 30000, "PIX RECEBIDO LIA"), mov(today, -19900, "PIX ENVIADO PROFESSOR")],
     );
     expect(s?.diff).toBe(19900);
@@ -1207,12 +1207,12 @@ describe("saldo bate", () => {
       mov("2026-10-17", -19900, "PIX ENVIADO PROFESSOR"),
     ];
     // Both moved: a gap of R$ 5 is something else.
-    expect(saldoCheck(planned, today, [at(today, 107300)], paid)).toMatchObject({
+    expect(saldoCheck(planned, today, [at(today, 110600)], paid)).toMatchObject({
       diff: 500,
       waiting: [],
     });
     // Nothing moved, and R$ 100 is neither line.
-    expect(saldoCheck(planned, today, [at(today, 116800)], [])?.waiting).toEqual([]);
+    expect(saldoCheck(planned, today, [at(today, 120100)], [])?.waiting).toEqual([]);
     expect(saldoCheck(days, today, [at(today, 100000)], [])?.waiting).toEqual([]);
   });
 
@@ -1226,7 +1226,7 @@ describe("saldo bate", () => {
 
   it("names a card bill the bank has not paid yet, as that card's bill", () => {
     const s = saldoCheck(billsDue, today, [at(today, 200000)], []);
-    expect(s?.diff).toBe(103200);
+    expect(s?.diff).toBe(99900);
     expect(s?.waiting).toEqual([
       { date: "2026-10-17", column: "saida", description: "Aulas Inglês", amount: 19900 },
       { date: "2026-10-19", column: "saida", description: "Fatura Visa", amount: 50000 },
@@ -1249,7 +1249,7 @@ describe("saldo bate", () => {
       mov("2026-10-19", -80000, "GASTOS CARTAO DE CREDITO"),
     ];
     // R$ 500 more in the bank is the Visa bill's amount, but that bill is paid: something else.
-    expect(saldoCheck(billsDue, today, [at(today, 146800)], paid)).toMatchObject({
+    expect(saldoCheck(billsDue, today, [at(today, 150100)], paid)).toMatchObject({
       diff: 50000,
       waiting: [],
     });

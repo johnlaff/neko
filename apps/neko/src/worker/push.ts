@@ -372,7 +372,8 @@ export const eveningMessage = ({
 export const vapidKeys = (env: Env): VapidKeys | null =>
   env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY
     ? {
-        subject: "mailto:neko@owner.workers.dev",
+        // The contact push services may use: the site itself, so no address lives in the code.
+        subject: env.SITE_URL || "https://github.com/johnlaff/neko",
         publicKey: env.VAPID_PUBLIC_KEY,
         privateKey: env.VAPID_PRIVATE_KEY,
       }

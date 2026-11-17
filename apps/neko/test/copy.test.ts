@@ -137,7 +137,7 @@ const contract = () => ({
       [
         { date: "2026-11-02", column: "saida", description: "Fatura Vivo", amount: 64_90 },
         { date: "2026-11-03", column: "saida", description: "Faculdade", amount: 289_90 },
-        { date: "2026-11-04", column: "saida", description: "Academia", amount: 99_90 },
+        { date: "2026-11-04", column: "saida", description: "Academia", amount: 89_90 },
       ],
       [
         { date: "2026-11-10", column: "entrada", description: "Despesas de Casa", amount: 300_00 },

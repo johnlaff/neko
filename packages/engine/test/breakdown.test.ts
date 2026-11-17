@@ -96,9 +96,9 @@ describe("monthOutflows", () => {
 
 describe("splitInstallment", () => {
   it("separates an n/N suffix from the name", () => {
-    expect(splitInstallment("Financiamento Carro 13/36")).toEqual({
+    expect(splitInstallment("Financiamento Carro 7/48")).toEqual({
       name: "Financiamento Carro",
-      part: "13/36",
+      part: "7/48",
     });
     expect(splitInstallment("Tênis 2 / 5")).toEqual({ name: "Tênis", part: "2/5" });
     expect(splitInstallment("Aluguel")).toEqual({ name: "Aluguel", part: null });

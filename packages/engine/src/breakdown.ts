@@ -20,7 +20,7 @@ export interface Outflow {
 const INSTALLMENT = /^(.*?)\s*(\d{1,3})\s*\/\s*(\d{1,3})$/;
 const INSTALLMENT_SUFFIX = /\s*\d{1,3}\s*\/\s*\d{1,3}$/;
 
-/** "Financiamento Carro 13/36" → name and "13/36", so screens can keep the count visible. */
+/** "Financiamento Carro 07/48" → name and "07/48", so screens can keep the count visible. */
 export const splitInstallment = (description: string) => {
   const m = INSTALLMENT.exec(description.trim());
   return m?.[1] ? { name: m[1], part: `${m[2]}/${m[3]}` } : { name: description, part: null };

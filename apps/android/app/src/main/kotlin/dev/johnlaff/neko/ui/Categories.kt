@@ -65,7 +65,7 @@ val CATEGORIES = listOf(
     ),
     Category(
         "estudo",
-        listOf("faculdade", "faculdade", "universidade", "escola", "colegio", "curso", "cursos", "ingles", "aula", "aulas", "pos", "mba", "livro", "livros", "educacao", "estudo", "estudos"),
+        listOf("faculdade", "universidade", "escola", "colegio", "curso", "cursos", "ingles", "aula", "aulas", "pos", "mba", "livro", "livros", "educacao", "estudo", "estudos"),
         "M2.5 9 12 4.5 21.5 9 12 13.5zM6.5 11v4.5c1.5 1.5 3.5 2.5 5.5 2.5s4-1 5.5-2.5V11M21.5 9v5",
     ),
     Category(

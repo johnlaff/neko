@@ -138,7 +138,6 @@
       "slug": "estudo",
       "words": [
         "faculdade",
-        "faculdade",
         "universidade",
         "escola",
         "colegio",
@@ -348,7 +347,7 @@
   "cases": {
     "Aluguel": "casa",
     "Condomínio": "casa",
-    "Faculdade": "estudo",
+    "Mensalidade faculdade": "estudo",
     "Inglês Wizard": "estudo",
     "Academia e curso": "estudo",
     "Eletricidade": "luz",

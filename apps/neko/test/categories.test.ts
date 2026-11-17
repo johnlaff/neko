@@ -7,7 +7,7 @@ import { CATEGORIES, categoryOf } from "../src/shared/categories.ts";
 const CASES: Record<string, string | null> = {
   Aluguel: "casa",
   Condomínio: "casa",
-  Faculdade: "estudo",
+  "Mensalidade faculdade": "estudo",
   "Inglês Wizard": "estudo",
   "Academia e curso": "estudo",
   Eletricidade: "luz",

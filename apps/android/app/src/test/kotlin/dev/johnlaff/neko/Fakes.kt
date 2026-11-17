@@ -240,7 +240,7 @@ object Fakes {
                         dev.johnlaff.neko.data.Mia2Grafico(
                             "Entradas e saídas", "linha", months,
                             listOf(
-                                dev.johnlaff.neko.data.Mia2Serie("Entradas", listOf(6020.0, 6020.0, 6100.0, 3918.25, 6250.37, 6250.37)),
+                                dev.johnlaff.neko.data.Mia2Serie("Entradas", listOf(5600.0, 5600.0, 5700.0, 3918.25, 6250.0, 6250.0)),
                                 dev.johnlaff.neko.data.Mia2Serie("Saídas", saidas),
                             ),
                         ),

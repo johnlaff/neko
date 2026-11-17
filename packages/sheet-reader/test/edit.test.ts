@@ -139,7 +139,7 @@ describe("planCellEdit: a new line", () => {
 
   it("puts a line with no section above the first header", () => {
     const note = "R$ 9,99 - Seguro\nR$ 15,00 - Jogo\n\nCONTAS\nR$ 64,90 - Telefone";
-    const p = plan(sumCell("=SUM(9,99+15+64,90)", 89.89, note), line(4240, "Restaurante"));
+    const p = plan(sumCell("=SUM(9,99+15+64,9)", 89.89, note), line(4240, "Restaurante"));
     expect(p.note).toBe(
       "R$ 9,99 - Seguro\nR$ 15,00 - Jogo\nR$ 42,40 - Restaurante\n\nCONTAS\nR$ 64,90 - Telefone",
     );
@@ -151,7 +151,7 @@ describe("planCellEdit: a new line", () => {
     const note =
       "CONTAS\n\nR$ 1.350,50 - Aluguel\nR$ 389,90 - Curso\n\nCARTÕES\n\nR$ 187,35 - Banco B";
     const p = plan(
-      sumCell("=SUM(1350,50+389,90+187,35)", 1927.75, note),
+      sumCell("=SUM(1350,5+389,9+187,35)", 1927.75, note),
       line(19820, "Luz", "contas"),
     );
     expect(p.note).toBe(
@@ -174,7 +174,7 @@ describe("planCellEdit: a new line", () => {
   it("finds sections written in other ways (CONTAS:, Investimentos)", () => {
     const p = plan(
       sumCell(
-        "=SUM(280,15+232\n)",
+        "=SUM(280,15+199\n)",
         479.15,
         "Investimento:\nR$ 280,15 - Previdência\n\nCONTAS:\nR$ 199,00 - Curso",
       ),
@@ -183,7 +183,7 @@ describe("planCellEdit: a new line", () => {
     expect(p.note).toBe(
       "Investimento:\nR$ 280,15 - Previdência\n\nCONTAS:\nR$ 199,00 - Curso\nR$ 10,00 - Luz",
     );
-    expect(p.formula).toBe("=SUM(280,15+232+10\n)");
+    expect(p.formula).toBe("=SUM(280,15+199+10\n)");
   });
 });
 
@@ -191,7 +191,7 @@ describe("planCellEdit: a card purchase", () => {
   const bill = "CARTÕES\n\nR$ 3.120,00 - Banco A Pessoa 1\nR$ 1.870,35 - Banco A Pessoa 2";
 
   it("raises the card's line and its term, nothing else", () => {
-    const p = plan(sumCell("=SUM(3616+1870,35)", 4990.35, bill), card(4240, "Banco A Pessoa 1"));
+    const p = plan(sumCell("=SUM(3120+1870,35)", 4990.35, bill), card(4240, "Banco A Pessoa 1"));
     expect(p.formula).toBe("=SUM(3162,4+1870,35)");
     expect(p.note).toBe(
       "CARTÕES\n\nR$ 3.162,40 - Banco A Pessoa 1\nR$ 1.870,35 - Banco A Pessoa 2",
@@ -201,25 +201,25 @@ describe("planCellEdit: a card purchase", () => {
 
   it("keeps the owner's spacing and spelling on the card line", () => {
     const p = plan(
-      sumCell("=SUM(187,35+233,85)", 421.29, "CARTÕES\n\nR$ 187,35 -  Itaú\nR$ 233,85 - Loja"),
+      sumCell("=SUM(187,44+233,85)", 421.29, "CARTÕES\n\nR$ 187,44 -  Itaú\nR$ 233,85 - Loja"),
       card(56, "itau"),
     );
-    expect(p.note).toBe("CARTÕES\n\nR$ 210,00 -  Itaú\nR$ 233,85 - Loja");
-    expect(p.formula).toBe("=SUM(210+233,85)");
+    expect(p.note).toBe("CARTÕES\n\nR$ 188,00 -  Itaú\nR$ 233,85 - Loja");
+    expect(p.formula).toBe("=SUM(188+233,85)");
   });
 
   it("fills a zero bill line, adding the term the formula did not have", () => {
     const p = plan(
-      sumCell("=SUM(198,20)", 198.20, "CONTAS\nR$ 198,20 - Luz\n\nFATURAS:\nR$ 0,00 - Banco X"),
+      sumCell("=SUM(198,2)", 198.2, "CONTAS\nR$ 198,20 - Luz\n\nFATURAS:\nR$ 0,00 - Banco X"),
       card(1990, "Banco X"),
     );
     expect(p.note).toBe("CONTAS\nR$ 198,20 - Luz\n\nFATURAS:\nR$ 19,90 - Banco X");
-    expect(p.formula).toBe("=SUM(198,20+19,9)");
+    expect(p.formula).toBe("=SUM(198,2+19,9)");
   });
 
   it("adds a card line under CARTÕES when the bill has none yet", () => {
     const p = plan(
-      sumCell("=SUM(1350,50)", 1350.50, "CONTAS\nR$ 1.350,50 - Aluguel"),
+      sumCell("=SUM(1350,5)", 1350.5, "CONTAS\nR$ 1.350,50 - Aluguel"),
       card(9999, "Banco B"),
     );
     expect(p.note).toBe("CONTAS\nR$ 1.350,50 - Aluguel\n\nCARTÕES\nR$ 99,99 - Banco B");
@@ -284,13 +284,13 @@ describe("planCellEdit: changing a line already there", () => {
 
   it("drops a section header left with no lines, and the blank line before it", () => {
     const p = plan(
-      sumCell("=SUM(100+198,20)", 298.20, "R$ 100,00 - Mercado\n\nCONTAS\nR$ 198,20 - Luz"),
+      sumCell("=SUM(100+198,2)", 298.2, "R$ 100,00 - Mercado\n\nCONTAS\nR$ 198,20 - Luz"),
       change(19820, 0, "Luz", "contas"),
     );
     expect(p.note).toBe("R$ 100,00 - Mercado");
     expect(p.formula).toBe("=SUM(100)");
     const q = plan(
-      sumCell("=SUM(198,20+50)", 248.20, "CONTAS\nR$ 198,20 - Luz\n\nCARTÕES\nR$ 50,00 - Banco X"),
+      sumCell("=SUM(198,2+50)", 248.2, "CONTAS\nR$ 198,20 - Luz\n\nCARTÕES\nR$ 50,00 - Banco X"),
       change(19820, 0, "Luz", "contas"),
     );
     expect(q.note).toBe("CARTÕES\nR$ 50,00 - Banco X");

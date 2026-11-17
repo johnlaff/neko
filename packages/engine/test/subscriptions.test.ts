@@ -77,8 +77,8 @@ describe("subscriptions", () => {
       [
         line("2026-07-01", "NETFLIX", 44_90),
         line("2026-08-01", "NETFLIX", 44_90),
-        line("2026-09-04", "CLUBE FIT", 99_90, { card: "Cartão da Ana" }),
-        line("2026-10-04", "CLUBE FIT", 99_90, { card: "Cartão da Ana" }),
+        line("2026-09-04", "CLUBE FIT", 89_90, { card: "Cartão da Ana" }),
+        line("2026-10-04", "CLUBE FIT", 89_90, { card: "Cartão da Ana" }),
       ],
       today,
       ["Cartão da Ana"],
@@ -135,8 +135,8 @@ describe("subscriptions", () => {
 describe("subscriptionNews", () => {
   it("says a new subscription on its second charge, while it is news", () => {
     const lines = [
-      line("2026-09-17", "ACADEMIA CENTRAL", 89_90),
-      line("2026-10-17", "ACADEMIA CENTRAL", 89_90),
+      line("2026-09-17", "ACADEMIA CENTRAL", 149_90),
+      line("2026-10-17", "ACADEMIA CENTRAL", 149_90),
       // Running for months: not news.
       line("2026-07-06", "EBN*SPOTIFY", 23_90),
       line("2026-08-06", "EBN*SPOTIFY", 23_90),
@@ -146,10 +146,10 @@ describe("subscriptionNews", () => {
     expect(subscriptionNews(lines, today, [])).toEqual([
       {
         kind: "nova",
-        key: "nova|academiacentral|8990|cartao azul",
+        key: "nova|academiacentral|14990|cartao azul",
         description: "ACADEMIA CENTRAL",
         card: "Cartão Azul",
-        amount: 89_90,
+        amount: 149_90,
         before: null,
         since: "2026-09-17",
         date: "2026-10-17",
@@ -170,9 +170,9 @@ describe("subscriptionNews", () => {
         line("2026-08-10", "YOUTUBEPREMIUM", 26_90),
         line("2026-09-10", "YOUTUBEPREMIUM", 26_90),
         line("2026-10-10", "YOUTUBEPREMIUM", 20_90),
-        line("2026-08-12", "CLUBE FIT", 99_90, { card: "Cartão Verde" }),
-        line("2026-09-12", "CLUBE FIT", 99_90, { card: "Cartão Verde" }),
-        line("2026-10-12", "CLUBE FIT", 99_90, { card: "Cartão Verde" }),
+        line("2026-08-12", "CLUBE FIT", 89_90, { card: "Cartão Verde" }),
+        line("2026-09-12", "CLUBE FIT", 89_90, { card: "Cartão Verde" }),
+        line("2026-10-12", "CLUBE FIT", 89_90, { card: "Cartão Verde" }),
         line("2026-10-14", "CLUBE FIT", 129_90),
       ],
       today,
@@ -227,7 +227,7 @@ describe("cardsBillSpend", () => {
   it("counts the parcels the bank lists only when the bill closes", () => {
     // Parcel 4/12 is on October's bill; 5/12 is owed on November's before the bank lists it.
     const lines = [
-      line("2026-07-03", "LOJA DE MOVEIS", 88_02, {
+      line("2026-07-03", "LOJA DE MOVEIS", 88_40, {
         installment: 4,
         installments: 12,
         billMonth: "2026-10",
@@ -239,17 +239,17 @@ describe("cardsBillSpend", () => {
 
   it("does not count a parcel twice once the bank lists it", () => {
     const lines = [
-      line("2026-07-03", "LOJA DE MOVEIS", 88_02, {
+      line("2026-07-03", "LOJA DE MOVEIS", 88_40, {
         installment: 4,
         installments: 12,
         billMonth: "2026-10",
       }),
-      line("2026-07-03", "LOJA DE MOVEIS", 88_02, {
+      line("2026-07-03", "LOJA DE MOVEIS", 88_40, {
         installment: 5,
         installments: 12,
         billMonth: "2026-11",
       }),
     ];
-    expect(cardsBillSpend(lines, "2026-11", [])).toBe(88_02);
+    expect(cardsBillSpend(lines, "2026-11", [])).toBe(88_40);
   });
 });

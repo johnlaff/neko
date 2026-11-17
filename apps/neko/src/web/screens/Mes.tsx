@@ -94,7 +94,7 @@ const Trend = ({ points, label }: { points: readonly TrendPoint[]; label: string
   );
 };
 
-/** "13 de 36 · Faltam R$ 890,00 até set 2028", under an installment's name. */
+/** "7 de 48 · Faltam R$ 36.490,00 até mar 2030", under an installment's name. */
 const installmentLine = (i: NonNullable<Fixed["installment"]>) =>
   `${i.paid} de ${i.total}` +
   (i.left > 0

@@ -486,7 +486,7 @@ internal fun Trend(points: List<TrendPoint>) {
     }
 }
 
-/** "13 de 36 · Faltam R$ 890,00 até set 2028", under an installment's name. */
+/** "7 de 48 · Faltam R$ 36.490,00 até mar 2030", under an installment's name. */
 private fun installmentLine(i: Installment) =
     "${i.paid} de ${i.total}" +
         if (i.left > 0) " · Faltam ${money(i.left)} até ${monthName(i.ends.month).take(3)} ${i.ends.year}" else ""

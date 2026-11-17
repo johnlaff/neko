@@ -113,7 +113,7 @@ describe("markOf", () => {
   });
 
   it("keeps another plan of the same store apart", () => {
-    const other = line("2026-09-25", "ESTUDIO 3D 02/12", 99_90, {
+    const other = line("2026-09-25", "ESTUDIO 3D 02/12", 89_90, {
       installment: 2,
       installments: 12,
       billMonth: "2026-12",

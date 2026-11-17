@@ -32,7 +32,7 @@ export interface QueueOptionView {
 }
 
 /**
- * One line of the sheet a launch changes, drawn as "12/11 · Saída · Bradesco João: R$ 1.210,40 →
+ * One line of the sheet a launch changes, drawn as "12/11 · Saída · Cartão Azul: R$ 1.210,40 →
  * R$ 1.302,55". `cell` is the whole cell when it holds more than this line, so the day's total
  * shows too.
  */

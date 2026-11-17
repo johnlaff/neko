@@ -318,10 +318,10 @@ describe("upcoming", () => {
     const l = ledger("2026-10-01", 40, 5_000_00, {
       "2026-10-07": {
         saida: cell(964_37, [
-          item(890_37, "Financiamento Carro 13/36", "contas"),
+          item(890_37, "Financiamento Carro 7/48", "contas"),
           item(74_00, "Vivo", "contas"),
         ]),
-        entrada: cell(890_37, [item(890_37, "Financiamento carro 13/36", null)]),
+        entrada: cell(890_37, [item(890_37, "Financiamento carro 7/48", null)]),
       },
     });
     const p = project(l, localDate("2026-10-05"), settings());

@@ -148,10 +148,10 @@ describe("a subscription out of its pattern", () => {
     const env = envWith(d);
     const nova = {
       kind: "nova",
-      key: "nova|academiacentral|8990|cartao azul",
+      key: "nova|academiacentral|14990|cartao azul",
       description: "ACADEMIA CENTRAL",
       card: "Cartão Azul",
-      amount: 89_90,
+      amount: 149_90,
       before: null,
       since: "2026-09-17",
       date: "2026-10-17",
@@ -177,7 +177,7 @@ describe("a subscription out of its pattern", () => {
     expect(notices).toEqual([
       {
         id: "assinatura:2026-10-18",
-        title: "Assinatura nova: Academia Central, R$ 89,90 por mês",
+        title: "Assinatura nova: Academia Central, R$ 149,90 por mês",
         body: "Cobrada no Cartão Azul em 17 set e 17 out. Não reconhece? Conteste no banco. Netflix.com subiu para R$ 44,90.",
         url: "/faturas",
         tag: "subscription",

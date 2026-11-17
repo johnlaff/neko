@@ -324,10 +324,10 @@ describe("entry writer", () => {
     const due = d("2026-11-12");
     sheet.set(
       { date: due, column: "saida" },
-      { formulaValue: "=SUM(948,30)" },
+      { formulaValue: "=SUM(948,3)" },
       "CARTÕES\nR$ 948,30 - Lia",
     );
-    sheet.set({ date: due, column: "entrada" }, { formulaValue: "=SUM(710)" }, "R$ 650,00 - Lia");
+    sheet.set({ date: due, column: "entrada" }, { formulaValue: "=SUM(650)" }, "R$ 650,00 - Lia");
     const ps: Placement[] = [
       {
         date: due,
@@ -352,9 +352,9 @@ describe("entry writer", () => {
     expect(r.error).toBeUndefined();
     expect(r.state).toBe("done");
     expect(sheet.batches).toEqual([2]);
-    expect(sheet.get({ date: due, column: "entrada" }).effectiveValue?.numberValue).toBe(1097.60);
+    expect(sheet.get({ date: due, column: "entrada" }).effectiveValue?.numberValue).toBe(1097.6);
     expect((await undoEntry(db, sheet.api, "lia", fixedNow)).state).toBe("undone");
-    expect(sheet.get({ date: due, column: "saida" }).effectiveValue?.numberValue).toBe(948.30);
+    expect(sheet.get({ date: due, column: "saida" }).effectiveValue?.numberValue).toBe(948.3);
   });
 
   it("takes back an entry a crashed request left halfway, before the next launch", async () => {

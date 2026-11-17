@@ -129,7 +129,6 @@ export const CATEGORIES = [
     slug: "estudo",
     words: [
       "faculdade",
-      "faculdade",
       "universidade",
       "escola",
       "colegio",

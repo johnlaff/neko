@@ -479,7 +479,7 @@ fun ListRow(
         // don't clip on a small phone with large text.
         Column(Modifier.weight(1f).padding(top = if (avatar != null || bank != null) 6.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                // Two lines before cutting: "Financiamento Carro 13/36" fits on a small phone.
+                // Two lines before cutting: "Financiamento Carro 07/48" fits on a small phone.
                 Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(12.dp))
                 Text(value, color = valueColor, textAlign = TextAlign.End)

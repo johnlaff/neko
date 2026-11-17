@@ -473,7 +473,7 @@ describe("what moved today, before comparing with yesterday's Saldo", () => {
   // The sheet paid the 4.990,35 bill (two card lines) on its due day, the 12th.
   const days = ledger("2026-10-01", 20, 0, {
     "2026-10-12": {
-      saida: cell(499035, [item(312000, "Bradesco João"), item(187035, "Bradesco Lia")]),
+      saida: cell(499035, [item(312000, "Cartão Azul"), item(187035, "Cartão Lia")]),
     },
   });
   const m = (date: string, amount: number, description: string) => ({
@@ -502,7 +502,7 @@ describe("what moved today, before comparing with yesterday's Saldo", () => {
   it("leaves out a card bill the bank only scheduled for today", () => {
     // Due today: the bank lists the automatic debit as pending before it takes the money.
     const due = ledger("2026-10-01", 20, 0, {
-      "2026-10-15": { saida: cell(499035, [item(499035, "Bradesco João")]) },
+      "2026-10-15": { saida: cell(499035, [item(499035, "Cartão Azul")]) },
     });
     const bill = {
       ...m("2026-10-15", -499035, "GASTOS CARTAO DE CREDITO - DOCTO: 1"),

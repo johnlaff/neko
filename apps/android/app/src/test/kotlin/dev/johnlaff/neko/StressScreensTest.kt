@@ -47,7 +47,7 @@ class StressScreensTest {
                 if (m.key != v.current) m
                 else m.copy(
                     cards = m.cards.map { it.copy(card = it.card.replace("Cartão Azul", "Bradesco Visa Infinite Prime")) } +
-                        m.cards.first().copy(card = "Bradesco Elo Grafite da Lia", amount = 79_40, others = true, reimbursed = true),
+                        m.cards.first().copy(card = "Banco Exemplo Grafite da Lia", amount = 79_40, others = true, reimbursed = true),
                 )
             },
             buyToday = listOf(
@@ -64,7 +64,7 @@ class StressScreensTest {
                 if (m.key != v.current) m
                 else m.copy(
                     outflows = m.outflows.mapIndexed { i, o ->
-                        if (i == 1) o.copy(label = "Financiamento Carro Sedã Prata 13/36", others = true) else o
+                        if (i == 1) o.copy(label = "Financiamento Carro Sedã Prata 07/48", others = true) else o
                     },
                 )
             },
