@@ -64,7 +64,7 @@ com valores diferentes, valor negativo.
 - Fórmula no dialeto da planilha, como o dono digita: vírgula decimal, sem separador de milhar, sem
   zero à direita (`42,4`, `20`, `0,01`). O novo termo entra depois do último, preservando espaços e
   quebras de linha (`=SUM(5000,25+1\n)`). Um número solto vira `=SUM(a+b)`. Testado na planilha real
-  em 2026-10-09: a API, com `USER_ENTERED`, entende `=SUM(405,51+20)` como 425,51.
+  em 2026-10-09: a API, com `USER_ENTERED`, entende `=SUM(120,75+20)` como 140,75.
 - Nota no formato do dono: `R$ 1.234,56 - Descrição`. Linha sem seção entra acima do primeiro
   cabeçalho; linha com seção entra no fim da seção; seção que não existe é criada no fim da nota. O
   resto do texto fica idêntico, byte a byte.
