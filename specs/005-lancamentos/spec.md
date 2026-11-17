@@ -85,7 +85,7 @@ com valores diferentes, valor negativo.
    leitor, com testes de exemplo e de propriedade, e o ensaio na cópia real
    (`apps/neko/test/real-sheet-edit.test.ts`, com `NEKO_REAL_SHEET`): planeja um lançamento em cada
    célula e exige que toda célula a partir do ano anterior ao atual seja limpa.
-1. **Planilha de teste (esta entrega).** Conta de serviço `neko-writer` (Editor, separada da
+1. **Planilha de teste (feita).** Conta de serviço `neko-writer` (Editor, separada da
    `neko-reader`), escopo `spreadsheets`, chave no secret `NEKO_WRITER_SERVICE_ACCOUNT_JSON`.
    Diário de operações no D1 (`entry_op`, migração 0008): chave de idempotência, célula, valor e
    nota antes e depois, estado. O gravador (`apps/neko/src/worker/writer.ts`):
@@ -96,7 +96,7 @@ com valores diferentes, valor negativo.
    - `undoEntry` devolve cada célula ao que era, só se ela ainda estiver como o Neko deixou.
    Os testes de contrato (`apps/neko/test/sheet-writer.contract.test.ts`) rodam no CI contra a
    planilha "Neko Teste" (pt-BR, dados inventados, mesmas proteções), um de cada vez, e desfazem o
-   que gravam. Nenhuma rota do Worker grava ainda.
+   que gravam. Nesta fase nenhuma rota gravava; a Fase 2 abriu `/api/entries`.
 2. **Conferência e Economia (plano v27, aprovado em 2026-10-09).** O gravador troca, move e apaga
    uma linha. A fila **Para lançar** na tela Hoje (no lugar de "Fora da planilha") compara o banco
    com a planilha todo dia e propõe, já do jeito do método (`buildQueue`, `packages/engine/src/queue.ts`):
@@ -131,8 +131,8 @@ com valores diferentes, valor negativo.
      é escrito na planilha.
    O app manda um rascunho (`Draft`), nunca células: o Worker transforma em lançamentos
    (`placeDraft`), mostra a prévia e grava (`/api/entries`, um por vez, trava no D1), com Desfazer
-   e o interruptor em Ajustes. Lançar à mão no botão Lançar da tela Hoje. O aviso das 21h abre o
-   Neko quando a gravação está ligada.
+   e o interruptor em Ajustes. Lançar à mão no botão Lançar da tela Hoje. O aviso da noite (na hora
+   escolhida em Ajustes, 21h por padrão) abre o Neko em Para lançar.
    - Aba Economia: guardar soma e resgatar subtrai na célula Economia do mês, do jeito do método
      (`=500+500-300`), no mesmo envio da linha em `Reserva:` (`withEconomia`). Ou as duas gravam,
      ou nenhuma. O gravador acha o mês pelo bloco do ano na linha 4 (`ano | Entradas | Economia`)
@@ -168,7 +168,8 @@ com valores diferentes, valor negativo.
    `lancamento` obrigatória (`fillEntry`, rota `/api/mia/lancamento`), contada no limite do mês da
    Mia. O motor (`entryFromMia`) só aceita o que confere: cartão que o dono tem, valor positivo, dia
    a menos de um ano de hoje, até 24 parcelas; o resto fica em branco para o dono escolher. A Mia
-   nunca grava.
+   nunca grava. Na conversa, a Mia 2 também deixa um lançamento em Para lançar quando o dono pede
+   (`propor_lancamento`, 004), aprovado com o mesmo toque.
 
 ## Proteções da gravação (Fases 1+)
 

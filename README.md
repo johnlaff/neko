@@ -1,59 +1,71 @@
 # Neko
 
-Web app and native Android app that **read** a personal Google Sheet and turns it into
-"pode gastar hoje", projected card bills, sheet health checks and the month's outlook. Neko never
-writes to the sheet: its Google service account is a Viewer and asks only for read scopes.
+A personal finance companion, on the web and on Android, for someone who keeps a Google Sheet by
+hand in the "gasto diário" method (Escola do Breno). The sheet stays the source of truth. Neko
+reads it, checks it against the bank, and shows what the sheet does not show on its own: how much
+still fits in the month, each card's bill before it arrives, the months ahead and the reserve. It
+writes to the sheet only when the owner taps Lançar, exactly as the owner would type it.
 
-Live: https://neko.owner.workers.dev (Google sign-in, allowlisted e-mails only).
+Neko is built for one person and one sheet. The code is public; it holds no real data (tests and
+screenshots use invented numbers, and everything that identifies the owner is a secret).
 
-## Layout
+## What it does
 
-| Path | Role | Rule |
-|---|---|---|
-| `packages/engine` | Money in cents, civil dates, card cycles, balance chain, projection, health checks | Pure functions; "today" is a parameter. Every finance rule is tested here |
-| `packages/sheet-reader` | Sheets API grid → validated ledger; note grammar; "previsão do diário" note | The only door into the sheet. Stops on an unexpected structure instead of guessing |
-| `apps/neko` | One Cloudflare Worker: Hono API under `/api`, React SPA as static assets, D1 cache | Orchestrates only: read → ledger → engine → cache/serve |
-| `apps/android` | Kotlin + Compose app and Glance widget, a thin client of `/api/today` | Formats only; any derived figure comes from the API |
+- **Hoje**: how much still fits under the month's ceiling (cards and Pix), what the bank shows
+  that the sheet does not have yet (**Para lançar**), the daily-logging streak, and only the
+  warnings that ask for action.
+- **Lançar**: an income, an expense or a card purchase in installments, previewed cell by cell,
+  written as a new line in the cell's note and formula, and undoable.
+- **Faturas**: each card's bill as the sheet and the bank see it, installments already bought,
+  subscriptions, purchases that someone else will pay back, and the bank's own PDF bill.
+- **Mês**: each month from the sheet, months heading below zero, where the money went, what was
+  kept, and the emergency reserve in steps.
+- **Simular**: the months ahead under a spending pace and what-ifs. Nothing is saved.
+- **Mia**: an assistant that answers from Neko's own numbers, with charts, says whether a purchase
+  fits ("Posso comprar?"), sums up the week and the month, and can leave an entry in Para lançar.
+- **Notifications**: a morning and an evening message only when there is something to do. On
+  Android also a widget, a quick-settings tile, shortcuts, an app lock and purchase notices read
+  from the bank apps (learning only, for now).
 
-Pipeline: Drive file version (one cheap call) → if changed, `spreadsheets.get` with a field mask
-for the year tabs → `readSpreadsheet` → `project` → stored in D1 per (file version, today,
-settings). A daily cron at 05:00 São Paulo warms the cache and records the forecast history.
+The banks come in read-only through Open Finance (Meu Pluggy). Card bills and utility bills can
+also arrive by e-mail. Nothing from the bank, the e-mail, the phone or Mia reaches the sheet
+without the owner's tap.
 
-## Commands
+## How it is built
+
+One Cloudflare Worker serves the Hono API, the React web app and a D1 database, and runs the
+scheduled jobs and the e-mail handler. The Android app (Kotlin, Compose, Glance) is a thin client
+of the same API. Finance rules live in a pure TypeScript package with tests; the sheet's layout
+lives in another. Mia 2 is an Anthropic managed agent that reads Neko through an MCP endpoint.
+
+| Path | What |
+|---|---|
+| `packages/engine` | Every finance rule: pure functions over integer cents and civil dates |
+| `packages/sheet-reader` | The sheet's layout: validated reading and exact cell edits |
+| `apps/neko` | The Worker (API, crons, e-mail, Mia) and the web app |
+| `apps/android` | The Android app and widget |
+| `specs/` | What each feature does and why, in pt-BR |
+
+## Getting started
 
 ```sh
 pnpm install
-pnpm check          # lint + typecheck + tests
-pnpm dev            # Vite + Worker locally (needs apps/neko/.dev.vars, see below)
-pnpm deploy         # build and deploy the Worker
+pnpm check      # lint, typecheck and tests
+pnpm dev        # web app and Worker locally (needs apps/neko/.dev.vars)
 ```
 
-`apps/neko/.dev.vars` (gitignored) holds `GOOGLE_SERVICE_ACCOUNT_JSON` and `SESSION_SECRET` for
-local runs. In production they are Worker secrets (`wrangler secret put`).
+Configuration, deploys, migrations and Android builds are in `docs/operations.md`.
 
-## Configuration
+## Documentation
 
-- Worker secrets: `SHEET_ID`, `ALLOWED_EMAILS`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SESSION_SECRET`,
-  `VAPID_PRIVATE_KEY`, and for Open Finance (optional) `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`,
-  `PLUGGY_WEBHOOK_SECRET`. `wrangler.jsonc` vars hold only public values (`GOOGLE_CLIENT_ID`,
-  `SENTRY_DSN`, `VAPID_PUBLIC_KEY`, the Android package and certificate fingerprints).
-- User settings live in D1 and are edited in the app (Ajustes): diário per day, usual card, cycle
-  budget, each card's closing day, cards paid by someone else.
-- CI deploys on merge to `main` once the repo has the `CLOUDFLARE_API_TOKEN` and
-  `CLOUDFLARE_ACCOUNT_ID` Actions secrets. It never applies D1 migrations: those run by hand
-  (`pnpm --filter @neko/app db:migrate:remote`) before the PR that needs them merges.
+| Document | For |
+|---|---|
+| `ARCHITECTURE.md` | How the pieces fit, the main flows and the rules the code must keep |
+| `docs/operations.md` | Running, configuring, deploying and monitoring |
+| `specs/` | Each feature's behavior and decisions (index in `specs/README.md`) |
+| `AGENTS.md` | Rules for coding agents working in this repository |
+| `SECURITY.md` | The security model and how to report a problem |
+| `apps/android/store/README.md` | The Play Store listing |
 
-## Android
-
-```sh
-cd apps/android
-./gradlew testDebugUnitTest lintDebug assembleRelease   # what CI runs
-./gradlew recordRoborazziDebug                          # screenshots into app/screenshots
-```
-
-Needs JDK 21 and the Android SDK (`ANDROID_HOME`). Release builds are signed only when
-`apps/android/signing.properties` (gitignored) points at the upload key, which never enters Git
-or CI. The app signs in with the site's passkey: the Worker serves `/.well-known/assetlinks.json`
-for the certificates in `ANDROID_CERT_SHA256`.
-
-See `specs/001-fase-1/spec.md` and `specs/002-android/spec.md` for scope and decisions.
+Docs next to the code are in English, like the code. Specs and anything the owner reads in the
+app are in Brazilian Portuguese, like the method.

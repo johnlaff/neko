@@ -1,4 +1,4 @@
-# Fase 3: Open Finance (só leitura)
+# Fase 3: Open Finance e faturas por e-mail (só leitura)
 
 ## Objetivo
 
@@ -7,22 +7,23 @@ não dá:
 
 1. **Conferir:** mostrar onde a planilha e o banco não batem, como saldo do dia, fatura fechada ou
    uma saída que está no banco e não está na planilha.
-2. **Copiar:** listar o que entrou ou saiu da conta e ainda não está na planilha, pronto para colar
-   na nota do dia. As compras no cartão não entram aqui, porque a planilha registra o cartão pela
-   fatura, não compra por compra: elas aparecem somadas na conferência das faturas (item 3).
+2. **Propor:** o que entrou ou saiu da conta e ainda não está na planilha vira um item de Para
+   lançar, já do jeito do método, e só entra na planilha com o toque do dono (005). As compras no
+   cartão não viram itens uma a uma, porque a planilha registra o cartão pela fatura: elas somam na
+   linha do cartão em cada fatura (item 3).
 3. **Parcelas:** saber, sem precisar mandar faturas, quanto de cada fatura futura já está comprometido
    com parcelas e avisar quando isso difere do que a planilha prevê.
 
 Critério de aceite: com as contas ligadas, a tela Faturas mostra para cada cartão as parcelas futuras
-vindas do banco, e o Hoje avisa quando há compras no cartão que a planilha ainda não tem. Os números
+vindas do banco, e Para lançar, no Hoje, mostra o que o banco tem e a planilha ainda não. Os números
 de saldo, fatura e projeção continuam vindo só da planilha.
 
 ## Regras que não mudam
 
-- A planilha continua sendo a fonte da verdade e é preenchida à mão. O Neko nunca escreve nela, nem
-  com dados do banco.
-- O banco não altera saldo, fatura ou projeção. Ele aparece só como **divergência** ou **sugestão**,
-  e o dono decide o que copiar. Não há previsão feita pelo Neko.
+- A planilha continua sendo a fonte da verdade. Dados do banco nunca vão sozinhos para ela: viram
+  propostas em Para lançar, e só o toque do dono em Lançar grava (005).
+- O banco não altera saldo, fatura ou projeção. Ele aparece só como **divergência** ou **proposta**,
+  e o dono decide o que lançar. Não há previsão feita pelo Neko.
 - Regras de finanças (casar lançamentos, somar parcelas por fatura) ficam em `packages/engine`, puras
   e com testes. O Worker só busca, valida e guarda. A web e o Android só mostram.
 - Repositório público: nenhum dado bancário real em código, testes ou capturas. Fixtures inventadas.
@@ -139,17 +140,16 @@ de saldo, fatura e projeção continuam vindo só da planilha.
 - **Telas (web e Android 1:1, mesma API):**
   - Faturas: por cartão, "Parcelas já compradas" por mês vindas do banco, e a diferença para a
     planilha quando houver.
-  - Hoje: um aviso "N compras no cartão não estão na planilha", que abre a lista em texto pronto
-    para copiar.
+  - Hoje: Para lançar (005), que tomou o lugar da lista em texto para copiar.
   - Ajustes › Bancos: os bancos ligados, o último sync e o campo de `itemId`.
-- **Mia (depois):** quando existir, só lê as mesmas visões. Não faz conta sozinha.
+- **Mia:** lê as mesmas visões pelas ferramentas do Neko (004) e não faz conta de cabeça.
 
 ## Fora do escopo
 
-- Escrever na planilha ou preencher linhas automaticamente.
+- Preencher linhas automaticamente: o banco só propõe (005).
 - Categorizar gastos ou fazer orçamento por categoria.
 - Iniciar pagamentos (Pix por Open Finance).
-- Ler notificações do celular.
+- Ler notificações do celular. Veio depois, e por enquanto só aprende (002, "Avisos de compra").
 
 ## Fatias
 

@@ -23,9 +23,12 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
   ao voltar depois de 5 minutos fora. Ligado, a prévia em Recentes some. Os lembretes mostram só o
   título na tela bloqueada.
 - Integração com o Android: tela de abertura do sistema até a sessão ser conhecida; atalhos no ícone
-  (Simular, Faturas, Mês e "Lançar", que abre a linha de hoje e muda todo dia); prévia gerada do
-  widget no seletor (Android 15+, com números inventados); toques hápticos do sistema no dock, nos
-  interruptores e ao puxar para atualizar.
+  (Simular, Faturas, Mês e "Lançar", que abre a linha de hoje na planilha e muda todo dia); o bloco
+  "Lançar" nas Configurações rápidas, aceso até o dia ser lançado, que abre a mesma linha; prévia
+  gerada do widget no seletor (Android 15+, com números inventados); toques hápticos do sistema no
+  dock, nos interruptores e ao puxar para atualizar.
+- Conquistas de um mês fechado viram uma imagem para compartilhar (1080×1350, com a marca e sem
+  nenhum valor), no site (`web/Wins.tsx`) e no app (`share/WinCard.kt`).
 - Movimento igual ao do site (`styles.css`, "Motion"): o arco e as colunas desenham uma vez, o número
   grande roda como odômetro, avisos aparecem, "Como calculei" e o extrato abrem pela altura, a troca
   de aba desliza para o lado da aba, e o carregamento é um esqueleto com brilho. "Remover animações"
@@ -39,18 +42,28 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
   rede na thread principal ao abrir (StrictMode nas builds de debug); o código do app é compilado
   na instalação por um baseline profile.
 - Widget responsivo em três formas, como a tela inicial o dimensiona: só o número; o número com a
-  fatura aberta e o plano ao lado; e, mais alto, os próximos dias com algo na planilha. A prévia do
-  seletor usa números inventados.
-- `GET /api/today`: o que o Hoje e o widget mostram, já calculado (pode gastar hoje, próximos dias
+  fatura aberta e o plano ao lado; e, mais alto, os próximos dias com algo na planilha e quantos
+  itens esperam em Para lançar (o toque abre Hoje em Para lançar). A prévia do seletor usa números
+  inventados.
+- `GET /api/today`: o que o Hoje e o widget mostram, já calculado (quanto ainda cabe, próximos dias
   agrupados com o saldo de cada dia, pontos de conferência abertos, avisos, link da linha de hoje).
 - `GET /api/invoices`, `GET /api/months` e `GET /api/ajustes` (`apps/neko/src/shared/screens.ts`):
   Faturas, Mês e Ajustes prontos para desenhar, com as mesmas regras das telas do site. Ajustes
   salva pelo mesmo `PUT /api/settings` do site, inteiro, sem perder os pontos já conferidos.
 - Chave de assinatura (upload key) fora do Git: um repositório público com a chave permitiria
   assinar outro app que o `assetlinks.json` aceitaria, e esse app poderia pedir a passkey do dono.
-  O CI só compila e testa; o APK assinado é gerado com a chave guardada nos arquivos do projeto.
+  O CI dos PRs compila e testa sem assinar; o envio à Play (`play.yml`) assina com a chave guardada
+  nos secrets do GitHub, decodificada só durante o build. A Play assina de novo com a chave dela.
 - `minSdk` 28 (Credential Manager com passkeys), `compileSdk`/`targetSdk` na versão estável mais nova.
 - Build do Android em workflow próprio, só quando `apps/android/` ou a API mudam.
+- Aprender sem manual: uma dica curta por tela (Hoje, Faturas, Mês) na primeira vez que ela tem
+  dados, no máximo uma por visita, que some de vez com "Entendi". Ajustes › Como funciona guarda as
+  ideias do método nas palavras do Neko, uma por toque, e "Rever dicas" traz as dicas de volta. Site
+  e app dizem o mesmo (web/learn.ts e ui/Learn.kt).
+- Tela larga (a partir de 840dp: tablet, celular dobrável aberto): a barra de abas vira um trilho
+  à esquerda. Colunas do Mês: a faixa inteira de cada mês é o alvo, sem vãos, e dá para deslizar o
+  dedo de um mês ao outro. Gráficos desenham uma vez por lugar, e o puxar para atualizar termina com
+  uma vibração de confirmação ou de erro.
 
 ## Fatias
 
@@ -62,15 +75,8 @@ para o mesmo dia e o widget se atualiza sozinho ao longo do dia.
 
 ## Fora da fase 2
 
-Mia, leitura de notificações do banco, qualquer escrita na planilha.
-- Aprender sem manual: uma dica curta por tela (Hoje, Faturas, Mês) na primeira vez que ela tem
-  dados, no máximo uma por visita, que some de vez com "Entendi". Ajustes › Como funciona guarda as
-  ideias do método nas palavras do Neko, uma por toque, e "Rever dicas" traz as dicas de volta. Site
-  e app dizem o mesmo (web/learn.ts e ui/Learn.kt).
-- Tela larga (a partir de 840dp: tablet, celular dobrável aberto): a barra de abas vira um trilho
-  à esquerda. Colunas do Mês: a faixa inteira de cada mês é o alvo, sem vãos, e dá para deslizar o
-  dedo de um mês ao outro. Gráficos desenham uma vez por lugar, e o puxar para atualizar termina com
-  uma vibração de confirmação ou de erro.
+Mia, leitura de notificações do banco e qualquer escrita na planilha ficaram fora desta fase e
+vieram depois: Mia na 004, Avisos de compra em "Notificações" abaixo, Lançar na 005.
 
 ## Notificações (revisão de 11/11/2026)
 

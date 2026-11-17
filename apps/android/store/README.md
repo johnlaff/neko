@@ -14,11 +14,14 @@ cima e a tela recortada num cartão; refaça-as quando uma dessas telas mudar.
 
 ## Textos
 
+Os textos ficam no Play Console (não há automação para eles); quando mudarem lá, mude aqui também.
+
 - **Nome:** Neko
-- **Descrição curta:** Quanto cabe hoje no cartão, lido da sua planilha.
+- **Descrição curta:** Quanto ainda cabe no mês, lido da sua planilha.
 - **Descrição completa:** O Neko lê a sua planilha de finanças do Google e mostra, todo dia,
-  quanto ainda cabe no cartão, as faturas antes de chegarem e como o mês está andando. Ele só
-  lê: a planilha continua sendo a fonte da verdade, e você segue lançando nela.
+  quanto ainda cabe no mês, as faturas antes de chegarem e como os próximos meses estão. Com o
+  banco ligado, ele aponta o que ainda falta lançar e lança na planilha com um toque seu, do jeito
+  que você escreveria. A planilha continua sendo a fonte da verdade: nada muda nela sem você.
 
 ## Marca
 
