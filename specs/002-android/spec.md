@@ -97,7 +97,8 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
   Android, o app olha só os avisos dos apps do Bradesco, Itaú, Inter e Mercado Pago (bancos ligados
   por Open Finance; um cartão fora dele contaria duas vezes ao lado da fatura por e-mail). De uma
   compra aprovada à vista e em reais que não fale de débito, Pix nem cashback (`PurchaseText`; no
-  Mercado Pago, "Você pagou R$ X a LOJA" que "vai entrar na próxima fatura"), manda o valor, a loja e o final
+  Mercado Pago, "Você pagou R$ X a LOJA" que "vai entrar na próxima fatura"; no Inter, "Você acaba de
+  comprar R$ X em LOJA" no crédito), manda o valor, a loja e o final
   do cartão a `POST /api/purchases` (tabela `phone_purchase`, 15 dias). O mesmo aviso dos dois apps
   do banco conta uma vez (`onePerPurchase`).
   - **Por enquanto, só aprende** (modo sombra, por banco): o Open Finance confere cada leitura

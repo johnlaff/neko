@@ -51,6 +51,22 @@ class PurchaseTextTest {
     }
 
     @Test
+    fun `takes Inter's just-bought notice`() {
+        val inter = "br.com.intermedium"
+        assertEquals(
+            Read("Inter", 1234, "4321", "LOJA DE TESTE"),
+            read(inter, "Compra no crédito", "Olá, Ana. Você acaba de comprar R$ 12,34 em LOJA DE TESTE. A compra foi no crédito nacional, com o cartão final 4321."),
+        )
+        assertEquals(
+            Read("Inter", 5000, "4321", "PAG*JOGOS ONLINE"),
+            read(inter, "Compra no crédito", "Olá, Ana. Você acaba de comprar R$ 50,00 em PAG*JOGOS ONLINE. A compra foi no crédito nacional, com o cartão final 4321."),
+        )
+        // The debit card, or an offer to pay a recent purchase with points, is no credit purchase.
+        assertNull(read(inter, "Compra no débito", "Olá, Ana. Você acaba de comprar R$ 12,34 em LOJA DE TESTE. A compra foi no débito, com o cartão final 4321."))
+        assertNull(read(inter, "Quer tirar R$ 9,99 da fatura?", "Use seus pontos para descontar sua compra recente no cartão. Clique e economize!"))
+    }
+
+    @Test
     fun `takes the purchase's amount, not the limit after it, and no shop when the notice names none`() {
         assertEquals(
             Read("Bradesco", 4590, null, "LOJA DO BAIRRO"),
