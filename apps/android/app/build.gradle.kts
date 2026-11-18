@@ -25,8 +25,8 @@ android {
         minSdk = 28
         targetSdk = 37
         versionCode = (System.getenv("NEKO_VERSION_CODE") ?: "1").toInt()
-        versionName = "0.83.0"
-        buildConfigField("String", "NEKO_URL", "\"https://neko.owner.workers.dev\"")
+        versionName = "0.84.0"
+        buildConfigField("String", "NEKO_URL", "\"https://neko.johnlaff.com\"")
     }
 
     signingConfigs {

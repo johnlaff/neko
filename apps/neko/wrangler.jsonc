@@ -7,6 +7,10 @@
   // Only the live version answers: older versions stay unreachable at their own preview URLs,
   // which would otherwise reach the same database and secrets.
   "preview_urls": false,
+  // The site's address. Wrangler attaches it and keeps its DNS record and certificate. The old
+  // workers.dev address stays on only until passkeys exist for this one (they are tied to the host).
+  "routes": [{ "pattern": "neko.johnlaff.com", "custom_domain": true }],
+  "workers_dev": true,
   // Runs the API next to D1 (eastern North America): a request makes several D1 round trips,
   // each ~130 ms from São Paulo, but only one trip from the phone to here. Assets stay at the edge.
   "placement": { "region": "aws:us-east-2" },
@@ -30,7 +34,7 @@
   "observability": { "enabled": true },
   "vars": {
     "GOOGLE_CLIENT_ID": "",
-    "SITE_URL": "https://neko.owner.workers.dev",
+    "SITE_URL": "https://neko.johnlaff.com",
     // The Android app and the certificates it may be signed with: Play's app signing key (builds
     // installed from Play) and the upload key (builds installed by hand).
     "ANDROID_PACKAGE": "dev.johnlaff.neko",

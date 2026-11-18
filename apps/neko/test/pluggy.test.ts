@@ -79,6 +79,11 @@ const fakeApi = (state: { txns: unknown[]; hooks?: { id: string; url: string }[]
       return json({ message: "MeuPluggy item cant be updated", code: 400 }, 400);
     if (url.pathname.startsWith("/items/"))
       return json({ id: url.pathname.slice(7), lastUpdatedAt: "2026-10-08T01:18:14.097Z" });
+    if (url.pathname.startsWith("/webhooks/") && init?.method === "DELETE") {
+      const id = url.pathname.slice(10);
+      state.hooks = state.hooks?.filter((h) => h.id !== id);
+      return json({ id });
+    }
     if (url.pathname === "/webhooks" && init?.method === "POST") {
       state.hooks?.push({ id: "h", url: JSON.parse(String(init.body)).url });
       return json({ id: "h" });
@@ -242,6 +247,22 @@ describe("bank sync", () => {
     expect(await ensureWebhook(api, "https://neko.test/api/pluggy/webhook", "s3cret")).toBe(true);
     expect(await ensureWebhook(api, "https://neko.test/api/pluggy/webhook", "s3cret")).toBe(false);
     expect(state.hooks).toHaveLength(1);
+  });
+
+  it("moves the webhook when the site changes address, leaving other webhooks alone", async () => {
+    const state = {
+      txns: [],
+      hooks: [
+        { id: "old", url: "https://old.test/api/pluggy/webhook" },
+        { id: "other", url: "https://elsewhere.test/hook" },
+      ],
+    };
+    const { api } = fakeApi(state);
+    expect(await ensureWebhook(api, "https://neko.test/api/pluggy/webhook", "s3cret")).toBe(true);
+    expect(state.hooks.map((h) => h.url)).toEqual([
+      "https://elsewhere.test/hook",
+      "https://neko.test/api/pluggy/webhook",
+    ]);
   });
 });
 

@@ -42,6 +42,7 @@ const fakeApi = (opts: { streams?: Ev[][]; history?: Ev[]; cost?: string[] } = {
   const streams = [...(opts.streams ?? [])];
   const costs = [...(opts.cost ?? ["0"])];
   let agentVersion = 0;
+  let credentials = 0;
   const f = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(input instanceof Request ? input.url : input));
     const method = init?.method ?? "GET";
@@ -52,9 +53,12 @@ const fakeApi = (opts: { streams?: Ev[][]; history?: Ev[]; cost?: string[] } = {
     if (method === "POST" && path === "/v1/environments") return json({ id: "env_1" });
     if (method === "POST" && path === "/v1/memory_stores") return json({ id: "memstore_1" });
     if (method === "POST" && path === "/v1/vaults") return json({ id: "vlt_1" });
-    if (method === "POST" && path === "/v1/vaults/vlt_1/credentials") return json({ id: "vcrd_1" });
+    if (method === "POST" && path === "/v1/vaults/vlt_1/credentials")
+      return json({ id: `vcrd_${++credentials}` });
     if (method === "POST" && path.startsWith("/v1/vaults/vlt_1/credentials/"))
-      return json({ id: "vcrd_1" });
+      return json({ id: path.split("/")[5] });
+    if (method === "DELETE" && path.startsWith("/v1/vaults/vlt_1/credentials/"))
+      return json({ id: path.split("/")[5], type: "vault_credential_deleted" });
     if (method === "POST" && path === "/v1/agents") return json({ id: "agent_1", version: 1 });
     if (method === "POST" && path === "/v1/agents/agent_1")
       return json({ id: "agent_1", version: ++agentVersion + 1 });
@@ -161,9 +165,22 @@ describe("mia2 setup", () => {
     ]);
 
     // A changed definition (here: another address) becomes a new version of the same agent.
+    const moved = api.sent.length;
     const next = await ensureSetup(api.client, d1, "https://other.test", "token-2");
     expect(next.version).toBe(2);
     expect(api.posted("/v1/agents/agent_1")[0]?.body).toMatchObject({ version: 1 });
+    // The vault's credential names its MCP address and cannot change it: the new address gets a
+    // new credential and the old one is deleted, so the token is not kept for a dead address.
+    const after = api.sent.slice(moved);
+    expect(after.find((s) => s.path === "/v1/vaults/vlt_1/credentials")?.body).toMatchObject({
+      auth: { mcp_server_url: "https://other.test/api/mcp", token: "token-2" },
+    });
+    expect(after.filter((s) => s.method === "DELETE").map((s) => s.path)).toEqual([
+      "/v1/vaults/vlt_1/credentials/vcrd_1",
+    ]);
+    const again = api.sent.length;
+    await ensureSetup(api.client, d1, "https://other.test", "token-2");
+    expect(api.sent.length).toBe(again);
   });
 
   it("keeps the web off and her own tools always allowed", () => {

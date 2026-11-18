@@ -130,7 +130,8 @@ export const pluggy = (env: Pick<Env, "PLUGGY_CLIENT_ID" | "PLUGGY_CLIENT_SECRET
       body: body ? JSON.stringify(body) : null,
     });
     if (!r.ok) throw new Error(`pluggy ${method} ${path.split("?")[0]}: ${r.status}`);
-    return r.json();
+    const text = await r.text();
+    return text ? JSON.parse(text) : null;
   };
   /** Follows `next` until the last page; Pluggy's cursor links are relative to the API. */
   const all = async <T extends z.ZodType>(item: T, first: string): Promise<z.infer<T>[]> => {
@@ -161,6 +162,7 @@ export const pluggy = (env: Pick<Env, "PLUGGY_CLIENT_ID" | "PLUGGY_CLIENT_SECRET
     webhooks: () => all(Webhook, "/webhooks"),
     createWebhook: (url: string, secret: string) =>
       call("POST", "/webhooks", { event: "all", url, headers: { [HOOK_HEADER]: secret } }),
+    deleteWebhook: (id: string) => call("DELETE", `/webhooks/${encodeURIComponent(id)}`),
   };
 };
 
@@ -349,9 +351,16 @@ export const syncAll = async (db: D1Database, api: Pluggy, today: LocalDate): Pr
   return failed;
 };
 
-/** Registers this site's webhook once; later runs find it and do nothing. */
+/**
+ * Registers this site's webhook once; later runs find it and do nothing. When the site moves to
+ * another address, the Neko's webhook at the old one is removed, so Pluggy stops calling it.
+ */
 export const ensureWebhook = async (api: Pluggy, url: string, secret: string): Promise<boolean> => {
-  if ((await api.webhooks()).some((w) => w.url === url)) return false;
+  const hooks = await api.webhooks();
+  const path = new URL(url).pathname;
+  for (const old of hooks.filter((w) => w.url !== url && URL.parse(w.url)?.pathname === path))
+    await api.deleteWebhook(old.id);
+  if (hooks.some((w) => w.url === url)) return false;
   await api.createWebhook(url, secret);
   return true;
 };

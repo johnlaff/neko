@@ -77,12 +77,12 @@ describe("monthOutflows", () => {
 
   it("compares an installment with the previous one", () => {
     const car = ledger("2026-09-01", 60, 10_000_00, {
-      "2026-09-05": { saida: cell(890_00, [item(890_00, "Carro 12/36", "contas")]) },
-      "2026-10-05": { saida: cell(890_00, [item(890_00, "Carro 13/36", "contas")]) },
+      "2026-09-05": { saida: cell(890_00, [item(890_00, "Carro 6/48", "contas")]) },
+      "2026-10-05": { saida: cell(890_00, [item(890_00, "Carro 7/48", "contas")]) },
     });
     expect(monthOutflows(car, 2026, 10)).toEqual([
       {
-        label: "Carro 13/36",
+        label: "Carro 7/48",
         amount: 890_00,
         count: 1,
         kind: "bill",

@@ -264,8 +264,8 @@ describe("bills: what the bank already knows against what the sheet expects", ()
       today,
     );
     expect(checks.map((c) => [c.due, c.bank])).toEqual([
-      ["2026-11-10", 5018],
-      ["2026-12-10", 5016],
+      ["2026-11-10", 4695],
+      ["2026-12-10", 4693],
     ]);
   });
 

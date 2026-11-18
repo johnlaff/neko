@@ -133,8 +133,15 @@ Crons run in UTC; São Paulo is UTC−3 all year.
 
   After that, the passkey syncs through the password manager, and the Android app uses the same
   one (`assetlinks.json`).
+- **Moving the site's address.** Passkeys belong to the host, so a move is done in two deploys.
+  First: the new host in `routes` (Wrangler attaches it, with DNS and certificate), `SITE_URL` and
+  the app's `NEKO_URL` pointing at it, and the old address still on. The Pluggy webhook and Mia's
+  MCP credential follow `SITE_URL` on the next bank sync and question. Make one invite per device
+  on the new host and update the privacy policy URL in Play Console. Then, once the owner signs in
+  there on every device, turn the old address off (`workers_dev: false`).
 - **Open Finance.** Owner steps in `specs/003-open-finance/spec.md` ("Passos do dono"). Each
-  bank's `itemId` goes in Ajustes › Bancos. The webhook address is registered from `SITE_URL`.
+  bank's `itemId` goes in Ajustes › Bancos. The webhook address is registered from `SITE_URL`;
+  the Neko's webhook at an older address is removed.
 - **E-mail.** Cloudflare Email Routing sends `fatura@` on the Neko domain to the Worker. Gmail
   filters on the owner's account forward the banks' bills, billers' e-mails and Meu Pluggy's
   sign-in link there.

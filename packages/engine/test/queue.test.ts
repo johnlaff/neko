@@ -357,16 +357,16 @@ describe("Para lançar: account movements", () => {
     const days = ledger("2026-10-01", 92, 0, {
       "2026-10-02": { saida: cell(8000, [item(8000, "Carona", null)]) },
       "2026-11-02": { saida: cell(6230, [item(6230, "Fatura Telefone", "contas")]) },
-      "2026-10-04": { saida: cell(6490, [item(6490, "Telefone", "contas")]) },
+      "2026-10-04": { saida: cell(7140, [item(7140, "Telefone", "contas")]) },
     });
     const items = queue({
       ledger: days,
       today: d("2026-10-28"),
       movements: [
         mov("2026-10-02", -8000, "Pix enviado Fulano de Tal"),
-        mov("2026-10-04", -6490, "Pagamento com Pix OPERADORA TELEFONE S.A."),
+        mov("2026-10-04", -7140, "Pagamento com Pix OPERADORA TELEFONE S.A."),
         mov("2026-10-27", -8000, "Pix enviado Fulano de Tal"),
-        mov("2026-10-28", -7300, "Pagamento com Pix OPERADORA TELEFONE S.A."),
+        mov("2026-10-28", -7110, "Pagamento com Pix OPERADORA TELEFONE S.A."),
       ],
     });
     expect(items.map((i) => [i.date, i.kind, i.options[0]?.draft])).toMatchObject([

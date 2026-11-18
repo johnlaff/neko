@@ -199,7 +199,7 @@ const sha256 = async (text: string) => {
 
 /**
  * Her environment, memory, vault and agent, made the first time and kept in D1. A new MCP token
- * replaces the vault's; a new definition becomes a new agent version.
+ * or site address replaces the vault's credential; a new definition becomes a new agent version.
  */
 export const ensureSetup = async (
   client: Anthropic,
@@ -243,20 +243,26 @@ export const ensureSetup = async (
   }
   const vault = have.get("vault") ?? "";
   const tokenHash = await sha256(token);
-  if (have.get("vault_token") !== tokenHash) {
-    const credential = have.get("vault_credential");
-    if (credential) {
-      await client.beta.vaults.credentials.update(credential, {
-        vault_id: vault,
-        auth: { type: "static_bearer", token },
-      });
-    } else {
-      const created = await client.beta.vaults.credentials.create(vault, {
-        display_name: "Neko MCP",
-        auth: { type: "static_bearer", mcp_server_url: `${site}/api/mcp`, token },
-      });
-      await save("vault_credential", created.id);
-    }
+  const credential = have.get("vault_credential");
+  // A credential names its MCP address for good: a new address gets a new credential, and the old
+  // one is deleted so the token is not kept for an address the Neko left.
+  if (!credential || have.get("vault_site") !== site) {
+    const created = await client.beta.vaults.credentials.create(vault, {
+      display_name: "Neko MCP",
+      auth: { type: "static_bearer", mcp_server_url: `${site}/api/mcp`, token },
+    });
+    await save("vault_credential", created.id);
+    await save("vault_site", site);
+    await save("vault_token", tokenHash);
+    if (credential)
+      await client.beta.vaults.credentials
+        .delete(credential, { vault_id: vault })
+        .catch((e) => console.error("mia2 old credential", e));
+  } else if (have.get("vault_token") !== tokenHash) {
+    await client.beta.vaults.credentials.update(credential, {
+      vault_id: vault,
+      auth: { type: "static_bearer", token },
+    });
     await save("vault_token", tokenHash);
   }
 
