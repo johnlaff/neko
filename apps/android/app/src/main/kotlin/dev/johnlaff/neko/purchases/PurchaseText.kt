@@ -49,7 +49,8 @@ object PurchaseText {
 
     private val I = RegexOption.IGNORE_CASE
     private val SAID = Regex("""\bcompr(a|ou)\b""", I)
-    private val APPROVED = Regex("""aprovad|realizad|efetuad|\bcomprou\b""", I)
+    /** Inter says "Você acaba de comprar R$ 12,34 em LOJA. A compra foi no crédito nacional...". */
+    private val APPROVED = Regex("""aprovad|realizad|efetuad|\bcomprou\b|\bacaba de comprar\b""", I)
     /** Mercado Pago's way: "Você pagou R$ 12,90 a LOJA. O valor vai entrar na próxima fatura...". */
     private val PAID_ON_BILL = Regex("""\bpagou\b.*\bvai entrar na (?:pr[óo]xima )?fatura\b""", I)
     private val NOT = Regex(
