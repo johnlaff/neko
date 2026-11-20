@@ -10,10 +10,18 @@ import { Board } from "../Board.tsx";
 import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { bankLineName, capitalize, money } from "../format.ts";
-import { IconCheck, IconChevron, IconReceipt } from "../icons.tsx";
+import { IconCheck, IconChevron } from "../icons.tsx";
 import { Sheet } from "../Sheet.tsx";
 import { OwnerForm } from "./Owner.tsx";
-import { monthAfter, monthLong, monthOf, monthYear, plural, shortMonth } from "./text.ts";
+import {
+  initialOf,
+  monthAfter,
+  monthLong,
+  monthOf,
+  monthYear,
+  plural,
+  shortMonth,
+} from "./text.ts";
 
 /** A plan's name, without the bank's "05/10". */
 const planName = (p: Pick<ParcelPlanView, "description" | "installments">) =>
@@ -119,7 +127,7 @@ const PlanRow = ({
         onClick={onPick}
       >
         <span className="avatar" aria-hidden="true">
-          <CategoryIcon text={p.description} fallback={<IconReceipt />} />
+          <CategoryIcon text={p.description} fallback={initialOf(planName(p))} />
         </span>
         <span className="name">
           {planName(p)}

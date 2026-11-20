@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type BankCardLine, cents, installmentPlans, localDate, ownerKey } from "../src/index.ts";
+import {
+  type BankCardLine,
+  cents,
+  installmentPlans,
+  localDate,
+  ownerKey,
+  theirsAfter,
+} from "../src/index.ts";
 
 const parcel = (
   description: string,
@@ -138,5 +145,27 @@ describe("installment plans", () => {
       [],
     );
     expect(plans).toEqual([]);
+  });
+});
+
+describe("a person's parcels after a month", () => {
+  it("adds their part of every plan on the later bills, a plan that starts later too", () => {
+    const sofa = parcel("SOFA CASA 04/10", 300_00, "2026-10", 4, 10);
+    const fone = parcel("FONE 01/03", 129_90, "2026-11", 1, 3);
+    const plans = installmentPlans(
+      [sofa, fone, parcel("NOTEBOOK 05/10", 420_00, "2026-10", 5, 10)],
+      "2026-10",
+      [
+        { key: ownerKey(sofa) ?? "", person: "Lia", share: cents(150_00) },
+        { key: ownerKey(fone) ?? "", person: "Lia" },
+      ],
+    );
+    // Half of the sofa's six parcels after October, and the three earphones from November.
+    expect(theirsAfter(plans, "Lia", "2026-10")).toEqual({
+      amount: 6 * 150_00 + 3 * 129_90,
+      until: "2027-04",
+    });
+    expect(theirsAfter(plans, "Lia", "2027-04")).toEqual({ amount: 0, until: null });
+    expect(theirsAfter(plans, "Bia", "2026-10")).toEqual({ amount: 0, until: null });
   });
 });

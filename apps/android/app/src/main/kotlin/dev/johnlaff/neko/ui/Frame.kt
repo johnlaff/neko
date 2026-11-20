@@ -458,6 +458,8 @@ fun ListRow(
     avatarVector: androidx.compose.ui.graphics.vector.ImageVector? = null,
     /** A card's name: when it names a known bank, the avatar is that bank's mark. */
     card: String? = null,
+    /** A purchase: a rounded square, as on the site, so a store's letter never reads as a person. */
+    purchase: Boolean = false,
     meta: String? = null,
     valueColor: Color = LocalLedger.current.text,
     accent: Boolean = false,
@@ -480,7 +482,10 @@ fun ListRow(
             Spacer(Modifier.width(12.dp))
         } else avatar?.let {
             Box(
-                Modifier.size(36.dp).background(if (accent) l.accent.copy(alpha = 0.16f) else l.surface2, CircleShape),
+                Modifier.size(36.dp).background(
+                    if (accent) l.accent.copy(alpha = 0.16f) else l.surface2,
+                    if (purchase) androidx.compose.foundation.shape.RoundedCornerShape(11.dp) else CircleShape,
+                ),
                 contentAlignment = Alignment.Center,
             ) {
                 if (avatarVector != null) {

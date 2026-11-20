@@ -11,7 +11,7 @@ const NEW = "\u0000nova";
 
 /**
  * Whose a purchase is (Faturas › De quem é?): the owner's, someone named before, or a new name;
- * and, for someone else, all of it or a part ("Dividir o valor": half to start, as Splitwise and
+ * and, for someone else, all of it or a part ("Você paga uma parte": half to start, as Splitwise and
  * Monarch open, a third, or another value). A parcel takes its whole plan along and a
  * subscription every month of the same value, so later bills follow. Only the owner's part counts
  * in the ceiling; the other part waits in Para lançar as an Entrada.
@@ -129,10 +129,8 @@ export const OwnerForm = ({
       )}
       {who !== null && (
         <label className="setting owner-split">
-          <span className="label">
-            Dividir o valor
-            <span className="sub">Uma parte fica com você</span>
-          </span>
+          {/* Off, the person pays it all; on, the owner keeps a part. */}
+          <span className="label">Você paga uma parte</span>
           <input
             type="checkbox"
             role="switch"

@@ -7,10 +7,10 @@ import { CardAvatar } from "../CardAvatar.tsx";
 import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney } from "../Figures.tsx";
 import { bankLineName, capitalize, money, plainMoney, shortDate } from "../format.ts";
-import { IconChevron, IconReceipt } from "../icons.tsx";
+import { IconChevron } from "../icons.tsx";
 import { Sheet } from "../Sheet.tsx";
 import { OwnerForm } from "./Owner.tsx";
-import { monthOf, monthYear, plural } from "./text.ts";
+import { initialOf, monthOf, monthYear, plural } from "./text.ts";
 
 type Item = OwedView["items"][number];
 
@@ -37,7 +37,7 @@ const shareOf = (i: Item) =>
 
 const itemWhen = (i: Item) =>
   i.installment !== null && i.installments !== null && i.installments > 1
-    ? `parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · faltam ${money(i.later)}` : " · última"}`
+    ? `parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · mais ${money(i.later)} depois` : " · última"}`
     : i.date
       ? shortDate(i.date)
       : null;
@@ -182,7 +182,7 @@ export const Person = ({
                   onClick={() => setPicked(i)}
                 >
                   <span className="avatar" aria-hidden="true">
-                    <CategoryIcon text={i.description} fallback={<IconReceipt />} />
+                    <CategoryIcon text={i.description} fallback={initialOf(bankLineName(i))} />
                   </span>
                   <span className="name">{bankLineName(i)}</span>
                   <span className="value">
@@ -246,7 +246,10 @@ export const Person = ({
           <>
             <div className="sheet-item">
               <span className="avatar" aria-hidden="true">
-                <CategoryIcon text={picked.description} fallback={<IconReceipt />} />
+                <CategoryIcon
+                  text={picked.description}
+                  fallback={initialOf(bankLineName(picked))}
+                />
               </span>
               <span className="name">{bankLineName(picked)}</span>
               <span className="value">{money(picked.amount)}</span>

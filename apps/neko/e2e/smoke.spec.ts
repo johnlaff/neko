@@ -413,7 +413,7 @@ test("Faturas shows the subscriptions in half a screen and decides one in its sh
   // Splitting it every month is the same "De quem é?", on the monthly mark.
   await sheet.getByRole("button", { name: /^Dividir com alguém/ }).click();
   await sheet.getByRole("radio", { name: "Bia" }).check();
-  await expect(sheet.getByRole("switch", { name: /Dividir o valor/ })).toBeChecked();
+  await expect(sheet.getByRole("switch", { name: "Você paga uma parte" })).toBeChecked();
   const split = sentTo(page, "/api/banks/owner");
   await sheet.getByRole("button", { name: "Salvar" }).click();
   expect((await split).postDataJSON()).toEqual({
@@ -533,7 +533,7 @@ test("a person's page sums their month and hands the message to the phone", asyn
     page.getByText("Depois de novembro ainda vêm R$ 934,80 em parcelas, até fev/27."),
   ).toBeVisible();
   await expect(
-    page.getByText("Cartão Azul · parcela 3 de 6 · faltam R$ 675,00 · metade de R$ 450,00"),
+    page.getByText("Cartão Azul · parcela 3 de 6 · mais R$ 675,00 depois · metade de R$ 450,00"),
   ).toBeVisible();
   // Neko sends nothing: the phone's share sheet gets the text.
   await page.evaluate(() => {

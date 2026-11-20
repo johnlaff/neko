@@ -36,7 +36,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.BankLine
 import dev.johnlaff.neko.data.InvoiceRow
 import dev.johnlaff.neko.ui.Format.capitalize
@@ -204,11 +203,12 @@ internal fun CardLines(
                                 name = bankLineName(x),
                                 value = money(x.amount),
                                 modifier = if (x.key != null) Modifier.clickable(onClickLabel = "de quem é") { onPick(x) } else Modifier,
-                                avatar = "",
+                                avatar = initialOf(bankLineName(x)),
                                 avatarVector = categoryIcon(x.description),
-                                avatarIcon = R.drawable.ic_receipt,
+                                purchase = true,
                                 valueColor = if (theirs) l.muted else l.text,
-                                accent = theirs,
+                                // Someone else's purchase: its category icon in green; a store's letter stays grey.
+                                accent = theirs && categoryIcon(x.description) != null,
                                 meta = lineMeta(x),
                                 next = x.key != null,
                             )

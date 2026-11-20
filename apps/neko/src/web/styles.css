@@ -4937,8 +4937,9 @@ dl.mia-numbers + p.mia-sources {
 .rows .value.theirs {
   color: var(--muted);
 }
-/* And its icon in green, the colour of someone else's part in the bar above. */
-.rows.lead > li.theirs .avatar {
+/* And its category icon in green, the colour of someone else's part in the bar above. A store's
+   letter stays grey, so it never reads as the person's own avatar. */
+.rows.lead > li.theirs .avatar:has(> svg) {
   color: var(--accent);
   background: color-mix(in oklch, var(--accent) 16%, transparent);
 }

@@ -33,7 +33,6 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.BankLine
 import dev.johnlaff.neko.data.BuyGroup
 import dev.johnlaff.neko.data.InvoiceMonth
@@ -239,9 +238,9 @@ fun FaturasScreen(
             ListRow(
                 name = t.name,
                 value = money(t.amount),
-                avatar = "",
+                avatar = initialOf(t.name),
                 avatarVector = categoryIcon(t.description),
-                avatarIcon = R.drawable.ic_receipt,
+                purchase = true,
                 meta = t.meta,
             )
             OwnerForm(
