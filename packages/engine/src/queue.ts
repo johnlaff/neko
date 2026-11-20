@@ -947,16 +947,24 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   // Someone else's part of a purchase on the owner's cards, planned on each bill's due day from
   // today on, like the method plans a payback ("no dia previsto que você deve receber"): one line
   // per store and person, and one per due day for parcels, to the last. A line already planned
-  // under that name is corrected, and one left behind by a mark taken off goes away.
+  // under that name in the due day's month is kept (or corrected) on its own day, and one left
+  // behind by a mark taken off goes away.
   const dueOf = (l: BankCardLine) => {
     const card = input.cards.find((c) => normalizeName(c.name) === normalizeName(l.card));
     const [y = 0, m = 0] = l.billMonth.split("-").map(Number);
     return card ? cycleForDueMonth(card, y, m).due : null;
   };
-  const planned = (date: LocalDate) =>
-    (ledger.find((r) => r.date === date)?.entrada.items ?? []).filter(
-      (i) => !others.has(normalizeName(i.description)) && !isCardSection(i.section),
-    );
+  // The paybacks planned for a bill: on its due day or on another day of that month, the day the
+  // owner expects the money ("no dia previsto que você deve receber"). The due day comes first.
+  const planned = (due: LocalDate) =>
+    ledger
+      .filter((r) => r.date.slice(0, 7) === due.slice(0, 7))
+      .toSorted((a, b) => Number(b.date === due) - Number(a.date === due))
+      .flatMap((r) =>
+        r.entrada.items
+          .filter((i) => !others.has(normalizeName(i.description)) && !isCardSection(i.section))
+          .map((item) => ({ date: r.date, item })),
+      );
   type Part = {
     person: string;
     name: string;
@@ -979,35 +987,39 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     part.days.set(due, { amount: day.amount + partOf(l, mark), text: day.text });
     shares.set(key, part);
   }
-  // Which planned line stands for a part: its person's name, and a word of the store's.
-  const lineFor = (date: LocalDate, person: string, text: string) =>
-    planned(date).find(
-      (i) => paybackPerson(i.description, [person]) !== null && sharesWord(i.description, text),
-    );
   const claimed = new Set<NoteItem>();
+  // Which planned line stands for a part: its person's name, and a word of the store's.
+  const lineFor = (due: LocalDate, person: string, text: string) =>
+    planned(due).find(
+      ({ item: i }) =>
+        !claimed.has(i) &&
+        paybackPerson(i.description, [person]) !== null &&
+        sharesWord(i.description, text),
+    );
   type PartDay = { date: LocalDate; amount: Cents; line?: LineRef };
   const changes = [...shares.values()].map((part) => ({
     part,
     days: [...part.days]
       .sort(([a], [b]) => a.localeCompare(b))
       .flatMap(([date, d]): PartDay[] => {
-        const line = lineFor(date, part.person, d.text);
-        if (line) claimed.add(line);
-        if (!line) return [{ date, amount: cents(d.amount) }];
+        const found = lineFor(date, part.person, d.text);
+        if (!found) return [{ date, amount: cents(d.amount) }];
+        claimed.add(found.item);
         // An open bill's parcels round their own way: a few cents are not worth a change.
-        if (Math.abs(line.amount - d.amount) < OPEN_BILL_MIN) return [];
-        return [{ date, amount: cents(d.amount), line: refOf(date, line) }];
+        if (Math.abs(found.item.amount - d.amount) < OPEN_BILL_MIN) return [];
+        return [{ date: found.date, amount: cents(d.amount), line: refOf(found.date, found.item) }];
       }),
   }));
   // A planned payback on a due day whose purchase is still on the bill, no longer marked theirs.
-  for (const [date, onBill] of billLines) {
-    for (const i of planned(date)) {
+  for (const [due, onBill] of billLines) {
+    for (const { date, item: i } of planned(due)) {
       const person = paybackPerson(i.description, people);
       if (!person || claimed.has(i) || waits.has(normalizeName(person))) continue;
       const left = onBill.some(
         (l) => sharesWord(i.description, l.description) && markOf(l, owners)?.person !== person,
       );
       if (!left) continue;
+      claimed.add(i);
       const key = `${normalizeName(person)}|${normalizeName(i.description)}`;
       const at = changes.find(
         (c) => `${normalizeName(c.part.person)}|${normalizeName(c.part.name)}` === key,
