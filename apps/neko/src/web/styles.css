@@ -5218,7 +5218,8 @@ fieldset.chip-radios.owner-modes {
 .subs-foot > p {
   margin: 0;
 }
-.subs-foot > p.pos {
+/* What the marks will take off is a plan, not money saved yet: in ink; "Você já cortou" is the fact. */
+.subs-foot > p.due {
   font-weight: 500;
 }
 .subs-foot > p.hint > svg {
@@ -5443,6 +5444,12 @@ button.setting.sub-split > svg {
 }
 .review > .text-link {
   justify-self: center;
+  margin: -8px 0;
+}
+.review-nav {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
   margin: -8px 0;
 }
 .review-done > h2 {

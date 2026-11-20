@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -83,14 +81,14 @@ private fun flagged(r: Subscription) = r.again != null || r.before != null || r.
 
 /** The one or two words a row needs besides its name; the sheet has the rest. */
 @Composable
-private fun SubChips(r: Subscription) {
+private fun SubChips(r: Subscription, wrap: Boolean = false) {
     when {
-        r.again != null -> Chip("Cobrou de novo", ChipTone.Bad)
-        r.before != null -> Chip("Subiu", ChipTone.Warn)
-        r.isNew -> Chip("Nova", ChipTone.Ok)
+        r.again != null -> Chip("Cobrou de novo", ChipTone.Bad, wrap)
+        r.before != null -> Chip("Subiu", ChipTone.Warn, wrap)
+        r.isNew -> Chip("Nova", ChipTone.Ok, wrap)
     }
-    if (r.cancel && r.again == null) Chip("A cancelar", ChipTone.Plain)
-    if (r.split != null) Chip("Dividida", ChipTone.Plain)
+    if (r.cancel && r.again == null) Chip("A cancelar", ChipTone.Plain, wrap)
+    if (r.split != null) Chip("Dividida", ChipTone.Plain, wrap)
 }
 
 private const val SHOWN = 4
@@ -141,7 +139,7 @@ internal fun SubscriptionsPanel(
                     avatarVector = categoryIcon(r.description),
                     avatarIcon = R.drawable.ic_repeat,
                     meta = "${r.card} · dia ${dayOf(r)}",
-                    chips = { SubChips(r) },
+                    chips = { SubChips(r, wrap = true) },
                     inlineChips = true,
                     next = true,
                 )
@@ -149,7 +147,7 @@ internal fun SubscriptionsPanel(
         }
         if (order.size > SHOWN) {
             val more = order.size - SHOWN
-            TextAction(if (all) "Ver menos" else if (more == 1) "Ver mais uma" else "Ver mais $more", { all = !all }, color = l.accent, open = all)
+            TextAction(if (all) "Ver menos" else if (more == 1) "Ver mais uma" else "Ver mais $more", { all = !all }, color = l.accent)
         }
         // Desfazer and its failure are announced; one column with the foot, so an empty one adds no gap.
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -167,13 +165,14 @@ internal fun SubscriptionsPanel(
                 again.forEach { r ->
                     Text(
                         "${nameOf(r.description)} cobrou de novo em ${shortDate(r.again!!)}, depois de marcada para cancelar.",
-                        color = l.warn,
+                        color = l.neg,
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                // A plan, not money saved yet: in ink; "Você já cortou" is the fact.
                 if (subs.toCancel > 0) Text(
                     "${subs.items.count { it.cancel }} a cancelar: ${money(subs.toCancel)} a menos por mês",
-                    color = l.pos,
+                    color = l.text,
                     style = MaterialTheme.typography.labelLarge,
                 )
                 if (subs.cut.total > 0) Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -193,10 +192,15 @@ internal fun SubscriptionsPanel(
             colors = ButtonDefaults.outlinedButtonColors(contentColor = l.text),
             border = BorderStroke(1.dp, l.borderInput),
         ) {
-            Text("Revisar uma a uma", color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
-            if (subs.undecided in 1 until subs.items.size) {
-                Spacer(Modifier.width(8.dp))
-                Text("${subs.undecided} sem decisão", color = l.faint, style = MaterialTheme.typography.labelMedium)
+            // The count goes under the words when both don't fit on one line.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Revisar uma a uma", color = l.text, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+                if (subs.undecided in 1 until subs.items.size) {
+                    Text("${subs.undecided} sem decisão", color = l.faint, style = MaterialTheme.typography.labelMedium)
+                }
             }
         }
         if (subs.hidden.isNotEmpty()) {

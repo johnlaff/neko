@@ -200,7 +200,7 @@ internal fun OwnerForm(
                 person?.let { p ->
                     if (later) "A parte de $p entra na planilha quando o Pix cair."
                     else "A parte de $p aparece em Para lançar como Entrada " +
-                        if (due != null && !monthly && !plan) "em ${shortDate(due)}, quando a fatura vence." else "no vencimento de cada fatura que ainda vai vencer."
+                        if (due != null && !monthly && !plan) "em ${shortDate(due)}, quando a fatura vence." else "em cada fatura que ainda vai vencer."
                 },
             ).joinToString(" "),
             color = l.muted,

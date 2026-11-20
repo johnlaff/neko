@@ -120,9 +120,7 @@ export const Person = ({
         <h2 className="name" ref={title} tabIndex={-1}>
           {o.person}
         </h2>
-        <span className="meta">
-          Parte de {o.person} nas faturas de {monthOf(month)}
-        </span>
+        <span className="meta">Nas faturas de {monthOf(month)}</span>
       </div>
       <BigMoney cents={o.total} tone="plain" />
       {o.later > 0 && (

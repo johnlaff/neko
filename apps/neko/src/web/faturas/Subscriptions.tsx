@@ -285,13 +285,13 @@ export const Subscriptions = ({
       {(again.length > 0 || subs.toCancel > 0 || subs.cut.total > 0) && (
         <div className="subs-foot">
           {again.map((r) => (
-            <p key={r.key} className="warn">
+            <p key={r.key} className="neg">
               {nameOf(r)} cobrou de novo em {shortDate(r.again ?? "")}, depois de marcada para
               cancelar.
             </p>
           ))}
           {subs.toCancel > 0 && (
-            <p className="pos">
+            <p className="due">
               {plural(subs.items.filter((r) => r.cancel).length, "a cancelar", "a cancelar")}:{" "}
               {money(subs.toCancel)} a menos por mês
             </p>

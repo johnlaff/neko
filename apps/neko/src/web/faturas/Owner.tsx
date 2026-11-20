@@ -218,7 +218,7 @@ export const OwnerForm = ({
               person
                 ? later
                   ? `A parte de ${person} entra na planilha quando o Pix cair.`
-                  : `A parte de ${person} aparece em Para lançar como Entrada ${due && !monthly && !plan ? `em ${shortDate(due)}, quando a fatura vence` : "no vencimento de cada fatura que ainda vai vencer"}.`
+                  : `A parte de ${person} aparece em Para lançar como Entrada ${due && !monthly && !plan ? `em ${shortDate(due)}, quando a fatura vence` : "em cada fatura que ainda vai vencer"}.`
                 : null,
             ]
               .filter(Boolean)

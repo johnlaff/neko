@@ -100,7 +100,7 @@ internal fun PersonHead(o: Owed, month: String) {
             PersonAvatar(o.person, 40)
             Column(Modifier.weight(1f)) {
                 PageTitle(o.person)
-                Text("Parte de ${o.person} nas faturas de ${monthWord(month)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
+                Text("Nas faturas de ${monthWord(month)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
             }
         }
         BigMoney(o.total)
