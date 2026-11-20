@@ -53,7 +53,11 @@ export type KeptSetting =
   | "savedOrigins"
   | "writing"
   | "cancel"
+  | "cancelOn"
+  | "kept"
+  | "notSubs"
   | "owners"
+  | "onArrival"
   | "previstoSince"
   | "previstoUndo";
 
@@ -184,11 +188,24 @@ export const api = {
   saveSettings: (s: Omit<UserSettings, KeptSetting> & Partial<Pick<UserSettings, KeptSetting>>) =>
     request<UserSettings>("/settings", { method: "PUT", body: JSON.stringify(s) }),
   banks: () => request<BanksResponse>("/banks"),
-  /** Marks a subscription to cancel, or takes the mark off. */
-  markCancel: (key: string, on: boolean) =>
-    request<{ ok: true }>("/banks/cancel", { method: "PUT", body: JSON.stringify({ key, on }) }),
-  markOwner: (key: string, person: string | null) =>
-    request<{ ok: true }>("/banks/owner", { method: "PUT", body: JSON.stringify({ key, person }) }),
+  /** A subscription's marks: `mark` and `hidden` left out keep that side as it is. */
+  markSubscription: (key: string, marks: { mark?: "cancel" | "keep" | null; hidden?: boolean }) =>
+    request<{ ok: true }>("/banks/subscription", {
+      method: "PUT",
+      body: JSON.stringify({ key, ...marks }),
+    }),
+  /** Whose a purchase is: all of it (`share` null), their `share` of it, or the owner's (null). */
+  markOwner: (key: string, person: string | null, share: number | null = null) =>
+    request<{ ok: true }>("/banks/owner", {
+      method: "PUT",
+      body: JSON.stringify({ key, person, share }),
+    }),
+  /** A person's part: planned on the due day, or only once their Pix lands. */
+  markPerson: (person: string, onArrival: boolean) =>
+    request<{ ok: true }>("/banks/person", {
+      method: "PUT",
+      body: JSON.stringify({ person, onArrival }),
+    }),
   saveBanks: (items: readonly { itemId: string; label: string }[]) =>
     request<{ ok: true }>("/banks", { method: "PUT", body: JSON.stringify({ items }) }),
   mia: () => request<MiaStatus>("/mia"),

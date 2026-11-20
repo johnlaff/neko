@@ -221,6 +221,10 @@ const noteOf = (item: QueueItem): string => {
         ? "A fatura fechou com outro valor no banco."
         : "O banco já tem compras que a planilha não tem.";
     case "entrada":
+      if (draft?.type === "parte")
+        return draft.days.every((d) => d.amount === 0)
+          ? `A compra não é mais de ${draft.person}: a Entrada dessa parte sai da planilha.`
+          : `Parte de ${draft.person} nas suas faturas: entra como Entrada no dia em que a fatura vence.`;
       if (draft?.type === "advance")
         return "Parte do reembolso da fatura chegou antes do dia: o reembolso planejado baixa junto.";
       return draft?.type === "fix"
@@ -293,7 +297,11 @@ export const queueView = (
           })),
           bank: item.bank,
           adjustable: item.options.some(
-            (o) => o.draft !== null && o.draft.type !== "card" && o.draft.type !== "forecast",
+            (o) =>
+              o.draft !== null &&
+              o.draft.type !== "card" &&
+              o.draft.type !== "forecast" &&
+              o.draft.type !== "parte",
           ),
           origin:
             item.bank.length === 1 && item.bank[0] ? originKey(item.bank[0].description) : null,

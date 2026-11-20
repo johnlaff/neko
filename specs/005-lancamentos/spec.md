@@ -113,6 +113,13 @@ com valores diferentes, valor negativo.
      cartão no dia do Pix, e o reembolso planejado da fatura seguinte baixa o mesmo tanto. A
      conferência do reembolso desconta o que chegou desde o vencimento anterior, e nada disso conta
      como renda do dono.
+   - Parte de outra pessoa (Faturas › De quem é): a parte marcada de uma compra num cartão do
+     dono vira Entrada no dia em que cada fatura vence, de hoje em diante, como o método planeja o
+     que vai ser pago de volta ("no dia previsto que você deve receber"): uma linha por loja e
+     pessoa ("Loja de Móveis Bia"), e uma por vencimento numa parcela, até a última. Uma linha já
+     planejada com esse nome é corrigida; a de uma marca tirada sai da planilha. Para quem o dono
+     escolheu "Quando o Pix cair" (`onArrival`), nada é planejado: o Pix vem como Entrada quando
+     chega.
    - Dinheiro para uma conta sua: pergunta uma vez se ela é de guardar. Para ela, Saída em
      `Reserva:`; de volta dela, Entrada em `Reserva:`. O que acontece dentro dela não vira item.
      Um Pix lançado como guardado faz a próxima vez da mesma origem vir como guardado.

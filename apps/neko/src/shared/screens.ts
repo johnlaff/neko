@@ -8,6 +8,7 @@ import {
   type CardConfig,
   type Cents,
   type Change,
+  cardOwner,
   cents,
   cycleForDueMonth,
   daysInMonth,
@@ -30,6 +31,7 @@ import {
   type Pace,
   type PhoneTrust,
   paceMonthly,
+  partOf,
   type Reserve,
   type ReserveSteps,
   reserveSteps,
@@ -67,6 +69,10 @@ export interface BankLineView {
   readonly key: string | null;
   /** Whose it is, when marked as someone else's; null for yours. */
   readonly person: string | null;
+  /** What that person pays of it: all of it, or their share when split; null for yours. */
+  readonly part: number | null;
+  /** A parcel's last bill, `yyyy-MM`; null for anything else. */
+  readonly endsIn: string | null;
   /** Only on the bank's bill PDF: Open Finance left it out (or put it on another bill). */
   readonly fromStatement: boolean;
 }
@@ -83,7 +89,17 @@ export interface InvoiceRow {
   readonly closesInDays: number;
   readonly closingEstimated: boolean;
   readonly others: boolean;
+  /** Whose card it is, for a card someone else pays, when a named person's name is in it. */
+  readonly owner: string | null;
   readonly reimbursed: boolean;
+  /**
+   * Of the bank's lines, the owner's and each other person's part, when someone has one: the bar
+   * "Seu" and "Lia" on the bill. Null when it is all the owner's.
+   */
+  readonly split: {
+    readonly mine: number;
+    readonly theirs: readonly { readonly person: string; readonly amount: number }[];
+  } | null;
   /** The bank's side of this bill; null without a bank, or once it is due. */
   readonly bank: {
     readonly amount: number;
@@ -103,8 +119,13 @@ export interface InvoiceRow {
   readonly history: readonly { readonly month: string; readonly amount: number }[];
 }
 
-/** One person's purchases on a month's bills, each with the bill it is on. */
+/**
+ * One person's part of a month's bills: their own card's bill, when they have one (`card`), and
+ * their purchases on the owner's cards, each with the bill it is on. `total` is both.
+ */
 export interface OwedView extends Omit<Owed, "items"> {
+  /** Their card's bill due that month, as the sheet holds it; null without one. */
+  readonly card: { readonly card: string; readonly amount: number; readonly due: string } | null;
   readonly items: readonly (Omit<Owed["items"][number], "date"> & {
     readonly date: string | null;
     /** Its mark (see engine `ownerKey`), to change whose it is from here. */
@@ -112,6 +133,10 @@ export interface OwedView extends Omit<Owed, "items"> {
     /** The due day of the bill it is on; null when the bank has no bill for its card. */
     readonly due: string | null;
   })[];
+  /** The last bill with a parcel of theirs, `yyyy-MM`, when parcels are still to come. */
+  readonly until: string | null;
+  /** Their part goes into the sheet when their Pix lands, not planned on the due day. */
+  readonly onArrival: boolean;
 }
 
 /** Every card due in one month, with the month's total. */
@@ -165,7 +190,25 @@ export interface InvoicesView {
   readonly subscriptions: SubscriptionsView | null;
   /** Names already used for someone else's purchases, most recent first, to pick again. */
   readonly people: readonly string[];
+  /** People whose part goes into the sheet when their Pix lands, not on the due day. */
+  readonly onArrival: readonly string[];
 }
+
+/** `2026-11` plus `n` months. */
+const monthPlus = (month: string, n: number) => {
+  const [y = 0, m = 1] = month.split("-").map(Number);
+  const at = y * 12 + (m - 1) + n;
+  return `${Math.floor(at / 12)}-${String((at % 12) + 1).padStart(2, "0")}`;
+};
+
+/** The bill a plan's last parcel lands on, from a parcel on `billMonth`; null for no plan. */
+const lastBill = (
+  l: { installment: number | null; installments: number | null },
+  billMonth: string,
+) =>
+  l.installment !== null && l.installments !== null && l.installments > 1
+    ? monthPlus(billMonth, l.installments - l.installment)
+    : null;
 
 /** A bank card line for the screen: no card name (the row has it), no bill month (the month has it). */
 const lineView = (l: BillCheck["lines"][number], owners: readonly OwnerMark[]): BankLineView => {
@@ -179,8 +222,22 @@ const lineView = (l: BillCheck["lines"][number], owners: readonly OwnerMark[]): 
     installments: l.installments,
     key: mark?.key ?? ownerKey(l),
     person: mark?.person ?? null,
+    part: mark ? partOf(l, mark) : null,
+    endsIn: lastBill(l, l.billMonth),
     fromStatement: l.fromStatement ?? false,
   };
+};
+
+/** The owner's and each person's part of a bill's lines; null when all of it is his. */
+const splitOf = (lines: readonly BankLineView[]): InvoiceRow["split"] => {
+  const by = new Map<string, number>();
+  for (const l of lines) if (l.person && l.part) by.set(l.person, (by.get(l.person) ?? 0) + l.part);
+  if (by.size === 0) return null;
+  const all = lines.reduce((sum, l) => sum + Math.max(0, l.amount), 0);
+  const theirs = [...by]
+    .map(([person, amount]) => ({ person, amount }))
+    .sort((a, b) => b.amount - a.amount);
+  return { mine: all - theirs.reduce((sum, t) => sum + t.amount, 0), theirs };
 };
 
 export const invoicesView = (r: ProjectionResponse): InvoicesView => {
@@ -243,6 +300,53 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
     }
     return { ...m, cards: sheetRows.toSorted((a, b) => a.cycle.due.localeCompare(b.cycle.due)) };
   });
+  const people = [...new Set(owners.map((o) => o.person).reverse())];
+  const waits = new Set((r.bank?.onArrival ?? []).map(normalizeName));
+  // Each person's part of a month's bills: their own card's bill, and their purchases on the
+  // owner's cards with the bill each is on. Biggest first.
+  const owedView = (
+    rows: readonly InvoiceRow[],
+    checks: readonly BillCheck[],
+    month: string,
+  ): OwedView[] => {
+    const owed = owedOnBills(
+      checks.flatMap((c) => c.lines ?? []),
+      month,
+      owners,
+    );
+    const cards = rows.filter((r) => r.owner !== null && r.amount > 0);
+    const names = [...new Set([...owed.map((o) => o.person), ...cards.map((r) => r.owner ?? "")])];
+    return names
+      .map((person): OwedView => {
+        const o = owed.find((x) => x.person === person);
+        const card = cards.find((r) => r.owner === person);
+        const items = (o?.items ?? []).map((i) => ({
+          ...i,
+          date: i.date ?? null,
+          key:
+            markOf({ ...i, billMonth: month }, owners)?.key ??
+            ownerKey({ ...i, billMonth: month }) ??
+            "",
+          due: checks.find((c) => normalizeName(c.card) === normalizeName(i.card))?.due ?? null,
+        }));
+        const ends = items
+          .filter((i) => i.later > 0)
+          .map((i) => lastBill(i, month))
+          .filter((x): x is string => x !== null)
+          .sort();
+        return {
+          person,
+          card: card ? { card: card.card, amount: card.amount, due: card.due } : null,
+          total: cents((o?.total ?? 0) + (card?.amount ?? 0)),
+          later: o?.later ?? ZERO,
+          lines: o?.lines ?? 0,
+          items,
+          until: ends.at(-1) ?? null,
+          onArrival: waits.has(normalizeName(person)),
+        };
+      })
+      .sort((a, b) => b.total - a.total || a.person.localeCompare(b.person));
+  };
   const historyOf = (card: string) =>
     months.map((m) => ({
       month: m.month,
@@ -257,6 +361,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
       const rows = m.cards.map((c): InvoiceRow => {
         const check = mine.find((x) => normalizeName(x.card) === normalizeName(c.card));
         const limit = limits.find((x) => normalizeName(x.card) === normalizeName(c.card));
+        const lines = (check?.lines ?? []).map((l) => lineView(l, owners));
         return {
           card: c.card,
           due: c.cycle.due,
@@ -266,7 +371,9 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
           closesInDays: c.closesInDays,
           closingEstimated: c.closingEstimated,
           others: c.others,
+          owner: c.others ? cardOwner(c.card, people) : null,
           reimbursed: c.reimbursed,
+          split: splitOf(lines),
           bank: check
             ? {
                 amount: check.bank,
@@ -275,7 +382,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
                 closed: check.closed ?? false,
                 disagrees: check.disagrees ?? check.gap > 0,
                 onlyParcels: !check.closed && check.parcels > 0 && check.parcels === check.bank,
-                lines: (check.lines ?? []).map((l) => lineView(l, owners)),
+                lines,
               }
             : null,
           limit: limit ? { limit: limit.limit, available: limit.available } : null,
@@ -297,22 +404,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
                 parcels,
                 fresh: sub(add(ZERO, ...mine.map((c) => c.bank)), parcels),
               },
-        owed: owedOnBills(
-          mine.flatMap((c) => c.lines ?? []),
-          m.month,
-          owners,
-        ).map((o) => ({
-          ...o,
-          items: o.items.map((i) => ({
-            ...i,
-            date: i.date ?? null,
-            key:
-              markOf({ ...i, billMonth: m.month }, owners)?.key ??
-              ownerKey({ ...i, billMonth: m.month }) ??
-              "",
-            due: mine.find((c) => normalizeName(c.card) === normalizeName(i.card))?.due ?? null,
-          })),
-        })),
+        owed: owedView(rows, mine, m.month),
       };
     }),
     current: p.invoiceMonth ?? null,
@@ -320,7 +412,8 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
     buyToday: mine.length > 1 ? groups : [],
     bank: r.bank ? { syncedAt: r.bank.syncedAt } : null,
     subscriptions: r.bank?.subscriptions?.items.length ? r.bank.subscriptions : null,
-    people: [...new Set(owners.map((m) => m.person).reverse())],
+    people,
+    onArrival: r.bank?.onArrival ?? [],
   };
 };
 

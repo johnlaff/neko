@@ -228,23 +228,32 @@ export const ceilingReminder = (p: Projection, news: CeilingNews): Reminder | nu
  * up. Opens Faturas, where the subscriptions are.
  */
 export const subscriptionReminder = (news: readonly SubscriptionNews[]): Reminder | null => {
-  const [first, ...rest] = news;
+  // A cancellation that did not go through comes first: there is still time to stop the next one.
+  const [first, ...rest] = news.toSorted(
+    (a, b) => Number(b.kind === "cobrou") - Number(a.kind === "cobrou"),
+  );
   if (!first) return null;
   const name = bankText(first.description);
   const more = rest.map((n) =>
     n.kind === "nova"
       ? `Também nova: ${bankText(n.description)}, ${money(n.amount)}.`
-      : `${bankText(n.description)} subiu para ${money(n.amount)}.`,
+      : n.kind === "cobrou"
+        ? `${bankText(n.description)} também cobrou de novo.`
+        : `${bankText(n.description)} subiu para ${money(n.amount)}.`,
   );
   const lead =
     first.kind === "nova"
       ? `Cobrada no ${first.card} em ${shortDate(first.since)} e ${shortDate(first.date)}. Não reconhece? Conteste no banco.`
-      : `Era ${money(first.before ?? first.amount)} no ${first.card}.`;
+      : first.kind === "cobrou"
+        ? `${money(first.amount)} no ${first.card} em ${shortDate(first.date)}. Você marcou para cancelar em ${shortDate(first.since)}: confira se o cancelamento foi feito.`
+        : `Era ${money(first.before ?? first.amount)} no ${first.card}.`;
   return {
     title:
       first.kind === "nova"
         ? `Assinatura nova: ${name}, ${money(first.amount)} por mês`
-        : `${name} subiu para ${money(first.amount)}`,
+        : first.kind === "cobrou"
+          ? `${name} cobrou de novo`
+          : `${name} subiu para ${money(first.amount)}`,
     body: [lead, ...more].join(" "),
     url: "/faturas",
     tag: "subscription",

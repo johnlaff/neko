@@ -3,7 +3,9 @@ import {
   type BankCardLine,
   cardsBillSpend,
   cents,
+  chargedAgainNews,
   localDate,
+  subscriptionList,
   subscriptionNews,
   subscriptions,
 } from "../src/index.ts";
@@ -48,6 +50,13 @@ describe("subscriptions", () => {
           last: "2026-10-06",
           charges: 3,
           twin: false,
+          charged: [
+            { date: "2026-08-06", amount: 23_90 },
+            { date: "2026-09-06", amount: 23_90 },
+            { date: "2026-10-06", amount: 23_90 },
+          ],
+          before: null,
+          isNew: false,
         },
       ],
     });
@@ -251,5 +260,112 @@ describe("cardsBillSpend", () => {
       }),
     ];
     expect(cardsBillSpend(lines, "2026-11", [])).toBe(88_40);
+  });
+});
+
+describe("subscriptions that go up or are new", () => {
+  it("keeps one that went up on the list at its new value, saying what it was", () => {
+    const r = subscriptions(
+      [
+        line("2026-08-12", "IA ASSISTENTE", 100_00),
+        line("2026-09-12", "IA ASSISTENTE", 100_00),
+        line("2026-10-12", "IA ASSISTENTE", 110_00),
+      ],
+      localDate("2026-11-20"),
+      [],
+    );
+    // 69 days after the last charge of the old value, it still counts: it charged in October.
+    expect(r.items).toMatchObject([
+      { key: "iaassistente|10000", amount: 110_00, before: 100_00, charges: 3, last: "2026-10-12" },
+    ]);
+    expect(r.total).toBe(110_00);
+  });
+
+  it("does not take a big purchase a month later at the same store for a rise", () => {
+    const lines = [
+      line("2026-08-12", "LOJA ONLINE", 19_90),
+      line("2026-09-12", "LOJA ONLINE", 19_90),
+      line("2026-10-12", "LOJA ONLINE", 150_00),
+    ];
+    expect(subscriptions(lines, today, []).items).toMatchObject([{ amount: 19_90, before: null }]);
+    expect(subscriptionNews(lines, today, [])).toEqual([]);
+  });
+
+  it("says a subscription is new for a month after its second charge", () => {
+    const lines = [
+      line("2026-09-21", "CLUBE DO LIVRO", 44_90),
+      line("2026-10-21", "CLUBE DO LIVRO", 44_90),
+    ];
+    expect(subscriptions(lines, localDate("2026-11-10"), []).items[0]?.isNew).toBe(true);
+    expect(subscriptions(lines, localDate("2026-11-25"), []).items[0]?.isNew).toBe(false);
+  });
+});
+
+describe("subscriptionList", () => {
+  const at = localDate("2026-11-20");
+  const monthly = (description: string, amount: number, days: string[], extra = {}) =>
+    days.map((d) => line(d, description, amount, extra));
+  const lines = [
+    ...monthly("NETFLIX", 39_90, ["2026-09-03", "2026-10-03", "2026-11-03"]),
+    ...monthly("MUSICA", 21_90, ["2026-09-12", "2026-10-12", "2026-11-12"]),
+    ...monthly("JORNAL", 9_90, ["2026-09-16", "2026-10-16", "2026-11-16"]),
+    // Marked to cancel in August, and it stopped.
+    ...monthly("APP TREINO", 19_90, ["2026-07-15", "2026-08-15"]),
+  ];
+
+  it("says what is marked, kept, hidden and still to decide, and what was cut", () => {
+    const r = subscriptionList(lines, at, [], {
+      cancel: ["netflix|3990", "apptreino|1990"],
+      kept: ["musica|2190"],
+      hidden: ["jornal|990"],
+    });
+    expect(r.items.map((i) => [i.key, i.cancel, i.kept])).toEqual([
+      ["netflix|3990", true, false],
+      ["musica|2190", false, true],
+    ]);
+    expect(r).toMatchObject({ total: 61_80, toCancel: 39_90, undecided: 0 });
+    expect(r.hidden.map((i) => i.key)).toEqual(["jornal|990"]);
+    expect(r.cut).toEqual({
+      items: [{ key: "apptreino|1990", description: "APP TREINO", amount: 19_90 }],
+      total: 19_90,
+    });
+  });
+
+  it("does not count as cut a store that still charges, at another value", () => {
+    const up = [...lines, line("2026-11-10", "APP TREINO", 24_90)];
+    expect(subscriptionList(up, at, [], { cancel: ["apptreino|1990"] }).cut.items).toEqual([]);
+  });
+
+  it("says when one marked to cancel charged again after the mark, also after it had stopped", () => {
+    const back = [...lines, line("2026-11-15", "APP TREINO", 19_90)];
+    const marks = {
+      cancel: ["netflix|3990", "apptreino|1990"],
+      cancelOn: {
+        "netflix|3990": localDate("2026-10-20"),
+        "apptreino|1990": localDate("2026-08-20"),
+      },
+    };
+    const r = subscriptionList(back, at, [], marks);
+    expect(r.items.filter((i) => i.again).map((i) => [i.key, i.again, i.charges])).toEqual([
+      ["netflix|3990", "2026-11-03", 3],
+      ["apptreino|1990", "2026-11-15", 1],
+    ]);
+    expect(r.cut.items).toEqual([]);
+    // Only the charge of this week is news.
+    expect(
+      chargedAgainNews(r, at, marks.cancelOn).map((n) => [n.kind, n.description, n.date]),
+    ).toEqual([["cobrou", "APP TREINO", "2026-11-15"]]);
+  });
+
+  it("shows who pays part of a subscription split every month", () => {
+    const r = subscriptionList(lines, at, [], {
+      cancel: [],
+      owners: [{ key: "cartao azul|musica|2190|mensal", person: "Lia", share: cents(10_95) }],
+    });
+    const musica = r.items.find((i) => i.key === "musica|2190");
+    expect(musica).toMatchObject({
+      splitKey: "cartao azul|musica|2190|mensal",
+      split: { person: "Lia", share: 10_95 },
+    });
   });
 });

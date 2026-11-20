@@ -13,6 +13,9 @@ export const HIDDEN_MONEY = "R$ ••••";
 export const money = (cents: number) =>
   valuesHidden() ? HIDDEN_MONEY : brl.format(cents / 100).replace("-", "−");
 
+/** The amount as it is, even while values are hidden: for a message the owner chose to send. */
+export const plainMoney = (cents: number) => brl.format(cents / 100).replace("-", "−");
+
 const brlWhole = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",

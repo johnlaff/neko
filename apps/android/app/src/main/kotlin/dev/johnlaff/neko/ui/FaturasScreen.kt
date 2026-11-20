@@ -1,9 +1,9 @@
 package dev.johnlaff.neko.ui
 
 import android.util.Base64
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,11 +13,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,10 +30,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.johnlaff.neko.R
 import dev.johnlaff.neko.data.BankLine
 import dev.johnlaff.neko.data.BuyGroup
 import dev.johnlaff.neko.data.InvoiceMonth
@@ -43,23 +41,54 @@ import dev.johnlaff.neko.data.InvoiceRow
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.Owed
 import dev.johnlaff.neko.data.StatementAnswer
-import dev.johnlaff.neko.data.Subscriptions
-import dev.johnlaff.neko.ui.Format.bankText
+import dev.johnlaff.neko.data.Subscription
+import dev.johnlaff.neko.data.SubscriptionMark
 import dev.johnlaff.neko.ui.Format.capitalize
 import dev.johnlaff.neko.ui.Format.days
-import dev.johnlaff.neko.ui.Format.merchantName
 import dev.johnlaff.neko.ui.Format.money
-import dev.johnlaff.neko.ui.Format.monthName
 import dev.johnlaff.neko.ui.Format.shortDate
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
+ * What Faturas asks the Worker to change, each answering `after(true)` once saved and
+ * `after(false)` when it did not save. The screenshots leave them all as no-ops that say saved.
+ */
+class FaturasActions(
+    /** A subscription's decision (null leaves it), or "Não é assinatura" (hidden); then Faturas read again. */
+    val subscription: (key: String, mark: SubscriptionMark?, hidden: Boolean?, after: (Boolean) -> Unit) -> Unit = { _, _, _, a -> a(true) },
+    /** A decision in "Revisar uma a uma", saved without reading Faturas again. */
+    val review: (key: String, mark: SubscriptionMark, after: (Boolean) -> Unit) -> Unit = { _, _, a -> a(true) },
+    /** The review ended or was left: Faturas read again with its decisions. */
+    val reviewed: () -> Unit = {},
+    /** Whose a purchase is (person null: yours), and their part of each charge when split. */
+    val owner: (key: String, person: String?, share: Long?, after: (Boolean) -> Unit) -> Unit = { _, _, _, a -> a(true) },
+    /** When a person's part goes into the sheet: on the due day, or when their Pix lands. */
+    val person: (person: String, onArrival: Boolean, after: (Boolean) -> Unit) -> Unit = { _, _, a -> a(true) },
+)
+
+/** A purchase whose owner is being picked in the "De quem é?" sheet. */
+internal data class OwnerTarget(
+    val key: String,
+    /** The bank's text, for its icon. */
+    val description: String,
+    /** Its name as the rows write it. */
+    val name: String,
+    val amount: Long,
+    /** Under its name: the card and the parcel or the day. */
+    val meta: String,
+    val current: OwnerNow?,
+    val installments: Int?,
+    val due: String?,
+    val monthly: Boolean,
+)
+
+/**
  * The site's Faturas (web/screens/Faturas.tsx): every card's bills by month, the chosen month's
- * cards with the bank's check, and where to buy today.
+ * cards and who pays back what, where to buy today and the subscriptions. A card, a person and
+ * "Revisar uma a uma" open pages of their own over it, which back closes; a purchase and a
+ * subscription open a sheet.
  */
 @Composable
 fun FaturasScreen(
@@ -68,18 +97,21 @@ fun FaturasScreen(
     onAjustes: () -> Unit,
     /** Para lançar lives on Hoje: where a bill the bank disagrees with gets fixed. */
     onHoje: () -> Unit = {},
-    /** Marks a subscription to cancel, or takes the mark off. */
-    onCancel: (key: String, on: Boolean) -> Unit = { _, _ -> },
-    /** Marks a purchase as someone else's, or as yours again (null). */
-    onOwner: (key: String, person: String?) -> Unit = { _, _ -> },
-    /** The last mark of whose a purchase is did not save. */
-    ownerFailed: Boolean = false,
+    actions: FaturasActions = FaturasActions(),
     /** The bank's bill PDF read, kept by the model so it outlives the screen; null keeps the option out. */
     statement: StatementRead? = null,
     /** Reads the bank's bill PDF (base64). */
     onStatement: (String) -> Unit = {},
+    /** Where it opens: a month (`yyyy-MM`), and a page over it (`cartao:<card>`, `pessoa:<name>`, `revisar`). */
+    startMonth: String? = null,
+    startPage: String? = null,
 ) {
-    var picked by rememberSaveable { mutableStateOf<String?>(null) }
+    var picked by rememberSaveable { mutableStateOf(startMonth) }
+    var page by rememberSaveable { mutableStateOf(startPage) }
+    var subOpen by rememberSaveable { mutableStateOf<String?>(null) }
+    var owner by remember { mutableStateOf<OwnerTarget?>(null) }
+    var gone by remember { mutableStateOf<Subscription?>(null) }
+    BackHandler(enabled = page != null) { page = null }
     ScreenFrame("Faturas", state, { it.readAt }, onRefresh, miaTopic = "faturas") { v ->
         val month = v.months.firstOrNull { it.key == (picked ?: v.current) } ?: v.months.lastOrNull()
         if (!v.hasCards || month == null) {
@@ -92,40 +124,118 @@ fun FaturasScreen(
             }
             return@ScreenFrame
         }
+        val p = page
+        if (p != null) {
+            full { BackRow("Faturas de ${monthWord(month.key)}") { page = null } }
+            val gonePanel = { text: String -> item { Panel { Text(text, color = LocalLedger.current.muted) } } }
+            when {
+                p.startsWith("cartao:") -> {
+                    val name = p.removePrefix("cartao:")
+                    val c = month.cards.firstOrNull { it.card.equals(name, ignoreCase = true) }
+                    if (c == null) gonePanel("$name não tem fatura em ${monthWord(month.key)}.")
+                    else {
+                        item { key(c.card, month.key) { CardHead(c, month.key, v.today) { picked = it } } }
+                        column()
+                        item {
+                            key(c.card, month.key) {
+                                CardLines(c, v.today, v.people) { x -> owner = cardTarget(c, x, month.key) }
+                            }
+                        }
+                    }
+                }
+                p.startsWith("pessoa:") -> {
+                    val name = p.removePrefix("pessoa:")
+                    val o = month.owed.firstOrNull { it.person.equals(name, ignoreCase = true) }
+                    if (o == null) gonePanel("Nada de $name nas faturas de ${monthWord(month.key)}.")
+                    else {
+                        item { key(o.person, month.key) { PersonHead(o, month.key) } }
+                        column()
+                        item { key(o.person, month.key) { PersonLines(o, actions) { i -> owner = personTarget(o, i) } } }
+                    }
+                }
+                else -> {
+                    val subs = v.subscriptions
+                    if (subs == null) gonePanel("Nenhuma assinatura para revisar.")
+                    else item { Review(subs, state.loading, actions) { page = null } }
+                }
+            }
+            return@ScreenFrame
+        }
         item { MonthsPanel(v, month, onHoje) { picked = it } }
         column()
         val pdf = statement.takeIf { v.bank != null }
-        item { CardsPanel(month, v.today, Owners(v.people, onOwner, ownerFailed), pdf, onStatement) { picked = it } }
-        if (month.owed.isNotEmpty()) item { OwedPanel(month, Owners(v.people, onOwner, ownerFailed)) }
+        item { CardsPanel(month, v.today, pdf, onStatement, { picked = it }) { page = "cartao:$it" } }
+        if (month.owed.isNotEmpty()) item { OwedPanel(month) { page = "pessoa:$it" } }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
-        v.subscriptions?.let { item { SubscriptionsPanel(it, onCancel) } }
+        v.subscriptions?.let { subs ->
+            item {
+                SubscriptionsPanel(subs, gone, actions, onOpen = { subOpen = it }, onUndone = { gone = null }) { page = "revisar" }
+            }
+        }
+    }
+    val v = state.view ?: return
+    v.subscriptions?.items?.firstOrNull { it.key == subOpen }?.let { r ->
+        Sheet("Assinatura", onClose = { subOpen = null }) {
+            SubscriptionDetail(r, v.people, v.onArrival, actions) {
+                gone = r
+                subOpen = null
+            }
+        }
+    }
+    owner?.let { t ->
+        Sheet("De quem é?", onClose = { owner = null }) {
+            ListRow(
+                name = t.name,
+                value = money(t.amount),
+                avatar = "",
+                avatarVector = categoryIcon(t.description),
+                avatarIcon = R.drawable.ic_receipt,
+                meta = t.meta,
+            )
+            OwnerForm(
+                amount = t.amount,
+                current = t.current,
+                installments = t.installments,
+                due = t.due,
+                monthly = t.monthly,
+                people = v.people,
+                waits = v.onArrival,
+                onSave = { person, share, after -> actions.owner(t.key, person, share, after) },
+                onDone = { owner = null },
+            )
+        }
     }
 }
 
-private fun monthOf(key: String) = monthName(key.substring(5, 7).toInt())
-private fun shortMonth(key: String) = capitalize(monthOf(key).take(3))
+/** A purchase on a card's page, for "De quem é?". */
+private fun cardTarget(c: InvoiceRow, x: BankLine, month: String) = OwnerTarget(
+    key = x.key.orEmpty(),
+    description = x.description,
+    name = bankLineName(x),
+    amount = x.amount,
+    meta = "${c.card} · " + when {
+        isParcel(x) -> "parcela ${x.installment} de ${x.installments}"
+        x.date != null -> shortDate(x.date)
+        else -> "fatura de ${monthWord(month)}"
+    },
+    current = x.person?.let { OwnerNow(it, x.part) },
+    installments = x.installments,
+    due = c.due,
+    monthly = false,
+)
 
-/** `vence hoje`, `vence amanhã`, `vence 12 nov`, as on the site. */
-private fun dueText(due: String, today: String) =
-    when (ChronoUnit.DAYS.between(LocalDate.parse(today), LocalDate.parse(due))) {
-        0L -> "vence hoje"
-        1L -> "vence amanhã"
-        else -> "vence ${shortDate(due)}"
-    }.replace(' ', '\u00a0') // a wrap falls at the "·", never inside the date
-
-/** Where the bill stands, in one line: the row's only words besides its name. */
-private fun stateLine(c: InvoiceRow, today: String): String =
-    (if (c.others) "De outra pessoa · " else if (c.reimbursed) "Reembolsada · " else "") + billState(c, today)
-
-private fun billState(c: InvoiceRow, today: String): String {
-    if (c.state == "due") return "Venceu ${shortDate(c.due)}"
-    val due = dueText(c.due, today)
-    if (c.state == "closed" || c.bank?.closed == true) return "Fechada · $due"
-    if (c.state == "future") return capitalize(due)
-    val open = if (c.bank?.onlyParcels == true) "Só parcelas por enquanto"
-    else Format.closesIn(c.closesInDays) + if (c.closingEstimated) " (estimado)" else ""
-    return "$open · $due"
-}
+/** One of a person's purchases, for "De quem é?" from their page. */
+private fun personTarget(o: Owed, i: dev.johnlaff.neko.data.OwedItem) = OwnerTarget(
+    key = i.key,
+    description = i.description,
+    name = bankLineName(BankLine(i.description, i.amount, installment = i.installment)),
+    amount = i.amount,
+    meta = listOfNotNull(i.card, itemWhen(i)?.let(::capitalize)).joinToString(" · "),
+    current = OwnerNow(o.person, i.part.takeIf { it < i.amount }),
+    installments = i.installments,
+    due = i.due,
+    monthly = i.key.endsWith("|mensal"),
+)
 
 /** A sample of what a mark means, beside its words (the site's `.columns-key`). */
 @Composable
@@ -146,7 +256,7 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onHoje: () -> Unit, on
             v.bank?.syncedAt?.let { Text("Banco lido ${shortDate(it.take(10))}", color = l.faint, style = MaterialTheme.typography.labelMedium) }
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${if (m.past) "Saiu da conta" else "Sai da conta"} em ${monthOf(m.key)}", color = l.muted)
+            Text("${if (m.past) "Saiu da conta" else "Sai da conta"} em ${monthWord(m.key)}", color = l.muted)
             BigMoney(m.total)
             m.bank?.let { b ->
                 if (b.disagree == 0) Text("✓ Banco não ultrapassa a planilha", color = l.pos)
@@ -164,9 +274,9 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onHoje: () -> Unit, on
             items = v.months.map { x ->
                 Bar(
                     key = x.key,
-                    label = shortMonth(x.key),
+                    label = shortMonthWord(x.key),
                     value = x.total,
-                    description = "${capitalize(monthOf(x.key))}: ${money(x.total)}${if (x.future) ", já na planilha" else ""}",
+                    description = "${capitalize(monthWord(x.key))}: ${money(x.total)}${if (x.future) ", já na planilha" else ""}",
                     picked = x.key == m.key,
                     faint = x.future,
                 )
@@ -184,37 +294,80 @@ private fun MonthsPanel(v: InvoicesView, m: InvoiceMonth, onHoje: () -> Unit, on
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CardsPanel(
     m: InvoiceMonth,
     today: String,
-    owners: Owners,
     statement: StatementRead?,
     onStatement: (String) -> Unit,
-    onPick: (String) -> Unit,
+    onPickMonth: (String) -> Unit,
+    onOpen: (String) -> Unit,
 ) {
     val l = LocalLedger.current
     Panel {
         PanelHead("Cartões") {
-            Text("Vencem em ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
+            Text("Vencem em ${monthWord(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
         if (m.cards.isEmpty()) Text("Nenhuma fatura neste mês.", color = l.muted)
-        // By card only: it stays open while its chart picks another month.
-        m.cards.forEach { key(it.card) { InvoiceLine(it, m.key, today, alone = m.cards.size == 1, owners, onPick) } }
-        statement?.let { StatementUpload(it, m.key, onStatement, onPick) }
+        m.cards.forEach { c -> key(c.card) { InvoiceLine(c, today) { onOpen(c.card) } } }
+        statement?.let { StatementUpload(it, m.key, onStatement, onPickMonth) }
     }
 }
 
-private fun plural(n: Int, one: String, many: String) = "$n ${if (n == 1) one else many}"
+/** A card's bill in the month's list: a tap opens its own page. */
+@Composable
+private fun InvoiceLine(c: InvoiceRow, today: String, onOpen: () -> Unit) {
+    ListRow(
+        name = c.card,
+        value = money(c.amount),
+        modifier = Modifier.clickable(onClickLabel = "abrir a fatura", onClick = onOpen),
+        avatar = monogram(c.card),
+        card = c.card,
+        meta = billStateLine(c, today),
+        chips = {
+            // The bank only shows up when the sheet should change.
+            c.bank?.takeIf { it.disagrees }?.let { b ->
+                Chip("Banco ${if (b.gap > 0) "+" else "−"}${money(kotlin.math.abs(b.gap))}", ChipTone.Warn)
+            }
+        },
+        next = true,
+    )
+}
+
+/** Someone else's part of the month's bills: what each will pay back, each opening their page. */
+@Composable
+private fun OwedPanel(m: InvoiceMonth, onOpen: (String) -> Unit) {
+    val l = LocalLedger.current
+    Panel {
+        PanelHead("A receber") {
+            Text("Faturas de ${monthWord(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
+        }
+        m.owed.forEach { o ->
+            key(o.person) {
+                val what = listOfNotNull(o.card?.card, if (o.lines > 0) countOf(o.lines, "compra", "compras") else null)
+                ListRow(
+                    name = o.person,
+                    value = money(o.total),
+                    modifier = Modifier.clickable(onClickLabel = "abrir") { onOpen(o.person) },
+                    // A person, not a card: one initial, in the accent's tint (as on the site).
+                    avatar = o.person.take(1).uppercase(),
+                    accent = true,
+                    meta = what.joinToString(" e ") + if (o.later > 0) " · mais ${money(o.later)} em parcelas" else "",
+                    next = true,
+                )
+            }
+        }
+        Text("Fica fora do teto. A parte de cada pessoa aparece em Para lançar como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+    }
+}
 
 /** What a read of the bill PDF came to, in a sentence (the site's `statementText`). */
 internal fun statementText(a: StatementAnswer): String {
     val bill = "Fatura que vence em ${shortDate(a.due ?: "")} lida"
     return when {
         a.read && a.added.isEmpty() ->
-            "$bill: ${plural(a.lines, "linha", "linhas")} em ${plural(a.cards, "cartão", "cartões")}, e o banco já tinha mandado todas."
-        a.read -> "$bill. Entraram nela ${plural(a.added.size, "linha", "linhas")} que o banco não tinha mandado:"
+            "$bill: ${countOf(a.lines, "linha", "linhas")} em ${countOf(a.cards, "cartão", "cartões")}, e o banco já tinha mandado todas."
+        a.read -> "$bill. Entraram nela ${countOf(a.added.size, "linha", "linhas")} que o banco não tinha mandado:"
         // A no-break space keeps "final" with its digits.
         a.reason == "mismatch" -> "As somas do PDF não fecharam" +
             (a.problems.firstNotNullOfOrNull { it.card }?.let { " no cartão final\u00a0$it" } ?: "") +
@@ -278,267 +431,10 @@ private fun StatementUpload(s: StatementRead, month: String, onRead: (String) ->
                 // The lines landed on the bill's own month, which may not be the one on screen.
                 val due = a.due?.take(7)
                 if (a.read && a.added.isNotEmpty() && due != null && due != month) {
-                    TextAction("Ver ${monthOf(due)}", { onPick(due) }, color = l.accent)
+                    TextAction("Ver ${monthWord(due)}", { onPick(due) }, color = l.accent)
                 }
             }
             s.failed?.let { Text(it, color = l.warn, style = MaterialTheme.typography.bodySmall) }
-        }
-    }
-}
-
-@Composable
-private fun InvoiceLine(c: InvoiceRow, month: String, today: String, alone: Boolean, owners: Owners, onPick: (String) -> Unit) {
-    var open by rememberSaveable(c.card) { mutableStateOf(false) }
-    Column {
-        ListRow(
-            name = c.card,
-            value = money(c.amount),
-            // The whole line opens the bill's details, as on the site.
-            modifier = Modifier.clickable(onClickLabel = if (open) "fechar detalhes" else "ver detalhes") { open = !open },
-            avatar = monogram(c.card),
-            card = c.card,
-            meta = stateLine(c, today),
-            chips = {
-                // The bank only shows up when the sheet should change.
-                c.bank?.takeIf { it.disagrees }?.let { b ->
-                    Chip("Banco ${if (b.gap > 0) "+" else "−"}${money(kotlin.math.abs(b.gap))}", ChipTone.Warn)
-                }
-            },
-            open = open,
-        )
-        Reveal(open) { Detail(c, month, today, alone, owners, onPick) }
-    }
-}
-
-/** `3/10 · Faltam 7`, the way a bill writes a parcel. */
-private fun parcelText(l: BankLine): String? {
-    val n = l.installment ?: return null
-    val total = l.installments ?: return null
-    return "$n/$total · " + if (total > n) "Faltam ${total - n}" else "Última"
-}
-
-/** The bank writes the parcel into the text too ("LOJA PARC 03/06"); the line already says it. */
-internal fun bankLineName(l: BankLine) = bankText(
-    Format.merchantName(
-        if (l.installment == null) l.description
-        else l.description.replace(Regex("""\s*(parc(ela)?\.?\s*)?\d{1,2}\s*/\s*\d{1,2}\s*$""", RegexOption.IGNORE_CASE), ""),
-    ),
-)
-
-private const val LINES_SHOWN = 8
-
-/** Who the bank's lines can be marked for, how to mark one, and whether the last mark failed. */
-private data class Owners(val people: List<String>, val onOwner: (String, String?) -> Unit, val failed: Boolean)
-
-@Composable
-private fun BankLines(title: String, lines: List<BankLine>, owners: Owners, hint: Boolean) {
-    if (lines.isEmpty()) return
-    val l = LocalLedger.current
-    var all by remember(lines) { mutableStateOf(false) }
-    // Closed by default: a bill can bring dozens of lines, the details above come first.
-    var open by rememberSaveable(title) { mutableStateOf(false) }
-    var picking by remember(lines) { mutableStateOf<Int?>(null) }
-    Column {
-    // A full-width row with its chevron at the edge, like the card rows above it.
-    Row(
-        Modifier.fillMaxWidth().clickable { open = !open }.heightIn(min = 48.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text("$title (${lines.size})", color = l.muted, style = MaterialTheme.typography.labelLarge)
-        Disclosure(open, l.muted)
-    }
-    Reveal(open) { Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (hint) Text("Toque numa compra que é de outra pessoa.", color = l.muted, style = MaterialTheme.typography.bodySmall)
-        (if (all) lines else lines.take(LINES_SHOWN)).forEachIndexed { i, x ->
-            val when_ = parcelText(x) ?: x.date?.let(::shortDate)
-            val tint = if (x.person != null) l.muted else l.text
-            Column {
-                Row(
-                    Modifier.fillMaxWidth()
-                        .background(if (picking == i) l.surface2 else androidx.compose.ui.graphics.Color.Transparent, RoundedCornerShape(8.dp))
-                        .then(if (x.key != null) Modifier.clickable(onClickLabel = "marcar de quem é") { picking = if (picking == i) null else i } else Modifier)
-                        .heightIn(min = 44.dp)
-                        .padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(bankLineName(x), style = MaterialTheme.typography.bodyMedium)
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            // Someone else's: "De Bia", the amount quieter, never struck through
-                            // (the money still leaves your account to pay the bill).
-                            val meta = listOfNotNull(x.person?.let { "De $it" }, when_, "da fatura em PDF".takeIf { x.fromStatement })
-                                .joinToString(" · ").ifEmpty { null }
-                            meta?.let { Text(it, color = if (x.person != null) l.muted else l.faint, style = MaterialTheme.typography.labelMedium) }
-                        }
-                    }
-                    Text(money(x.amount), color = tint, style = MaterialTheme.typography.bodyMedium)
-                }
-                val key = x.key
-                // The picker stays open while saving; the screen read again with the mark closes it.
-                if (picking == i && key != null) OwnerPick(x, key, owners)
-            }
-        }
-        if (!all && lines.size > LINES_SHOWN) TextAction("Ver mais ${lines.size - LINES_SHOWN}", { all = true })
-    } }
-    }
-}
-
-/**
- * Whose a purchase is: someone named before, a new name, or yours again. A parcel takes its whole
- * plan along, so every later bill follows.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun OwnerPick(line: BankLine, key: String, owners: Owners) {
-    val l = LocalLedger.current
-    val people = owners.people
-    var name by remember(key) { mutableStateOf("") }
-    var saving by remember(key) { mutableStateOf(false) }
-    // A failure seen before this tap is not this save's.
-    var failedBefore by remember(key) { mutableStateOf(owners.failed) }
-    if (saving && owners.failed && !failedBefore) saving = false
-    val onPick = { person: String? ->
-        failedBefore = false
-        saving = true
-        owners.onOwner(key, person)
-    }
-    Column(Modifier.padding(top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            if ((line.installments ?: 1) > 1) "De quem são estas parcelas? Vale para todas." else "De quem é esta compra?",
-            color = l.muted,
-            style = MaterialTheme.typography.bodySmall,
-        )
-        if (people.isNotEmpty() || line.person != null) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            people.forEach { p -> Choice(p, line.person == p) { if (line.person != p) onPick(p) } }
-            if (line.person != null) Choice("É minha", false) { onPick(null) }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            androidx.compose.material3.OutlinedTextField(
-                value = name,
-                onValueChange = { name = it.take(40) },
-                singleLine = true,
-                placeholder = { Text(if (people.isEmpty()) "Nome da pessoa" else "Outra pessoa", color = l.faint) },
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words,
-                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
-                ),
-                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { if (name.isNotBlank()) onPick(name.trim()) }),
-                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(focusedBorderColor = l.accent, unfocusedBorderColor = l.borderInput),
-                modifier = Modifier.weight(1f).semantics { contentDescription = "Nome de outra pessoa" },
-            )
-            TextAction("Marcar", { onPick(name.trim()) }, enabled = name.isNotBlank() && !saving)
-        }
-        if (saving) Text("Salvando…", color = l.muted, style = MaterialTheme.typography.bodySmall)
-        else if (owners.failed && !failedBefore) Text("Não salvou. Tente de novo.", color = l.warn, style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-/** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
-@Composable
-private fun OwedPanel(m: InvoiceMonth, owners: Owners) {
-    val l = LocalLedger.current
-    Panel {
-        PanelHead("A receber") {
-            Text("Faturas de ${monthOf(m.key)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
-        }
-        m.owed.forEach { o -> key(o.person) { OwedLine(o, owners) } }
-        Text("Fica fora do teto do mês. Quando pagarem, lance como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-/** One person: what they owe on the month's bills, opening into each purchase (as on the site). */
-@Composable
-private fun OwedLine(o: Owed, owners: Owners) {
-    val l = LocalLedger.current
-    var open by rememberSaveable(o.person) { mutableStateOf(false) }
-    Column {
-        ListRow(
-            name = o.person,
-            value = money(o.total),
-            modifier = Modifier.clickable(onClickLabel = if (open) "fechar compras" else "ver compras") { open = !open },
-            // A person, not a card: one initial, in the accent's tint (as on the site).
-            avatar = o.person.take(1).uppercase(),
-            accent = true,
-            meta = (if (o.lines == 1) "1 compra" else "${o.lines} compras") +
-                if (o.later > 0) " · mais ${money(o.later)} nas próximas parcelas" else "",
-            open = open,
-        )
-        Reveal(open) {
-            Column(Modifier.padding(start = 48.dp, top = 8.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                o.items.forEach { i ->
-                    // A tap opens the same "De quem é?" as on the bill, to fix a mark from here.
-                    var picking by remember(i) { mutableStateOf(false) }
-                    val parcel = i.installment?.let { k -> i.installments?.takeIf { it > 1 }?.let { t -> "parcela $k de $t · " + if (i.later > 0) "faltam ${money(i.later)}" else "última" } }
-                    val whenText = listOfNotNull(i.date?.let(::shortDate), parcel).joinToString(" · ")
-                    Column {
-                        Row(
-                            Modifier.fillMaxWidth()
-                                .background(if (picking) l.surface2 else androidx.compose.ui.graphics.Color.Transparent, RoundedCornerShape(8.dp))
-                                .clickable(onClickLabel = "marcar de quem é") { picking = !picking }
-                                .heightIn(min = 44.dp)
-                                .padding(vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(bankLineName(BankLine(i.description, i.amount, installment = i.installment)), style = MaterialTheme.typography.bodyMedium)
-                                Text(i.card + (i.due?.let { " · vence ${shortDate(it)}" } ?: ""), color = l.faint, style = MaterialTheme.typography.labelMedium)
-                                if (whenText.isNotEmpty()) Text(capitalize(whenText), color = l.faint, style = MaterialTheme.typography.labelMedium)
-                            }
-                            Text(money(i.amount), style = MaterialTheme.typography.bodyMedium)
-                        }
-                        if (picking && i.key.isNotEmpty()) OwnerPick(
-                            BankLine(i.description, i.amount, i.date, i.installment, i.installments, i.key, o.person),
-                            i.key,
-                            owners,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** Everything about one card's bill, opened from its row; a month's only card has the top chart as its history. */
-@Composable
-private fun Detail(c: InvoiceRow, month: String, today: String, alone: Boolean, owners: Owners, onPick: (String) -> Unit) {
-    val l = LocalLedger.current
-    Column(Modifier.padding(start = 48.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // The bill's facts on their own tinted block, set apart from the bank's lines below.
-        Column(
-            Modifier.fillMaxWidth().background(l.surface2, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            LedgerLine("Fecha", shortDate(c.closing) + if (c.closingEstimated) " (estimado)" else "")
-            c.bank?.let { b ->
-                LedgerLine(if (b.closed) "No banco, fechada" else "No banco até agora", money(b.amount), color = if (b.disagrees) l.warn else l.text)
-            }
-            c.limit?.let { x -> LedgerLine("Limite livre", money(x.available)) }
-        }
-        if (!alone && c.history.count { it.amount != 0L } > 1) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Faturas do ${c.card}", color = l.faint, style = MaterialTheme.typography.labelMedium)
-                Columns(
-                    items = c.history.map { h ->
-                        Bar(
-                            key = h.month,
-                            label = shortMonth(h.month),
-                            value = h.amount,
-                            description = "${capitalize(monthOf(h.month))}: ${money(h.amount)}",
-                            picked = h.month == month,
-                            faint = h.month > today.take(7),
-                        )
-                    },
-                    // A month without this card's bill would close it: those bars stay put.
-                    onSelect = { k -> if (c.history.any { it.month == k && it.amount != 0L }) onPick(k) },
-                    height = 64.dp,
-                )
-            }
-        }
-        c.bank?.let { b ->
-            // The lists say their lines can be tapped until someone has been named once.
-            BankLines("Compras novas no banco", b.lines.filter { (it.installments ?: 1) <= 1 }, owners, hint = owners.people.isEmpty())
-            BankLines("Parcelas no banco", b.lines.filter { (it.installments ?: 1) > 1 }, owners, hint = owners.people.isEmpty())
         }
     }
 }
@@ -569,41 +465,5 @@ private fun BuyToday(groups: List<BuyGroup>, onAjustes: () -> Unit) {
             Reveal(all) { groups.drop(1).forEach { BuyLine(it, best = false) } }
         }
         if (groups.any { it.estimated }) TextAction("Dias com ≈ são estimados. Corrigir em Ajustes", onAjustes)
-    }
-}
-
-/**
- * Charges of the same value back each month on the owner's cards, with a mark for the ones to
- * cancel: the method tags them all to cancel on one day. Only what was charged; nothing ahead.
- */
-@Composable
-private fun SubscriptionsPanel(subs: Subscriptions, onCancel: (String, Boolean) -> Unit) {
-    val l = LocalLedger.current
-    // The tap shows at once; the next read of the screen brings the Worker's own marks.
-    var marks by remember(subs) { mutableStateOf(subs.items.associate { it.key to it.cancel }) }
-    Panel {
-        PanelHead("Assinaturas") {
-            Text("${money(subs.total)} por mês", color = l.faint, style = MaterialTheme.typography.labelMedium)
-        }
-        Text("Marque o que você vai cancelar.", color = l.muted, style = MaterialTheme.typography.bodySmall)
-        subs.items.forEach { i ->
-            key(i.key) {
-                val name = bankText(merchantName(i.description))
-                val on = marks[i.key] ?: i.cancel
-                ListRow(
-                    name = name,
-                    value = money(i.amount),
-                    meta = "${i.card} · ${i.charges} cobranças · última ${shortDate(i.last)}" +
-                        if (i.twin) " · outro plano na mesma loja" else "",
-                    chips = {
-                        Toggle(if (on) "✓ Vou cancelar" else "Vou cancelar", on, "Vou cancelar $name") {
-                            marks = marks + (i.key to !on)
-                            onCancel(i.key, !on)
-                        }
-                    },
-                )
-            }
-        }
-        if (subs.toCancel > 0) Text("Marcadas: ${money(subs.toCancel)} a menos por mês", color = l.pos, style = MaterialTheme.typography.labelLarge)
     }
 }

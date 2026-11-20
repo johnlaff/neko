@@ -36,6 +36,31 @@ class ScreensContractTest {
         val checked = v.months.flatMap { it.cards }.mapNotNull { it.bank }
         assertTrue(checked.isNotEmpty())
         assertTrue(checked.any { it.lines.isNotEmpty() })
+        // Someone else's part: the bill's split, each line's part and plan, the person's month.
+        val nov = v.months.single { it.key == "2026-11" }
+        val azul = nov.cards.single { it.card == "Cartão Azul" }
+        val split = azul.split!!
+        assertEquals("Bia", split.theirs.single().person)
+        val lines = azul.bank!!.lines
+        val desk = lines.single { it.person == "Bia" && it.installments == 6 }
+        assertEquals(desk.amount / 2, desk.part)
+        assertEquals("2027-02", desk.endsIn)
+        val bia = nov.owed.single()
+        assertEquals(bia.items.sumOf { it.part }, bia.total)
+        assertEquals("2027-02", bia.until)
+        assertEquals(false, bia.onArrival)
+        assertEquals(listOf("Bia"), v.people)
+        assertEquals(emptyList<String>(), v.onArrival)
+        // The subscriptions with the owner's marks: to cancel, kept, cut, split, charged again.
+        val subs = v.subscriptions!!
+        assertTrue(subs.undecided in 1 until subs.items.size)
+        assertEquals(subs.items.filter { it.cancel }.sumOf { it.amount }, subs.toCancel)
+        assertEquals(subs.cut.items.sumOf { it.amount }, subs.cut.total)
+        assertTrue(subs.items.any { it.again != null && it.cancel })
+        assertTrue(subs.items.any { it.kept })
+        assertTrue(subs.items.any { it.before != null })
+        assertEquals("Bia", subs.items.single { it.split != null }.split!!.person)
+        assertTrue(subs.items.all { it.splitKey?.endsWith("|mensal") == true && it.charged.isNotEmpty() })
     }
 
     @Test fun months() {

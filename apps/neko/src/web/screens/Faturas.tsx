@@ -1,464 +1,45 @@
+import { normalizeName } from "@neko/engine";
 import {
   type MutationState,
   useMutation,
   useMutationState,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, useCanGoBack, useNavigate, useRouter, useSearch } from "@tanstack/react-router";
 import {
-  type BankLineView,
   type BuyGroup,
   type InvoiceMonthView,
   type InvoiceRow,
   invoicesView,
   type OwedView,
 } from "../../shared/screens.ts";
-import type { StatementAnswer, SubscriptionsView } from "../../shared/types.ts";
+import type { StatementAnswer } from "../../shared/types.ts";
 import { api, reasonOf } from "../api.ts";
 import { Board } from "../Board.tsx";
 import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
-import {
-  bankLineName,
-  bankText,
-  capitalize,
-  closesIn,
-  days,
-  merchantName,
-  money,
-  monthName,
-  shortDate,
-} from "../format.ts";
+import { CardBill } from "../faturas/CardBill.tsx";
+import { Person } from "../faturas/Person.tsx";
+import { Review, Subscriptions } from "../faturas/Subscriptions.tsx";
+import type { FaturasSearch } from "../faturas/search.ts";
+import { monthOf, plural, shortMonth, stateLine } from "../faturas/text.ts";
+import { bankText, capitalize, days, merchantName, money, shortDate } from "../format.ts";
 import { Hint } from "../Hint.tsx";
-import { IconChevron } from "../icons.tsx";
+import { IconChevron, IconChevronLeft } from "../icons.tsx";
 import { CARDS_COME_FROM, HINTS } from "../learn.ts";
 import { WithProjection } from "../useProjection.tsx";
 
-const monthOf = (key: string) => monthName(Number(key.slice(5, 7)));
-const shortMonth = (key: string) => capitalize(monthOf(key).slice(0, 3));
-const dayIndex = (iso: string) => Date.parse(`${iso}T12:00:00Z`) / 86_400_000;
-
-/** `vence hoje`, `vence amanhã`, `vence 12 nov`. */
-const dueText = (due: string, today: string) => {
-  const d = Math.round(dayIndex(due) - dayIndex(today));
-  // Non-breaking: a wrap falls at the "·", never inside the date.
-  return (d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence ${shortDate(due)}`).replaceAll(
-    " ",
-    "\u00a0",
-  );
-};
-
-/** Where the bill stands, in one line: the row's only words besides its name. */
-const stateLine = (c: InvoiceRow, today: string) => {
-  const who = c.others ? "De outra pessoa · " : c.reimbursed ? "Reembolsada · " : "";
-  return who + billState(c, today);
-};
-
-const billState = (c: InvoiceRow, today: string) => {
-  if (c.state === "due") return `Venceu ${shortDate(c.due)}`;
-  const due = dueText(c.due, today);
-  if (c.state === "closed" || c.bank?.closed) return `Fechada · ${due}`;
-  if (c.state === "future") return capitalize(due);
-  const open = c.bank?.onlyParcels
-    ? "Só parcelas por enquanto"
-    : `${closesIn(c.closesInDays)}${c.closingEstimated ? " (estimado)" : ""}`;
-  return `${open} · ${due}`;
-};
-
-/** `3/10 · Faltam 7`, the way a bill writes a parcel. */
-const parcelText = (l: BankLineView) =>
-  l.installment !== null && l.installments !== null
-    ? `${l.installment}/${l.installments}${l.installments > l.installment ? ` · Faltam ${l.installments - l.installment}` : " · Última"}`
-    : null;
-
-const LINES_SHOWN = 8;
-
-/**
- * Whose a purchase is: someone you named before, a new name, or yours again. A parcel takes its
- * whole plan along, so every later bill follows.
- */
-const OwnerPick = ({
-  line,
-  people,
-  onDone,
-}: {
-  line: Pick<BankLineView, "installments" | "person"> & { key: string };
-  people: readonly string[];
-  onDone: () => void;
-}) => {
-  const queryClient = useQueryClient();
-  const [name, setName] = useState("");
-  const save = useMutation({
-    mutationFn: (person: string | null) => api.markOwner(line.key, person),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["projection"] });
-      onDone();
-    },
-  });
-  const plan = (line.installments ?? 1) > 1;
-  return (
-    <div className="owner-pick">
-      <p className="hint">
-        {plan ? "De quem são estas parcelas? Vale para todas." : "De quem é esta compra?"}
-      </p>
-      <div className="owner-chips">
-        {people.map((p) => (
-          <button
-            key={p}
-            type="button"
-            className="chip-button"
-            aria-pressed={line.person === p}
-            disabled={save.isPending}
-            onClick={() => (line.person === p ? onDone() : save.mutate(p))}
-          >
-            {p}
-          </button>
-        ))}
-        {line.person && (
-          <button
-            type="button"
-            className="chip-button"
-            disabled={save.isPending}
-            onClick={() => save.mutate(null)}
-          >
-            É minha
-          </button>
-        )}
-      </div>
-      <form
-        className="owner-new"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (name.trim()) save.mutate(name.trim());
-        }}
-      >
-        <input
-          aria-label="Nome de outra pessoa"
-          placeholder={people.length > 0 ? "Outra pessoa" : "Nome da pessoa"}
-          autoCapitalize="words"
-          autoComplete="off"
-          maxLength={40}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <button type="submit" className="ghost small" disabled={save.isPending || !name.trim()}>
-          Marcar
-        </button>
-      </form>
-      {save.isPending && (
-        <p className="saving" role="status">
-          Salvando…
-        </p>
-      )}
-      {save.isError && (
-        <p className="warn" role="alert">
-          Não salvou. Tente de novo.
-        </p>
-      )}
-    </div>
-  );
-};
-
-const BankLines = ({
-  title,
-  lines,
-  people,
-  hint,
-}: {
-  title: string;
-  lines: readonly BankLineView[];
-  people: readonly string[];
-  /** Says the lines can be tapped, until someone has been named once. */
-  hint: boolean;
-}) => {
-  const [all, setAll] = useState(false);
-  const [picking, setPicking] = useState<number | null>(null);
-  if (lines.length === 0) return null;
-  const shown = all ? lines : lines.slice(0, LINES_SHOWN);
-  return (
-    // Closed by default: a bill can bring dozens of lines, the details above come first.
-    <details className="formula bank-lines">
-      <summary>
-        {title} ({lines.length})
-        <IconChevron />
-      </summary>
-      {hint && <p className="hint">Toque numa compra que é de outra pessoa.</p>}
-      <ul>
-        {shown.map((l, i) => {
-          const when = parcelText(l) ?? (l.date ? shortDate(l.date) : "");
-          const body = (
-            <>
-              <span className="text">
-                {bankLineName(l)}
-                <small>
-                  {[l.person && `De ${l.person}`, when, l.fromStatement && "da fatura em PDF"]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </small>
-              </span>
-              <span className="amount">{money(l.amount)}</span>
-            </>
-          );
-          return (
-            // The bank sends the same text twice for two equal purchases: the index tells them apart.
-            // biome-ignore lint/suspicious/noArrayIndexKey: lines have no id of their own here.
-            <li key={`${l.description}-${l.date}-${i}`} className={l.person ? "theirs" : undefined}>
-              {l.key === null ? (
-                body
-              ) : (
-                <button
-                  type="button"
-                  className="line-pick"
-                  aria-expanded={picking === i}
-                  aria-label={`${bankLineName(l)}, ${money(l.amount)}${l.person ? `, de ${l.person}` : ""}: marcar de quem é`}
-                  onClick={() => setPicking(picking === i ? null : i)}
-                >
-                  {body}
-                </button>
-              )}
-              {picking === i && l.key !== null && (
-                <OwnerPick
-                  line={{ ...l, key: l.key }}
-                  people={people}
-                  onDone={() => setPicking(null)}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {lines.length > shown.length && (
-        <button type="button" className="ghost small" onClick={() => setAll(true)}>
-          Ver mais {lines.length - shown.length}
-        </button>
-      )}
-    </details>
-  );
-};
-
-/** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
-/**
- * Where someone else's purchase is: the card and its bill's due day, the day bought and the parcels
- * left. A tap opens the same "De quem é?" as on the bill, to fix a mark from here.
- */
-const OwedItemLine = ({
-  i,
-  person,
-  people,
-}: {
-  i: OwedView["items"][number];
-  person: string;
-  people: readonly string[];
-}) => {
-  const [picking, setPicking] = useState(false);
-  const parcel =
-    i.installment !== null && i.installments !== null && i.installments > 1
-      ? `parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · faltam ${money(i.later)}` : " · última"}`
-      : null;
-  const when = [i.date ? shortDate(i.date) : null, parcel].filter(Boolean).join(" · ");
-  return (
-    <li>
-      <button
-        type="button"
-        className="line-pick"
-        aria-expanded={picking}
-        aria-label={`${bankLineName(i)}, ${money(i.amount)}, de ${person}: marcar de quem é`}
-        onClick={() => setPicking(!picking)}
-      >
-        <span className="text">
-          {bankLineName(i)}
-          <small>
-            {i.card}
-            {i.due ? ` · vence ${shortDate(i.due)}` : ""}
-          </small>
-          {when && <small>{capitalize(when)}</small>}
-        </span>
-        <span className="amount">{money(i.amount)}</span>
-      </button>
-      {picking && (
-        <OwnerPick
-          line={{ installments: i.installments, key: i.key, person }}
-          people={people}
-          onDone={() => setPicking(false)}
-        />
-      )}
-    </li>
-  );
-};
-
-/** One person: what they owe on the month's bills, opening into each purchase. */
-const OwedLine = ({ o, people }: { o: OwedView; people: readonly string[] }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <li className={`bill invoice${open ? " open" : ""}`}>
-      <button
-        type="button"
-        className="row-toggle"
-        aria-expanded={open}
-        aria-label={`${o.person}: ${open ? "fechar" : "ver"} compras`}
-        onClick={() => setOpen(!open)}
-      />
-      <span className="avatar person" aria-hidden="true">
-        {o.person.slice(0, 1).toUpperCase()}
-      </span>
-      <span className="name">{o.person}</span>
-      <span className="value">
-        <span className="opens">
-          {money(o.total)}
-          <IconChevron />
-        </span>
-      </span>
-      <span className="meta">
-        {o.lines === 1 ? "1 compra" : `${o.lines} compras`}
-        {o.later > 0 && ` · mais ${money(o.later)} nas próximas parcelas`}
-      </span>
-      {open && (
-        <div className="invoice-detail bank-lines owed-detail">
-          <ul>
-            {o.items.map((i) => (
-              <OwedItemLine
-                key={`${i.key}|${i.card}|${i.description}|${i.date}`}
-                i={i}
-                person={o.person}
-                people={people}
-              />
-            ))}
-          </ul>
-        </div>
-      )}
-    </li>
-  );
-};
-
-/** Someone else's purchases on the month's bills: what each will pay back, and what comes later. */
-const Owed = ({ m, people }: { m: InvoiceMonthView; people: readonly string[] }) => (
-  <section className="panel">
-    <div className="panel-head">
-      <h2>A receber</h2>
-      <span className="meta">Faturas de {monthOf(m.key)}</span>
-    </div>
-    <ul className="rows lead invoices owed">
-      {m.owed.map((o) => (
-        <OwedLine key={o.person} o={o} people={people} />
-      ))}
-    </ul>
-    <p className="hint">Fica fora do teto do mês. Quando pagarem, lance como Entrada.</p>
-  </section>
-);
-
-/** Everything about one card's bill, opened from its row. */
-const Detail = ({
-  c,
-  month,
-  today,
-  alone,
-  people,
-  onPick,
-}: {
-  c: InvoiceRow;
-  month: string;
-  today: string;
-  /** The month's only card: its history is the top chart already. */
-  alone: boolean;
-  people: readonly string[];
-  /** Opens another month of the screen, with this card still open. */
-  onPick: (month: string) => void;
-}) => {
-  const isParcel = (l: BankLineView) => (l.installments ?? 1) > 1;
-  return (
-    <div className="invoice-detail">
-      <dl className="ledger">
-        <dt>Fecha</dt>
-        <dd>
-          {shortDate(c.closing)}
-          {c.closingEstimated && " (estimado)"}
-        </dd>
-        {c.bank && (
-          <>
-            <dt>{c.bank.closed ? "No banco, fechada" : "No banco até agora"}</dt>
-            <dd className={c.bank.disagrees ? "warn" : undefined}>{money(c.bank.amount)}</dd>
-          </>
-        )}
-        {c.limit && (
-          <>
-            <dt>Limite livre</dt>
-            <dd>{money(c.limit.available)}</dd>
-          </>
-        )}
-      </dl>
-      {!alone && c.history.filter((h) => h.amount !== 0).length > 1 && (
-        <section className="trend">
-          <h3 className="label">Faturas do {c.card}</h3>
-          <Columns
-            label={`Faturas do ${c.card} por mês`}
-            selected={month}
-            onSelect={onPick}
-            items={c.history.map((h) => ({
-              key: h.month,
-              label: shortMonth(h.month),
-              value: h.amount,
-              description: `${capitalize(monthOf(h.month))}: ${money(h.amount)}`,
-              tone:
-                h.month > today.slice(0, 7)
-                  ? h.month === month
-                    ? "outline"
-                    : "faint"
-                  : h.month === month
-                    ? "ink"
-                    : undefined,
-              // A month without this card's bill would close it: that bar opens nothing.
-              disabled: h.amount === 0,
-            }))}
-          />
-        </section>
-      )}
-      {c.bank && (
-        <>
-          <BankLines
-            title="Compras novas no banco"
-            lines={c.bank.lines.filter((l) => !isParcel(l))}
-            people={people}
-            hint={people.length === 0}
-          />
-          <BankLines
-            title="Parcelas no banco"
-            lines={c.bank.lines.filter(isParcel)}
-            people={people}
-            hint={people.length === 0}
-          />
-        </>
-      )}
-    </div>
-  );
-};
-
-const InvoiceLine = ({
-  c,
-  month,
-  today,
-  alone,
-  people,
-  onPick,
-}: {
-  c: InvoiceRow;
-  month: string;
-  today: string;
-  alone: boolean;
-  people: readonly string[];
-  onPick: (month: string) => void;
-}) => {
-  const [open, setOpen] = useState(false);
+/** A card's bill in the month's list: a tap opens its own page. */
+const InvoiceLine = ({ c, month, today }: { c: InvoiceRow; month: string; today: string }) => {
   const gap = c.bank?.gap ?? 0;
   return (
-    <li className={`bill invoice${open ? " open" : ""}`}>
-      <button
-        type="button"
+    <li className="bill invoice nav">
+      <Link
         className="row-toggle"
-        aria-expanded={open}
-        aria-label={`${c.card}: ${open ? "fechar" : "ver"} detalhes`}
-        onClick={() => setOpen(!open)}
+        to="/faturas"
+        search={{ m: month, cartao: c.card }}
+        aria-label={`${c.card}, ${money(c.amount)}: abrir a fatura`}
       />
       <CardAvatar name={c.card} />
       <span className="name">
@@ -478,12 +59,58 @@ const InvoiceLine = ({
         </span>
       </span>
       <span className="meta">{stateLine(c, today)}</span>
-      {open && (
-        <Detail c={c} month={month} today={today} alone={alone} people={people} onPick={onPick} />
-      )}
     </li>
   );
 };
+
+/** One person in A receber: what they pay back on the month's bills, opening their page. */
+const OwedLine = ({ o, month }: { o: OwedView; month: string }) => {
+  const what = [o.card?.card, o.lines > 0 ? plural(o.lines, "compra", "compras") : null].filter(
+    Boolean,
+  );
+  return (
+    <li className="bill invoice nav">
+      <Link
+        className="row-toggle"
+        to="/faturas"
+        search={{ m: month, pessoa: o.person }}
+        aria-label={`${o.person}, ${money(o.total)}: abrir`}
+      />
+      <span className="avatar person" aria-hidden="true">
+        {o.person.slice(0, 1).toUpperCase()}
+      </span>
+      <span className="name">{o.person}</span>
+      <span className="value">
+        <span className="opens">
+          {money(o.total)}
+          <IconChevron />
+        </span>
+      </span>
+      <span className="meta">
+        {what.join(" e ")}
+        {o.later > 0 && ` · mais ${money(o.later)} em parcelas`}
+      </span>
+    </li>
+  );
+};
+
+/** Someone else's part of the month's bills: what each will pay back. */
+const Owed = ({ m }: { m: InvoiceMonthView }) => (
+  <section className="panel">
+    <div className="panel-head">
+      <h2>A receber</h2>
+      <span className="meta">Faturas de {monthOf(m.key)}</span>
+    </div>
+    <ul className="rows lead invoices owed">
+      {m.owed.map((o) => (
+        <OwedLine key={o.person} o={o} month={m.key} />
+      ))}
+    </ul>
+    <p className="hint">
+      Fica fora do teto. A parte de cada pessoa aparece em Para lançar como Entrada.
+    </p>
+  </section>
+);
 
 const BuyLine = ({ g, best }: { g: BuyGroup; best: boolean }) => (
   <li className={`bill${best ? " best" : ""}`}>
@@ -496,64 +123,6 @@ const BuyLine = ({ g, best }: { g: BuyGroup; best: boolean }) => (
     </span>
   </li>
 );
-
-/**
- * Charges of the same value that came back each month on the owner's cards, with a mark for the ones
- * to cancel: the method tags them all to cancel on one day. Only what was charged; nothing ahead.
- */
-const Subscriptions = ({ subs }: { subs: SubscriptionsView }) => {
-  const queryClient = useQueryClient();
-  const mark = useMutation({
-    mutationFn: ({ key, on }: { key: string; on: boolean }) => api.markCancel(key, on),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projection"] }),
-  });
-  return (
-    <section className="panel">
-      <div className="panel-head">
-        <h2>Assinaturas</h2>
-        <span className="meta">{money(subs.total)} por mês</span>
-      </div>
-      <p className="hint">Marque o que você vai cancelar.</p>
-      <ul className="rows subs">
-        {subs.items.map((i) => {
-          const name = bankText(merchantName(i.description));
-          const saving = mark.isPending && mark.variables?.key === i.key;
-          const on = saving ? mark.variables.on : i.cancel;
-          return (
-            <li key={i.key}>
-              <span className="name">{name}</span>
-              <span className="value">{money(i.amount)}</span>
-              <button
-                type="button"
-                className="chip-button"
-                aria-pressed={on}
-                aria-label={`Vou cancelar ${name}`}
-                disabled={saving}
-                onClick={() => mark.mutate({ key: i.key, on: !on })}
-              >
-                {on ? "✓ Vou cancelar" : "Vou cancelar"}
-              </button>
-              <span className="meta">
-                {i.card} · {i.charges} cobranças · última {shortDate(i.last)}
-                {i.twin ? " · outro plano na mesma loja" : ""}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      {mark.isError && (
-        <p className="warn subs-total" role="alert">
-          Não salvou. Tente de novo.
-        </p>
-      )}
-      {subs.toCancel > 0 && (
-        <p className="pos subs-total">Marcadas: {money(subs.toCancel)} a menos por mês</p>
-      )}
-    </section>
-  );
-};
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** What a read of the bill PDF came to, in a sentence. */
 const statementText = (a: StatementAnswer): string => {
@@ -672,8 +241,43 @@ const StatementUpload = ({ month, onPick }: { month: string; onPick: (month: str
   );
 };
 
+/** Back to the month's bills: a step back when Faturas was the step before, else there. */
+const Back = ({ label, month }: { label: string; month: string }) => {
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
+  const navigate = useNavigate({ from: "/faturas" });
+  return (
+    <button
+      type="button"
+      className="text-link back-link"
+      aria-keyshortcuts="Escape"
+      title={`${label} (Esc)`}
+      onClick={() =>
+        canGoBack ? router.history.back() : navigate({ search: { m: month }, replace: true })
+      }
+    >
+      <IconChevronLeft />
+      {label}
+    </button>
+  );
+};
+
+/** A page that is not there any more (the month moved on, the mark was taken off). */
+const Gone = ({ text, month }: { text: string; month: string }) => (
+  <>
+    <Back label={`Faturas de ${monthOf(month)}`} month={month} />
+    <section className="panel">
+      <p className="muted">{text}</p>
+    </section>
+  </>
+);
+
 export const Faturas = () => {
-  const [picked, setPicked] = useState<string | null>(null);
+  // The month and what is open over it live in the URL: back closes it, reload keeps it.
+  const search = useSearch({ from: "/faturas" });
+  const navigate = useNavigate({ from: "/faturas" });
+  const setPicked = (m: string) =>
+    navigate({ search: (s: FaturasSearch) => ({ ...s, m }), replace: true, viewTransition: false });
   return (
     <WithProjection>
       {(r) => {
@@ -687,7 +291,63 @@ export const Faturas = () => {
             </section>
           );
         const m =
-          v.months.find((x) => x.key === (picked ?? v.current)) ?? (v.months.at(-1) as never);
+          v.months.find((x) => x.key === (search.m ?? v.current)) ?? (v.months.at(-1) as never);
+        const waits = v.onArrival;
+        const back = <Back label={`Faturas de ${monthOf(m.key)}`} month={m.key} />;
+        if (search.cartao) {
+          const c = m.cards.find(
+            (x) => normalizeName(x.card) === normalizeName(search.cartao ?? ""),
+          );
+          if (!c)
+            return (
+              <Gone text={`${search.cartao} não tem fatura em ${monthOf(m.key)}.`} month={m.key} />
+            );
+          return (
+            <>
+              {back}
+              <CardBill
+                key={`${c.card}|${m.key}`}
+                c={c}
+                month={m.key}
+                today={v.today}
+                people={v.people}
+                waits={waits}
+                onPickMonth={setPicked}
+              />
+            </>
+          );
+        }
+        if (search.pessoa) {
+          const o = m.owed.find(
+            (x) => normalizeName(x.person) === normalizeName(search.pessoa ?? ""),
+          );
+          if (!o)
+            return (
+              <Gone
+                text={`Nada de ${search.pessoa} nas faturas de ${monthOf(m.key)}.`}
+                month={m.key}
+              />
+            );
+          return (
+            <>
+              {back}
+              <Person o={o} month={m.key} people={v.people} waits={waits} />
+            </>
+          );
+        }
+        if (search.revisar) {
+          if (!v.subscriptions)
+            return <Gone text="Nenhuma assinatura para revisar." month={m.key} />;
+          return (
+            <>
+              {back}
+              <Review
+                subs={v.subscriptions}
+                onBack={() => navigate({ search: { m: m.key }, replace: true })}
+              />
+            </>
+          );
+        }
         const [best, ...rest] = v.buyToday;
         const ahead = v.months.some((x) => x.future);
         return (
@@ -720,7 +380,7 @@ export const Faturas = () => {
                           </span>
                           {/* Para lançar has the change for each one: nothing is written without a tap. */}
                           <Link className="text-link" to="/" hash="h-queue">
-                            Corrigir em Para lançar{"\u00a0"}
+                            Corrigir em Para lançar{" "}
                             <span aria-hidden="true">›</span>
                           </Link>
                         </>
@@ -775,23 +435,14 @@ export const Faturas = () => {
                   ) : (
                     <ul className="rows lead invoices">
                       {m.cards.map((c) => (
-                        <InvoiceLine
-                          // By card only: it stays open while its chart picks another month.
-                          key={c.card}
-                          c={c}
-                          month={m.key}
-                          today={v.today}
-                          alone={m.cards.length === 1}
-                          people={v.people}
-                          onPick={setPicked}
-                        />
+                        <InvoiceLine key={c.card} c={c} month={m.key} today={v.today} />
                       ))}
                     </ul>
                   )}
                   {v.bank && <StatementUpload month={m.key} onPick={setPicked} />}
                 </section>
               ),
-              owed: m.owed.length > 0 && <Owed m={m} people={v.people} />,
+              owed: m.owed.length > 0 && <Owed m={m} />,
               buy: best && (
                 <section className="panel">
                   <div className="panel-head">
@@ -821,7 +472,14 @@ export const Faturas = () => {
                   )}
                 </section>
               ),
-              subs: v.subscriptions && <Subscriptions subs={v.subscriptions} />,
+              subs: v.subscriptions && (
+                <Subscriptions
+                  subs={v.subscriptions}
+                  month={m.key}
+                  people={v.people}
+                  waits={waits}
+                />
+              ),
             }}
             // Wide screens: the months beside the month's cards, then where to buy.
             two={[["months"], ["cards", "owed", "buy", "subs"]]}

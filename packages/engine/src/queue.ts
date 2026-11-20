@@ -6,12 +6,14 @@ import {
   linesBehind,
   MATCH_DAYS,
   matchMovements,
+  OPEN_BILL_MIN,
   originKey,
   originOf,
   party,
   type SheetLine,
+  withFutureParcels,
 } from "./bank.ts";
-import { type CardConfig, normalizeName } from "./cards.ts";
+import { type CardConfig, cycleForDueMonth, normalizeName } from "./cards.ts";
 import { addDays, clampedDay, diffDays, type LocalDate, parts } from "./date.ts";
 import {
   type EntryInput,
@@ -21,8 +23,9 @@ import {
   withEconomia,
 } from "./entries.ts";
 import { isFreeDiario } from "./forecast.ts";
-import { type Column, forecastIn, type Ledger } from "./ledger.ts";
+import { type Column, forecastIn, type Ledger, type NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
+import { markOf, type OwnerMark, partOf, paybackPerson } from "./owners.ts";
 
 /**
  * "Para lançar" (specs/005-lancamentos, Fase 2): what the bank showed and the sheet does not have
@@ -50,6 +53,7 @@ export interface LineRef {
  * - `forecast`: the Diário previsto of these days becomes `value` (0 takes it away). Days whose
  *   Diário the owner wrote are left as they are.
  * - `advance`: part of a planned payback came early (see the Draft).
+ * - `parte`: someone else's part of purchases on the owner's cards (see the Draft).
  */
 export type Draft =
   | ({ readonly type: "new" } & EntryInput)
@@ -85,6 +89,22 @@ export type Draft =
       readonly date: LocalDate;
       readonly description: string;
       readonly payback: LineRef;
+    }
+  | {
+      /**
+       * Someone else's part of a purchase on the owner's card (Faturas › De quem é), planned as the
+       * method plans what will be paid back: an Entrada of theirs on each bill's due day, named
+       * after the store and the person. A day with `line` changes one already planned (0 takes it
+       * away, once the purchase is no longer theirs).
+       */
+      readonly type: "parte";
+      readonly person: string;
+      readonly description: string;
+      readonly days: readonly {
+        readonly date: LocalDate;
+        readonly amount: Cents;
+        readonly line?: LineRef;
+      }[];
     };
 
 /** A draft that becomes a few cell changes; the Diário previsto has its own writer. */
@@ -178,6 +198,13 @@ export interface QueueInput {
   readonly mailed?: readonly MailedConta[];
   /** What Mia proposed in a conversation, still waiting for Lançar or Ignorar. */
   readonly proposals?: readonly MiaProposal[];
+  /** Purchases on the owner's cards marked as someone else's: their part is planned as an Entrada. */
+  readonly owners?: readonly OwnerMark[];
+  /**
+   * People with no certain day to pay (Faturas › a person › "Quando o Pix cair"): their part is not
+   * planned; it goes in as the Entrada their Pix becomes.
+   */
+  readonly onArrival?: readonly string[];
 }
 
 /**
@@ -227,6 +254,23 @@ const lineName = (description: string): string => {
   return name === "" ? "Banco" : name;
 };
 
+/**
+ * A store's short name for a payback line, as the owner writes one ("Graphisoft Lia"): the bank's
+ * first word, and the second when it says more than a city or a "da" ("Pizzaria Forno").
+ */
+const shortStore = (description: string): string => {
+  const words = description
+    .replace(/^\s*[a-z]{2,6}\s*\*\s*/i, "")
+    .replace(/\s*(parc(ela)?\.?\s*)?\d{1,2}\s*\/\s*\d{1,2}\s*$/i, "")
+    .replace(/[^\p{L}\s]+/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+  const kept = words.length === 2 && (words[1]?.length ?? 0) <= 3 ? words.slice(0, 1) : words;
+  const name = kept.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  return name === "" ? "Compra" : name;
+};
+
 const isCardSection = (s: string | null) =>
   s === "cartoes" || s === "cartao" || s === "faturas" || s === "fatura";
 
@@ -244,6 +288,15 @@ const sharesWord = (a: string, b: string) => {
     .split(" ")
     .some((w) => w.length >= 3 && words.has(w));
 };
+
+/** An Entrada line of a day's note, as a change to it names it. */
+const refOf = (date: LocalDate, i: NoteItem): LineRef => ({
+  date,
+  column: "entrada",
+  section: i.section,
+  description: i.description,
+  amount: cents(Math.abs(i.amount)),
+});
 
 const ref = (l: SheetLine): LineRef => ({
   date: l.date,
@@ -273,6 +326,22 @@ export const placeDraft = (draft: CellDraft, cards: readonly CardConfig[]): Plac
         ),
       ...(draft.also ?? []).map((a) => lineChange(a.line, a.amount)),
     ]);
+  if (draft.type === "parte")
+    return withEconomia(
+      draft.days.map(
+        (d): Placement =>
+          d.line
+            ? lineChange(d.line, d.amount)
+            : {
+                date: d.date,
+                column: "entrada",
+                section: null,
+                description: draft.description.replace(/\s+/g, " ").trim(),
+                target: "line",
+                amount: d.amount,
+              },
+      ),
+    );
   if (draft.type === "advance")
     return withEconomia([
       {
@@ -375,8 +444,16 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
   // Someone else's card is paid back by an Entrada of the same name on the due day: one line.
   // Money they send before it is an Entrada of that name too, and the payback is what is left.
   const others = new Set(input.othersCards.map(normalizeName));
+  // And a purchase someone else pays part of (Faturas › De quem é): "Graphisoft Lia", planned on
+  // the day a bill of the owner's is due.
+  const owners = input.owners ?? [];
+  const people = [...new Set(owners.map((m) => m.person))];
   const isPayback = (l: SheetLine) =>
-    l.column === "entrada" && others.has(normalizeName(l.description));
+    l.column === "entrada" &&
+    (others.has(normalizeName(l.description)) ||
+      (paybackPerson(l.description, people) !== null && billDue(l.date)));
+  const billDue = (date: LocalDate) =>
+    ledger.find((r) => r.date === date)?.saida.items.some((i) => isCardSection(i.section)) ?? false;
   // Who already paid a card back: the next Pix from them is a payback first.
   const paysBack = new Set(
     matching.pairs.filter((p) => isPayback(p.line)).map((p) => originOf(p.movement.description)),
@@ -388,9 +465,10 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
       .filter((w) => w.length >= 3);
     return (party(m.description) ?? "").split(" ").some((p) => words.some((w) => p.startsWith(w)));
   };
-  // The next payback still planned after the money came: what an early Pix pays part of.
-  const paybackAhead = (m: BankMovement) =>
-    matching.free
+  // The next paybacks still planned after the money came, on the first day with any: what an
+  // early Pix pays part of. Two on that day (her card and a purchase of hers) are the owner's pick.
+  const paybacksAhead = (m: BankMovement) => {
+    const ahead = matching.free
       .filter(
         (l) =>
           isPayback(l) &&
@@ -399,14 +477,18 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
           isCardDue(l) &&
           (paysBack.has(originOf(m.description)) || looksLike(l.description, m)),
       )
-      .sort((a, b) => a.date.localeCompare(b.date))[0];
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return ahead.filter((l) => l.date === ahead[0]?.date);
+  };
   const isCardDue = (l: SheetLine) =>
-    ledger
+    !others.has(normalizeName(l.description)) ||
+    (ledger
       .find((r) => r.date === l.date)
       ?.saida.items.some(
         (i) =>
           isCardSection(i.section) && normalizeName(i.description) === normalizeName(l.description),
-      ) ?? false;
+      ) ??
+      false);
 
   const items: QueueItem[] = [];
   const push = (item: QueueItem) => {
@@ -529,27 +611,28 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
         continue;
       }
       const plain = newDraft(m, "entrada", nameOf(m));
-      const back = party(m.description) === null ? undefined : paybackAhead(m);
+      const backs = party(m.description) === null ? [] : paybacksAhead(m);
       push({
         key,
         kind: "entrada",
         date: m.date,
         bank,
-        options: back
-          ? [
-              {
-                label: "Reembolso adiantado",
-                draft: {
-                  type: "advance",
-                  amount: cents(m.amount),
-                  date: m.date,
-                  description: back.description,
-                  payback: ref(back),
-                },
-              },
-              { label: "Entrada nova", draft: plain },
-            ]
-          : [{ label: "", draft: plain }],
+        options:
+          backs.length > 0
+            ? [
+                ...backs.map((back) => ({
+                  label: backs.length > 1 ? back.description : "Reembolso adiantado",
+                  draft: {
+                    type: "advance" as const,
+                    amount: cents(m.amount),
+                    date: m.date,
+                    description: back.description,
+                    payback: ref(back),
+                  },
+                })),
+                { label: "Entrada nova", draft: plain },
+              ]
+            : [{ label: "", draft: plain }],
       });
       continue;
     }
@@ -859,6 +942,106 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
               { label: "Só a fatura", draft },
             ]
           : [{ label: "", draft }],
+    });
+  }
+  // Someone else's part of a purchase on the owner's cards, planned on each bill's due day from
+  // today on, like the method plans a payback ("no dia previsto que você deve receber"): one line
+  // per store and person, and one per due day for parcels, to the last. A line already planned
+  // under that name is corrected, and one left behind by a mark taken off goes away.
+  const dueOf = (l: BankCardLine) => {
+    const card = input.cards.find((c) => normalizeName(c.name) === normalizeName(l.card));
+    const [y = 0, m = 0] = l.billMonth.split("-").map(Number);
+    return card ? cycleForDueMonth(card, y, m).due : null;
+  };
+  const planned = (date: LocalDate) =>
+    (ledger.find((r) => r.date === date)?.entrada.items ?? []).filter(
+      (i) => !others.has(normalizeName(i.description)) && !isCardSection(i.section),
+    );
+  type Part = {
+    person: string;
+    name: string;
+    days: Map<LocalDate, { amount: number; text: string }>;
+  };
+  const shares = new Map<string, Part>();
+  const billLines = new Map<LocalDate, BankCardLine[]>();
+  const waits = new Set((input.onArrival ?? []).map(normalizeName));
+  for (const l of people.length === 0 ? [] : withFutureParcels(input.lines)) {
+    if (others.has(normalizeName(l.card))) continue;
+    const due = dueOf(l);
+    if (!due || due < today) continue;
+    billLines.set(due, [...(billLines.get(due) ?? []), l]);
+    const mark = markOf(l, owners);
+    if (!mark || waits.has(normalizeName(mark.person))) continue;
+    const name = `${shortStore(l.description)} ${mark.person}`;
+    const key = `${normalizeName(mark.person)}|${normalizeName(name)}`;
+    const part = shares.get(key) ?? { person: mark.person, name, days: new Map() };
+    const day = part.days.get(due) ?? { amount: 0, text: l.description };
+    part.days.set(due, { amount: day.amount + partOf(l, mark), text: day.text });
+    shares.set(key, part);
+  }
+  // Which planned line stands for a part: its person's name, and a word of the store's.
+  const lineFor = (date: LocalDate, person: string, text: string) =>
+    planned(date).find(
+      (i) => paybackPerson(i.description, [person]) !== null && sharesWord(i.description, text),
+    );
+  const claimed = new Set<NoteItem>();
+  type PartDay = { date: LocalDate; amount: Cents; line?: LineRef };
+  const changes = [...shares.values()].map((part) => ({
+    part,
+    days: [...part.days]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .flatMap(([date, d]): PartDay[] => {
+        const line = lineFor(date, part.person, d.text);
+        if (line) claimed.add(line);
+        if (!line) return [{ date, amount: cents(d.amount) }];
+        // An open bill's parcels round their own way: a few cents are not worth a change.
+        if (Math.abs(line.amount - d.amount) < OPEN_BILL_MIN) return [];
+        return [{ date, amount: cents(d.amount), line: refOf(date, line) }];
+      }),
+  }));
+  // A planned payback on a due day whose purchase is still on the bill, no longer marked theirs.
+  for (const [date, onBill] of billLines) {
+    for (const i of planned(date)) {
+      const person = paybackPerson(i.description, people);
+      if (!person || claimed.has(i) || waits.has(normalizeName(person))) continue;
+      const left = onBill.some(
+        (l) => sharesWord(i.description, l.description) && markOf(l, owners)?.person !== person,
+      );
+      if (!left) continue;
+      const key = `${normalizeName(person)}|${normalizeName(i.description)}`;
+      const at = changes.find(
+        (c) => `${normalizeName(c.part.person)}|${normalizeName(c.part.name)}` === key,
+      );
+      const day = { date, amount: ZERO, line: refOf(date, i) };
+      if (at) at.days.push(day);
+      else
+        changes.push({
+          part: { person, name: i.description, days: new Map() },
+          days: [day],
+        });
+    }
+  }
+  for (const { part, days: list } of changes) {
+    const first = list.toSorted((a, b) => a.date.localeCompare(b.date))[0];
+    if (!first) continue;
+    push({
+      key: `parte:${normalizeName(part.person)}|${normalizeName(part.name)}:${list
+        .map((d) => `${d.date}=${d.line?.amount ?? "-"}>${d.amount}`)
+        .join(",")}`,
+      kind: "entrada",
+      date: first.date,
+      bank: [],
+      options: [
+        {
+          label: "",
+          draft: {
+            type: "parte",
+            person: part.person,
+            description: part.name,
+            days: list.toSorted((a, b) => a.date.localeCompare(b.date)),
+          },
+        },
+      ],
     });
   }
   // The Diário previsto: a day that passed loses its forecast, keeping only what was really

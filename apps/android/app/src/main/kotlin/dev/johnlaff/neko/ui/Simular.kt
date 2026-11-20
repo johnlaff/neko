@@ -1038,7 +1038,7 @@ private fun ChipGrid(labels: List<String>, selected: Int, onPick: (Int) -> Unit)
                     more.forEach { wide[it] = own[it]; free -= own[it]; slots-- }
                 }
                 val share = free / slots
-                Row(horizontalArrangement = Arrangement.spacedBy(gap.dp)) {
+                Row(Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(gap.dp)) {
                     row.forEach { i ->
                         Box(Modifier.width((wide[i] ?: share).dp), contentAlignment = Alignment.Center) {
                             Choice(labels[i], i == selected, fill = true) { onPick(i) }

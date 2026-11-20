@@ -179,6 +179,30 @@ describe("credit mode projection", () => {
     expect(nov).toMatchObject({ ownIncome: 5000_00 });
   });
 
+  it("counts what was kept over the owner's own income: paybacks of a card or a purchase are not his", () => {
+    // Salary R$ 5.000 and R$ 500 kept. Her card is paid back R$ 900 and her part of a purchase
+    // on his card R$ 600: 10% of his income, not 7% of everything that came in (the method takes
+    // paybacks off before it counts what was kept).
+    const l = ledger("2026-10-01", 92, 10_000_00, {
+      "2026-11-05": {
+        entrada: cell(5000_00, [item(5000_00, "Salário", null)]),
+        saida: cell(500_00, [item(500_00, "Reserva", "reserva")]),
+      },
+      "2026-11-12": {
+        entrada: cell(1500_00, [item(900_00, "Azul", null), item(600_00, "Estudio Ana", null)]),
+        saida: cell(900_00, [item(900_00, "Azul")]),
+      },
+    });
+    const all = project(
+      l,
+      localDate("2026-11-30"),
+      settings({ cards: [visa], othersCards: ["Azul"], people: ["Ana"] }),
+    );
+    const nov = all.months.find((m) => m.month === 11);
+    expect(nov).toMatchObject({ ownIncome: 5000_00, saved: 500_00, savedShare: 10 });
+    expect(all.years).toEqual([{ year: 2026, entrada: 5000_00, saved: 500_00, savedShare: 10 }]);
+  });
+
   it("a resgate, an Entrada under Reserva:, takes back from what was kept", () => {
     // R$ 500 kept on the 6th, R$ 200 drawn back on the 20th: the month kept R$ 300, and the
     // money drawn back is not a cost of living.

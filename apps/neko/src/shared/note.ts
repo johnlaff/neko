@@ -60,6 +60,12 @@ export const watchText = (n: WatchNews): NoteText => {
 
 export const subscriptionText = (n: SubscriptionNews): NoteText => {
   const store = bankText(n.description);
+  if (n.kind === "cobrou")
+    return {
+      titulo: "Cobrou de novo",
+      texto: `${store} cobrou ${money(n.amount)} no ${n.card} em ${day(n.date)}, depois que você marcou para cancelar.`,
+      pergunta: `${store} cobrou de novo depois que marquei para cancelar. O que eu faço?`,
+    };
   return n.kind === "nova"
     ? {
         titulo: "Assinatura nova",

@@ -38,10 +38,10 @@ import type {
 import { type BankRows, bankInput, bankVersion, bankView, loadBank } from "./bank.ts";
 import type { Env } from "./env.ts";
 import { accessToken, fileVersion, revisionTimes, spreadsheet, tabs } from "./google.ts";
-import { loadSettings, settingsHash } from "./settings.ts";
+import { loadSettings, ownerMarks, settingsHash } from "./settings.ts";
 
 /** Increment when the engine or reader changes output, so cached projections are recomputed. */
-const PIPELINE_VERSION = "96";
+const PIPELINE_VERSION = "97";
 
 /**
  * A cached projection still says when the sheet was last checked: the Drive call above just
@@ -187,6 +187,7 @@ export const buildResponse = (
     cycleBudget: settings.cycleBudget === null ? null : cents(settings.cycleBudget),
     cards,
     othersCards: settings.othersCards,
+    people: [...new Set(settings.owners.map((m) => m.person))],
     previsto:
       on && spend
         ? {
@@ -204,7 +205,7 @@ export const buildResponse = (
           [...spend.lines, ...(input?.provisional ?? [])],
           addDays(localDate(`${today.slice(0, 8)}28`), 7).slice(0, 7),
           settings.othersCards,
-          settings.owners,
+          ownerMarks(settings),
         )
       : null,
   });
@@ -215,7 +216,7 @@ export const buildResponse = (
     sheet,
     bank: bankView(bank, ledger, cards, settings, today, input),
     previsto: previstoView(settings, dailyForecast, today, suggestion, sheet.tabs),
-    week: spend && lastWeekSpend(spend, settings.owners),
+    week: spend && lastWeekSpend(spend, ownerMarks(settings)),
   };
 };
 

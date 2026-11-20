@@ -105,7 +105,7 @@ fun PanelHead(
 enum class ChipTone { Ok, Warn, Bad, Plain }
 
 @Composable
-fun Chip(text: String, tone: ChipTone) {
+fun Chip(text: String, tone: ChipTone, wrap: Boolean = false) {
     val l = LocalLedger.current
     val color = when (tone) {
         ChipTone.Ok -> l.pos
@@ -122,7 +122,8 @@ fun Chip(text: String, tone: ChipTone) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (tone != ChipTone.Plain) Box(Modifier.size(6.dp).background(color, CircleShape))
-        Text(text, style = MaterialTheme.typography.labelMedium, color = l.muted, maxLines = 1, softWrap = false)
+        // Whole on one line; beside a name on a narrow row (`wrap`) it breaks in two instead of being cut.
+        Text(text, style = MaterialTheme.typography.labelMedium, color = l.muted, maxLines = if (wrap) 2 else 1, softWrap = wrap)
     }
 }
 

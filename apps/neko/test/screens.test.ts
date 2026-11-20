@@ -127,7 +127,7 @@ describe("months view", () => {
       projection: { ...fixture.projection, insights: [...fixture.projection.insights, up] },
     } as ProjectionResponse;
     expect(monthsView(r).warnings).toEqual([
-      { kind: "month-negative", year: 2026, month: 11, amount: 58028, share: 72 },
+      { kind: "month-negative", year: 2026, month: 11, amount: 58028, share: 77 },
       up,
     ]);
   });

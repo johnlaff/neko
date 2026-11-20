@@ -16,6 +16,7 @@ import { type HealthIssue, missingBills, sheetHealth } from "./health.ts";
 import { firstUnplannedMonth, type Insight, insights } from "./insights.ts";
 import type { CellRef, Ledger, NoteItem } from "./ledger.ts";
 import { add, type Cents, cents, divFloor, mul, sub, ZERO } from "./money.ts";
+import { paybackPerson } from "./owners.ts";
 import { type MonthRecap, monthRecap } from "./recap.ts";
 import { type Reserve, reserve, type YearTotals, yearTotals } from "./reserve.ts";
 import { ceilingHeld, ownCardBills, type Saving, saveable } from "./savings.ts";
@@ -42,6 +43,11 @@ export interface Settings {
   readonly cards: readonly CardConfig[];
   /** Cards someone else pays (e.g. a partner's card): left out of your spending pace. */
   readonly othersCards: readonly string[];
+  /**
+   * People who pay back part of the owner's purchases (Faturas › De quem é): an Entrada named
+   * after one ("Graphisoft Lia") is a payback, not income.
+   */
+  readonly people?: readonly string[];
   /**
    * The Diário previsto is on (specs/005-lancamentos, Fase 3): "Ainda cabem" follows the month,
    * the day's value against what the bank shows spent this month before today.
@@ -160,18 +166,24 @@ export interface MonthView {
    * (aulas/02 … 03-aula-3-analises-e-cenarios [18:58]).
    */
   readonly saved: Cents;
-  /** saved / entrada as a whole percent, rounded; null without income. The method aims at 20–30%. */
+  /**
+   * saved / ownIncome as a whole percent, rounded; null without income. The method aims at 20–30%
+   * and takes paybacks off the income it counts this over.
+   */
   readonly savedShare: number | null;
   /** `saved` from lines dated up to today only: what has really been put away so far. */
   readonly savedToDate: Cents;
-  /** Entrada from lines dated up to today only. */
+  /** `ownIncome` from lines dated up to today only. */
   readonly entradaToDate: Cents;
   /**
    * Saída plus diário minus what was saved, a card someone else pays and what is paid back: what
    * the month cost you to live (curso 05, aula 01).
    */
   readonly livingCost: Cents;
-  /** Entrada without the money that only pays something back (a reimbursed bill, a repasse). */
+  /**
+   * Entrada without the money that only pays something back (a reimbursed bill, someone's card or
+   * part of a purchase, a repasse) nor money drawn from the reserve.
+   */
   readonly ownIncome: Cents;
   /**
    * The method's diário médio real (app do Breno, aula 4): what a day really cost. The diário
@@ -610,6 +622,7 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
   }
 
   const cardNames = settings.cards.map((c) => c.name);
+  const people = settings.people ?? [];
   const months: MonthView[] = [];
   // Per month, for the diário médio: real diário up to today and your card bills.
   const spent: { diario: Cents; cards: Cents }[] = [];
@@ -666,6 +679,20 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
     const without = (c: Ledger[number]["saida"], skip: (i: NoteItem) => boolean) =>
       sub(c.amount, add(ZERO, ...c.items.filter(skip).map((i) => i.amount)));
     const paidBack = (i: NoteItem) => through.has(i) || reimbursed.has(i) || isSavingItem(i);
+    // Income of the owner's own: what someone sends to pay back a card or a purchase of theirs
+    // (the method takes paybacks off when it counts what was kept), money that only passes
+    // through, and money drawn from the reserve are not.
+    const ownToday = without(
+      row.entrada,
+      (i) =>
+        through.has(i) ||
+        paybacks.has(i) ||
+        // What someone sends for the card they use, ahead or on the due day, in any amount.
+        others.has(normalizeName(i.description)) ||
+        paybackPerson(i.description, people) !== null ||
+        isSavingItem(i),
+    );
+    const own = add(m.ownIncome, ownToday);
     const balance = sheetBalance(row.date);
     const so = spent[spent.length - 1];
     if (so) {
@@ -699,26 +726,15 @@ export const project = (ledger: Ledger, today: LocalDate, settings: Settings): P
       endSheet: balance,
       result: sub(balance, m.startBalance),
       saved,
-      savedShare: entrada > 0 ? Math.round((saved * 100) / entrada) : null,
+      savedShare: own > 0 ? Math.round((saved * 100) / own) : null,
       savedToDate: past ? add(m.savedToDate, savedToday) : m.savedToDate,
-      entradaToDate: past ? add(m.entradaToDate, row.entrada.amount) : m.entradaToDate,
+      entradaToDate: past ? add(m.entradaToDate, ownToday) : m.entradaToDate,
       livingCost: add(
         m.livingCost,
         without(row.saida, (i) => paidBack(i) || notMine.has(i)),
         row.diario.amount,
       ),
-      ownIncome: add(
-        m.ownIncome,
-        without(
-          row.entrada,
-          (i) =>
-            through.has(i) ||
-            paybacks.has(i) ||
-            // What someone sends for the card they use, ahead or on the due day, in any amount.
-            others.has(normalizeName(i.description)) ||
-            isSavingItem(i),
-        ),
-      ),
+      ownIncome: own,
       committed: add(m.committed, without(row.saida, paidBack)),
     };
   }

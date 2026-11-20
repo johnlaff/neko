@@ -247,6 +247,9 @@ button.icon svg {
 .chip.ok::before {
   background: var(--pos);
 }
+.chip.warn {
+  color: var(--muted);
+}
 .chip.warn::before {
   background: var(--warn);
 }
@@ -623,6 +626,11 @@ a.icon {
   width: 100%;
   font-weight: 600;
   padding: 0;
+}
+/* A legend for screen readers only stays a 1px box, even inside a panel. */
+.panel legend.sr-only {
+  float: none;
+  width: 1px;
 }
 .check {
   display: flex;
@@ -4157,10 +4165,10 @@ form.entry > p.hint:empty {
 .invoices > li > .meta {
   grid-area: 2 / 2 / 3 / -1;
 }
-.invoices > li > :not(.row-toggle, .invoice-detail) {
+.invoices > li > :not(.row-toggle) {
   pointer-events: none;
 }
-.invoices > li > button.row-toggle {
+.invoices > li > .row-toggle {
   grid-area: 1 / 1 / 3 / -1;
   align-self: stretch;
   min-height: 0;
@@ -4169,10 +4177,10 @@ form.entry > p.hint:empty {
   border-radius: 12px;
   background: transparent;
 }
-.invoices > li > button.row-toggle:hover {
+.invoices > li > .row-toggle:hover {
   background: color-mix(in oklch, var(--surface-2) 50%, transparent);
 }
-.invoices > li > button.row-toggle:active {
+.invoices > li > .row-toggle:active {
   scale: 1;
 }
 .invoices > li > .value > .opens {
@@ -4190,20 +4198,19 @@ form.entry > p.hint:empty {
 .invoices > li.open > .value > .opens > svg {
   rotate: -90deg;
 }
-.invoice-detail {
-  grid-column: 2 / -1;
-  display: grid;
-  gap: 16px;
-  padding-top: 8px;
+/* A row that opens a page of its own points right, as a list item that navigates does. */
+.invoices > li.nav > .value > .opens > svg {
+  rotate: none;
 }
-/* The bill's facts on their own tinted block, set apart from the bank's lines below. */
-.invoice-detail .ledger {
+/* The bill's facts on their own tinted block, set apart from the purchases. */
+.bill-head .ledger {
+  margin: 0;
   font-size: 0.875rem;
   padding: 4px 12px;
   border-radius: 12px;
   background: var(--surface-2);
 }
-.invoice-detail .ledger > :nth-last-child(-n + 2) {
+.bill-head .ledger > :nth-last-child(-n + 2) {
   border-bottom: 0;
 }
 /* A tap target, so not as faint as the captions around it. */
@@ -4215,17 +4222,17 @@ details.bank-lines summary {
 .bank-lines > ul {
   margin-top: 8px;
 }
-.invoice-detail > .trend {
+.bill-head > .trend {
   padding-top: 0;
 }
-.invoice-detail .ledger dt,
-.invoice-detail .ledger dd {
+.bill-head .ledger dt,
+.bill-head .ledger dd {
   padding: 8px 0;
 }
-.invoice-detail .ledger dd.warn {
+.bill-head .ledger dd.warn {
   color: var(--warn);
 }
-.invoice-detail h3.label {
+.bill-head h3.label {
   margin: 0 0 6px;
   font-size: 0.75rem;
   font-weight: 500;
@@ -4260,76 +4267,6 @@ details.bank-lines summary {
   margin: 8px 0 0;
 }
 
-/* A line is a tap target that reads as a plain ledger row: no fill, the same two columns. */
-.bank-lines button.line-pick {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: start;
-  min-height: 44px;
-  margin: 0;
-  padding: 6px 0;
-  border-radius: 2px;
-  background: none;
-  color: inherit;
-  font-weight: inherit;
-  text-align: left;
-}
-.bank-lines button.line-pick:hover,
-.bank-lines button.line-pick[aria-expanded="true"] {
-  /* The tint reaches past the text without moving it. */
-  background: var(--surface-2);
-  box-shadow: 0 0 0 8px var(--surface-2);
-  border-radius: 2px;
-}
-.bank-lines button.line-pick:active {
-  scale: 1;
-}
-/* Someone else's: "De Bia" in the meta, the amount quieter, never struck through (the money
-   still leaves your account to pay the bill). */
-.bank-lines li.theirs .text > small {
-  color: var(--muted);
-}
-.bank-lines li.theirs .amount {
-  color: var(--muted);
-}
-.owner-pick {
-  grid-column: 1 / -1;
-  display: grid;
-  gap: 8px;
-  margin-top: 4px;
-}
-.owner-pick .hint,
-.owner-pick .warn {
-  margin: 0;
-}
-.owner-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.owner-chips:empty {
-  display: none;
-}
-.bank-lines .owner-chips > button.chip-button {
-  flex: none;
-  margin: 0;
-}
-.owner-new {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-.bank-lines .owner-new > button {
-  margin: 0;
-}
-.owner-pick .saving {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
 .columns-key {
   flex-wrap: wrap;
   column-gap: 16px;
@@ -4392,30 +4329,6 @@ details.bank-lines summary {
 /* Opened, the rest follows the summary as the rows above follow each other */
 .q-buys details.formula > ul + .q-buys-head {
   margin-top: 10px;
-}
-
-/* Subscriptions: name and value, the mark under the name, then the detail, as on Android */
-.rows.subs > li {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-.rows.subs button.chip-button {
-  flex: none;
-  grid-column: 1 / -1;
-  justify-self: start;
-  margin: 4px 0 2px;
-}
-.subs-total {
-  margin: 12px 0 0;
-  font-weight: 500;
-}
-/* Marked: a note for the owner, outlined in the color of money kept, not a filled action */
-.rows.subs button.chip-button[aria-pressed="true"] {
-  background: var(--bg);
-  color: var(--pos);
-  box-shadow: inset 0 0 0 1px var(--pos);
-}
-.rows.subs .name {
-  white-space: normal;
 }
 
 /* Faturas: the bank's bill PDF, an optional read under the cards. */
@@ -4978,4 +4891,691 @@ p.mia-held {
 figure.mia-chart + p.mia-sources,
 dl.mia-numbers + p.mia-sources {
   margin-top: -14px;
+}
+
+/* Faturas › a card, a person, the review: pages over the month's bills, with a way back on top. */
+.back-link {
+  gap: 4px;
+  margin: -12px 0 -8px -6px;
+  padding-inline: 2px;
+}
+.back-link > svg {
+  width: 18px;
+  height: 18px;
+}
+/* A row that opens something: the whole row is the button, its tint reaching past the text. */
+.rows.lead > li > .row-link {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+  width: calc(100% + 16px);
+  margin: -6px -8px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  font-weight: inherit;
+}
+.rows.lead > li > .row-link > .avatar {
+  grid-row: span 2;
+  align-self: start;
+}
+.rows.lead > li > .row-link > .meta {
+  grid-column: 2 / -1;
+}
+.rows.lead > li > .row-link > .value > svg {
+  color: var(--faint);
+}
+@media (hover: hover) {
+  .rows.lead > li > .row-link:hover {
+    background: color-mix(in oklch, var(--surface-2) 50%, transparent);
+  }
+}
+.rows.lead > li > .row-link:active {
+  scale: 1;
+}
+/* Someone else's purchase: the value quieter, never struck through (the money still leaves
+   the owner's account to pay the bill). */
+.rows .value.theirs {
+  color: var(--muted);
+}
+/* And its icon in green, the colour of someone else's part in the bar above. */
+.rows.lead > li.theirs .avatar {
+  color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 16%, transparent);
+}
+
+/* What a sheet or a page is about: its icon, name and value, the facts under the name. */
+.sheet-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+}
+.sheet-item > .avatar {
+  grid-row: span 2;
+  align-self: start;
+}
+.sheet-item > .name {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sheet-item > h2.name {
+  font: 400 1.375rem / 1.2 var(--serif);
+}
+.sheet-item > h2.name:focus {
+  outline: none;
+}
+.sheet-item > .value {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.sheet-item > .meta {
+  grid-column: 2 / -1;
+  color: var(--faint);
+  font-size: 0.8125rem;
+}
+
+/* The sheet: from the bottom on a phone, with a grab bar; a drawer on the right on a wide
+   screen. The page behind dims, and a tap there closes it. */
+dialog.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100dvh - 24px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 -1px 0 var(--border);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+dialog.sheet::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+.sheet-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 0 var(--gutter) calc(env(safe-area-inset-bottom) + 20px);
+}
+.sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 14px 6px 4px var(--gutter);
+  background: var(--surface);
+}
+.sheet-head::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  translate: -50% 0;
+  border-radius: 2px;
+  background: var(--border-input);
+  opacity: 0.6;
+}
+.sheet-head > h2 {
+  font-size: 1rem;
+}
+@media (min-width: 48rem) {
+  dialog.sheet {
+    inset: 0 0 0 auto;
+    width: min(28rem, 100%);
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    box-shadow: -1px 0 0 var(--border);
+  }
+  .sheet-body {
+    padding: 0 24px 24px;
+  }
+  .sheet-head {
+    margin: 0 -24px;
+    padding: 12px 12px 4px 24px;
+  }
+  .sheet-head::before {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.sheet[open] {
+    animation: sheet-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  dialog.sheet[open]::backdrop {
+    animation: fade-in 200ms ease-out;
+  }
+  @media (min-width: 48rem) {
+    dialog.sheet[open] {
+      animation-name: sheet-side;
+    }
+  }
+}
+@keyframes sheet-up {
+  from {
+    translate: 0 100%;
+  }
+}
+@keyframes sheet-side {
+  from {
+    translate: 100% 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* De quem é?: people as chips, the split under its switch, the bill's day in the note. */
+.owner-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.owner-form > p {
+  margin: 0;
+}
+fieldset.chip-radios.owner-who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.owner-form > label.setting {
+  min-height: 56px;
+  padding: 4px 0;
+  border-bottom: 0;
+}
+.owner-parts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.owner-parts .chip-radio {
+  background: var(--surface);
+}
+.owner-parts .chip-radio:has(> input:checked) {
+  background: var(--text);
+}
+fieldset.chip-radios.owner-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.owner-modes .chip-radio {
+  padding: 0 8px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+}
+.owner-amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  font-weight: 500;
+}
+.owner-amount input {
+  width: 8rem;
+  min-height: 44px;
+  text-align: right;
+}
+.owner-parts > .hint.error {
+  margin: -4px 0 0;
+}
+/* The owner's part in ink, the other person's in the tint their avatar wears. */
+.split-bar {
+  display: flex;
+  gap: 3px;
+  height: 8px;
+}
+.split-bar > i {
+  min-width: 4px;
+  border-radius: 999px;
+  background: var(--text);
+}
+.split-bar > i.them {
+  background: var(--accent);
+}
+.owner-kv {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.owner-kv dt {
+  color: var(--muted);
+}
+.owner-kv dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+}
+.owner-kv dd.them {
+  color: var(--accent);
+}
+.owner-form > button[type="submit"] {
+  width: 100%;
+}
+
+/* Assinaturas: half a screen. The chips say only what asks for a look. */
+.subs-panel .rows.lead .name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  white-space: normal;
+}
+.subs-panel .rows.lead .name > .chip,
+.sub-figure > .chip,
+.review-chips > .chip {
+  height: 22px;
+  min-height: 0;
+  padding: 0 8px;
+  font-size: 0.6875rem;
+}
+.subs-panel > .text-link {
+  margin: -8px 0;
+}
+.subs-status:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.subs-status > p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  margin: -8px 0;
+}
+.subs-foot {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.subs-foot > p {
+  margin: 0;
+}
+/* What the marks will take off is a plan, not money saved yet: in ink; "Você já cortou" is the fact. */
+.subs-foot > p.due {
+  font-weight: 500;
+}
+.subs-foot > p.hint > svg {
+  width: 14px;
+  height: 14px;
+  margin-right: 2px;
+  vertical-align: -2px;
+  color: var(--pos);
+}
+.subs-panel > .button.ghost {
+  justify-self: stretch;
+  flex-wrap: wrap;
+  gap: 0 8px;
+}
+.subs-panel > .button.ghost > .faint {
+  color: var(--faint);
+  font-weight: 500;
+}
+.subs-hidden .rows > li {
+  align-items: center;
+}
+.subs-hidden button.ghost.small {
+  justify-self: end;
+}
+.text-link.quiet {
+  justify-self: center;
+  color: var(--muted);
+}
+
+/* One subscription in its sheet. */
+.sub-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.sub-detail > p {
+  margin: 0;
+}
+.sub-figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.sub-figure > .big-money .int {
+  font-size: 2.5rem;
+}
+.sub-detail > .hint {
+  margin-top: -10px;
+}
+.sub-charges {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.sub-charges > li {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.sub-charges > li > i {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border-input);
+}
+.sub-charges > li:last-child > i {
+  background: var(--text);
+}
+fieldset.chip-radios.sub-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.sub-choice .chip-radio {
+  gap: 6px;
+}
+.sub-choice .chip-radio > svg {
+  width: 16px;
+  height: 16px;
+}
+button.setting.sub-split {
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+}
+button.setting.sub-split > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--faint);
+}
+.sub-owner {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Revisar uma a uma: one card at a time, a swipe or a button decides. */
+.review,
+.review-done {
+  width: 100%;
+  max-width: 34rem;
+  justify-self: center;
+}
+.review-progress {
+  display: flex;
+  gap: 3px;
+}
+.review-progress > i {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.review-progress > i.done {
+  background: var(--muted);
+}
+.review-progress > i.cut {
+  background: var(--warn);
+}
+.review-progress > i.now {
+  background: var(--text);
+}
+.review-card {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 22px 20px 20px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  transition:
+    translate 200ms ease-out,
+    rotate 200ms ease-out;
+}
+.review-card:active {
+  cursor: grabbing;
+}
+.review-card > h3 {
+  margin: 4px 0 0;
+  font: 400 1.5rem / 1.2 var(--serif);
+  color: var(--text);
+}
+.review-card > p {
+  margin: 0;
+}
+.review-year {
+  font-weight: 500;
+}
+.review-chips:empty {
+  display: none;
+}
+.review-card .verdict {
+  position: absolute;
+  top: 18px;
+  padding: 2px 10px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+/* The stamp shows on the side the card leaves from, as in a swipe deck. */
+.review-card .verdict.keep {
+  right: 18px;
+  color: var(--pos);
+  box-shadow: inset 0 0 0 2px var(--pos);
+}
+.review-card .verdict.cut {
+  right: 18px;
+  color: var(--warn);
+  box-shadow: inset 0 0 0 2px var(--warn);
+}
+.review-card.keeping .verdict.keep,
+.review-card.cutting .verdict.cut {
+  opacity: 1;
+}
+.review-acts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.review-how {
+  margin: -6px 0 0;
+  text-align: center;
+}
+.review-how > .coarse {
+  display: none;
+}
+@media (pointer: coarse) {
+  .review-how > .coarse {
+    display: inline;
+  }
+  .review-how > .fine {
+    display: none;
+  }
+}
+.review-sum {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+.review-sum:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.review > .text-link {
+  justify-self: center;
+  margin: -8px 0;
+}
+.review-nav {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: -8px 0;
+}
+.review-done > h2 {
+  font: 400 1.5rem / 1.2 var(--serif);
+}
+.review-done > h2:focus {
+  outline: none;
+}
+.review-done > p.pos {
+  font-weight: 500;
+}
+.review-done > p:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* A card's page: the bill, then the purchases by day with the parcels apart. */
+.bill-head > .big-money,
+.person-head > .big-money {
+  margin: -4px 0;
+}
+.bill-split {
+  display: grid;
+  gap: 8px;
+}
+.bill-split > h3.label {
+  margin: 0;
+}
+.split-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+/* The key's dots are the bar's colours: the owner's part in ink, someone else's green. */
+.split-key > span::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  vertical-align: 0.05em;
+}
+.split-key > span.them::before {
+  background: var(--accent);
+}
+fieldset.chip-radios.bill-filters {
+  display: flex;
+  gap: 8px;
+  margin: 0 -18px;
+  padding: 2px 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bill-filters .chip-radio {
+  flex: none;
+  gap: 6px;
+}
+.bill-filters .chip-radio > small {
+  color: var(--faint);
+  font-size: 0.75rem;
+}
+.bill-filters .chip-radio:has(> input:checked) > small {
+  color: inherit;
+  opacity: 0.7;
+}
+.day-group {
+  display: grid;
+  gap: 2px;
+}
+.day-group > h3 {
+  margin: 0;
+  padding-top: 4px;
+}
+
+/* A person's page: their month in one place, the message one tap away. */
+.person-head > button.send {
+  justify-self: start;
+}
+.person-head > button.send > svg {
+  width: 18px;
+  height: 18px;
+}
+.person-head [aria-live]:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.person-head [aria-live] {
+  display: grid;
+  gap: 8px;
+}
+pre.message {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font: inherit;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.person-lines > .panel-head > h3 {
+  margin: 0;
+}
+fieldset.chip-radios.person-when {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 8px;
+}
+.person-when > legend {
+  grid-column: 1 / -1;
+  margin-bottom: 10px;
+  font-size: 0.875rem;
+}
+.person-when .chip-radio {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
 }

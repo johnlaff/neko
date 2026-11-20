@@ -947,7 +947,7 @@ private fun CardPicker(f: AjustesForm) {
 
 /** One switch look on every row, as the site's: off is a small muted thumb on a soft track. */
 @Composable
-private fun switchColors(): SwitchColors {
+internal fun switchColors(): SwitchColors {
     val l = LocalLedger.current
     return SwitchDefaults.colors(
         checkedTrackColor = l.accent,

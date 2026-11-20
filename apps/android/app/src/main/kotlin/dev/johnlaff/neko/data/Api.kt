@@ -194,19 +194,35 @@ class Api(
         call("/queue/unignore", buildJsonObject { put("key", key) }.asBody())
     }
 
-    /** Marks a subscription to cancel, or takes the mark off. */
-    suspend fun markCancel(key: String, on: Boolean) {
-        call("/banks/cancel", buildJsonObject {
+    /**
+     * Faturas › Assinaturas: "Vou cancelar", "Manter" or no decision (mark null), and "Não é
+     * assinatura" (hidden). Only what is given changes.
+     */
+    suspend fun markSubscription(key: String, mark: SubscriptionMark? = null, hidden: Boolean? = null) {
+        call("/banks/subscription", buildJsonObject {
             put("key", key)
-            put("on", on)
+            mark?.let { put("mark", it.wire) }
+            hidden?.let { put("hidden", it) }
         }.asBody(), "PUT")
     }
 
-    /** Marks a purchase on your card as someone else's, or as yours again (person null). */
-    suspend fun markOwner(key: String, person: String?) {
+    /**
+     * Marks a purchase on your card as someone else's, or as yours again (person null); `share` is
+     * their part of each charge when it is split, null for all of it.
+     */
+    suspend fun markOwner(key: String, person: String?, share: Long? = null) {
         call("/banks/owner", buildJsonObject {
             put("key", key)
             put("person", person)
+            put("share", share)
+        }.asBody(), "PUT")
+    }
+
+    /** Faturas › a person: their part goes into the sheet on the due day, or when their Pix lands. */
+    suspend fun markPerson(person: String, onArrival: Boolean) {
+        call("/banks/person", buildJsonObject {
+            put("person", person)
+            put("onArrival", onArrival)
         }.asBody(), "PUT")
     }
 

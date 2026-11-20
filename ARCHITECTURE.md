@@ -81,7 +81,10 @@ returns the new formula and note exactly as the owner would type them.
   clients draw; `note.ts` writes Mia's line from the watch's and her routine's own numbers;
   `types.ts` holds the response types.
 - `src/web/`: React 19 SPA with TanStack Router and Query. Screens in `web/screens/` (Hoje,
-  Faturas, Mês, Simular, Ajustes) plus the Mia screen (`Mia.tsx`, `Mia2.tsx`).
+  Faturas, Mês, Simular, Ajustes) plus the Mia screen (`Mia.tsx`, `Mia2.tsx`). Faturas' pages
+  live in `web/faturas/` (a card's bill, a person's month, the subscriptions and their review,
+  the "De quem é?" form), opened through the URL's search (`?cartao=`, `?pessoa=`,
+  `?revisar=true`); what a tap opens over a page is a `Sheet.tsx` (a native `<dialog>`).
 - `migrations/`: D1 schema, one numbered file per change.
 - `test/` (Vitest, with an in-memory D1 in `test/d1.ts`) and `e2e/` (Playwright on a projection
   built from invented data by `e2e/make-projection.ts`).
@@ -89,7 +92,8 @@ returns the new formula and note exactly as the owner would type them.
 ### `apps/android`
 
 Kotlin, Jetpack Compose and Glance, package `dev.johnlaff.neko`. `data/` talks to the API and
-keeps an encrypted cache, `ui/` has one file per screen, and `widget/`, `tile/`, `shortcuts/`,
+keeps an encrypted cache, `ui/` has one file per screen (Faturas' pages in `CardBill.kt`,
+`PersonPage.kt`, `Subscriptions.kt` and `OwnerForm.kt`), and `widget/`, `tile/`, `shortcuts/`,
 `reminders/`, `purchases/` (purchase notices), `security/` (app lock) and `share/` hold the
 Android-only parts. The app formats and draws; any figure it shows comes ready from the API.
 
@@ -116,6 +120,12 @@ Mia). The client sends a draft, never cells; the Worker turns it into placements
 and `writer.ts` writes one entry at a time: re-read, journal in `entry_op`, one `batchUpdate`,
 read back, roll back on any mismatch. Desfazer restores the cells if they are still as Neko left
 them.
+
+**Someone else's part.** Marks in `setting` (Faturas › De quem é) say whose a purchase on the
+owner's card is, all of it or a share of each charge; a parcel's mark holds its whole plan and a
+subscription's every month. Only the owner's part counts in the ceiling. `buildQueue` plans the
+other part as an Entrada on each due day (a `parte` draft in Para lançar, written only on the
+owner's tap), or nothing for a person whose part goes in when their Pix lands.
 
 **E-mail.** Cloudflare Email Routing delivers `fatura@` on the Neko domain to the Worker. It keeps
 only mail from the owner's own forwarding and from known senders: the bank's PDF bill (read by

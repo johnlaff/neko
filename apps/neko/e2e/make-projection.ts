@@ -21,7 +21,7 @@ import {
   parts,
   project,
   saldoCheck,
-  subscriptions,
+  subscriptionList,
   unmatchedMovements,
   variableSpend,
   type WatchNews,
@@ -211,20 +211,39 @@ const queue = buildQueue({
   decided: new Set(),
   forecast: dailyForecast,
 });
-/** Invented monthly charges on the usual card: a streaming plan and a gym, one marked to cancel. */
+/**
+ * Invented monthly charges on the usual card: one that went up, a new one, one marked to cancel
+ * that charged again, one kept, one split with Bia every month, and one cut in July.
+ */
 function subscriptionsView() {
   const monthly = (amount: number, description: string, dates: string[]) =>
     dates.map((d) => ({ ...bankLine(amount, "2026-11", description), date: localDate(d) }));
-  const found = subscriptions(
+  return subscriptionList(
     [
+      ...monthly(232_00, "CURSO DE IDIOMAS", [
+        "2026-06-05",
+        "2026-07-05",
+        "2026-08-05",
+        "2026-09-05",
+      ]),
+      ...monthly(100_00, "ASSISTENTE VIRTUAL", ["2026-07-01", "2026-08-01", "2026-09-01"]),
+      ...monthly(110_00, "ASSISTENTE VIRTUAL", ["2026-10-01"]),
+      ...monthly(99_90, "ACADEMIA DO BAIRRO", ["2026-07-25", "2026-08-25", "2026-09-25"]),
+      ...monthly(49_90, "NUVEM DE FOTOS", ["2026-08-28", "2026-09-28"]),
       ...monthly(39_90, "STREAMING DE FILMES", ["2026-08-03", "2026-09-03", "2026-10-03"]),
-      ...monthly(99_90, "ACADEMIA DO BAIRRO", ["2026-08-25", "2026-09-25"]),
+      ...monthly(21_90, "MUSICA", ["2026-07-12", "2026-08-12", "2026-09-12"]),
+      ...monthly(9_90, "JORNAL DIGITAL", ["2026-07-16", "2026-08-16", "2026-09-16"]),
+      ...monthly(19_90, "APP DE TREINO", ["2026-06-15", "2026-07-15"]),
     ],
     TODAY,
     ["Cartão Verde"],
+    {
+      cancel: ["streamingdefilmes|3990", "appdetreino|1990"],
+      cancelOn: { "streamingdefilmes|3990": localDate("2026-09-20") },
+      kept: ["jornaldigital|990"],
+      owners: [{ key: "cartao azul|musica|2190|mensal", person: "Bia", share: cents(10_95) }],
+    },
   );
-  const items = found.items.map((i) => ({ ...i, cancel: i.amount === 39_90 }));
-  return { items, total: found.total, toCancel: cents(39_90) };
 }
 const bank = {
   syncedAt: "2026-10-05T09:00:00.000Z",
@@ -240,8 +259,17 @@ const bank = {
   checks: billChecks(rows, cards, lines, TODAY),
   missing: unmatchedMovements(rows, movements, TODAY),
   subscriptions: subscriptionsView(),
-  // The earphones are an invented friend's: they leave the ceiling and show up as to receive.
-  owners: [{ key: ownerKey(lines[2] as (typeof lines)[number]) ?? "", person: "Bia" }],
+  // The earphones are an invented friend's, and she pays half of the furniture: they leave the
+  // ceiling (the furniture, her half) and show up as to receive.
+  owners: [
+    { key: ownerKey(lines[2] as (typeof lines)[number]) ?? "", person: "Bia" },
+    {
+      key: ownerKey(lines[1] as (typeof lines)[number]) ?? "",
+      person: "Bia",
+      share: cents(225_00),
+    },
+    { key: "cartao azul|musica|2190|mensal", person: "Bia", share: cents(10_95) },
+  ],
 };
 
 /** An invented cinema charged twice on the usual card: the daily watch's news, on Mia's line. */

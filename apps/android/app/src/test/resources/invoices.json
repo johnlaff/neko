@@ -18,7 +18,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": false,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -65,7 +67,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": true,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -122,7 +126,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": false,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -169,7 +175,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": true,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -226,7 +234,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": false,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -273,7 +283,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": true,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -330,7 +342,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": false,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -377,7 +391,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": true,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -434,7 +450,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": false,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -481,7 +499,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": true,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -538,7 +558,9 @@
           "closesInDays": 1,
           "closingEstimated": true,
           "others": false,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -585,7 +607,9 @@
           "closesInDays": 1,
           "closingEstimated": true,
           "others": true,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -642,7 +666,17 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": false,
+          "owner": null,
           "reimbursed": false,
+          "split": {
+            "mine": 52500,
+            "theirs": [
+              {
+                "person": "Bia",
+                "amount": 35490
+              }
+            ]
+          },
           "bank": {
             "amount": 87990,
             "parcels": 57990,
@@ -659,6 +693,8 @@
                 "installments": null,
                 "key": "cartao azul|comprasdociclo|30000|2026-10-02",
                 "person": null,
+                "part": null,
+                "endsIn": null,
                 "fromStatement": false
               },
               {
@@ -668,7 +704,9 @@
                 "installment": 3,
                 "installments": 6,
                 "key": "cartao azul|lojademoveisparc|45000|6x",
-                "person": null,
+                "person": "Bia",
+                "part": 22500,
+                "endsIn": "2027-02",
                 "fromStatement": false
               },
               {
@@ -679,6 +717,8 @@
                 "installments": 3,
                 "key": "cartao azul|foneparc|12990|3x",
                 "person": "Bia",
+                "part": 12990,
+                "endsIn": "2027-01",
                 "fromStatement": false
               }
             ]
@@ -728,7 +768,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": true,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -775,10 +817,23 @@
       "owed": [
         {
           "person": "Bia",
-          "total": 12990,
-          "later": 25980,
-          "lines": 1,
+          "card": null,
+          "total": 35490,
+          "later": 93480,
+          "lines": 2,
           "items": [
+            {
+              "card": "Cartão Azul",
+              "description": "LOJA DE MÓVEIS PARC 03/06",
+              "amount": 45000,
+              "date": "2026-10-02",
+              "installment": 3,
+              "installments": 6,
+              "part": 22500,
+              "later": 67500,
+              "key": "cartao azul|lojademoveisparc|45000|6x",
+              "due": "2026-11-12"
+            },
             {
               "card": "Cartão Azul",
               "description": "FONE PARC 01/03",
@@ -786,11 +841,14 @@
               "date": "2026-10-02",
               "installment": 1,
               "installments": 3,
+              "part": 12990,
               "later": 25980,
               "key": "cartao azul|foneparc|12990|3x",
               "due": "2026-11-12"
             }
-          ]
+          ],
+          "until": "2027-02",
+          "onArrival": false
         }
       ]
     },
@@ -809,7 +867,17 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": false,
+          "owner": null,
           "reimbursed": false,
+          "split": {
+            "mine": 22500,
+            "theirs": [
+              {
+                "person": "Bia",
+                "amount": 35490
+              }
+            ]
+          },
           "bank": {
             "amount": 57990,
             "parcels": 57990,
@@ -825,7 +893,9 @@
                 "installment": 4,
                 "installments": 6,
                 "key": "cartao azul|lojademoveisparc|45000|6x",
-                "person": null,
+                "person": "Bia",
+                "part": 22500,
+                "endsIn": "2027-02",
                 "fromStatement": false
               },
               {
@@ -836,6 +906,8 @@
                 "installments": 3,
                 "key": "cartao azul|foneparc|12990|3x",
                 "person": "Bia",
+                "part": 12990,
+                "endsIn": "2027-01",
                 "fromStatement": false
               }
             ]
@@ -885,7 +957,9 @@
           "closesInDays": 0,
           "closingEstimated": true,
           "others": true,
+          "owner": null,
           "reimbursed": false,
+          "split": null,
           "bank": null,
           "limit": null,
           "history": [
@@ -932,10 +1006,23 @@
       "owed": [
         {
           "person": "Bia",
-          "total": 12990,
-          "later": 12990,
-          "lines": 1,
+          "card": null,
+          "total": 35490,
+          "later": 57990,
+          "lines": 2,
           "items": [
+            {
+              "card": "Cartão Azul",
+              "description": "LOJA DE MÓVEIS PARC 03/06",
+              "amount": 45000,
+              "date": "2026-10-02",
+              "installment": 4,
+              "installments": 6,
+              "part": 22500,
+              "later": 45000,
+              "key": "cartao azul|lojademoveisparc|45000|6x",
+              "due": "2026-12-12"
+            },
             {
               "card": "Cartão Azul",
               "description": "FONE PARC 01/03",
@@ -943,11 +1030,14 @@
               "date": "2026-10-02",
               "installment": 2,
               "installments": 3,
+              "part": 12990,
               "later": 12990,
               "key": "cartao azul|foneparc|12990|3x",
               "due": "2026-12-12"
             }
-          ]
+          ],
+          "until": "2027-02",
+          "onArrival": false
         }
       ]
     }
@@ -961,14 +1051,124 @@
   "subscriptions": {
     "items": [
       {
+        "key": "cursodeidiomas|23200",
+        "description": "CURSO DE IDIOMAS",
+        "card": "Cartão Azul",
+        "amount": 23200,
+        "last": "2026-09-05",
+        "charges": 3,
+        "twin": false,
+        "charged": [
+          {
+            "date": "2026-07-05",
+            "amount": 23200
+          },
+          {
+            "date": "2026-08-05",
+            "amount": 23200
+          },
+          {
+            "date": "2026-09-05",
+            "amount": 23200
+          }
+        ],
+        "before": null,
+        "isNew": false,
+        "cancel": false,
+        "kept": false,
+        "again": null,
+        "splitKey": "cartao azul|cursodeidiomas|23200|mensal",
+        "split": null
+      },
+      {
+        "key": "assistentevirtual|10000",
+        "description": "ASSISTENTE VIRTUAL",
+        "card": "Cartão Azul",
+        "amount": 11000,
+        "last": "2026-10-01",
+        "charges": 4,
+        "twin": false,
+        "charged": [
+          {
+            "date": "2026-07-01",
+            "amount": 10000
+          },
+          {
+            "date": "2026-08-01",
+            "amount": 10000
+          },
+          {
+            "date": "2026-09-01",
+            "amount": 10000
+          },
+          {
+            "date": "2026-10-01",
+            "amount": 11000
+          }
+        ],
+        "before": 10000,
+        "isNew": false,
+        "cancel": false,
+        "kept": false,
+        "again": null,
+        "splitKey": "cartao azul|assistentevirtual|11000|mensal",
+        "split": null
+      },
+      {
         "key": "academiadobairro|9990",
         "description": "ACADEMIA DO BAIRRO",
         "card": "Cartão Azul",
         "amount": 9990,
         "last": "2026-09-25",
+        "charges": 3,
+        "twin": false,
+        "charged": [
+          {
+            "date": "2026-07-25",
+            "amount": 9990
+          },
+          {
+            "date": "2026-08-25",
+            "amount": 9990
+          },
+          {
+            "date": "2026-09-25",
+            "amount": 9990
+          }
+        ],
+        "before": null,
+        "isNew": false,
+        "cancel": false,
+        "kept": false,
+        "again": null,
+        "splitKey": "cartao azul|academiadobairro|9990|mensal",
+        "split": null
+      },
+      {
+        "key": "nuvemdefotos|4990",
+        "description": "NUVEM DE FOTOS",
+        "card": "Cartão Azul",
+        "amount": 4990,
+        "last": "2026-09-28",
         "charges": 2,
         "twin": false,
-        "cancel": false
+        "charged": [
+          {
+            "date": "2026-08-28",
+            "amount": 4990
+          },
+          {
+            "date": "2026-09-28",
+            "amount": 4990
+          }
+        ],
+        "before": null,
+        "isNew": true,
+        "cancel": false,
+        "kept": false,
+        "again": null,
+        "splitKey": "cartao azul|nuvemdefotos|4990|mensal",
+        "split": null
       },
       {
         "key": "streamingdefilmes|3990",
@@ -978,13 +1178,109 @@
         "last": "2026-10-03",
         "charges": 3,
         "twin": false,
-        "cancel": true
+        "charged": [
+          {
+            "date": "2026-08-03",
+            "amount": 3990
+          },
+          {
+            "date": "2026-09-03",
+            "amount": 3990
+          },
+          {
+            "date": "2026-10-03",
+            "amount": 3990
+          }
+        ],
+        "before": null,
+        "isNew": false,
+        "cancel": true,
+        "kept": false,
+        "again": "2026-10-03",
+        "splitKey": "cartao azul|streamingdefilmes|3990|mensal",
+        "split": null
+      },
+      {
+        "key": "musica|2190",
+        "description": "MUSICA",
+        "card": "Cartão Azul",
+        "amount": 2190,
+        "last": "2026-09-12",
+        "charges": 3,
+        "twin": false,
+        "charged": [
+          {
+            "date": "2026-07-12",
+            "amount": 2190
+          },
+          {
+            "date": "2026-08-12",
+            "amount": 2190
+          },
+          {
+            "date": "2026-09-12",
+            "amount": 2190
+          }
+        ],
+        "before": null,
+        "isNew": false,
+        "cancel": false,
+        "kept": false,
+        "again": null,
+        "splitKey": "cartao azul|musica|2190|mensal",
+        "split": {
+          "person": "Bia",
+          "share": 1095
+        }
+      },
+      {
+        "key": "jornaldigital|990",
+        "description": "JORNAL DIGITAL",
+        "card": "Cartão Azul",
+        "amount": 990,
+        "last": "2026-09-16",
+        "charges": 3,
+        "twin": false,
+        "charged": [
+          {
+            "date": "2026-07-16",
+            "amount": 990
+          },
+          {
+            "date": "2026-08-16",
+            "amount": 990
+          },
+          {
+            "date": "2026-09-16",
+            "amount": 990
+          }
+        ],
+        "before": null,
+        "isNew": false,
+        "cancel": false,
+        "kept": true,
+        "again": null,
+        "splitKey": "cartao azul|jornaldigital|990|mensal",
+        "split": null
       }
     ],
-    "total": 13980,
-    "toCancel": 3990
+    "total": 56350,
+    "toCancel": 3990,
+    "undecided": 5,
+    "cut": {
+      "items": [
+        {
+          "key": "appdetreino|1990",
+          "description": "APP DE TREINO",
+          "amount": 1990
+        }
+      ],
+      "total": 1990
+    },
+    "hidden": []
   },
   "people": [
     "Bia"
-  ]
+  ],
+  "onArrival": []
 }

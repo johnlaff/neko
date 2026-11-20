@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performScrollToNode
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.TodayView
 import dev.johnlaff.neko.data.json
@@ -57,6 +58,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w412dp-h915dp-xxhdpi", application = android.app.Application::class)
+@OptIn(com.github.takahirom.roborazzi.ExperimentalRoborazziApi::class)
 class ScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
@@ -549,6 +551,40 @@ class ScreenshotTest {
         FaturasScreen(ScreenState(invoices.copy(current = "2026-11")), {}, {})
     }
 
+    /** Assinaturas in half a screen: what asks for a look on top, the three biggest, the rest a tap away. */
+    @Test fun assinaturasDark() = shot("assinaturas-dark", night = true, scrollTo = "Revisar uma a uma") {
+        FaturasScreen(ScreenState(invoices), {}, {})
+    }
+
+    /** A subscription's sheet: what it costs, its last charges, keep or cancel, split it. */
+    @Test fun assinaturaLight() = shot("assinatura-light", night = false, scrollTo = "Assinaturas", tap = "Assistente Virtual", screen = true) {
+        FaturasScreen(ScreenState(invoices), {}, {})
+    }
+
+    /** "Revisar uma a uma": one subscription at a time, Manter or Vou cancelar. */
+    @Test fun revisarDark() = shot("revisar-dark", night = true) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startPage = "revisar")
+    }
+
+    /** A card's page: whose part of the bill is whose, and the bank's purchases by day. */
+    @Test fun cartaoDark() = shot("cartao-dark", night = true) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "cartao:Cartão Azul")
+    }
+
+    @Test fun cartaoComprasLight() = shot("cartao-compras-light", night = false, scrollTo = "Compras no banco") {
+        FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "cartao:Cartão Azul")
+    }
+
+    /** "De quem é?" over a parcel split in half with Bia. */
+    @Test fun deQuemEDark() = shot("de-quem-e-dark", night = true, scrollTo = "Loja de Móveis", tap = "Loja de Móveis", screen = true) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "cartao:Cartão Azul")
+    }
+
+    /** A person's page: their month, the parcels to come, the message to send and when it enters. */
+    @Test fun pessoaLight() = shot("pessoa-light", night = false) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "pessoa:Bia")
+    }
+
     @Test fun bancoAjustesLight() = shot("banco-ajustes-light", night = false, scrollTo = "Bancos") {
         AjustesScreen(
             ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices,
@@ -576,6 +612,8 @@ class ScreenshotTest {
         scrollTo: String? = null,
         /** A text to tap before the picture, to show what it opens. */
         tap: String? = null,
+        /** The whole screen with its windows, for what opens over it (a sheet). */
+        screen: Boolean = false,
         content: @androidx.compose.runtime.Composable () -> Unit,
     ) {
         // Each screen shows its own first-time tip, whatever the test before it showed.
@@ -588,6 +626,9 @@ class ScreenshotTest {
         // The screen's list, not a row that slides sideways inside it (Mia's suggestions).
         scrollTo?.let { compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(it)) }
         tap?.let { compose.onNodeWithText(it).performClick() }
-        compose.onRoot().captureRoboImage("screenshots/$name.png")
+        if (screen) {
+            compose.waitForIdle()
+            captureScreenRoboImage("screenshots/$name.png")
+        } else compose.onRoot().captureRoboImage("screenshots/$name.png")
     }
 }

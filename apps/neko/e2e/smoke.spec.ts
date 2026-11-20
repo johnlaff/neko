@@ -116,7 +116,7 @@ const open = async (
       return route.fulfill({ json: { entryId: "e", state: "done" } });
     if (
       pathname.startsWith("/api/queue/") ||
-      ["/api/banks/cancel", "/api/banks/owner"].includes(pathname)
+      ["/api/banks/subscription", "/api/banks/owner", "/api/banks/person"].includes(pathname)
     )
       return route.fulfill({ json: { ok: true } });
     if (pathname === "/api/projection")
@@ -191,14 +191,14 @@ test("the bank shows only where it and the sheet differ", async ({ page }) => {
   await expect(queue).toContainText("Fatura Cartão Azul");
   await page.getByRole("link", { name: "Faturas", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Por mês" })).toBeVisible();
-  // A bar of the card's own chart opens that month, with the card still open.
-  await page.getByRole("button", { name: /Cartão Azul: ver/ }).click();
+  // A bar of the card's own chart opens that month, with the card's page still open.
+  await page.getByRole("link", { name: /^Cartão Azul, .*: abrir a fatura$/ }).click();
   await page
-    .locator(".invoice-detail")
+    .locator(".bill-head")
     .getByRole("button", { name: /^Dezembro:/ })
     .click();
-  await expect(page.getByText("Vencem em dezembro")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Cartão Azul: fechar/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Cartão Azul", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Faturas de dezembro" })).toBeVisible();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bancos" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: /Azul Platinum/ })).toHaveValue("Cartão Azul");
@@ -380,52 +380,135 @@ test("Mia answers on her own screen with the engine's values, each one a link", 
   expect(errors).toEqual([]);
 });
 
-test("Faturas lists the monthly charges and marks one to cancel", async ({ page }) => {
+const sentTo = (page: Page, path: string) =>
+  page.waitForRequest((r) => r.url().endsWith(path) && r.method() === "PUT");
+
+test("Faturas shows the subscriptions in half a screen and decides one in its sheet", async ({
+  page,
+}) => {
   const errors = await open(page, "/faturas");
   const subs = page.locator("section", { has: page.getByRole("heading", { name: "Assinaturas" }) });
-  await expect(subs.getByText("R$ 139,80 por mês")).toBeVisible();
-  await expect(subs.getByText("Marcadas: R$ 39,90 a menos por mês")).toBeVisible();
-  const sent = page.waitForRequest(
-    (r) => r.url().endsWith("/api/banks/cancel") && r.method() === "PUT",
-  );
-  await subs.getByRole("button", { name: "Vou cancelar Academia do Bairro" }).click();
-  expect((await sent).postDataJSON()).toEqual({ key: "academiadobairro|9990", on: true });
+  await expect(subs.getByText("R$ 563,50 por mês")).toBeVisible();
+  // What asks for a look comes first: went up, new, charged after the mark.
+  await expect(subs.getByRole("button", { name: /^Assistente Virtual Subiu/ })).toBeVisible();
+  await expect(
+    subs.getByRole("button", { name: /^Streaming de Filmes Cobrou de novo/ }),
+  ).toBeVisible();
+  // A charge after the mark is said in words too, before what the marks take off.
+  await expect(
+    subs.getByText("Streaming de Filmes cobrou de novo em", { exact: false }),
+  ).toBeVisible();
+  await expect(subs.getByText("1 a cancelar: R$ 39,90 a menos por mês")).toBeVisible();
+  await expect(subs.getByText("Você já cortou R$ 19,90 por mês", { exact: false })).toBeVisible();
+  await expect(subs.getByRole("button", { name: /^Jornal Digital/ })).toHaveCount(0);
+  await subs.getByRole("button", { name: "Ver mais 3" }).click();
+  await expect(subs.getByRole("button", { name: /^Jornal Digital/ })).toBeVisible();
+  await subs.getByRole("button", { name: /^Assistente Virtual/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Assinatura" });
+  await expect(sheet.getByText("R$ 1.320,00 em um ano · antes era R$ 100,00")).toBeVisible();
+  const sent = sentTo(page, "/api/banks/subscription");
+  // The choice follows what the server holds, so the click is checked through the request.
+  await sheet.getByRole("radio", { name: "Vou cancelar" }).click();
+  expect((await sent).postDataJSON()).toEqual({ key: "assistentevirtual|10000", mark: "cancel" });
+  // Splitting it every month is the same "De quem é?", on the monthly mark.
+  await sheet.getByRole("button", { name: /^Dividir com alguém/ }).click();
+  await sheet.getByRole("radio", { name: "Bia" }).check();
+  await expect(sheet.getByRole("switch", { name: /Dividir o valor/ })).toBeChecked();
+  const split = sentTo(page, "/api/banks/owner");
+  await sheet.getByRole("button", { name: "Salvar" }).click();
+  expect((await split).postDataJSON()).toEqual({
+    key: "cartao azul|assistentevirtual|11000|mensal",
+    person: "Bia",
+    share: 5500,
+  });
   expect(errors).toEqual([]);
 });
 
-test("Faturas marks a purchase as someone else's and shows what they owe", async ({ page }) => {
-  const errors = await open(page, "/faturas");
-  await page
-    .getByRole("button", { name: /^Novembro:/ })
-    .first()
-    .click();
-  const owed = page.locator("section", { has: page.getByRole("heading", { name: "A receber" }) });
-  await expect(owed.getByText("Bia")).toBeVisible();
-  await expect(owed.getByText("R$ 129,90")).toBeVisible();
-  await expect(owed.getByText("1 compra · mais R$ 259,80 nas próximas parcelas")).toBeVisible();
-  // Each purchase opens with where it is: the card, its bill and the parcels left.
-  await owed.getByRole("button", { name: "Bia: ver compras" }).click();
-  await expect(owed.getByText("Cartão Azul · vence 12 nov")).toBeVisible();
-  await expect(owed.getByText("2 out · parcela 1 de 3 · faltam R$ 259,80")).toBeVisible();
-  // A purchase there opens the same "De quem é?", to fix the mark without hunting for it.
-  await owed.getByRole("button", { name: /^Fone, R\$ 129,90, de Bia/ }).click();
-  await expect(owed.getByRole("button", { name: "É minha" })).toBeVisible();
-  await owed.getByRole("button", { name: /^Fone, R\$ 129,90, de Bia/ }).click();
-  await owed.screenshot({ path: "test-results/owed-detail.png" });
-  await page.getByRole("button", { name: "Cartão Azul: ver detalhes" }).click();
-  await page.getByText("Parcelas no banco (2)").click();
-  await expect(page.getByText("De Bia · 1/3 · Faltam 2")).toBeVisible();
-  await page.getByRole("button", { name: /Loja de Móveis/ }).click();
-  await expect(page.getByText("De quem são estas parcelas? Vale para todas.")).toBeVisible();
-  await page.screenshot({ path: "test-results/owed-faturas.png", fullPage: true });
-  const sent = page.waitForRequest(
-    (r) => r.url().endsWith("/api/banks/owner") && r.method() === "PUT",
-  );
-  await page.getByRole("button", { name: "Bia", exact: true }).click();
+test("Revisar uma a uma goes through the undecided ones, by button or arrow key", async ({
+  page,
+}) => {
+  const errors = await open(page, "/faturas?revisar=true");
+  await expect(page.getByRole("heading", { name: "Revisar assinaturas" })).toBeVisible();
+  await expect(page.getByText("1 de 5", { exact: true })).toBeVisible();
+  await expect(page.getByText("R$ 2.784,00 em um ano")).toBeVisible();
+  const first = sentTo(page, "/api/banks/subscription");
+  await page.getByRole("button", { name: "Vou cancelar" }).click();
+  expect((await first).postDataJSON()).toEqual({ key: "cursodeidiomas|23200", mark: "cancel" });
+  await expect(page.getByText("2 de 5", { exact: true })).toBeVisible();
+  const second = sentTo(page, "/api/banks/subscription");
+  await page.keyboard.press("ArrowRight");
+  expect((await second).postDataJSON()).toEqual({ key: "assistentevirtual|10000", mark: "keep" });
+  for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Manter" }).click();
+  await expect(page.getByRole("heading", { name: "Pronto" })).toBeFocused();
+  await expect(
+    page.getByText("1 assinatura marcada para cancelar.", { exact: false }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("a card's page shows whose each purchase is, and splits one with another value", async ({
+  page,
+}) => {
+  const errors = await open(page, "/faturas?m=2026-11");
+  await page.getByRole("link", { name: /^Cartão Azul, R\$ 2\.838,07/ }).click();
+  await expect(page.getByRole("heading", { name: "Cartão Azul", exact: true })).toBeFocused();
+  await expect(page.getByText("Seu R$ 525,00 · conta no teto")).toBeVisible();
+  await page.getByRole("radio", { name: "Bia 2" }).check();
+  await expect(
+    page.getByText("3 de 6 · acaba em fev/27 · Dividida · Bia paga R$ 225,00"),
+  ).toBeVisible();
+  await expect(page.getByText("Compras do ciclo")).toHaveCount(0);
+  await page.getByRole("button", { name: /^Loja de Móveis/ }).click();
+  const sheet = page.getByRole("dialog", { name: "De quem é?" });
+  await expect(sheet.getByRole("radio", { name: "Bia" })).toBeChecked();
+  await expect(sheet.getByRole("radio", { name: "Metade" })).toBeChecked();
+  await sheet.getByRole("radio", { name: "Outro valor" }).check();
+  await sheet.getByRole("textbox", { name: /Bia paga/ }).fill("150");
+  await expect(
+    sheet.getByText("Vale para as 6 parcelas · só a sua parte conta no teto."),
+  ).toBeVisible();
+  const sent = sentTo(page, "/api/banks/owner");
+  await sheet.getByRole("button", { name: "Salvar" }).click();
   expect((await sent).postDataJSON()).toEqual({
     key: "cartao azul|lojademoveisparc|45000|6x",
     person: "Bia",
+    share: 15000,
   });
+  await page.getByRole("button", { name: "Faturas de novembro" }).click();
+  await expect(page.getByRole("heading", { name: "Cartões" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("a person's page sums their month and hands the message to the phone", async ({ page }) => {
+  const errors = await open(page, "/faturas?m=2026-11");
+  const owed = page.locator("section", { has: page.getByRole("heading", { name: "A receber" }) });
+  await expect(owed.getByText("2 compras · mais R$ 934,80 em parcelas")).toBeVisible();
+  await owed.getByRole("link", { name: /^Bia, R\$ 354,90/ }).click();
+  await expect(page.getByRole("heading", { name: "Bia", exact: true })).toBeFocused();
+  await expect(
+    page.getByText("Depois de novembro ainda vêm R$ 934,80 em parcelas, até fev/27."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Cartão Azul · parcela 3 de 6 · faltam R$ 675,00 · metade de R$ 450,00"),
+  ).toBeVisible();
+  // Neko sends nothing: the phone's share sheet gets the text.
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "share", {
+      value: async (d: { text: string }) => {
+        (window as unknown as { shared: string }).shared = d.text;
+      },
+    });
+  });
+  await page.getByRole("button", { name: "Mandar para Bia" }).click();
+  const text = (
+    await page.evaluate(() => (window as unknown as { shared: string }).shared)
+  ).replaceAll("\u00a0", " ");
+  expect(text).toContain("Oi, Bia! Sua parte nas faturas de novembro:");
+  expect(text).toContain("• Loja de Móveis (parcela 3 de 6): R$ 225,00");
+  expect(text).toContain("Total: R$ 354,90");
+  const sent = sentTo(page, "/api/banks/person");
+  await page.getByRole("radio", { name: "Quando o Pix cair" }).click();
+  expect((await sent).postDataJSON()).toEqual({ person: "Bia", onArrival: true });
   expect(errors).toEqual([]);
 });
 

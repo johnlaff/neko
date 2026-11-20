@@ -10,7 +10,7 @@ import { addDays, diffDays, type LocalDate, weekStart } from "./date.ts";
 import type { Placement } from "./entries.ts";
 import { type CellValue, FORECAST, forecastIn, isForecastItem, type Ledger } from "./ledger.ts";
 import { add, type Cents, cents, sub, ZERO } from "./money.ts";
-import { type OwnerMark, ownerOf } from "./owners.ts";
+import { markOf, type OwnerMark, partOf } from "./owners.ts";
 
 /**
  * Diário previsto (specs/005-lancamentos, Fase 3), the method's way for someone who pays almost
@@ -144,8 +144,9 @@ export interface WeekSpend {
 
 /**
  * The last whole week, Sunday to Saturday as the streak counts it, and the week before, in cards
- * and Pix as the bank shows them, purchases marked as someone else's left out. Facts for Sunday's
- * summary, never the week to come. Null when the bank does not cover the whole week.
+ * and Pix as the bank shows them, with only the owner's part of a purchase marked as someone
+ * else's. Facts for Sunday's summary, never the week to come. Null when the bank does not cover
+ * the whole week.
  */
 export const lastWeekSpend = (
   input: SpendInput,
@@ -155,7 +156,15 @@ export const lastWeekSpend = (
   const start = weekStart(input.today);
   const from = addDays(start, -7);
   if (!since || since > from) return null;
-  const own = { ...input, lines: input.lines.filter((l) => ownerOf(l, marks) === null) };
+  const own = {
+    ...input,
+    lines: input.lines.flatMap((l) => {
+      const mark = markOf(l, marks);
+      if (!mark) return [l];
+      const mine = l.amount - partOf(l, mark);
+      return mine > 0 ? [{ ...l, amount: cents(mine) }] : [];
+    }),
+  };
   const before = addDays(from, -7);
   return {
     from,

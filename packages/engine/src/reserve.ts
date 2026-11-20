@@ -44,6 +44,7 @@ export interface Reserve {
 
 export interface YearTotals {
   readonly year: number;
+  /** Own income dated up to today: no paybacks (see projection `ownIncome`). */
   readonly entrada: Cents;
   readonly saved: Cents;
   /** saved / entrada as a whole percent, rounded; null without income. */

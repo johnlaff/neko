@@ -46,6 +46,7 @@ import dev.johnlaff.neko.shortcuts.launchFor
 import dev.johnlaff.neko.ui.AppModel
 import dev.johnlaff.neko.ui.AppModelFactory
 import dev.johnlaff.neko.ui.Dock
+import dev.johnlaff.neko.ui.FaturasActions
 import dev.johnlaff.neko.ui.FaturasScreen
 import dev.johnlaff.neko.ui.HojeScreen
 import dev.johnlaff.neko.ui.MonthAsk
@@ -275,8 +276,16 @@ class MainActivity : ComponentActivity() {
                                     }
                                     Tab.Faturas -> {
                                         val invoices by model.invoices.collectAsStateWithLifecycle()
-                                        val failed by model.changeFailed.collectAsStateWithLifecycle()
-                                        FaturasScreen(invoices, { model.refresh(Tab.Faturas) }, onAjustes = { go(Tab.Ajustes) }, onHoje = { go(Tab.Hoje) }, onCancel = model::markCancel, onOwner = model::markOwner, ownerFailed = failed == "owners", statement = model.statement, onStatement = model::readStatement)
+                                        val actions = remember(model) {
+                                            FaturasActions(
+                                                subscription = { key, mark, hidden, after -> model.markSubscription(key, mark, hidden, after = after) },
+                                                review = { key, mark, after -> model.markSubscription(key, mark, reread = false, after = after) },
+                                                reviewed = model::reviewed,
+                                                owner = model::markOwner,
+                                                person = model::markPerson,
+                                            )
+                                        }
+                                        FaturasScreen(invoices, { model.refresh(Tab.Faturas) }, onAjustes = { go(Tab.Ajustes) }, onHoje = { go(Tab.Hoje) }, actions = actions, statement = model.statement, onStatement = model::readStatement)
                                     }
                                     Tab.Mes -> {
                                         val months by model.months.collectAsStateWithLifecycle()

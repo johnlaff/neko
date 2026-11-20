@@ -569,7 +569,7 @@ export const nekoServer = (load: () => Promise<McpData>, propose?: Propose): Mcp
     {
       title: "Vigia dos cartões",
       description:
-        "O que a vigia diária achou nos cartões do dono nos últimos 7 dias, como o banco mostra: cobrança repetida (mesma loja e valor, até um dia de diferença), estorno ou crédito de contestação, e assinatura nova ou mais cara, com o total das assinaturas por mês. Só cobranças já feitas; nada é previsto. Compras recusadas não aparecem no banco.",
+        "O que a vigia diária achou nos cartões do dono nos últimos 7 dias, como o banco mostra: cobrança repetida (mesma loja e valor, até um dia de diferença), estorno ou crédito de contestação, assinatura nova ou mais cara, e assinatura que ele marcou para cancelar e cobrou de novo, com o total das assinaturas por mês. Só cobranças já feitas; nada é previsto. Compras recusadas não aparecem no banco.",
       inputSchema: z.object({}),
       annotations: READ_ONLY,
     },
@@ -589,7 +589,12 @@ export const nekoServer = (load: () => Promise<McpData>, propose?: Propose): Mcp
             dias: n.dates,
           })),
           ...(bank.subscriptions?.news ?? []).map((n) => ({
-            tipo: n.kind === "nova" ? "assinatura_nova" : "assinatura_mais_cara",
+            tipo:
+              n.kind === "nova"
+                ? "assinatura_nova"
+                : n.kind === "cobrou"
+                  ? "cobrou_depois_de_marcar_para_cancelar"
+                  : "assinatura_mais_cara",
             descricao: n.description,
             cartao: n.card,
             valor: reais(n.amount),
