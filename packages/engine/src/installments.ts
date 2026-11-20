@@ -1,5 +1,8 @@
+import { type BankCardLine, isCardPayment, samePurchase } from "./bank.ts";
+import { normalizeName } from "./cards.ts";
 import { clampedDay, type LocalDate, parts, ymd } from "./date.ts";
 import { add, type Cents, cents, divFloor, sub, ZERO } from "./money.ts";
+import { markOf, type OwnerMark, ownerKey, partOf } from "./owners.ts";
 import type { CanSpend, MonthView, Simulation } from "./projection.ts";
 import { simulatePurchase } from "./projection.ts";
 
@@ -115,4 +118,144 @@ export const simulateInstallments = (
     lowest: lowest && end(lowest),
     firstNegative: negative ? end(negative) : null,
   };
+};
+
+/** `2026-12` plus `n` months. */
+const monthPlus = (month: string, n: number): string => {
+  const [y = 0, m = 1] = month.split("-").map(Number);
+  const i = y * 12 + (m - 1) + n;
+  return `${Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`;
+};
+
+/** Months from `a` to `b`: 1 from one month to the next. */
+const monthsBetween = (a: string, b: string): number => {
+  const [ya = 0, ma = 1] = a.split("-").map(Number);
+  const [yb = 0, mb = 1] = b.split("-").map(Number);
+  return yb * 12 + mb - (ya * 12 + ma);
+};
+
+/** One bill of a plan: its parcel and someone else's part of it. */
+export interface PlanBill {
+  /** `yyyy-MM`. */
+  readonly month: string;
+  readonly installment: number;
+  readonly amount: Cents;
+  /** Someone else's part of it; zero when it is all the owner's. */
+  readonly theirs: Cents;
+}
+
+/** A purchase in parcels, as the bills show it (specs/008-parcelas). */
+export interface InstallmentPlan {
+  readonly card: string;
+  readonly description: string;
+  readonly date: LocalDate | null;
+  readonly installments: number;
+  /** The bills of its first and last parcels, `yyyy-MM`. */
+  readonly first: string;
+  readonly last: string;
+  /** Each bill from the month asked for (or the plan's first) to its last, in order. */
+  readonly bills: readonly PlanBill[];
+  /** Whose it is, by the owner's mark or by being on that person's card; null for his own. */
+  readonly person: string | null;
+  /** Their part of each parcel when the owner split it; null when it is all one person's. */
+  readonly share: Cents | null;
+  /** On someone else's own card: theirs by the card, not by a mark, so there is nothing to mark. */
+  readonly theirCard: boolean;
+  /** What a mark of it holds on to (see `ownerKey`); null when it cannot be marked. */
+  readonly key: string | null;
+}
+
+/**
+ * Every purchase in parcels on the bills from `from` on. The bank lists the parcels already on a
+ * bill and the rest is already owed (`withFutureParcels`): parcel n of N on one bill is n + 1 on
+ * the next and n − 1 on the one before, and a bill the bank did not list takes the nearest parcel
+ * it did. The bank writes a future parcel with a shorter text and puts the rounding on the first
+ * one, so a plan is followed bill by bill, as `samePurchase` tells two parcels apart. Nothing is
+ * estimated: the count and the value are the bank's.
+ *
+ * `cardOwners` names whose each card someone else pays is (normalized card name → person): a plan
+ * on such a card is all theirs. On the owner's cards, a mark says whose a plan is, all of it or a
+ * share of each parcel.
+ */
+export const installmentPlans = (
+  lines: readonly BankCardLine[],
+  from: string,
+  marks: readonly OwnerMark[],
+  cardOwners: ReadonlyMap<string, string> = new Map(),
+): InstallmentPlan[] => {
+  const all = lines.filter(
+    (l) => (l.installments ?? 1) > 1 && l.installment !== null && l.amount > 0 && !isCardPayment(l),
+  );
+  // A bill listing two parcels of one purchase has the whole plan on it: nothing is left after it.
+  const whole = (l: BankCardLine) =>
+    all.some(
+      (o) =>
+        o !== l &&
+        o.billMonth === l.billMonth &&
+        o.installment !== l.installment &&
+        samePurchase({ ...o, installment: l.installment }, l),
+    );
+  const parcels = all
+    .filter((l) => !whole(l))
+    .toSorted(
+      (a, b) =>
+        a.billMonth.localeCompare(b.billMonth) || (a.installment ?? 0) - (b.installment ?? 0),
+    );
+  const chains: BankCardLine[][] = [];
+  for (const l of parcels) {
+    const chain = chains.find((c) => {
+      const t = c.at(-1);
+      if (!t) return false;
+      const gap = monthsBetween(t.billMonth, l.billMonth);
+      return (
+        gap > 0 &&
+        samePurchase({ ...t, installment: (t.installment ?? 0) + gap, billMonth: l.billMonth }, l)
+      );
+    });
+    if (chain) chain.push(l);
+    else chains.push([l]);
+  }
+  const plans: InstallmentPlan[] = [];
+  for (const chain of chains) {
+    const [head] = chain;
+    if (!head || head.installment === null || head.installments === null) continue;
+    const count = head.installments;
+    const first = monthPlus(head.billMonth, 1 - head.installment);
+    const last = monthPlus(head.billMonth, count - head.installment);
+    if (last < from) continue;
+    const owner = cardOwners.get(normalizeName(head.card)) ?? null;
+    const mark =
+      owner === null ? (chain.map((l) => markOf(l, marks)).find((m) => m) ?? null) : null;
+    const start = from > first ? from : first;
+    const bills: PlanBill[] = [];
+    for (let m = start; m <= last; m = monthPlus(m, 1)) {
+      // The bill's own parcel, or the latest one the bank listed before it (the first, before any).
+      const amount = (chain.filter((l) => l.billMonth <= m).at(-1) ?? head).amount;
+      bills.push({
+        month: m,
+        installment: head.installment + monthsBetween(head.billMonth, m),
+        amount,
+        theirs: owner !== null ? amount : mark ? partOf({ amount }, mark) : ZERO,
+      });
+    }
+    plans.push({
+      card: head.card,
+      description: chain.reduce(
+        (long, l) => (l.description.length > long.length ? l.description : long),
+        head.description,
+      ),
+      date: chain.find((l) => l.date)?.date ?? null,
+      installments: count,
+      first,
+      last,
+      bills,
+      person: owner ?? mark?.person ?? null,
+      share: owner === null && mark?.share !== undefined ? mark.share : null,
+      theirCard: owner !== null,
+      key: owner !== null ? null : (mark?.key ?? ownerKey(head)),
+    });
+  }
+  return plans.sort(
+    (a, b) => a.last.localeCompare(b.last) || a.description.localeCompare(b.description),
+  );
 };

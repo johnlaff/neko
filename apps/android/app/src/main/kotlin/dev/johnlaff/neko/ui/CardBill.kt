@@ -142,7 +142,14 @@ internal fun CardHead(c: InvoiceRow, month: String, today: String, onPickMonth: 
  * purchases together at the end, filtered by kind or by person. A tap asks whose it is.
  */
 @Composable
-internal fun CardLines(c: InvoiceRow, today: String, people: List<String>, onPick: (BankLine) -> Unit) {
+internal fun CardLines(
+    c: InvoiceRow,
+    today: String,
+    people: List<String>,
+    /** Opens Parcelas from the Parcelas filter; null leaves the way out. */
+    onParcels: (() -> Unit)? = null,
+    onPick: (BankLine) -> Unit,
+) {
     val l = LocalLedger.current
     val lines = c.bank?.lines.orEmpty()
     var filter by rememberSaveable(c.card) { mutableStateOf("all") }
@@ -180,11 +187,15 @@ internal fun CardLines(c: InvoiceRow, today: String, people: List<String>, onPic
                 Choice(label, filter == k, count = n) { filter = k }
             }
         }
+        c.bank?.takeIf { filter == "parcels" && it.parcels > 0 && onParcels != null }?.let { b ->
+            ParcelsSum(b.parcels, b.parcelsUntil) { onParcels?.invoke() }
+        }
         Text("Toque numa compra para dizer de quem é, ou para dividir.", color = l.muted, style = MaterialTheme.typography.bodySmall)
         groups.forEach { (day, items) ->
             key(day) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(day, color = l.muted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.semantics { heading() })
+                    // Under the Parcelas filter, its chip and total already name the group.
+                    if (filter != "parcels") Text(day, color = l.muted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.semantics { heading() })
                     items.forEachIndexed { i, x ->
                         // The bank sends the same text twice for two equal purchases: the index tells them apart.
                         key("${x.description}-${x.date}-$i") {

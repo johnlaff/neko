@@ -14,6 +14,7 @@ parte foi entregue; o resto descreve o Neko de hoje.
 | `005-lancamentos` | Lançar na planilha, Para lançar, aba Economia, Diário previsto e Lançar com a Mia | Entregue (Fases 0 a 4) |
 | `006-sobrar` | Teto do mês, mês no vermelho, assinaturas, compras de outras pessoas e reserva em degraus | Entregue |
 | `007-simular` | Os meses à frente sob um ritmo e com "e se", sem salvar nada | Entregue |
+| `008-parcelas` | Todas as parcelas: peso na renda e no teto, mês a mês, quando acabam, de quem é | Entregue |
 
 Um spec novo segue o mesmo formato: **Objetivo** (com o critério de aceite), **Regras que não
 mudam**, **Decisões** e **Fora do escopo**. Como o código e o resto da arquitetura se encaixam está

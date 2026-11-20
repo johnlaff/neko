@@ -40,6 +40,7 @@ import dev.johnlaff.neko.data.InvoiceMonth
 import dev.johnlaff.neko.data.InvoiceRow
 import dev.johnlaff.neko.data.InvoicesView
 import dev.johnlaff.neko.data.Owed
+import dev.johnlaff.neko.data.ParcelPlan
 import dev.johnlaff.neko.data.StatementAnswer
 import dev.johnlaff.neko.data.Subscription
 import dev.johnlaff.neko.data.SubscriptionMark
@@ -102,7 +103,10 @@ fun FaturasScreen(
     statement: StatementRead? = null,
     /** Reads the bank's bill PDF (base64). */
     onStatement: (String) -> Unit = {},
-    /** Where it opens: a month (`yyyy-MM`), and a page over it (`cartao:<card>`, `pessoa:<name>`, `revisar`). */
+    /**
+     * Where it opens: a month (`yyyy-MM`), and a page over it (`cartao:<card>`, `pessoa:<name>`,
+     * `revisar`, `parcelas`, or `parcelas:<card>` from that card's bill).
+     */
     startMonth: String? = null,
     startPage: String? = null,
 ) {
@@ -111,7 +115,12 @@ fun FaturasScreen(
     var subOpen by rememberSaveable { mutableStateOf<String?>(null) }
     var owner by remember { mutableStateOf<OwnerTarget?>(null) }
     var gone by remember { mutableStateOf<Subscription?>(null) }
-    BackHandler(enabled = page != null) { page = null }
+    // Parcelas: whose ("" for the owner's) and the plan open in its sheet.
+    var parcelSide by rememberSaveable { mutableStateOf("") }
+    var plan by remember { mutableStateOf<ParcelPlan?>(null) }
+    // Parcelas opened from a card's bill goes back to that card.
+    val back = { page = page?.takeIf { it.startsWith("parcelas:") }?.let { "cartao:" + it.removePrefix("parcelas:") } }
+    BackHandler(enabled = page != null) { back() }
     ScreenFrame("Faturas", state, { it.readAt }, onRefresh, miaTopic = "faturas") { v ->
         val month = v.months.firstOrNull { it.key == (picked ?: v.current) } ?: v.months.lastOrNull()
         if (!v.hasCards || month == null) {
@@ -126,7 +135,7 @@ fun FaturasScreen(
         }
         val p = page
         if (p != null) {
-            full { BackRow("Faturas de ${monthWord(month.key)}") { page = null } }
+            full { BackRow(p.takeIf { it.startsWith("parcelas:") }?.removePrefix("parcelas:") ?: "Faturas de ${monthWord(month.key)}") { back() } }
             val gonePanel = { text: String -> item { Panel { Text(text, color = LocalLedger.current.muted) } } }
             when {
                 p.startsWith("cartao:") -> {
@@ -138,9 +147,29 @@ fun FaturasScreen(
                         column()
                         item {
                             key(c.card, month.key) {
-                                CardLines(c, v.today, v.people) { x -> owner = cardTarget(c, x, month.key) }
+                                CardLines(c, v.today, v.people, onParcels = { page = "parcelas:${c.card}" }) { x ->
+                                    owner = cardTarget(c, x, month.key)
+                                }
                             }
                         }
+                    }
+                }
+                p == "parcelas" || p.startsWith("parcelas:") -> {
+                    val pv = v.parcels
+                    val side = pv?.sides?.firstOrNull { it.person.orEmpty() == parcelSide } ?: pv?.sides?.firstOrNull()
+                    if (pv == null || side == null) gonePanel("Nenhuma parcela nas faturas.")
+                    else {
+                        full { ParcelsHead(pv, side) { parcelSide = it } }
+                        val owed = v.months.firstOrNull { it.key == pv.month }?.owed.orEmpty()
+                        val start = if (side.months.any { it.key == month.key }) month.key else pv.month
+                        item {
+                            key(side.person) {
+                                ParcelsHero(side, pv, owed.any { it.person == side.person }, onHoje) { page = "pessoa:$it" }
+                            }
+                        }
+                        item { key(side.person) { ParcelsMonths(side, start, v.today) } }
+                        column()
+                        item { key(side.person) { ParcelsList(side) { plan = it } } }
                     }
                 }
                 p.startsWith("pessoa:") -> {
@@ -166,6 +195,10 @@ fun FaturasScreen(
         val pdf = statement.takeIf { v.bank != null }
         item { CardsPanel(month, v.today, pdf, onStatement, { picked = it }) { page = "cartao:$it" } }
         if (month.owed.isNotEmpty()) item { OwedPanel(month) { page = "pessoa:$it" } }
+        // The owner's parcels, from the month on: the months before have only what was paid.
+        v.parcels?.sides?.firstOrNull { it.person == null }?.takeIf { s -> s.months.any { it.key == month.key } }?.let { s ->
+            item { ParcelsPanel(s, month.key) { page = "parcelas" } }
+        }
         if (v.buyToday.isNotEmpty()) item { BuyToday(v.buyToday, onAjustes) }
         v.subscriptions?.let { subs ->
             item {
@@ -180,6 +213,25 @@ fun FaturasScreen(
                 gone = r
                 subOpen = null
             }
+        }
+    }
+    plan?.let { x ->
+        Sheet(planName(x.description), onClose = { plan = null }) {
+            val pv = v.parcels
+            ParcelDetail(
+                p = x,
+                side = pv?.sides?.firstOrNull { it.person.orEmpty() == parcelSide }?.person ?: pv?.sides?.firstOrNull()?.person,
+                month = pv?.month ?: x.first,
+                people = v.people,
+                waits = v.onArrival,
+                onSave = { person, share, after -> x.key?.let { actions.owner(it, person, share, after) } ?: after(false) },
+                onCard = {
+                    plan = null
+                    picked = pv?.month
+                    page = "cartao:${x.card}"
+                },
+                onDone = { plan = null },
+            )
         }
     }
     owner?.let { t ->

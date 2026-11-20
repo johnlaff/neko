@@ -61,6 +61,17 @@ class ScreensContractTest {
         assertTrue(subs.items.any { it.before != null })
         assertEquals("Bia", subs.items.single { it.split != null }.split!!.person)
         assertTrue(subs.items.all { it.splitKey?.endsWith("|mensal") == true && it.charged.isNotEmpty() })
+        // Parcelas: the owner's half of the furniture apart from Bia's parcels, month by month.
+        val parcels = v.parcels!!
+        assertEquals(v.current, parcels.month)
+        val (mine, theirs) = parcels.sides
+        assertEquals(null, mine.person)
+        assertEquals("Bia", theirs.person)
+        assertEquals(mine.months.first().amount, mine.now)
+        assertEquals(mine.groups.flatMap { it.plans }.sumOf { it.left }, mine.left)
+        val half = mine.groups.single().plans.single()
+        assertEquals(half.amount - half.share!!, half.part)
+        assertEquals("2027-02", azul.bank.parcelsUntil)
     }
 
     @Test fun months() {

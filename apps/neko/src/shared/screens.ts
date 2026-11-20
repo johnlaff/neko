@@ -16,12 +16,15 @@ import {
   type Fixed,
   fixedOf,
   type Insight,
+  type InstallmentPlan,
   type InstallmentSimulation,
   type InvoiceCard,
+  installmentPlans,
   type LocalDate,
   markOf,
   monthWins,
   normalizeName,
+  OPEN_BILL_MIN,
   type Outflow,
   type Owed,
   type OwnerMark,
@@ -111,6 +114,8 @@ export interface InvoiceRow {
     readonly disagrees: boolean;
     /** Everything the bank has listed is parcels of earlier purchases, so far. */
     readonly onlyParcels: boolean;
+    /** The last bill of the parcels on this one, `yyyy-MM`; null without parcels. */
+    readonly parcelsUntil: string | null;
     readonly lines: readonly BankLineView[];
   } | null;
   /** The card's limit and what is free of it, as the bank last said; null without one. */
@@ -192,6 +197,106 @@ export interface InvoicesView {
   readonly people: readonly string[];
   /** People whose part goes into the sheet when their Pix lands, not on the due day. */
   readonly onArrival: readonly string[];
+  /** Every purchase in parcels (specs/008-parcelas); null with none. */
+  readonly parcels: ParcelsView | null;
+}
+
+/** One purchase in parcels, as one side sees it: the owner's part, or one person's. */
+export interface ParcelPlanView {
+  /** What a mark of it holds on to, for "De quem é?"; null on someone else's card or with no store. */
+  readonly key: string | null;
+  readonly card: string;
+  readonly description: string;
+  readonly date: string | null;
+  readonly installments: number;
+  /** The parcel on the month's bills; 0 when its first one comes on a later bill. */
+  readonly installment: number;
+  /** The bills of its first and last parcels, `yyyy-MM`. */
+  readonly first: string;
+  readonly last: string;
+  /** One parcel, as the bank charges it. */
+  readonly amount: number;
+  /** This side's part of one parcel. */
+  readonly part: number;
+  /** This side's part of the parcels before the month's. */
+  readonly paid: number;
+  /** This side's part from the month's parcel to the last. */
+  readonly left: number;
+  /** Whose it is, when someone else's (all of it or a share); null for the owner's own. */
+  readonly person: string | null;
+  /** Their part of each parcel, when split; null otherwise. */
+  readonly share: number | null;
+  /** On that person's own card, so the whole bill is theirs and there is nothing to mark. */
+  readonly theirCard: boolean;
+}
+
+/** One month of parcels ahead: only what was already bought, so it only goes down. */
+export interface ParcelMonthView {
+  /** Due month, `yyyy-MM`. */
+  readonly key: string;
+  readonly amount: number;
+  /** Of the month's own income, as a whole percent; null without an Entrada or for someone else. */
+  readonly ofIncome: number | null;
+  /** Of the ceiling in Ajustes, as a whole percent; null without one or for someone else. */
+  readonly ofCeiling: number | null;
+  /** Plans with a parcel on this month's bills. */
+  readonly plans: number;
+  /** Plans whose last parcel is on this month's bills. */
+  readonly ending: readonly string[];
+}
+
+/** The owner's parcels, or one person's: Parcelas' filter. */
+export interface ParcelSideView {
+  /** Null for the owner's own. */
+  readonly person: string | null;
+  /** Plans with a parcel from the month on. */
+  readonly count: number;
+  /** On the month's bills. */
+  readonly now: number;
+  readonly ofIncome: number | null;
+  readonly ofCeiling: number | null;
+  /** The month before, when the bank listed its bills: its parcels, plans begun and ended since. */
+  readonly previous: {
+    readonly month: string;
+    readonly amount: number;
+    readonly started: number;
+    readonly ended: number;
+  } | null;
+  /** Everything still to pay, the month's parcels included. */
+  readonly left: number;
+  /** The bill of the last parcel of all, `yyyy-MM`. */
+  readonly last: string;
+  /** From the month to `last`. */
+  readonly months: readonly ParcelMonthView[];
+  /** By the bill of their last parcel, soonest first; `frees` is what leaves the bills after it. */
+  readonly groups: readonly {
+    readonly last: string;
+    readonly frees: number;
+    readonly plans: readonly ParcelPlanView[];
+  }[];
+  /** Plans whose last parcel was on the month before's bills; null with none or no bank then. */
+  readonly ended: {
+    readonly month: string;
+    readonly amount: number;
+    readonly plans: readonly ParcelPlanView[];
+  } | null;
+}
+
+export interface ParcelsView {
+  /** The bills it is about, `yyyy-MM`: the next ones still to pay. */
+  readonly month: string;
+  /** The owner's first, when he has any; then each person's. */
+  readonly sides: readonly ParcelSideView[];
+  /** Bills still to pay whose sheet amount is short of the parcels the bank has on them. */
+  readonly short: readonly {
+    readonly card: string;
+    readonly due: string;
+    readonly missing: Cents;
+  }[];
+  /** What the sheet lacks on all of those bills together. */
+  readonly shortBy: Cents;
+  /** The owner's cards with a bill in the month and nothing from the bank to read parcels from. */
+  readonly leftOut: readonly string[];
 }
 
 /** `2026-11` plus `n` months. */
@@ -238,6 +343,169 @@ const splitOf = (lines: readonly BankLineView[]): InvoiceRow["split"] => {
     .map(([person, amount]) => ({ person, amount }))
     .sort((a, b) => b.amount - a.amount);
   return { mine: all - theirs.reduce((sum, t) => sum + t.amount, 0), theirs };
+};
+
+/** Months from `a` to `b`: 1 from one month to the next. */
+const monthsFrom = (a: string, b: string) => {
+  const [ya = 0, ma = 1] = a.split("-").map(Number);
+  const [yb = 0, mb = 1] = b.split("-").map(Number);
+  return yb * 12 + mb - (ya * 12 + ma);
+};
+
+/** `value` as a whole percent of `base`; null without a base. */
+const percent = (value: number, base: number | null) =>
+  base !== null && base > 0 ? Math.round((value * 100) / base) : null;
+
+/**
+ * Parcelas (specs/008-parcelas): every purchase in parcels from the next bills to pay on, the
+ * owner's apart from each person's. For the owner, what they take of the month's income and of
+ * the ceiling; for each, the months ahead with what was already bought, when each plan ends and
+ * what that frees. Null when the bank shows no parcels.
+ */
+const parcelsView = (
+  r: ProjectionResponse,
+  people: readonly string[],
+  months: readonly InvoiceMonthView[],
+): ParcelsView | null => {
+  const p = r.projection;
+  const checks = r.bank?.checks ?? [];
+  const month = p.invoiceMonth ?? p.today.slice(0, 7);
+  const prev = monthPlus(month, -1);
+  // A card someone else pays: its plans are all theirs.
+  const cardOwners = new Map(
+    p.cards
+      .filter((c) => c.others)
+      .map((c) => [normalizeName(c.card.name), cardOwner(c.card.name, people) ?? c.card.name]),
+  );
+  const plans = installmentPlans(
+    checks.flatMap((c) => c.lines),
+    prev,
+    r.bank?.owners ?? [],
+    cardOwners,
+  );
+  const income = (m: string) => {
+    const [y, mo] = m.split("-").map(Number);
+    const own = p.months.find((x) => x.year === y && x.month === mo)?.ownIncome ?? 0;
+    return own > 0 ? own : null;
+  };
+  const ceiling = p.canSpend?.budgetSource === "configured" ? p.canSpend.budget : null;
+  // With the month before's bills listed, what began and ended since is known.
+  const listedBefore = checks.some((c) => c.due.slice(0, 7) === prev && c.lines.length > 0);
+  const persons = [...new Set(plans.flatMap((x) => (x.person === null ? [] : [x.person])))].sort(
+    (a, b) => a.localeCompare(b),
+  );
+  const sides = [null, ...persons].flatMap((person): ParcelSideView[] => {
+    const partAt = (plan: InstallmentPlan, m: string): number => {
+      const b = plan.bills.find((x) => x.month === m);
+      if (!b) return 0;
+      if (person === null) return b.amount - b.theirs;
+      return plan.person === person ? b.theirs : 0;
+    };
+    const sum = (list: readonly InstallmentPlan[], m: string) =>
+      list.reduce((total, x) => total + partAt(x, m), 0);
+    const ofSide = plans.filter((x) => x.bills.some((b) => partAt(x, b.month) > 0));
+    const alive = ofSide.filter((x) => x.last >= month);
+    const last = alive
+      .map((x) => x.last)
+      .sort()
+      .at(-1);
+    if (last === undefined) return [];
+    const view = (plan: InstallmentPlan): ParcelPlanView => {
+      // The month's parcel; the first, for a plan that starts later; the last, for one that ended.
+      const at = plan.bills.find((b) => b.month >= month) ?? plan.bills.at(-1);
+      const part = at ? partAt(plan, at.month) : 0;
+      const done = Math.min(plan.installments, Math.max(0, monthsFrom(plan.first, month)));
+      return {
+        key: plan.key,
+        card: plan.card,
+        description: plan.description,
+        date: plan.date,
+        installments: plan.installments,
+        installment: month < plan.first ? 0 : Math.min(plan.installments, done + 1),
+        first: plan.first,
+        last: plan.last,
+        amount: at?.amount ?? 0,
+        part,
+        paid: part * done,
+        left: plan.bills
+          .filter((b) => b.month >= month)
+          .reduce((total, b) => total + partAt(plan, b.month), 0),
+        person: plan.person,
+        share: plan.share,
+        theirCard: plan.theirCard,
+      };
+    };
+    const own = person === null;
+    const now = sum(alive, month);
+    const shown: ParcelMonthView[] = [];
+    for (let m = month; m <= last; m = monthPlus(m, 1)) {
+      const amount = sum(alive, m);
+      shown.push({
+        key: m,
+        amount,
+        ofIncome: own ? percent(amount, income(m)) : null,
+        ofCeiling: own ? percent(amount, ceiling) : null,
+        plans: alive.filter((x) => partAt(x, m) > 0).length,
+        ending: alive.filter((x) => x.last === m).map((x) => x.description),
+      });
+    }
+    const ended = ofSide.filter((x) => x.last === prev);
+    const byPart = (a: ParcelPlanView, b: ParcelPlanView) =>
+      b.part - a.part || a.description.localeCompare(b.description);
+    return [
+      {
+        person,
+        count: alive.length,
+        now,
+        ofIncome: own ? percent(now, income(month)) : null,
+        ofCeiling: own ? percent(now, ceiling) : null,
+        previous: listedBefore
+          ? {
+              month: prev,
+              amount: sum(ofSide, prev),
+              started: alive.filter((x) => x.first === month).length,
+              ended: ended.length,
+            }
+          : null,
+        left: alive.reduce((total, x) => total + view(x).left, 0),
+        last,
+        months: shown,
+        groups: [...new Set(alive.map((x) => x.last))].sort().map((end) => {
+          const group = alive.filter((x) => x.last === end);
+          return { last: end, frees: sum(group, end), plans: group.map(view).sort(byPart) };
+        }),
+        ended:
+          listedBefore && ended.length > 0
+            ? { month: prev, amount: sum(ended, prev), plans: ended.map(view).sort(byPart) }
+            : null,
+      },
+    ];
+  });
+  if (sides.length === 0) return null;
+  const withPlans = new Set(plans.filter((x) => x.last >= month).map((x) => normalizeName(x.card)));
+  const short = checks
+    .filter(
+      (c) =>
+        c.due >= p.today &&
+        withPlans.has(normalizeName(c.card)) &&
+        c.parcels - c.sheet >= OPEN_BILL_MIN,
+    )
+    .map((c) => ({ card: c.card, due: c.due, missing: cents(c.parcels - c.sheet) }));
+  return {
+    month,
+    sides,
+    short,
+    shortBy: short.reduce((total, x) => add(total, x.missing), ZERO),
+    leftOut: (months.find((x) => x.key === month)?.cards ?? [])
+      .filter(
+        (c) =>
+          !c.others &&
+          c.amount > 0 &&
+          (c.bank?.lines.length ?? 0) === 0 &&
+          !withPlans.has(normalizeName(c.card)),
+      )
+      .map((c) => c.card),
+  };
 };
 
 export const invoicesView = (r: ProjectionResponse): InvoicesView => {
@@ -352,61 +620,68 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
       month: m.month,
       amount: m.cards.find((c) => normalizeName(c.card) === normalizeName(card))?.amount ?? 0,
     }));
+  const monthViews = months.map((m): InvoiceMonthView => {
+    const mine = checks.filter((c) => c.due.slice(0, 7) === m.month);
+    const rows = m.cards.map((c): InvoiceRow => {
+      const check = mine.find((x) => normalizeName(x.card) === normalizeName(c.card));
+      const limit = limits.find((x) => normalizeName(x.card) === normalizeName(c.card));
+      const lines = (check?.lines ?? []).map((l) => lineView(l, owners));
+      return {
+        card: c.card,
+        due: c.cycle.due,
+        closing: c.cycle.closing,
+        amount: c.amount,
+        state: c.state,
+        closesInDays: c.closesInDays,
+        closingEstimated: c.closingEstimated,
+        others: c.others,
+        owner: c.others ? cardOwner(c.card, people) : null,
+        reimbursed: c.reimbursed,
+        split: splitOf(lines),
+        bank: check
+          ? {
+              amount: check.bank,
+              parcels: check.parcels,
+              gap: check.gap,
+              closed: check.closed ?? false,
+              disagrees: check.disagrees ?? check.gap > 0,
+              onlyParcels: !check.closed && check.parcels > 0 && check.parcels === check.bank,
+              parcelsUntil:
+                lines
+                  .map((l) => l.endsIn)
+                  .filter((x): x is string => x !== null)
+                  .sort()
+                  .at(-1) ?? null,
+              lines,
+            }
+          : null,
+        limit: limit ? { limit: limit.limit, available: limit.available } : null,
+        history: historyOf(c.card),
+      };
+    });
+    const parcels = add(ZERO, ...mine.map((c) => c.parcels));
+    return {
+      key: m.month,
+      total: m.total,
+      past: m.month < nowKey,
+      future: m.month > nowKey,
+      cards: rows,
+      bank:
+        mine.length === 0
+          ? null
+          : {
+              disagree: rows.filter((x) => x.bank?.disagrees).length,
+              parcels,
+              fresh: sub(add(ZERO, ...mine.map((c) => c.bank)), parcels),
+            },
+      owed: owedView(rows, mine, m.month),
+    };
+  });
   return {
     today,
     readAt: r.sheet.readAt,
     hasCards: p.cards.length > 0,
-    months: months.map((m): InvoiceMonthView => {
-      const mine = checks.filter((c) => c.due.slice(0, 7) === m.month);
-      const rows = m.cards.map((c): InvoiceRow => {
-        const check = mine.find((x) => normalizeName(x.card) === normalizeName(c.card));
-        const limit = limits.find((x) => normalizeName(x.card) === normalizeName(c.card));
-        const lines = (check?.lines ?? []).map((l) => lineView(l, owners));
-        return {
-          card: c.card,
-          due: c.cycle.due,
-          closing: c.cycle.closing,
-          amount: c.amount,
-          state: c.state,
-          closesInDays: c.closesInDays,
-          closingEstimated: c.closingEstimated,
-          others: c.others,
-          owner: c.others ? cardOwner(c.card, people) : null,
-          reimbursed: c.reimbursed,
-          split: splitOf(lines),
-          bank: check
-            ? {
-                amount: check.bank,
-                parcels: check.parcels,
-                gap: check.gap,
-                closed: check.closed ?? false,
-                disagrees: check.disagrees ?? check.gap > 0,
-                onlyParcels: !check.closed && check.parcels > 0 && check.parcels === check.bank,
-                lines,
-              }
-            : null,
-          limit: limit ? { limit: limit.limit, available: limit.available } : null,
-          history: historyOf(c.card),
-        };
-      });
-      const parcels = add(ZERO, ...mine.map((c) => c.parcels));
-      return {
-        key: m.month,
-        total: m.total,
-        past: m.month < nowKey,
-        future: m.month > nowKey,
-        cards: rows,
-        bank:
-          mine.length === 0
-            ? null
-            : {
-                disagree: rows.filter((x) => x.bank?.disagrees).length,
-                parcels,
-                fresh: sub(add(ZERO, ...mine.map((c) => c.bank)), parcels),
-              },
-        owed: owedView(rows, mine, m.month),
-      };
-    }),
+    months: monthViews,
     current: p.invoiceMonth ?? null,
     average: p.invoicesAverage ?? null,
     buyToday: mine.length > 1 ? groups : [],
@@ -414,6 +689,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
     subscriptions: r.bank?.subscriptions?.items.length ? r.bank.subscriptions : null,
     people,
     onArrival: r.bank?.onArrival ?? [],
+    parcels: parcelsView(r, people, monthViews),
   };
 };
 

@@ -82,3 +82,13 @@ internal fun bankLineName(l: BankLine) = bankText(
         else l.description.replace(Regex("""\s*(parc(ela)?\.?\s*)?\d{1,2}\s*/\s*\d{1,2}\s*$""", RegexOption.IGNORE_CASE), ""),
     ),
 )
+
+/** `junho`, or `junho de 2027` outside today's year. */
+internal fun monthLong(key: String, today: String) =
+    if (key.take(4) == today.take(4)) monthWord(key) else "${monthWord(key)} de ${key.take(4)}"
+
+/** `2026-11` plus `n` months. */
+internal fun monthAfter(key: String, n: Int): String {
+    val at = key.take(4).toInt() * 12 + key.substring(5, 7).toInt() - 1 + n
+    return "${at / 12}-${(at % 12 + 1).toString().padStart(2, '0')}"
+}

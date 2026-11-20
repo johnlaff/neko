@@ -102,21 +102,23 @@ fun PanelHead(
     }
 }
 
-enum class ChipTone { Ok, Warn, Bad, Plain }
+/** `Quiet`: the site's plain `.chip`, a faint dot; `Plain`: no dot at all. */
+enum class ChipTone { Ok, Warn, Bad, Quiet, Plain }
 
 @Composable
-fun Chip(text: String, tone: ChipTone, wrap: Boolean = false) {
+fun Chip(text: String, tone: ChipTone, wrap: Boolean = false, onTint: Boolean = false) {
     val l = LocalLedger.current
     val color = when (tone) {
         ChipTone.Ok -> l.pos
         ChipTone.Warn -> l.warn
         ChipTone.Bad -> l.neg
-        ChipTone.Plain -> l.faint
+        ChipTone.Quiet, ChipTone.Plain -> l.faint
     }
     // The site's `.chip`: one neutral pill, the tone only in a small dot before the words.
     Row(
         Modifier
-            .background(l.surface2, RoundedCornerShape(50))
+            // On a tinted block (`onTint`) the pill takes the panel's colour, as the site's does there.
+            .background(if (onTint) l.surface else l.surface2, RoundedCornerShape(50))
             .padding(horizontal = 10.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),

@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { paceMonthly, simulateInstallments } from "@neko/engine";
+import { cents, ownerKey, paceMonthly, simulateInstallments } from "@neko/engine";
 import { describe, expect, it } from "vitest";
 import {
   ajustesView,
@@ -107,6 +107,162 @@ describe("invoices view", () => {
   it("says when the sheet has no card", () => {
     const v = invoicesView(withCards([]));
     expect(v).toMatchObject({ hasCards: false, buyToday: [] });
+  });
+});
+
+describe("parcels view", () => {
+  type Check = NonNullable<ProjectionResponse["bank"]>["checks"][number];
+  type Line = Check["lines"][number];
+  const parcel = (
+    description: string,
+    amount: number,
+    billMonth: string,
+    installment: number,
+    installments: number,
+    cardName = "Cartão Azul",
+  ) =>
+    ({
+      card: cardName,
+      amount,
+      billMonth,
+      description,
+      installment,
+      installments,
+      date: "2026-07-03",
+    }) as Line;
+  const check = (cardName: string, due: string, lines: Line[], sheet?: number): Check => {
+    const bank = lines.reduce((t, l) => t + l.amount, 0);
+    return {
+      card: cardName,
+      due,
+      bank,
+      parcels: bank,
+      sheet: sheet ?? bank,
+      gap: bank - (sheet ?? bank),
+      closed: false,
+      disagrees: false,
+      lines,
+    } as Check;
+  };
+  const sofa = parcel("SOFA CASA 04/10", 300_00, "2026-10", 4, 10);
+  const lia = { key: ownerKey(sofa as never) ?? "", person: "Lia", share: 150_00 };
+  /** September's bill already due, October's to pay, and a card the owner's friend Lia pays. */
+  const bills = (sheet?: number) => [
+    check("Cartão Azul", "2026-09-12", [
+      parcel("NOTEBOOK 04/10", 420_00, "2026-09", 4, 10),
+      parcel("CURSO ONLINE 12/12", 97_00, "2026-09", 12, 12),
+    ]),
+    check(
+      "Cartão Azul",
+      "2026-10-12",
+      [
+        parcel("NOTEBOOK 05/10", 420_00, "2026-10", 5, 10),
+        parcel("TENIS CORRIDA 01/03", 80_00, "2026-10", 1, 3),
+        sofa,
+      ],
+      sheet,
+    ),
+    check("Cartão da Lia", "2026-10-12", [
+      parcel("SMARTPHONE 06/10", 150_00, "2026-10", 6, 10, "Cartão da Lia"),
+    ]),
+  ];
+  const withBills = (checks: Check[]): ProjectionResponse => {
+    const p = fixture.projection;
+    if (!p.canSpend || !fixture.bank) throw new Error("fixture has a usual card and a bank");
+    return {
+      ...fixture,
+      projection: {
+        ...p,
+        cards: [...p.cards, card("Cartão da Lia", { others: true })],
+        canSpend: { ...p.canSpend, budgetSource: "configured", budget: cents(3_000_00) },
+      },
+      bank: { ...fixture.bank, checks, owners: [lia] },
+    };
+  };
+
+  it("adds up the owner's parcels on the month's bills, with their weight and what changed", () => {
+    const v = invoicesView(withBills(bills()));
+    expect(v.parcels?.month).toBe(fixture.projection.invoiceMonth);
+    const [mine, theirs, ...rest] = v.parcels?.sides ?? [];
+    expect(rest).toEqual([]);
+    const income = fixture.projection.months.find((m) => m.year === 2026 && m.month === 10);
+    expect(mine).toMatchObject({
+      person: null,
+      count: 3,
+      // The notebook, the sneakers and the owner's half of the sofa.
+      now: 650_00,
+      ofIncome: Math.round((650_00 * 100) / (income?.ownIncome ?? 1)),
+      ofCeiling: 22,
+      previous: { month: "2026-09", amount: 667_00, started: 1, ended: 1 },
+      left: 420_00 * 6 + 80_00 * 3 + 150_00 * 7,
+      last: "2027-04",
+    });
+    expect(mine?.months.map((m) => [m.key, m.amount, m.ending])).toEqual([
+      ["2026-10", 650_00, []],
+      ["2026-11", 650_00, []],
+      ["2026-12", 650_00, ["TENIS CORRIDA 01/03"]],
+      ["2027-01", 570_00, []],
+      ["2027-02", 570_00, []],
+      ["2027-03", 570_00, ["NOTEBOOK 04/10"]],
+      ["2027-04", 150_00, ["SOFA CASA 04/10"]],
+    ]);
+    expect(mine?.months[3]?.ofCeiling).toBe(19);
+    expect(mine?.groups.map((g) => [g.last, g.frees, g.plans.length])).toEqual([
+      ["2026-12", 80_00, 1],
+      ["2027-03", 420_00, 1],
+      ["2027-04", 150_00, 1],
+    ]);
+    expect(mine?.groups[1]?.plans[0]).toMatchObject({
+      card: "Cartão Azul",
+      installment: 5,
+      installments: 10,
+      first: "2026-06",
+      amount: 420_00,
+      part: 420_00,
+      paid: 420_00 * 4,
+      left: 420_00 * 6,
+      person: null,
+    });
+    expect(mine?.groups[2]?.plans[0]).toMatchObject({
+      key: lia.key,
+      part: 150_00,
+      person: "Lia",
+      share: 150_00,
+      theirCard: false,
+    });
+    expect(mine?.ended).toMatchObject({ month: "2026-09", amount: 97_00 });
+    expect(mine?.ended?.plans[0]).toMatchObject({ installment: 12, left: 0 });
+    // Lia's: her half of the sofa and the phone on her own card, out of the owner's income.
+    expect(theirs).toMatchObject({ person: "Lia", count: 2, now: 300_00, ofIncome: null });
+    expect(theirs?.groups.flatMap((g) => g.plans.map((p) => [p.description, p.theirCard]))).toEqual(
+      [
+        ["SMARTPHONE 06/10", true],
+        ["SOFA CASA 04/10", false],
+      ],
+    );
+    expect(v.parcels?.short).toEqual([]);
+    expect(v.parcels?.shortBy).toBe(0);
+    expect(v.parcels?.leftOut).toEqual([]);
+  });
+
+  it("names a bill whose sheet amount is short of its parcels, and a card with nothing to read", () => {
+    const short = invoicesView(withBills(bills(500_00)));
+    expect(short.parcels?.short).toEqual([
+      { card: "Cartão Azul", due: "2026-10-12", missing: 300_00 },
+    ]);
+    expect(short.parcels?.shortBy).toBe(300_00);
+    const only = invoicesView(withBills(bills().slice(2)));
+    expect(only.parcels?.sides.map((s) => s.person)).toEqual(["Lia"]);
+    expect(only.parcels?.leftOut).toEqual(["Cartão Azul"]);
+  });
+
+  it("tells when a card's parcels end, and is null with no parcels", () => {
+    const v = invoicesView(withBills(bills()));
+    const azul = v.months
+      .find((m) => m.key === "2026-10")
+      ?.cards.find((c) => c.card === "Cartão Azul");
+    expect(azul?.bank?.parcelsUntil).toBe("2027-04");
+    expect(invoicesView(withBills([])).parcels).toBeNull();
   });
 });
 

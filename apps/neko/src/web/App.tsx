@@ -252,7 +252,7 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/faturas",
-    // ?m=2026-12 opens that month; ?cartao=, ?pessoa= or ?revisar=true open a page over it.
+    // ?m=2026-12 opens that month; ?cartao=, ?pessoa=, ?revisar=true or ?parcelas=true open a page over it.
     validateSearch: faturasSearch,
     component: lazyRouteComponent(screens.faturas, "Faturas"),
   }),

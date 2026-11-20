@@ -64,3 +64,13 @@ export const parcelText = (
 };
 
 export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** `junho`, or `junho de 2027` outside today's year. */
+export const monthLong = (key: string, today: string) =>
+  key.slice(0, 4) === today.slice(0, 4) ? monthOf(key) : `${monthOf(key)} de ${key.slice(0, 4)}`;
+
+/** `2026-11` plus `n` months. */
+export const monthAfter = (key: string, n: number) => {
+  const at = Number(key.slice(0, 4)) * 12 + Number(key.slice(5, 7)) - 1 + n;
+  return `${Math.floor(at / 12)}-${String((at % 12) + 1).padStart(2, "0")}`;
+};

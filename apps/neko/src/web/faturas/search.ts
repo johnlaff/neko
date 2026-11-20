@@ -1,11 +1,15 @@
 // Kept apart from the screen, so the router reads Faturas' address without loading the screen.
 
-/** What Faturas shows: the month (`m`), and a card's bill, a person or the review over it. */
+/**
+ * What Faturas shows: the month (`m`), and a card's bill, a person, the review or every parcel
+ * over it (`parcelas`, with `cartao` when opened from that card's bill).
+ */
 export interface FaturasSearch {
   m?: string;
   cartao?: string;
   pessoa?: string;
   revisar?: boolean;
+  parcelas?: boolean;
 }
 
 export const faturasSearch = (s: Record<string, unknown>): FaturasSearch => {
@@ -18,5 +22,6 @@ export const faturasSearch = (s: Record<string, unknown>): FaturasSearch => {
   const pessoa = text(s.pessoa);
   if (pessoa) out.pessoa = pessoa;
   if (s.revisar === true || s.revisar === "true") out.revisar = true;
+  if (s.parcelas === true || s.parcelas === "true") out.parcelas = true;
   return out;
 };
