@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import dev.johnlaff.neko.NekoApp
+import dev.johnlaff.neko.data.SubscriptionMark
 import dev.johnlaff.neko.data.ApiException
 import dev.johnlaff.neko.data.AjustesView
 import dev.johnlaff.neko.data.BankCard
@@ -227,13 +228,19 @@ class AppModel(
     private val _changeFailed = MutableStateFlow<String?>(null)
     val changeFailed: StateFlow<String?> = _changeFailed
 
-    /** A change the owner asked for: unlike a read, its failure is said, under its own group. */
-    private fun change(group: String, run: suspend () -> Unit) {
+    /**
+     * A change the owner asked for: unlike a read, its failure is said, under its own group.
+     * `after` hears whether it saved, for the place that asked (a sheet closes, a choice goes back).
+     */
+    private fun change(group: String, after: (Boolean) -> Unit = {}, run: suspend () -> Unit) {
         viewModelScope.launch {
             _changeFailed.value = null
-            runCatching { run() }.onFailure { e ->
-                if (e is ApiException && e.status == 401) signedOut() else _changeFailed.value = group
-            }
+            runCatching { run() }
+                .onSuccess { after(true) }
+                .onFailure { e ->
+                    if (e is ApiException && e.status == 401) signedOut() else _changeFailed.value = group
+                    after(false)
+                }
         }
     }
 
@@ -260,15 +267,35 @@ class AppModel(
         readToday(shown = false, after = true)
     }
 
-    /** Faturas › Assinaturas: a mark to cancel, then the screen read again with it. */
-    fun markCancel(key: String, on: Boolean) = change("subscriptions") {
-        neko.api.markCancel(key, on)
+    /**
+     * Faturas › Assinaturas: a decision or "Não é assinatura", then the screen read again with it.
+     * A review saves each one as it goes and reads the screen once at the end (`reread` false).
+     */
+    fun markSubscription(
+        key: String,
+        mark: SubscriptionMark? = null,
+        hidden: Boolean? = null,
+        reread: Boolean = true,
+        after: (Boolean) -> Unit = {},
+    ) = change("subscriptions", after) {
+        neko.api.markSubscription(key, mark, hidden)
+        if (reread) read(Tab.Faturas, shown = false, after = true)
+    }
+
+    /** The end of "Revisar uma a uma", or leaving it: the screen read again with its decisions. */
+    fun reviewed() {
         read(Tab.Faturas, shown = false, after = true)
     }
 
-    /** Faturas › De quem é: a purchase marked as someone else's, then the screen read again. */
-    fun markOwner(key: String, person: String?) = change("owners") {
-        neko.api.markOwner(key, person)
+    /** Faturas › De quem é: a purchase marked as someone else's (or split), then the screen read again. */
+    fun markOwner(key: String, person: String?, share: Long? = null, after: (Boolean) -> Unit = {}) = change("owners", after) {
+        neko.api.markOwner(key, person, share)
+        read(Tab.Faturas, shown = false, after = true)
+    }
+
+    /** Faturas › a person: when their part goes into the sheet, then the screen read again. */
+    fun markPerson(person: String, onArrival: Boolean, after: (Boolean) -> Unit = {}) = change("person", after) {
+        neko.api.markPerson(person, onArrival)
         read(Tab.Faturas, shown = false, after = true)
     }
 

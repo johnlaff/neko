@@ -465,6 +465,8 @@ fun ListRow(
     below: @Composable () -> Unit = {},
     /** A line that opens: a chevron after the value, turning as it opens (as on the site). */
     open: Boolean? = null,
+    /** A line that opens a page or a sheet of its own: a chevron pointing on, after the value. */
+    next: Boolean = false,
 ) {
     val l = LocalLedger.current
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
@@ -498,6 +500,15 @@ fun ListRow(
                 if (open != null) {
                     Spacer(Modifier.width(4.dp))
                     Disclosure(open, l.faint, Modifier.padding(top = 5.dp))
+                }
+                if (next) {
+                    Spacer(Modifier.width(4.dp))
+                    androidx.compose.material3.Icon(
+                        androidx.compose.ui.res.painterResource(R.drawable.ic_chevron_right),
+                        contentDescription = null,
+                        tint = l.faint,
+                        modifier = Modifier.padding(top = 3.dp).size(14.dp),
+                    )
                 }
             }
             // Chips get their own line: beside the name they squeezed it out on narrow phones,

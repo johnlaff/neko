@@ -24,18 +24,43 @@ data class InvoicesView(
     val subscriptions: Subscriptions? = null,
     /** Names already used for someone else's purchases, most recent first, to pick again. */
     val people: List<String> = emptyList(),
+    /** People whose part goes into the sheet when their Pix lands, not on the due day. */
+    val onArrival: List<String> = emptyList(),
 )
 
 @Serializable
 data class BankRead(val syncedAt: String? = null)
 
-/** Charges of the same value back each month on the owner's cards (shared/types.ts SubscriptionsView). */
+/**
+ * Charges of the same value back each month on the owner's cards, with his marks (engine
+ * `subscriptionList`): what to cancel, what he kept, what he cut, what is not a subscription.
+ */
 @Serializable
 data class Subscriptions(
+    /** Biggest first. */
     val items: List<Subscription> = emptyList(),
     val total: Long = 0,
+    /** One month of the ones marked to cancel. */
     val toCancel: Long = 0,
+    /** Neither marked to cancel nor kept: what "Revisar uma a uma" goes through first. */
+    val undecided: Int = 0,
+    /** Marked to cancel and no longer charging. */
+    val cut: CutSubscriptions = CutSubscriptions(),
+    /** What the owner said is not a subscription, still charging. */
+    val hidden: List<Subscription> = emptyList(),
 )
+
+@Serializable
+data class CutSubscriptions(val items: List<CutSubscription> = emptyList(), val total: Long = 0)
+
+@Serializable
+data class CutSubscription(val key: String, val description: String, val amount: Long)
+
+@Serializable
+data class Charge(val date: String, val amount: Long)
+
+@Serializable
+data class SubscriptionSplit(val person: String, val share: Long)
 
 @Serializable
 data class Subscription(
@@ -46,7 +71,19 @@ data class Subscription(
     val last: String,
     val charges: Int,
     val twin: Boolean = false,
+    /** Its latest charges, oldest first. */
+    val charged: List<Charge> = emptyList(),
+    /** What it charged before it went up; null when it did not. */
+    val before: Long? = null,
+    val isNew: Boolean = false,
     val cancel: Boolean = false,
+    val kept: Boolean = false,
+    /** The day it charged again after the mark to cancel; null when it did not. */
+    val again: String? = null,
+    /** The key a split of it is saved under. */
+    val splitKey: String? = null,
+    /** Someone pays part of it each month. */
+    val split: SubscriptionSplit? = null,
 )
 
 /** Every card due in one month (shared/screens.ts InvoiceMonthView). */
@@ -72,7 +109,16 @@ data class Owed(
     val lines: Int = 0,
     /** Biggest first, each with the bill it is on. */
     val items: List<OwedItem> = emptyList(),
+    /** Their own card's bill due that month; null without one. */
+    val card: OwedCard? = null,
+    /** The last bill with a parcel of theirs, `yyyy-MM`, when parcels are still to come. */
+    val until: String? = null,
+    /** Their part goes into the sheet when their Pix lands, not on the due day. */
+    val onArrival: Boolean = false,
 )
+
+@Serializable
+data class OwedCard(val card: String, val amount: Long, val due: String)
 
 /** One of someone else's purchases: its card, the due day of its bill, the parcels still to come. */
 @Serializable
@@ -83,6 +129,8 @@ data class OwedItem(
     val date: String? = null,
     val installment: Int? = null,
     val installments: Int? = null,
+    /** What they pay of it: all of it, or their share when split. */
+    val part: Long = amount,
     val later: Long = 0,
     val due: String? = null,
     /** Its mark, to change whose it is from here. */
@@ -104,11 +152,21 @@ data class InvoiceRow(
     val closesInDays: Int = 0,
     val closingEstimated: Boolean = false,
     val others: Boolean = false,
+    /** Whose card it is, for a card someone else pays, when a named person's name is in it. */
+    val owner: String? = null,
     val reimbursed: Boolean = false,
+    /** Of the bank's lines, the owner's and each other person's part; null when all the owner's. */
+    val split: BillSplit? = null,
     val bank: RowBank? = null,
     val limit: CardLimit? = null,
     val history: List<MonthAmount> = emptyList(),
 )
+
+@Serializable
+data class BillSplit(val mine: Long, val theirs: List<PersonAmount> = emptyList())
+
+@Serializable
+data class PersonAmount(val person: String, val amount: Long)
 
 @Serializable
 data class RowBank(
@@ -132,6 +190,10 @@ data class BankLine(
     val key: String? = null,
     /** Whose it is, when marked as someone else's; null for yours. */
     val person: String? = null,
+    /** What that person pays of it: all of it, or their share when split; null for yours. */
+    val part: Long? = null,
+    /** A parcel's last bill, `yyyy-MM`; null for anything else. */
+    val endsIn: String? = null,
     /** Only on the bank's bill PDF: Open Finance left it out (or put it on another bill). */
     val fromStatement: Boolean = false,
 )
@@ -501,3 +563,6 @@ data class ScenarioChange(
     val date: String? = null,
     val months: Int? = null,
 )
+
+/** A decision about a subscription, as PUT /banks/subscription takes it; `None` takes it off. */
+enum class SubscriptionMark(val wire: String?) { Cancel("cancel"), Keep("keep"), None(null) }

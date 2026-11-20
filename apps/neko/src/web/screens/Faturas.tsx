@@ -290,7 +290,7 @@ export const Faturas = () => {
           );
         const m =
           v.months.find((x) => x.key === (search.m ?? v.current)) ?? (v.months.at(-1) as never);
-        const waits = r.bank?.onArrival ?? [];
+        const waits = v.onArrival;
         const back = <Back label={`Faturas de ${monthOf(m.key)}`} month={m.key} />;
         if (search.cartao) {
           const c = m.cards.find(

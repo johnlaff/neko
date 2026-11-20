@@ -99,6 +99,22 @@ class StressScreensTest {
         FaturasScreen(ScreenState(invoices), {}, {})
     }
 
+    @Test fun cartao() = compose.shot(path("cartao"), night = true, Device.SmallLargeText, Tab.Faturas) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "cartao:Cartão Azul")
+    }
+
+    @Test fun pessoa() = compose.shot(path("pessoa"), night = false, Device.SmallLargeText, Tab.Faturas) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "pessoa:Bia")
+    }
+
+    @Test fun revisar() = compose.shot(path("revisar"), night = true, Device.SmallLargeText, Tab.Faturas) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startPage = "revisar")
+    }
+
+    @Test fun cartaoTablet() = compose.shot(path("cartao-tablet"), night = true, Device.Tablet, Tab.Faturas) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "cartao:Cartão Azul")
+    }
+
     @Test fun mes() = compose.shot(path("mes"), night = false, Device.SmallLargeText, Tab.Mes) {
         MesScreen(ScreenState(months), Fakes.history) {}
     }

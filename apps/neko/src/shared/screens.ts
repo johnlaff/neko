@@ -190,6 +190,8 @@ export interface InvoicesView {
   readonly subscriptions: SubscriptionsView | null;
   /** Names already used for someone else's purchases, most recent first, to pick again. */
   readonly people: readonly string[];
+  /** People whose part goes into the sheet when their Pix lands, not on the due day. */
+  readonly onArrival: readonly string[];
 }
 
 /** `2026-11` plus `n` months. */
@@ -411,6 +413,7 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
     bank: r.bank ? { syncedAt: r.bank.syncedAt } : null,
     subscriptions: r.bank?.subscriptions?.items.length ? r.bank.subscriptions : null,
     people,
+    onArrival: r.bank?.onArrival ?? [],
   };
 };
 
