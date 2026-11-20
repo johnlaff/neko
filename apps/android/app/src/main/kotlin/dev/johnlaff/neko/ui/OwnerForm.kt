@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -116,7 +117,7 @@ internal fun OwnerForm(
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         FlowRow(
-            Modifier.semantics { contentDescription = "De quem é" },
+            Modifier.selectableGroup().semantics { contentDescription = "De quem é" },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -157,7 +158,7 @@ internal fun OwnerForm(
         }
         if (who != null && split) {
             FlowRow(
-                Modifier.semantics { contentDescription = "Quanto ${person ?: "a outra pessoa"} paga" },
+                Modifier.selectableGroup().semantics { contentDescription = "Quanto ${person ?: "a outra pessoa"} paga" },
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -193,19 +194,19 @@ internal fun OwnerForm(
         Text(
             if (who == null) "Conta inteira no seu teto."
             else listOfNotNull(
-                if (plan && part != null && person != null) "Vale para as $installments parcelas: ${money(part)} por mês para $person." else null,
+                if (plan && part != null && person != null) "Vale para as $installments parcelas, ${money(part)} de $person em cada." else null,
                 if (monthly && person != null) "Vale para todo mês em que cobrar ${money(amount)}." else null,
                 if (split) "Só a sua parte conta no teto." else "Fica fora do seu teto.",
                 person?.let { p ->
                     if (later) "A parte de $p entra na planilha quando o Pix cair."
-                    else "A parte de $p vai para Para lançar como Entrada " +
-                        if (due != null && !monthly && !plan) "em ${shortDate(due)}, quando a fatura vence." else "no dia em que cada fatura vence."
+                    else "A parte de $p aparece em Para lançar como Entrada " +
+                        if (due != null && !monthly && !plan) "em ${shortDate(due)}, quando a fatura vence." else "no vencimento de cada fatura que ainda vai vencer."
                 },
             ).joinToString(" "),
             color = l.muted,
             style = MaterialTheme.typography.bodySmall,
         )
         Small(if (saving) "Salvando…" else "Salvar", filled = true, enabled = valid && !saving, modifier = Modifier.fillMaxWidth(), spinning = saving, onClick = submit)
-        if (failed) Failed("Não salvou. Tente de novo.")
+        if (failed) Failed("Não salvou. Toque em Salvar de novo.")
     }
 }

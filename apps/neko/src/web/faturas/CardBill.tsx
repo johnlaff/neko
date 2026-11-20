@@ -5,7 +5,7 @@ import { CardAvatar } from "../CardAvatar.tsx";
 import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { bankLineName, capitalize, money, shortDate } from "../format.ts";
-import { IconReceipt } from "../icons.tsx";
+import { IconChevron, IconReceipt } from "../icons.tsx";
 import { Sheet } from "../Sheet.tsx";
 import { OwnerForm } from "./Owner.tsx";
 import { buyDay, isParcel, monthOf, parcelText, shortMonth, stateLine } from "./text.ts";
@@ -32,7 +32,10 @@ const LineRow = ({ l, onPick }: { l: BankLineView; onPick: (() => void) | null }
         <CategoryIcon text={l.description} fallback={<IconReceipt />} />
       </span>
       <span className="name">{bankLineName(l)}</span>
-      <span className={`value${l.person ? " theirs" : ""}`}>{money(l.amount)}</span>
+      <span className={`value${l.person ? " theirs" : ""}`}>
+        {money(l.amount)}
+        {onPick && <IconChevron />}
+      </span>
       {lineMeta(l) && <span className="meta">{lineMeta(l)}</span>}
     </>
   );
@@ -121,9 +124,32 @@ export const CardBill = ({
         </h2>
         <span className="meta">{stateLine(c, today)}</span>
       </div>
-      <BigMoney cents={c.amount} tone="plain" />
+      <div className="figure-stack">
+        <span className="muted">Na planilha</span>
+        <BigMoney cents={c.amount} tone="plain" />
+      </div>
+      <dl className="ledger">
+        <dt>Fecha</dt>
+        <dd>
+          {shortDate(c.closing)}
+          {c.closingEstimated && " (estimado)"}
+        </dd>
+        {c.bank && (
+          <>
+            <dt>{c.bank.closed ? "No banco, fechada" : "No banco até agora"}</dt>
+            <dd className={c.bank.disagrees ? "warn" : undefined}>{money(c.bank.amount)}</dd>
+          </>
+        )}
+        {c.limit && (
+          <>
+            <dt>Limite livre</dt>
+            <dd>{money(c.limit.available)}</dd>
+          </>
+        )}
+      </dl>
       {c.split && (
         <div className="bill-split">
+          <h3 className="label">Das compras no banco</h3>
           <div
             className="split-bar"
             role="img"
@@ -144,25 +170,6 @@ export const CardBill = ({
           </p>
         </div>
       )}
-      <dl className="ledger">
-        <dt>Fecha</dt>
-        <dd>
-          {shortDate(c.closing)}
-          {c.closingEstimated && " (estimado)"}
-        </dd>
-        {c.bank && (
-          <>
-            <dt>{c.bank.closed ? "No banco, fechada" : "No banco até agora"}</dt>
-            <dd className={c.bank.disagrees ? "warn" : undefined}>{money(c.bank.amount)}</dd>
-          </>
-        )}
-        {c.limit && (
-          <>
-            <dt>Limite livre</dt>
-            <dd>{money(c.limit.available)}</dd>
-          </>
-        )}
-      </dl>
       {history.length > 1 && (
         <section className="trend">
           <h3 className="label">Faturas do {c.card}</h3>
@@ -195,7 +202,6 @@ export const CardBill = ({
     <section className="panel bill-lines">
       <div className="panel-head">
         <h2>Compras no banco</h2>
-        {c.bank && <span className="meta">{lines.length}</span>}
       </div>
       {lines.length === 0 ? (
         <p className="hint">
@@ -222,9 +228,7 @@ export const CardBill = ({
                 </label>
               ))}
           </fieldset>
-          {people.length === 0 && (
-            <p className="hint">Toque numa compra que é de outra pessoa, ou para dividir.</p>
-          )}
+          <p className="hint">Toque numa compra para dizer de quem é, ou para dividir.</p>
           {groups.map((g) => (
             <div key={g.key} className="day-group">
               <h3>{g.key}</h3>

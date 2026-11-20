@@ -211,14 +211,14 @@ export const OwnerForm = ({
           ? "Conta inteira no seu teto."
           : [
               plan && part !== null && person
-                ? `Vale para as ${installments} parcelas: ${money(part)} por mês para ${person}.`
+                ? `Vale para as ${installments} parcelas, ${money(part)} de ${person} em cada.`
                 : null,
               monthly && person ? `Vale para todo mês em que cobrar ${money(amount)}.` : null,
               split ? "Só a sua parte conta no teto." : "Fica fora do seu teto.",
               person
                 ? later
                   ? `A parte de ${person} entra na planilha quando o Pix cair.`
-                  : `A parte de ${person} vai para Para lançar como Entrada ${due && !monthly && !plan ? `em ${shortDate(due)}, quando a fatura vence` : "no dia em que cada fatura vence"}.`
+                  : `A parte de ${person} aparece em Para lançar como Entrada ${due && !monthly && !plan ? `em ${shortDate(due)}, quando a fatura vence` : "no vencimento de cada fatura que ainda vai vencer"}.`
                 : null,
             ]
               .filter(Boolean)
@@ -229,7 +229,7 @@ export const OwnerForm = ({
       </button>
       {save.isError && (
         <p className="warn" role="alert">
-          Não salvou. Tente de novo.
+          Não salvou. Toque em Salvar de novo.
         </p>
       )}
     </form>

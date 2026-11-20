@@ -106,8 +106,8 @@ const SubscriptionDetail = ({
         <legend className="sr-only">O que fazer com {nameOf(r)}</legend>
         {(
           [
-            ["keep", "Manter"],
             ["cancel", "Vou cancelar"],
+            ["keep", "Manter"],
           ] as const
         ).map(([k, label]) => (
           <label key={k} className="chip-radio">
@@ -115,8 +115,11 @@ const SubscriptionDetail = ({
               type="radio"
               name={`${id}-mark`}
               checked={choice === k}
-              disabled={saving}
-              onChange={() => mark.mutate({ key: r.key, mark: k })}
+              // Not disabled while saving: that would drop the keyboard's focus to the page.
+              aria-disabled={saving || undefined}
+              onChange={() => {
+                if (!saving) mark.mutate({ key: r.key, mark: k });
+              }}
             />
             {choice === k && <IconCheck />}
             {label}
@@ -161,7 +164,10 @@ const SubscriptionDetail = ({
         ))}
       {mark.isError && (
         <p className="warn" role="alert">
-          Não salvou. Tente de novo.
+          Não salvou.{" "}
+          <button type="button" className="text-link" onClick={() => mark.mutate(mark.variables)}>
+            Tentar de novo
+          </button>
         </p>
       )}
       <button
@@ -176,12 +182,12 @@ const SubscriptionDetail = ({
   );
 };
 
-const SHOWN = 3;
+const SHOWN = 4;
 
 /**
- * Charges of the same value that came back each month on the owner's cards, in half a screen: what
- * asks for a look on top (charged after the mark, went up, new), then the biggest, the rest one tap
- * away. A tap opens the subscription; deciding lives there and in "Revisar uma a uma".
+ * Charges of the same value that came back each month on the owner's cards, in half a screen: four
+ * rows, what asks for a look on top (charged after the mark, went up, new), then the biggest, the
+ * rest one tap away; a charge after the mark is also said in words under the list. A tap opens the subscription; deciding lives there and in "Revisar uma a uma".
  */
 export const Subscriptions = ({
   subs,
@@ -198,9 +204,14 @@ export const Subscriptions = ({
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [gone, setGone] = useState<Row | null>(null);
-  const top = subs.items.filter(flagged);
-  const rest = subs.items.filter((r) => !flagged(r));
-  const shown = all ? rest : rest.slice(0, SHOWN);
+  const undo = useRef<HTMLButtonElement>(null);
+  // The row it came from is gone: the focus waits on Desfazer instead of falling to the page.
+  useEffect(() => {
+    if (gone) undo.current?.focus();
+  }, [gone]);
+  const order = [...subs.items.filter(flagged), ...subs.items.filter((r) => !flagged(r))];
+  const shown = all ? order : order.slice(0, SHOWN);
+  const again = subs.items.filter((r) => r.again !== null);
   const picked = subs.items.find((r) => r.key === open) ?? null;
   const cut = subs.cut.items.map(nameOf);
   return (
@@ -210,7 +221,7 @@ export const Subscriptions = ({
         <span className="meta">{money(subs.total)} por mês</span>
       </div>
       <ul className="rows lead subs">
-        {[...top, ...shown].map((r) => (
+        {shown.map((r) => (
           <li key={r.key} className="bill">
             <button
               type="button"
@@ -234,9 +245,18 @@ export const Subscriptions = ({
           </li>
         ))}
       </ul>
-      {rest.length > shown.length && (
-        <button type="button" className="text-link" onClick={() => setAll(true)}>
-          Ver as outras {rest.length - shown.length}
+      {order.length > SHOWN && (
+        <button
+          type="button"
+          className="text-link"
+          aria-expanded={all}
+          onClick={() => setAll((x) => !x)}
+        >
+          {all
+            ? "Ver menos"
+            : order.length - SHOWN === 1
+              ? "Ver mais uma"
+              : `Ver mais ${order.length - SHOWN}`}
         </button>
       )}
       <div aria-live="polite" className="subs-status">
@@ -244,8 +264,10 @@ export const Subscriptions = ({
           <p className="hint">
             {nameOf(gone)} saiu da lista.{" "}
             <button
+              ref={undo}
               type="button"
               className="text-link"
+              disabled={mark.isPending}
               onClick={() =>
                 mark.mutate({ key: gone.key, hidden: false }, { onSuccess: () => setGone(null) })
               }
@@ -254,9 +276,20 @@ export const Subscriptions = ({
             </button>
           </p>
         )}
+        {mark.isError && (
+          <p className="warn" role="alert">
+            Não voltou para a lista. Tente de novo.
+          </p>
+        )}
       </div>
-      {(subs.toCancel > 0 || subs.cut.total > 0) && (
+      {(again.length > 0 || subs.toCancel > 0 || subs.cut.total > 0) && (
         <div className="subs-foot">
+          {again.map((r) => (
+            <p key={r.key} className="warn">
+              {nameOf(r)} cobrou de novo em {shortDate(r.again ?? "")}, depois de marcada para
+              cancelar.
+            </p>
+          ))}
           {subs.toCancel > 0 && (
             <p className="pos">
               {plural(subs.items.filter((r) => r.cancel).length, "a cancelar", "a cancelar")}:{" "}
@@ -325,13 +358,15 @@ const ReviewDone = ({
   rows,
   decided,
   failed,
+  onRetry,
   onBack,
   onAgain,
 }: {
   subs: SubscriptionsView;
   rows: readonly Row[];
   decided: Record<string, "keep" | "cancel">;
-  failed: boolean;
+  failed: Record<string, "keep" | "cancel">;
+  onRetry: () => void;
   onBack: () => void;
   onAgain: () => void;
 }) => {
@@ -340,6 +375,7 @@ const ReviewDone = ({
   const reading = useIsFetching({ queryKey: ["projection"] }) > 0;
   useEffect(() => title.current?.focus({ preventScroll: true }), []);
   const cancel = rows.filter((x) => (decided[x.key] ?? (x.cancel ? "cancel" : null)) === "cancel");
+  const lost = rows.filter((x) => failed[x.key] !== undefined);
   return (
     <section className="panel review-done">
       <span className="avatar pos" aria-hidden="true">
@@ -370,9 +406,12 @@ const ReviewDone = ({
           ? `Com todas as marcadas: ${money(subs.toCancel)} a menos por mês`
           : ""}
       </p>
-      {failed && (
+      {lost.length > 0 && (
         <p className="warn" role="alert">
-          Alguma decisão não salvou. Abra a assinatura em Faturas e marque de novo.
+          Não salvou: {lost.map(nameOf).join(", ")}.{" "}
+          <button type="button" className="text-link" onClick={onRetry}>
+            Tentar de novo
+          </button>
         </p>
       )}
       <div className="actions">
@@ -403,7 +442,7 @@ export const Review = ({ subs, onBack }: { subs: SubscriptionsView; onBack: () =
   });
   const [at, setAt] = useState(0);
   const [decided, setDecided] = useState<Record<string, "keep" | "cancel">>({});
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<Record<string, "keep" | "cancel">>({});
   const [dx, setDx] = useState(0);
   const start = useRef<number | null>(null);
   const r = rows[at] ?? null;
@@ -417,12 +456,29 @@ export const Review = ({ subs, onBack }: { subs: SubscriptionsView; onBack: () =
     () => () => void queryClient.invalidateQueries({ queryKey: ["projection"] }),
     [queryClient],
   );
+  const save = (key: string, mark: "keep" | "cancel") =>
+    api.markSubscription(key, { mark }).then(
+      () => {
+        setFailed(({ [key]: _, ...rest }) => rest);
+        setDecided((d) => ({ ...d, [key]: mark }));
+      },
+      () => {
+        // What did not save is not counted as decided: the end says which ones, to try again.
+        setFailed((f) => ({ ...f, [key]: mark }));
+        setDecided(({ [key]: _, ...rest }) => rest);
+      },
+    );
   const decide = (mark: "keep" | "cancel") => {
     if (!r) return;
     setDecided((d) => ({ ...d, [r.key]: mark }));
     setDx(0);
     setAt((i) => i + 1);
-    api.markSubscription(r.key, { mark }).catch(() => setFailed(true));
+    void save(r.key, mark);
+  };
+  /** On to the next without deciding: it stays without a decision, for another day. */
+  const skip = () => {
+    setDx(0);
+    setAt((i) => i + 1);
   };
   // At a keyboard the arrows decide, as the swipe does: → keeps, ← cancels. Never while typing
   // or with a sheet open.
@@ -430,7 +486,7 @@ export const Review = ({ subs, onBack }: { subs: SubscriptionsView; onBack: () =
   onKey.current = decide;
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.defaultPrevented || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
       if (document.querySelector("dialog[open]")) return;
       const t = e.target;
       if (
@@ -455,9 +511,15 @@ export const Review = ({ subs, onBack }: { subs: SubscriptionsView; onBack: () =
         rows={rows}
         decided={decided}
         failed={failed}
+        onRetry={() =>
+          void Promise.all(Object.entries(failed).map(([key, mark]) => save(key, mark))).then(() =>
+            queryClient.invalidateQueries({ queryKey: ["projection"] }),
+          )
+        }
         onBack={onBack}
         onAgain={() => {
           setDecided({});
+          setFailed({});
           setAt(0);
         }}
       />
@@ -531,26 +593,32 @@ export const Review = ({ subs, onBack }: { subs: SubscriptionsView; onBack: () =
           <Chips r={r} />
         </div>
       </div>
+      {/* In the swipe's order: left cancels, right keeps. */}
       <div className="review-acts">
+        <button type="button" className="ghost" onClick={() => decide("cancel")}>
+          Vou cancelar
+        </button>
         <button type="button" className="ghost" onClick={() => decide("keep")}>
           Manter
         </button>
-        <button type="button" onClick={() => decide("cancel")}>
-          Vou cancelar
-        </button>
       </div>
       <p className="hint review-how">
-        <span className="coarse">Ou deslize: direita mantém, esquerda cancela.</span>
-        <span className="fine">Ou use as setas: → mantém, ← cancela.</span>
+        <span className="coarse">Ou deslize: esquerda cancela, direita mantém.</span>
+        <span className="fine">Ou use as setas: ← cancela, → mantém.</span>
       </p>
       <p className="review-sum" aria-live="polite">
         {marked > 0 ? `${plural(marked, "marcada", "marcadas")} para cancelar nesta revisão` : ""}
       </p>
-      {at > 0 && (
-        <button type="button" className="text-link" onClick={() => setAt((i) => i - 1)}>
-          Voltar uma
+      <div className="review-nav">
+        {at > 0 && (
+          <button type="button" className="text-link" onClick={() => setAt((i) => i - 1)}>
+            Voltar uma
+          </button>
+        )}
+        <button type="button" className="text-link quiet" onClick={skip}>
+          Pular
         </button>
-      )}
+      </div>
     </section>
   );
 };

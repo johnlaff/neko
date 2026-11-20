@@ -462,6 +462,8 @@ fun ListRow(
     valueColor: Color = LocalLedger.current.text,
     accent: Boolean = false,
     chips: @Composable () -> Unit = {},
+    /** Chips right after the name, wrapping under it when they don't fit (the site's subscriptions). */
+    inlineChips: Boolean = false,
     below: @Composable () -> Unit = {},
     /** A line that opens: a chevron after the value, turning as it opens (as on the site). */
     open: Boolean? = null,
@@ -494,7 +496,15 @@ fun ListRow(
         Column(Modifier.weight(1f).padding(top = if (avatar != null || bank != null) 6.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 // Two lines before cutting: "Financiamento Carro 07/48" fits on a small phone.
-                Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                if (inlineChips) FlowRow(
+                    Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    chips()
+                } else Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(12.dp))
                 Text(value, color = valueColor, textAlign = TextAlign.End)
                 if (open != null) {
@@ -513,7 +523,7 @@ fun ListRow(
             }
             // Chips get their own line: beside the name they squeezed it out on narrow phones,
             // and they wrap instead of clipping when two don't fit.
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { chips() }
+            if (!inlineChips) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { chips() }
             meta?.let { Text(it, color = l.faint, style = MaterialTheme.typography.labelMedium) }
             below()
         }

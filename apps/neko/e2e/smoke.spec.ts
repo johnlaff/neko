@@ -394,10 +394,14 @@ test("Faturas shows the subscriptions in half a screen and decides one in its sh
   await expect(
     subs.getByRole("button", { name: /^Streaming de Filmes Cobrou de novo/ }),
   ).toBeVisible();
+  // A charge after the mark is said in words too, before what the marks take off.
+  await expect(
+    subs.getByText("Streaming de Filmes cobrou de novo em", { exact: false }),
+  ).toBeVisible();
   await expect(subs.getByText("1 a cancelar: R$ 39,90 a menos por mês")).toBeVisible();
   await expect(subs.getByText("Você já cortou R$ 19,90 por mês", { exact: false })).toBeVisible();
   await expect(subs.getByRole("button", { name: /^Jornal Digital/ })).toHaveCount(0);
-  await subs.getByRole("button", { name: "Ver as outras 1" }).click();
+  await subs.getByRole("button", { name: "Ver mais 3" }).click();
   await expect(subs.getByRole("button", { name: /^Jornal Digital/ })).toBeVisible();
   await subs.getByRole("button", { name: /^Assistente Virtual/ }).click();
   const sheet = page.getByRole("dialog", { name: "Assinatura" });
@@ -461,7 +465,7 @@ test("a card's page shows whose each purchase is, and splits one with another va
   await sheet.getByRole("radio", { name: "Outro valor" }).check();
   await sheet.getByRole("textbox", { name: /Bia paga/ }).fill("150");
   await expect(
-    sheet.getByText("Vale para as 6 parcelas: R$ 150,00 por mês para Bia.", { exact: false }),
+    sheet.getByText("Vale para as 6 parcelas, R$ 150,00 de Bia em cada.", { exact: false }),
   ).toBeVisible();
   const sent = sentTo(page, "/api/banks/owner");
   await sheet.getByRole("button", { name: "Salvar" }).click();
@@ -485,7 +489,7 @@ test("a person's page sums their month and hands the message to the phone", asyn
     page.getByText("Depois de novembro ainda vêm R$ 934,80 em parcelas, até fev/27."),
   ).toBeVisible();
   await expect(
-    page.getByText("Cartão Azul · parcela 3 de 6 · faltam R$ 675,00 · de R$ 450,00"),
+    page.getByText("Cartão Azul · parcela 3 de 6 · faltam R$ 675,00 · metade de R$ 450,00"),
   ).toBeVisible();
   // Neko sends nothing: the phone's share sheet gets the text.
   await page.evaluate(() => {

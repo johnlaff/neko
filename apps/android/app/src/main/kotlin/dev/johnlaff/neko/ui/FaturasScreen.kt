@@ -357,7 +357,7 @@ private fun OwedPanel(m: InvoiceMonth, onOpen: (String) -> Unit) {
                 )
             }
         }
-        Text("Fica fora do teto. A parte de cada pessoa vai para Para lançar.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        Text("Fica fora do teto. A parte de cada pessoa aparece em Para lançar como Entrada.", color = l.muted, style = MaterialTheme.typography.bodySmall)
     }
 }
 

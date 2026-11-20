@@ -83,8 +83,8 @@ internal fun BackRow(label: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(painterResource(R.drawable.ic_chevron_left), contentDescription = null, tint = l.muted, modifier = Modifier.size(18.dp))
-        Text(label, color = l.muted, style = MaterialTheme.typography.labelLarge)
+        Icon(painterResource(R.drawable.ic_chevron_left), contentDescription = null, tint = l.accent, modifier = Modifier.size(18.dp))
+        Text(label, color = l.accent, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -118,7 +118,8 @@ internal fun SplitBar(mine: Long, theirs: List<Long>, description: String, modif
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         val pill = RoundedCornerShape(50)
-        if (mine > 0) Box(Modifier.weight(mine.toFloat()).widthIn(min = 4.dp).height(8.dp).background(l.muted, pill))
+        // The owner's part in ink, someone else's in green: told apart by more than the hue.
+        if (mine > 0) Box(Modifier.weight(mine.toFloat()).widthIn(min = 4.dp).height(8.dp).background(l.text, pill))
         theirs.filter { it > 0 }.forEach { t ->
             Box(Modifier.weight(t.toFloat()).widthIn(min = 4.dp).height(8.dp).background(l.accent, pill))
         }
@@ -142,5 +143,19 @@ internal fun KeyDot(color: Color, text: String) {
         Box(Modifier.size(8.dp).background(color, CircleShape))
         Spacer(Modifier.width(6.dp))
         Text(text, color = l.muted, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+/** A save that failed, with the way to send it again beside the words (the site's "Tentar de novo"). */
+@Composable
+internal fun FailedRetry(text: String, onRetry: () -> Unit) {
+    val l = LocalLedger.current
+    androidx.compose.foundation.layout.FlowRow(
+        verticalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Failed(text)
+        TextAction("Tentar de novo", onRetry, color = l.accent)
     }
 }

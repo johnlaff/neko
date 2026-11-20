@@ -247,6 +247,9 @@ button.icon svg {
 .chip.ok::before {
   background: var(--pos);
 }
+.chip.warn {
+  color: var(--muted);
+}
 .chip.warn::before {
   background: var(--warn);
 }
@@ -4934,6 +4937,11 @@ dl.mia-numbers + p.mia-sources {
 .rows .value.theirs {
   color: var(--muted);
 }
+/* And its icon in green, the colour of someone else's part in the bar above. */
+.rows.lead > li.theirs .avatar {
+  color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 16%, transparent);
+}
 
 /* What a sheet or a page is about: its icon, name and value, the facts under the name. */
 .sheet-item {
@@ -5141,7 +5149,7 @@ fieldset.chip-radios.owner-modes {
 .split-bar > i {
   min-width: 4px;
   border-radius: 999px;
-  background: var(--muted);
+  background: var(--text);
 }
 .split-bar > i.them {
   background: var(--accent);
@@ -5161,8 +5169,7 @@ fieldset.chip-radios.owner-modes {
   text-align: right;
   font-weight: 500;
 }
-.owner-kv dd.them,
-.split-key > .them {
+.owner-kv dd.them {
   color: var(--accent);
 }
 .owner-form > button[type="submit"] {
@@ -5189,7 +5196,11 @@ fieldset.chip-radios.owner-modes {
   margin: -8px 0;
 }
 .subs-status:empty {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 .subs-status > p {
   display: flex;
@@ -5346,7 +5357,7 @@ button.setting.sub-split > svg {
   justify-items: start;
   gap: 8px;
   padding: 22px 20px 20px;
-  border-radius: 16px;
+  border-radius: 10px;
   background: var(--surface-2);
   touch-action: pan-y;
   user-select: none;
@@ -5419,12 +5430,16 @@ button.setting.sub-split > svg {
 }
 .review-sum {
   margin: 0;
-  color: var(--pos);
+  color: var(--muted);
   font-size: 0.875rem;
   text-align: center;
 }
 .review-sum:empty {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 .review > .text-link {
   justify-self: center;
@@ -5440,7 +5455,11 @@ button.setting.sub-split > svg {
   font-weight: 500;
 }
 .review-done > p:empty {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 /* A card's page: the bill, then the purchases by day with the parcels apart. */
@@ -5452,14 +5471,30 @@ button.setting.sub-split > svg {
   display: grid;
   gap: 8px;
 }
+.bill-split > h3.label {
+  margin: 0;
+}
 .split-key {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 2px 16px;
+  gap: 4px 16px;
   margin: 0;
   font-size: 0.8125rem;
   color: var(--muted);
+}
+/* The key's dots are the bar's colours: the owner's part in ink, someone else's green. */
+.split-key > span::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  vertical-align: 0.05em;
+}
+.split-key > span.them::before {
+  background: var(--accent);
 }
 fieldset.chip-radios.bill-filters {
   display: flex;
@@ -5499,7 +5534,11 @@ fieldset.chip-radios.bill-filters {
   height: 18px;
 }
 .person-head [aria-live]:empty {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 .person-head [aria-live] {
   display: grid;

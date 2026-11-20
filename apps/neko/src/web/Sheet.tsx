@@ -34,8 +34,16 @@ export const Sheet = ({
       aria-label={title}
       onClose={onClose}
       onClick={(e) => {
-        // Only the backdrop is the dialog itself: everything inside sits in its body.
-        if (e.target === e.currentTarget) onClose();
+        // The backdrop is the dialog itself, and so is the sheet's empty space around its body: only
+        // a tap outside the sheet's box closes it, so a half-made choice is never lost to a stray tap.
+        if (e.target !== e.currentTarget) return;
+        const box = e.currentTarget.getBoundingClientRect();
+        const inside =
+          e.clientX >= box.left &&
+          e.clientX <= box.right &&
+          e.clientY >= box.top &&
+          e.clientY <= box.bottom;
+        if (!inside) onClose();
       }}
     >
       {open && (

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -83,19 +84,9 @@ internal fun CardHead(c: InvoiceRow, month: String, today: String, onPickMonth: 
                 Text(billStateLine(c, today), color = l.faint, style = MaterialTheme.typography.labelMedium)
             }
         }
-        BigMoney(c.amount)
-        c.split?.let { s ->
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SplitBar(
-                    maxOf(0L, s.mine),
-                    s.theirs.map { it.amount },
-                    "Das compras no banco: seu ${money(s.mine)}, " + s.theirs.joinToString(", ") { "de ${it.person} ${money(it.amount)}" },
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    KeyDot(l.muted, "Seu ${money(s.mine)} · conta no teto")
-                    s.theirs.forEach { t -> KeyDot(l.accent, "${t.person} ${money(t.amount)}") }
-                }
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Na planilha", color = l.muted)
+            BigMoney(c.amount)
         }
         // The bill's facts on their own tinted block.
         Column(
@@ -107,6 +98,21 @@ internal fun CardHead(c: InvoiceRow, month: String, today: String, onPickMonth: 
                 LedgerLine(if (b.closed) "No banco, fechada" else "No banco até agora", money(b.amount), color = if (b.disagrees) l.warn else l.text)
             }
             c.limit?.let { x -> LedgerLine("Limite livre", money(x.available)) }
+        }
+        // The bank's purchases split by whose, under the bank's own figure.
+        c.split?.let { s ->
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Das compras no banco", color = l.faint, style = MaterialTheme.typography.labelMedium, modifier = Modifier.semantics { heading() })
+                SplitBar(
+                    maxOf(0L, s.mine),
+                    s.theirs.map { it.amount },
+                    "Das compras no banco: seu ${money(s.mine)}, " + s.theirs.joinToString(", ") { "de ${it.person} ${money(it.amount)}" },
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    KeyDot(l.text, "Seu ${money(s.mine)} · conta no teto")
+                    s.theirs.forEach { t -> KeyDot(l.accent, "${t.person} ${money(t.amount)}") }
+                }
+            }
         }
         if (c.history.count { it.amount != 0L } > 1) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -155,9 +161,7 @@ internal fun CardLines(c: InvoiceRow, today: String, people: List<String>, onPic
         .groupBy { x -> x.date?.let { buyDay(it, today) } ?: "Sem data" }.toList() +
         listOfNotNull(shown.filter(::isParcel).takeIf { it.isNotEmpty() }?.let { "Parcelas" to it })
     Panel {
-        PanelHead("Compras no banco") {
-            if (c.bank != null) Text("${lines.size}", color = l.faint, style = MaterialTheme.typography.labelMedium)
-        }
+        PanelHead("Compras no banco")
         if (lines.isEmpty()) {
             Text(
                 if (c.bank != null) "O banco ainda não mandou compras desta fatura."
@@ -169,14 +173,14 @@ internal fun CardLines(c: InvoiceRow, today: String, people: List<String>, onPic
         }
         // One line of filters that slides sideways, as the site's.
         Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).semantics { contentDescription = "Mostrar" },
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().semantics { contentDescription = "Mostrar" },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             filters.filter { it.third > 0 || it.first == "all" }.forEach { (k, label, n) ->
-                Choice("$label · $n", filter == k) { filter = k }
+                Choice(label, filter == k, count = n) { filter = k }
             }
         }
-        if (people.isEmpty()) Text("Toque numa compra que é de outra pessoa, ou para dividir.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+        Text("Toque numa compra para dizer de quem é, ou para dividir.", color = l.muted, style = MaterialTheme.typography.bodySmall)
         groups.forEach { (day, items) ->
             key(day) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -195,6 +199,7 @@ internal fun CardLines(c: InvoiceRow, today: String, people: List<String>, onPic
                                 valueColor = if (theirs) l.muted else l.text,
                                 accent = theirs,
                                 meta = lineMeta(x),
+                                next = x.key != null,
                             )
                         }
                     }

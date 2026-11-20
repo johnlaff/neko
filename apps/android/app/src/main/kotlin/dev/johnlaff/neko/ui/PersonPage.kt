@@ -1,16 +1,21 @@
 package dev.johnlaff.neko.ui
 
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +47,16 @@ import dev.johnlaff.neko.ui.Format.money
 import dev.johnlaff.neko.ui.Format.shortDate
 
 private fun itemLine(i: OwedItem) = BankLine(i.description, i.amount, i.date, i.installment, i.installments, i.key)
+
+/** `metade de R$ 450,00`: how much of the purchase is theirs, in words when it is a plain share. */
+internal fun shareOf(i: OwedItem): String {
+    val word = when (i.part) {
+        Math.round(i.amount / 2.0) -> "metade"
+        Math.round(i.amount / 3.0) -> "um terço"
+        else -> "parte"
+    }
+    return "$word de ${money(i.amount)}"
+}
 
 /** `parcela 3 de 6 · faltam R$ 675,00`, or the day of the purchase. */
 internal fun itemWhen(i: OwedItem): String? {
@@ -84,7 +100,7 @@ internal fun PersonHead(o: Owed, month: String) {
             PersonAvatar(o.person, 40)
             Column(Modifier.weight(1f)) {
                 PageTitle(o.person)
-                Text("Te paga nas faturas de ${monthWord(month)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
+                Text("Parte de ${o.person} nas faturas de ${monthWord(month)}", color = l.faint, style = MaterialTheme.typography.labelMedium)
             }
         }
         BigMoney(o.total)
@@ -109,6 +125,16 @@ internal fun PersonHead(o: Owed, month: String) {
             androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
             Text("Mandar para ${o.person}", color = l.bg, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
         }
+        // What goes out, before it goes: the same words the share sheet gets.
+        var preview by rememberSaveable { mutableStateOf(false) }
+        TextAction("Ver a mensagem", { preview = !preview }, open = preview)
+        Reveal(preview) {
+            Text(
+                messageOf(o, month),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().background(l.surface2, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 12.dp),
+            )
+        }
         Text("O Neko não manda nada sozinho: você escolhe para onde a mensagem vai.", color = l.muted, style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -122,7 +148,8 @@ internal fun PersonLines(o: Owed, actions: FaturasActions, onPick: (OwedItem) ->
     val l = LocalLedger.current
     // The tap shows at once; the screen read again with the choice takes over.
     var pending by remember(o.onArrival) { mutableStateOf<Boolean?>(null) }
-    var failed by remember { mutableStateOf(false) }
+    // The choice that did not save, to send again.
+    var failed by remember { mutableStateOf<Boolean?>(null) }
     val onArrival = pending ?: o.onArrival
     Panel {
         o.card?.let { c ->
@@ -148,7 +175,7 @@ internal fun PersonLines(o: Owed, actions: FaturasActions, onPick: (OwedItem) ->
                         avatar = "",
                         avatarVector = categoryIcon(i.description),
                         avatarIcon = R.drawable.ic_receipt,
-                        meta = listOfNotNull(i.card, itemWhen(i), if (i.part < i.amount) "de ${money(i.amount)}" else null).joinToString(" · "),
+                        meta = listOfNotNull(i.card, itemWhen(i), if (i.part < i.amount) shareOf(i) else null).joinToString(" · "),
                         next = true,
                     )
                 }
@@ -161,29 +188,32 @@ internal fun PersonLines(o: Owed, actions: FaturasActions, onPick: (OwedItem) ->
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.semantics { heading() },
         )
-        Row(Modifier.fillMaxWidth().semantics { contentDescription = "Quando a parte de ${o.person} entra na planilha" }, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val pick = { k: Boolean ->
+            pending = k
+            failed = null
+            actions.person(o.person, k) { ok ->
+                if (!ok) {
+                    pending = null
+                    failed = k
+                }
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup().semantics { contentDescription = "Quando a parte de ${o.person} entra na planilha" },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             listOf(false to "No vencimento", true to "Quando o Pix cair").forEach { (k, label) ->
-                Box(Modifier.weight(1f)) {
-                    Choice(label, onArrival == k, fill = true) {
-                        if (onArrival == k) return@Choice
-                        pending = k
-                        failed = false
-                        actions.person(o.person, k) { ok ->
-                            if (!ok) {
-                                pending = null
-                                failed = true
-                            }
-                        }
-                    }
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    Choice(label, onArrival == k, fill = true) { if (onArrival != k) pick(k) }
                 }
             }
         }
         Text(
             if (onArrival) "Nada fica planejado: quando o Pix de ${o.person} cair, ele aparece em Para lançar como Entrada."
-            else "Cada parte vai para Para lançar como Entrada no dia em que a fatura vence. Um Pix adiantado de ${o.person} diminui essa Entrada.",
+            else "Cada parte aparece em Para lançar como Entrada no dia em que a fatura vence. Um Pix adiantado de ${o.person} diminui essa Entrada.",
             color = l.muted,
             style = MaterialTheme.typography.bodySmall,
         )
-        if (failed) Failed("Não salvou. Tente de novo.")
+        failed?.let { k -> FailedRetry("Não salvou.") { pick(k) } }
     }
 }

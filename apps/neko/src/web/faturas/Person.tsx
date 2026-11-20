@@ -7,7 +7,7 @@ import { CardAvatar } from "../CardAvatar.tsx";
 import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney } from "../Figures.tsx";
 import { bankLineName, capitalize, money, plainMoney, shortDate } from "../format.ts";
-import { IconReceipt } from "../icons.tsx";
+import { IconChevron, IconReceipt } from "../icons.tsx";
 import { Sheet } from "../Sheet.tsx";
 import { OwnerForm } from "./Owner.tsx";
 import { monthOf, monthYear, plural } from "./text.ts";
@@ -31,6 +31,10 @@ const IconShare = () => (
 
 const split = (i: Item) => i.part < i.amount;
 
+/** `metade de R$ 450,00`: how much of the purchase is theirs, in words when it is a plain share. */
+const shareOf = (i: Item) =>
+  `${i.part === Math.round(i.amount / 2) ? "metade" : i.part === Math.round(i.amount / 3) ? "um terço" : "parte"} de ${money(i.amount)}`;
+
 const itemWhen = (i: Item) =>
   i.installment !== null && i.installments !== null && i.installments > 1
     ? `parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · faltam ${money(i.later)}` : " · última"}`
@@ -45,22 +49,22 @@ const slashDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
  * What the owner sends the person, word for word: each line of the month with its value, and the
  * total. Plain amounts even while the screen hides them: he chose to send it.
  */
-const messageOf = (o: OwedView, month: string) =>
+const messageOf = (o: OwedView, month: string, cash = plainMoney) =>
   [
     `Oi, ${o.person}! Sua parte nas faturas de ${monthOf(month)}:`,
     ...(o.card
-      ? [`• ${o.card.card}: ${plainMoney(o.card.amount)} (vence ${slashDate(o.card.due)})`]
+      ? [`• ${o.card.card}: ${cash(o.card.amount)} (vence ${slashDate(o.card.due)})`]
       : []),
     ...o.items.map((i) => {
       const what =
         i.installment !== null && i.installments !== null && i.installments > 1
           ? ` (parcela ${i.installment} de ${i.installments})`
           : split(i)
-            ? ` (sua parte de ${plainMoney(i.amount)})`
+            ? ` (sua parte de ${cash(i.amount)})`
             : "";
-      return `• ${bankLineName(i)}${what}: ${plainMoney(i.part)}`;
+      return `• ${bankLineName(i)}${what}: ${cash(i.part)}`;
     }),
-    `Total: ${plainMoney(o.total)}`,
+    `Total: ${cash(o.total)}`,
   ].join("\n");
 
 /**
@@ -84,7 +88,8 @@ export const Person = ({
   const queryClient = useQueryClient();
   const title = useRef<HTMLHeadingElement>(null);
   const [picked, setPicked] = useState<Item | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
+  // After a tap with no share sheet: the text was copied, or it is shown to copy by hand.
+  const [sent, setSent] = useState<"copied" | "by-hand" | null>(null);
   useEffect(() => title.current?.focus({ preventScroll: true }), []);
   const when = useMutation({
     mutationFn: (onArrival: boolean) => api.markPerson(o.person, onArrival),
@@ -93,17 +98,17 @@ export const Person = ({
   const onArrival = when.isPending ? when.variables : o.onArrival;
   const send = async () => {
     const text = messageOf(o, month);
-    setCopied(null);
+    setSent(null);
     try {
       if (navigator.share) {
         await navigator.share({ text });
         return;
       }
       await navigator.clipboard.writeText(text);
-      setCopied(text);
+      setSent("copied");
     } catch (e) {
       // Closing the share sheet is not a failure; anything else shows the text to copy by hand.
-      if (!(e instanceof DOMException && e.name === "AbortError")) setCopied(text);
+      if (!(e instanceof DOMException && e.name === "AbortError")) setSent("by-hand");
     }
   };
   const head = (
@@ -115,7 +120,9 @@ export const Person = ({
         <h2 className="name" ref={title} tabIndex={-1}>
           {o.person}
         </h2>
-        <span className="meta">Te paga nas faturas de {monthOf(month)}</span>
+        <span className="meta">
+          Parte de {o.person} nas faturas de {monthOf(month)}
+        </span>
       </div>
       <BigMoney cents={o.total} tone="plain" />
       {o.later > 0 && (
@@ -129,13 +136,21 @@ export const Person = ({
         Mandar para {o.person}
       </button>
       <div aria-live="polite">
-        {copied && (
-          <>
-            <p className="hint">Mensagem copiada. Cole no WhatsApp ou onde preferir.</p>
-            <pre className="message">{copied}</pre>
-          </>
+        {sent && (
+          <p className="hint">
+            {sent === "copied"
+              ? "Mensagem copiada. Cole no WhatsApp ou onde preferir."
+              : "Não deu para abrir o compartilhar. Copie a mensagem abaixo."}
+          </p>
         )}
       </div>
+      <details className="formula person-message" open={sent === "by-hand" || undefined}>
+        <summary>
+          Ver a mensagem
+          <IconChevron />
+        </summary>
+        <pre className="message">{messageOf(o, month, money)}</pre>
+      </details>
       <p className="hint">O Neko não manda nada sozinho: você escolhe para onde a mensagem vai.</p>
     </section>
   );
@@ -172,9 +187,12 @@ export const Person = ({
                     <CategoryIcon text={i.description} fallback={<IconReceipt />} />
                   </span>
                   <span className="name">{bankLineName(i)}</span>
-                  <span className="value">{money(i.part)}</span>
+                  <span className="value">
+                    {money(i.part)}
+                    <IconChevron />
+                  </span>
                   <span className="meta">
-                    {[i.card, itemWhen(i), split(i) ? `de ${money(i.amount)}` : null]
+                    {[i.card, itemWhen(i), split(i) ? shareOf(i) : null]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
@@ -198,8 +216,10 @@ export const Person = ({
               type="radio"
               name={`${id}-when`}
               checked={onArrival === k}
-              disabled={when.isPending}
-              onChange={() => when.mutate(k)}
+              aria-disabled={when.isPending || undefined}
+              onChange={() => {
+                if (!when.isPending) when.mutate(k);
+              }}
             />
             {label}
           </label>
@@ -208,11 +228,14 @@ export const Person = ({
       <p className="hint">
         {onArrival
           ? `Nada fica planejado: quando o Pix de ${o.person} cair, ele aparece em Para lançar como Entrada.`
-          : `Cada parte vai para Para lançar como Entrada no dia em que a fatura vence. Um Pix adiantado de ${o.person} diminui essa Entrada.`}
+          : `Cada parte aparece em Para lançar como Entrada no dia em que a fatura vence. Um Pix adiantado de ${o.person} diminui essa Entrada.`}
       </p>
       {when.isError && (
         <p className="warn" role="alert">
-          Não salvou. Tente de novo.
+          Não salvou.{" "}
+          <button type="button" className="text-link" onClick={() => when.mutate(when.variables)}>
+            Tentar de novo
+          </button>
         </p>
       )}
     </section>

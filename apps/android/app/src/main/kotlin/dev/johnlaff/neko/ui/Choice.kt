@@ -5,6 +5,8 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
@@ -15,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -28,7 +31,7 @@ import dev.johnlaff.neko.data.SimulatedCycle
 
 /** A pill to pick one option, pressed when chosen; it takes its new colors quickly, as on the site. */
 @Composable
-internal fun Choice(text: String, on: Boolean, fill: Boolean = false, onClick: () -> Unit) {
+internal fun Choice(text: String, on: Boolean, fill: Boolean = false, count: Int? = null, onClick: () -> Unit) {
     val l = LocalLedger.current
     val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(50)
@@ -36,27 +39,49 @@ internal fun Choice(text: String, on: Boolean, fill: Boolean = false, onClick: (
     val ink by animateColorAsState(if (on) l.bg else l.text, ease, label = "ink")
     val fillColor by animateColorAsState(if (on) l.text else l.surface2, ease, label = "fill")
     val edge by animateColorAsState(if (on) l.text else l.border, ease, label = "edge")
-    Text(
-        text,
-        color = ink,
-        style = MaterialTheme.typography.labelLarge,
-        textAlign = if (fill) androidx.compose.ui.text.style.TextAlign.Center else null,
-        maxLines = 1,
-        // Never broken inside: with big text a row of pills wraps whole pills instead.
-        softWrap = false,
-        // The pill stays small; the touch area around it is a finger's. Filled, it takes its share
-        // of a row, as the site's segmented chips do.
-        modifier = Modifier
-            .then(if (fill) Modifier.fillMaxWidth() else Modifier)
-            .minimumInteractiveComponentSize()
-            .background(fillColor, shape)
-            .border(1.dp, edge, shape)
-            .selectable(on, role = Role.RadioButton) {
-                if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-                onClick()
-            }
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    )
+    // The pill stays small; the touch area around it is a finger's.
+    val pill = Modifier
+        .minimumInteractiveComponentSize()
+        .background(fillColor, shape)
+        .border(1.dp, edge, shape)
+        .selectable(on, role = Role.RadioButton) {
+            if (!on) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+            onClick()
+        }
+        .padding(horizontal = 14.dp, vertical = 8.dp)
+    if (fill) {
+        // Filled, it takes its share of a row, as the site's segmented chips do, and as tall as the
+        // row (give the row IntrinsicSize.Min); with big text the words wrap inside it instead of
+        // being cut, since the row cannot wrap whole pills.
+        Box(Modifier.fillMaxWidth().fillMaxHeight().then(pill), contentAlignment = Alignment.Center) {
+            Text(
+                text,
+                color = ink,
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 2,
+            )
+        }
+    } else {
+        // A count after the words, quieter, as the site's filters show it.
+        val words = if (count == null) androidx.compose.ui.text.AnnotatedString(text)
+        else androidx.compose.ui.text.buildAnnotatedString {
+            append(text)
+            append("  ")
+            pushStyle(androidx.compose.ui.text.SpanStyle(color = ink.copy(alpha = 0.6f)))
+            append(count.toString())
+            pop()
+        }
+        Text(
+            words,
+            color = ink,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            // Never broken inside: with big text a row of pills wraps whole pills instead.
+            softWrap = false,
+            modifier = pill,
+        )
+    }
 }
 
 /** The same pill as an on/off mark (a subscription to cancel); `label` names it for TalkBack. */

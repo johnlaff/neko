@@ -106,7 +106,9 @@ const Owed = ({ m }: { m: InvoiceMonthView }) => (
         <OwedLine key={o.person} o={o} month={m.key} />
       ))}
     </ul>
-    <p className="hint">Fica fora do teto. A parte de cada pessoa vai para Para lançar.</p>
+    <p className="hint">
+      Fica fora do teto. A parte de cada pessoa aparece em Para lançar como Entrada.
+    </p>
   </section>
 );
 

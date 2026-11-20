@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
@@ -90,12 +93,13 @@ private fun SubChips(r: Subscription) {
     if (r.split != null) Chip("Dividida", ChipTone.Plain)
 }
 
-private const val SHOWN = 3
+private const val SHOWN = 4
 
 /**
- * Charges of the same value that came back each month on the owner's cards, in half a screen: what
- * asks for a look on top (charged after the mark, went up, new), then the biggest, the rest one tap
- * away. A tap opens the subscription; deciding lives there and in "Revisar uma a uma".
+ * Charges of the same value that came back each month on the owner's cards, in half a screen: four
+ * rows, what asks for a look on top (charged after the mark, went up, new), then the biggest, the
+ * rest one tap away; a charge after the mark is also said in words under the list. A tap opens the
+ * subscription; deciding lives there and in "Revisar uma a uma".
  */
 @Composable
 internal fun SubscriptionsPanel(
@@ -111,21 +115,23 @@ internal fun SubscriptionsPanel(
     var all by rememberSaveable { mutableStateOf(false) }
     var hiddenOpen by rememberSaveable { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    val top = subs.items.filter(::flagged)
-    val rest = subs.items.filterNot(::flagged)
-    val shown = if (all) rest else rest.take(SHOWN)
+    var unhideFailed by remember { mutableStateOf(false) }
+    val order = subs.items.filter(::flagged) + subs.items.filterNot(::flagged)
+    val shown = if (all) order else order.take(SHOWN)
+    val again = subs.items.filter { it.again != null }
     val unhide = { key: String, after: () -> Unit ->
         busy = true
+        unhideFailed = false
         actions.subscription(key, null, false) { ok ->
             busy = false
-            if (ok) after()
+            if (ok) after() else unhideFailed = true
         }
     }
     Panel {
         PanelHead("Assinaturas") {
             Text("${money(subs.total)} por mês", color = l.faint, style = MaterialTheme.typography.labelMedium)
         }
-        (top + shown).forEach { r ->
+        shown.forEach { r ->
             key(r.key) {
                 ListRow(
                     name = nameOf(r.description),
@@ -136,21 +142,35 @@ internal fun SubscriptionsPanel(
                     avatarIcon = R.drawable.ic_repeat,
                     meta = "${r.card} · dia ${dayOf(r)}",
                     chips = { SubChips(r) },
+                    inlineChips = true,
                     next = true,
                 )
             }
         }
-        if (rest.size > shown.size) TextAction("Ver as outras ${rest.size - shown.size}", { all = true }, color = l.accent)
-        Column(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-            gone?.let { g ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${nameOf(g.description)} saiu da lista.", color = l.muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f, fill = false))
-                    TextAction("Desfazer", { unhide(g.key, onUndone) }, color = l.accent, enabled = !busy)
-                }
-            }
+        if (order.size > SHOWN) {
+            val more = order.size - SHOWN
+            TextAction(if (all) "Ver menos" else if (more == 1) "Ver mais uma" else "Ver mais $more", { all = !all }, color = l.accent, open = all)
         }
-        if (subs.toCancel > 0 || subs.cut.total > 0) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Desfazer and its failure are announced; one column with the foot, so an empty one adds no gap.
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                gone?.let { g ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("${nameOf(g.description)} saiu da lista.", color = l.muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f, fill = false))
+                        TextAction("Desfazer", { unhide(g.key, onUndone) }, color = l.accent, enabled = !busy)
+                    }
+                }
+                if (unhideFailed) Failed("Não voltou para a lista. Tente de novo.")
+            }
+            if (again.isNotEmpty() || subs.toCancel > 0 || subs.cut.total > 0) {
+                HorizontalDivider(color = l.border, modifier = Modifier.padding(bottom = 8.dp))
+                again.forEach { r ->
+                    Text(
+                        "${nameOf(r.description)} cobrou de novo em ${shortDate(r.again!!)}, depois de marcada para cancelar.",
+                        color = l.warn,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 if (subs.toCancel > 0) Text(
                     "${subs.items.count { it.cancel }} a cancelar: ${money(subs.toCancel)} a menos por mês",
                     color = l.pos,
@@ -213,6 +233,8 @@ internal fun SubscriptionDetail(
     // The tap shows at once; the screen read again with the mark takes over.
     var pending by remember(r.cancel, r.kept) { mutableStateOf<SubscriptionMark?>(null) }
     var failed by remember { mutableStateOf(false) }
+    // What to send again after a failure: the last mark asked for.
+    var retry by remember { mutableStateOf<(() -> Unit)?>(null) }
     var hiding by remember { mutableStateOf(false) }
     var owner by remember { mutableStateOf(false) }
     val choice = pending ?: if (r.cancel) SubscriptionMark.Cancel else if (r.kept) SubscriptionMark.Keep else null
@@ -226,12 +248,15 @@ internal fun SubscriptionDetail(
             avatarIcon = R.drawable.ic_repeat,
             meta = "${r.card} · cobra no dia ${dayOf(r)}",
         )
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BigMoney(r.amount)
-                Text("por mês", color = l.muted, modifier = Modifier.padding(bottom = 10.dp))
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { SubChips(r) }
+        // The chips beside the figure, as on the site; they wrap under it when there is no room.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            itemVerticalAlignment = Alignment.Bottom,
+        ) {
+            BigMoney(r.amount)
+            Text("por mês", color = l.muted, modifier = Modifier.padding(bottom = 10.dp))
+            Row(Modifier.padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) { SubChips(r) }
         }
         Text(
             "${money(r.amount * 12)} em um ano" +
@@ -243,11 +268,13 @@ internal fun SubscriptionDetail(
         if (r.charged.isNotEmpty()) {
             val most = maxOf(1L, r.charged.maxOf { it.amount })
             Column(Modifier.semantics(mergeDescendants = true) { contentDescription = "Últimas cobranças: " + r.charged.joinToString(", ") { "${shortDate(it.date)}, ${money(it.amount)}" } }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                r.charged.forEach { c ->
+                r.charged.forEachIndexed { i, c ->
                     Row(Modifier.clearAndSetSemantics {}, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(shortDate(c.date), color = l.faint, style = MaterialTheme.typography.labelMedium, modifier = Modifier.widthIn(min = 48.dp))
                         Box(Modifier.weight(1f)) {
-                            Box(Modifier.fillMaxWidth(c.amount.toFloat() / most).height(6.dp).background(l.borderInput, RoundedCornerShape(50)))
+                            // The latest charge in ink, the ones before it quieter, as on the site.
+                            val bar = if (i == r.charged.lastIndex) l.text else l.borderInput
+                            Box(Modifier.fillMaxWidth(c.amount.toFloat() / most).height(6.dp).background(bar, RoundedCornerShape(50)))
                         }
                         Text(money(c.amount), style = MaterialTheme.typography.labelLarge, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.widthIn(min = 88.dp))
                     }
@@ -255,21 +282,26 @@ internal fun SubscriptionDetail(
             }
         }
         Row(
-            Modifier.fillMaxWidth().semantics { contentDescription = "O que fazer com $name" },
+            Modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup().semantics { contentDescription = "O que fazer com $name" },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            listOf(SubscriptionMark.Keep to "Manter", SubscriptionMark.Cancel to "Vou cancelar").forEach { (k, label) ->
-                Box(Modifier.weight(1f)) {
+            listOf(SubscriptionMark.Cancel to "Vou cancelar", SubscriptionMark.Keep to "Manter").forEach { (k, label) ->
+                Box(Modifier.weight(1f).fillMaxHeight()) {
                     Choice(label, choice == k, fill = true) {
                         if (choice == k) return@Choice
-                        pending = k
-                        failed = false
-                        actions.subscription(r.key, k, null) { ok ->
-                            if (!ok) {
-                                pending = null
-                                failed = true
+                        lateinit var send: () -> Unit
+                        send = {
+                            pending = k
+                            failed = false
+                            actions.subscription(r.key, k, null) { ok ->
+                                if (!ok) {
+                                    pending = null
+                                    failed = true
+                                    retry = send
+                                }
                             }
                         }
+                        send()
                     }
                 }
             }
@@ -316,19 +348,21 @@ internal fun SubscriptionDetail(
                 }
             }
         }
-        if (failed) Failed("Não salvou. Tente de novo.")
-        TextAction(
-            "Não é assinatura",
-            {
-                hiding = true
-                failed = false
-                actions.subscription(r.key, null, true) { ok ->
-                    hiding = false
-                    if (ok) onHide() else failed = true
+        val hide = {
+            hiding = true
+            failed = false
+            actions.subscription(r.key, null, true) { ok ->
+                hiding = false
+                if (ok) onHide() else {
+                    failed = true
+                    retry = null
                 }
-            },
-            enabled = !hiding,
-        )
+            }
+        }
+        if (failed) FailedRetry("Não salvou.") { (retry ?: hide)() }
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            TextAction("Não é assinatura", hide, enabled = !hiding)
+        }
     }
 }
 
@@ -351,14 +385,38 @@ internal fun Review(subs: Subscriptions, reading: Boolean, actions: FaturasActio
     }
     var at by rememberSaveable { mutableIntStateOf(0) }
     val decided = remember { mutableStateMapOf<String, SubscriptionMark>() }
-    var failed by remember { mutableStateOf(false) }
+    // What did not save is not counted as decided: the end says which ones, to try again.
+    val failed = remember { mutableStateMapOf<String, SubscriptionMark>() }
+    val save = { key: String, mark: SubscriptionMark ->
+        actions.review(key, mark) { ok ->
+            if (ok) {
+                failed.remove(key)
+                decided[key] = mark
+            } else {
+                failed[key] = mark
+                decided.remove(key)
+            }
+        }
+    }
     val reviewed by rememberUpdatedState(actions.reviewed)
     DisposableEffect(Unit) { onDispose { reviewed() } }
     val r = rows.getOrNull(at)
     LaunchedEffect(r == null) { if (r == null) reviewed() }
     if (r == null) {
-        ReviewDone(subs, rows, decided, reading, failed, onBack) {
+        ReviewDone(
+            subs,
+            rows,
+            decided,
+            reading,
+            failed,
+            onRetry = {
+                failed.toMap().forEach { (key, mark) -> save(key, mark) }
+                reviewed()
+            },
+            onBack = onBack,
+        ) {
             decided.clear()
+            failed.clear()
             at = 0
         }
         return
@@ -366,7 +424,7 @@ internal fun Review(subs: Subscriptions, reading: Boolean, actions: FaturasActio
     val decide = { mark: SubscriptionMark ->
         decided[r.key] = mark
         at += 1
-        actions.review(r.key, mark) { ok -> if (!ok) failed = true }
+        save(r.key, mark)
     }
     val marked = decided.values.count { it == SubscriptionMark.Cancel }
     val name = nameOf(r.description)
@@ -385,12 +443,13 @@ internal fun Review(subs: Subscriptions, reading: Boolean, actions: FaturasActio
             }
         }
         key(r.key) { ReviewCard(r, name, decide) }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Small("Manter", filled = false, modifier = Modifier.weight(1f)) { decide(SubscriptionMark.Keep) }
-            Small("Vou cancelar", filled = true, modifier = Modifier.weight(1f)) { decide(SubscriptionMark.Cancel) }
+        // In the swipe's order: left cancels, right keeps; the same weight for both.
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Small("Vou cancelar", filled = false, modifier = Modifier.weight(1f).fillMaxHeight()) { decide(SubscriptionMark.Cancel) }
+            Small("Manter", filled = false, modifier = Modifier.weight(1f).fillMaxHeight()) { decide(SubscriptionMark.Keep) }
         }
         Text(
-            "Ou deslize: direita mantém, esquerda cancela.",
+            "Ou deslize: esquerda cancela, direita mantém.",
             color = l.muted,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.fillMaxWidth(),
@@ -398,11 +457,16 @@ internal fun Review(subs: Subscriptions, reading: Boolean, actions: FaturasActio
         )
         if (marked > 0) Text(
             "${countOf(marked, "marcada", "marcadas")} para cancelar nesta revisão",
-            color = l.warn,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            color = l.muted,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
         )
-        if (at > 0) TextAction("Voltar uma", { at -= 1 }, color = l.accent)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            if (at > 0) TextAction("Voltar uma", { at -= 1 }, color = l.accent)
+            // On to the next without deciding: it stays without a decision, for another day.
+            TextAction("Pular", { at += 1 })
+        }
     }
 }
 
@@ -436,7 +500,7 @@ private fun ReviewCard(r: Subscription, name: String, decide: (SubscriptionMark)
                     scope.launch { dx.snapTo(dx.value + amount) }
                 }
             }
-            .background(l.surface2, RoundedCornerShape(16.dp))
+            .background(l.surface2, RoundedCornerShape(10.dp))
             // TalkBack decides with its own actions, as the buttons below do.
             .semantics {
                 customActions = listOf(
@@ -496,7 +560,8 @@ private fun ReviewDone(
     rows: List<Subscription>,
     decided: Map<String, SubscriptionMark>,
     reading: Boolean,
-    failed: Boolean,
+    failed: Map<String, SubscriptionMark>,
+    onRetry: () -> Unit,
     onBack: () -> Unit,
     onAgain: () -> Unit,
 ) {
@@ -531,7 +596,8 @@ private fun ReviewDone(
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )
-        if (failed) Failed("Alguma decisão não salvou. Abra a assinatura em Faturas e marque de novo.")
+        val lost = rows.filter { it.key in failed }
+        if (lost.isNotEmpty()) FailedRetry("Não salvou: ${lost.joinToString(", ") { nameOf(it.description) }}.", onRetry)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Small("Voltar para Faturas", filled = true, modifier = Modifier.weight(1f), onClick = onBack)
             Small("Revisar de novo", filled = false, modifier = Modifier.weight(1f), onClick = onAgain)
