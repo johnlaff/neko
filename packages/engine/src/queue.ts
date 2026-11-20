@@ -242,6 +242,8 @@ export interface MailedConta {
 const NEAR_SHARE = 0.25;
 /** Looser when the sheet already calls this origin by the planned line's name: half. */
 const NAMED_SHARE = 0.5;
+/** How far from a bill's due day someone's planned part of it may sit (her own bill's day). */
+const PART_DAYS_OFF = 15;
 
 /** A name fit for a note line: one line, no leading "R$", not too long. */
 const lineName = (description: string): string => {
@@ -979,24 +981,34 @@ export const buildQueue = (input: QueueInput): QueueItem[] => {
     part.days.set(due, { amount: day.amount + partOf(l, mark), text: day.text });
     shares.set(key, part);
   }
-  // Which planned line stands for a part: its person's name, and a word of the store's.
-  const lineFor = (date: LocalDate, person: string, text: string) =>
-    planned(date).find(
-      (i) => paybackPerson(i.description, [person]) !== null && sharesWord(i.description, text),
-    );
+  // Which planned line stands for a part: its person's name, and a word of the store's. On the due
+  // day first; else the nearest one a few days off, where the owner plans what they pay back with
+  // something else of theirs (her own bill's day), so it is not planned a second time.
   const claimed = new Set<NoteItem>();
+  const lineFor = (due: LocalDate, person: string, text: string) => {
+    const fits = (i: NoteItem) =>
+      !claimed.has(i) &&
+      paybackPerson(i.description, [person]) !== null &&
+      sharesWord(i.description, text);
+    for (let off = 0; off <= PART_DAYS_OFF; off++)
+      for (const date of off === 0 ? [due] : [addDays(due, off), addDays(due, -off)]) {
+        const item = planned(date).find(fits);
+        if (item) return { date, item };
+      }
+    return null;
+  };
   type PartDay = { date: LocalDate; amount: Cents; line?: LineRef };
   const changes = [...shares.values()].map((part) => ({
     part,
     days: [...part.days]
       .sort(([a], [b]) => a.localeCompare(b))
-      .flatMap(([date, d]): PartDay[] => {
-        const line = lineFor(date, part.person, d.text);
-        if (line) claimed.add(line);
-        if (!line) return [{ date, amount: cents(d.amount) }];
+      .flatMap(([due, d]): PartDay[] => {
+        const found = lineFor(due, part.person, d.text);
+        if (!found) return [{ date: due, amount: cents(d.amount) }];
+        claimed.add(found.item);
         // An open bill's parcels round their own way: a few cents are not worth a change.
-        if (Math.abs(line.amount - d.amount) < OPEN_BILL_MIN) return [];
-        return [{ date, amount: cents(d.amount), line: refOf(date, line) }];
+        if (Math.abs(found.item.amount - d.amount) < OPEN_BILL_MIN) return [];
+        return [{ date: found.date, amount: cents(d.amount), line: refOf(found.date, found.item) }];
       }),
   }));
   // A planned payback on a due day whose purchase is still on the bill, no longer marked theirs.

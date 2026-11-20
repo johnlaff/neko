@@ -1418,6 +1418,35 @@ describe("Para lançar: someone else's part of a purchase", () => {
     ]);
   });
 
+  it("finds a part the owner planned a few days off the due day, and plans it no second time", () => {
+    // Paid back with her own bill, on another day: the line is there, just not on the 10th.
+    const planned = withBill({
+      "2026-11-12": { entrada: cell(30000, [item(30000, "Estudio Rafa", null)]) },
+      "2026-12-12": { entrada: cell(25000, [item(25000, "Estudio Rafa", null)]) },
+    });
+    const items = parts({ ledger: planned, lines: [desk], owners: [marks[1] as never] });
+    expect(items.map((i) => i.options[0]?.draft)).toEqual([
+      {
+        type: "parte",
+        person: "Rafa",
+        description: "Estudio Soft Rafa",
+        days: [
+          {
+            date: "2026-12-12",
+            amount: 30000,
+            line: {
+              date: "2026-12-12",
+              column: "entrada",
+              section: null,
+              description: "Estudio Rafa",
+              amount: 25000,
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it("takes away a planned part once the purchase is the owner's again", () => {
     const planned = withBill({
       "2026-11-10": {
