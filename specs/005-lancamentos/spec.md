@@ -117,7 +117,9 @@ com valores diferentes, valor negativo.
      dono vira Entrada no dia em que cada fatura vence, de hoje em diante, como o método planeja o
      que vai ser pago de volta ("no dia previsto que você deve receber"): uma linha por loja e
      pessoa ("Loja de Móveis Bia"), e uma por vencimento numa parcela, até a última. Uma linha já
-     planejada com esse nome é corrigida; a de uma marca tirada sai da planilha. Para quem o dono
+     planejada com o nome da pessoa e uma palavra da loja, em qualquer dia do mês do vencimento
+     (o dia em que o dono espera o dinheiro), vale como essa parte: fica no dia dela e só é
+     corrigida se o valor mudou; a de uma marca tirada sai da planilha. Para quem o dono
      escolheu "Quando o Pix cair" (`onArrival`), nada é planejado: o Pix vem como Entrada quando
      chega.
    - Dinheiro para uma conta sua: pergunta uma vez se ela é de guardar. Para ela, Saída em

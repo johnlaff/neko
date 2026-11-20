@@ -1418,6 +1418,74 @@ describe("Para lançar: someone else's part of a purchase", () => {
     ]);
   });
 
+  it("finds a part planned on another day of the bill's month, and corrects it there", () => {
+    // The owner plans the payback on the day the money comes, not the bill's due day.
+    const planned = withBill({
+      "2026-11-20": {
+        entrada: cell(34900, [
+          item(30000, "Estudio Rafa", null),
+          item(4900, "Pizzaria Rafa", null),
+        ]),
+      },
+      "2026-12-20": { entrada: cell(25000, [item(25000, "Estudio Rafa", null)]) },
+    });
+    const items = parts({ ledger: planned, lines: [pizza, desk], owners: marks });
+    expect(items.map((i) => [i.date, i.options[0]?.draft])).toEqual([
+      [
+        "2026-12-20",
+        {
+          type: "parte",
+          person: "Rafa",
+          description: "Estudio Soft Rafa",
+          days: [
+            {
+              date: "2026-12-20",
+              amount: 30000,
+              line: {
+                date: "2026-12-20",
+                column: "entrada",
+                section: null,
+                description: "Estudio Rafa",
+                amount: 25000,
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+  });
+
+  it("takes away a part planned on another day of the month once it is the owner's", () => {
+    const planned = withBill({
+      "2026-11-20": { entrada: cell(4900, [item(4900, "Pizzaria Rafa", null)]) },
+    });
+    const items = queue({ ledger: planned, lines: [pizza, desk], owners: [marks[1] as never] });
+    expect(
+      items.filter(
+        (i) =>
+          i.options[0]?.draft?.type === "parte" &&
+          (i.options[0].draft as { description: string }).description === "Pizzaria Rafa",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        date: "2026-11-20",
+        options: [
+          expect.objectContaining({
+            draft: expect.objectContaining({
+              days: [
+                {
+                  date: "2026-11-20",
+                  amount: 0,
+                  line: expect.objectContaining({ description: "Pizzaria Rafa", amount: 4900 }),
+                },
+              ],
+            }),
+          }),
+        ],
+      }),
+    ]);
+  });
+
   it("takes away a planned part once the purchase is the owner's again", () => {
     const planned = withBill({
       "2026-11-10": {
