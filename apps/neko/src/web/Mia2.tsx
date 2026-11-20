@@ -10,7 +10,7 @@ import type {
   Mia2Valor,
   Mia2Veredito,
 } from "../shared/types.ts";
-import { ApiError, api } from "./api.ts";
+import { ApiError, api, type ProjectionResponse } from "./api.ts";
 import { BrandMark } from "./BrandMark.tsx";
 import { HIDDEN_MONEY, money, monthName, shortDate } from "./format.ts";
 import { IconAlert, IconCheck, IconChevron, IconChevronLeft, IconClose } from "./icons.tsx";
@@ -25,6 +25,7 @@ import {
   useSeconds,
 } from "./Mia.tsx";
 import { MiaChart } from "./MiaChart.tsx";
+import { noteSeen, takeQueued } from "./MiaLine.tsx";
 import { paceCut, paceStep, WORD_FADE_MS } from "./miaPace.ts";
 import { useValuesHidden } from "./privacy.ts";
 import { mixNumber, useMorph } from "./useMorph.ts";
@@ -350,8 +351,8 @@ const routineSeen = (id: string) => {
  * Her routine, the first time her screen opens after it came: it becomes the conversation (one
  * that was open goes to Desfazer, as with "Nova conversa") and the next question goes on in it.
  */
-const takeRoutine = (r: Mia2Rotina) => {
-  if (chat.pending || routineSeen(r.id)) return;
+const takeRoutine = (r: Mia2Rotina): boolean => {
+  if (chat.pending || routineSeen(r.id)) return false;
   try {
     localStorage.setItem(ROUTINE_SEEN, r.id);
   } catch {
@@ -372,6 +373,7 @@ const takeRoutine = (r: Mia2Rotina) => {
     turns: [{ n: 0, pergunta: r.titulo, rotina: r.tipo, parts, end: null }],
     cleared: chat.turns.length > 0 ? chat : null,
   });
+  return true;
 };
 
 /** How long Desfazer stays after "Nova conversa", as after a launch. */
@@ -973,8 +975,13 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
     enabled: status.data?.versao === 2,
   });
   useEffect(() => {
-    if (routine.data?.rotina) takeRoutine(routine.data.rotina);
-  }, [routine.data]);
+    const r = routine.data?.rotina;
+    if (!r) return;
+    // Read here, her routine leaves Mia's line on Hoje too, on every device.
+    const id = `rotina:${r.id}`;
+    const onHoje = queryClient.getQueryData<ProjectionResponse>(["projection"])?.nota?.id === id;
+    if (takeRoutine(r) || onHoje) noteSeen(queryClient, id);
+  }, [routine.data, queryClient]);
   useMoving();
   const showing = moving.size > 0;
   useKeyboardResizes();
@@ -1086,6 +1093,16 @@ export const Mia2Screen = ({ topic = "hoje" }: { topic?: MiaTopic | undefined })
   const fill = fillOf(typed);
   const hint = fill && hintFor(fill, lastPurchase(turns), hidden);
   const composing = Boolean(s?.ligada && !resting && !full);
+  // The question Mia's line on Hoje left starts a new conversation (one open goes to Desfazer).
+  // While she rests it waits in the field.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, as the screen opens
+  useEffect(() => {
+    const q = takeQueued();
+    if (!q || chat.pending) return;
+    if (!s?.ligada || resting) return setTyped(q);
+    restart();
+    void ask(q, onLimit);
+  }, []);
   // At a desk the field holds the focus as soon as it is on the page, ready for the first words.
   useEffect(() => {
     if (!atDesk()) return;

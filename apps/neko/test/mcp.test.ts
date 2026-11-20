@@ -94,6 +94,7 @@ describe("mcp", () => {
       "simular",
       "posso_comprar",
       "para_lancar",
+      "vigia",
     ]);
     expect(
       now.tools.every(
@@ -215,6 +216,47 @@ describe("mcp", () => {
   it("refuses what it cannot read, as an error the agent can correct", async () => {
     expect((await call("mes", { mes: "1999-01" })).error).toBe(true);
     expect((await call("resumo_meses", { de: "2027-05", ate: "2026-01" })).error).toBe(true);
+  });
+
+  it("tells Mia what the daily watch found, in reais, with the subscriptions' month", async () => {
+    const watched = async (): Promise<McpData> => ({
+      data: {
+        ...fixture,
+        bank: {
+          ...(fixture.bank ?? { syncedAt: null, checks: [], missing: [] }),
+          watch: [
+            {
+              kind: "repetida",
+              key: "repetida|petzloja|8990|cartao azul|2026-11-18",
+              description: "PETZ LOJA 12",
+              card: "Cartão Azul",
+              amount: cents(89_90),
+              dates: ["2026-11-18", "2026-11-19"],
+              date: "2026-11-19",
+              dispute: false,
+            },
+          ],
+          subscriptions: { items: [], total: cents(120_00), toCancel: cents(0), news: [] },
+        } as unknown as NonNullable<ProjectionResponse["bank"]>,
+      },
+      ceiling: null,
+    });
+    const r = await result(
+      await serveMcp(modern("tools/call", { name: "vigia", arguments: {} }, "vigia"), watched),
+    );
+    expect(JSON.parse(r.content[0].text)).toMatchObject({
+      banco_ligado: true,
+      achados: [
+        {
+          tipo: "cobranca_repetida",
+          descricao: "PETZ LOJA 12",
+          cartao: "Cartão Azul",
+          valor: 89.9,
+          dias: ["2026-11-18", "2026-11-19"],
+        },
+      ],
+      assinaturas_por_mes: 120,
+    });
   });
 
   it("leaves an entry in Para lançar through propor_lancamento, never in the sheet", async () => {

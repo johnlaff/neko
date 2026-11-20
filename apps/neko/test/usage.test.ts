@@ -29,7 +29,7 @@ describe("usage", () => {
     expect(count("mia")).toBe(0);
     // Screens apart from buttons, each in USAGE order.
     expect(s.screens.map((e) => e.event)).toEqual(["hoje", "faturas", "mes", "ajustes", "mia"]);
-    expect(s.taps.map((e) => e.event)).toEqual(["lancar", "simular", "calculo", "ler"]);
+    expect(s.taps.map((e) => e.event)).toEqual(["lancar", "simular", "calculo", "ler", "nota"]);
     expect(s.notices.map((e) => e.event)).toEqual([
       "notificacao_manha",
       "notificacao_noite",

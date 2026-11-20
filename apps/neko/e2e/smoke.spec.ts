@@ -723,6 +723,25 @@ test("with nothing left to launch, Para lançar compares the Saldo with the bank
   expect(errors).toEqual([]);
 });
 
+test("Mia's line on Hoje goes with its cross, the figure takes the focus and the Worker is told", async ({
+  page,
+}) => {
+  const seen: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/mia/nota")) seen.push(r.postData() ?? "");
+  });
+  const errors = await open(page, "/");
+  const line = page.getByRole("complementary", { name: "Mia" });
+  await expect(line).toContainText("Cobrança repetida");
+  await expect(line).toContainText("Cinema Estrela cobrou R$ 64,00 duas vezes no Cartão Azul");
+  await line.getByRole("button", { name: "Dispensar" }).click();
+  await expect(line).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Diário de outubro" })).toBeFocused();
+  await expect.poll(() => seen.length).toBe(1);
+  expect(JSON.parse(seen[0] ?? "{}").id).toMatch(/^vigia:repetida\|/);
+  expect(errors).toEqual([]);
+});
+
 test("the evening notification opens Hoje at Para lançar, its title in focus", async ({ page }) => {
   const errors = await open(page, "/#para-lancar");
   const queue = page.getByRole("region", { name: "Para lançar" });

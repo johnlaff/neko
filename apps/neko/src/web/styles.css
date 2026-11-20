@@ -2006,6 +2006,69 @@ fieldset.chip-radios {
   }
 }
 
+/* Mia's line on top of Hoje: her mark, a small title in her amber and one sentence. The row asks
+   her; the cross beside it sets the line aside. A row like the Avisos, never a second hero. */
+.mia-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 160ms ease-out;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mia-line {
+    animation: rise-in 320ms ease-out both;
+  }
+}
+button.mia-line-open {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  justify-content: stretch;
+  gap: 12px;
+  min-height: 44px;
+  padding: 12px 0 12px 14px;
+  background: none;
+  color: var(--text);
+  font-weight: 400;
+  text-align: left;
+  border-radius: 11px 0 0 11px;
+}
+button.mia-line-open > svg {
+  margin-top: 2px;
+}
+.mia-line-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.mia-line-title {
+  color: var(--mia);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+button.icon.mia-line-close {
+  margin: 4px 4px 0 0;
+  color: var(--faint);
+}
+button.icon.mia-line-close svg {
+  width: 18px;
+  height: 18px;
+}
+@media (hover: hover) {
+  button.mia-line-open:hover {
+    background: none;
+  }
+  .mia-line:has(> .mia-line-open:hover) {
+    border-color: color-mix(in oklch, var(--mia) 45%, var(--border));
+  }
+  button.icon.mia-line-close:hover {
+    color: var(--text);
+  }
+}
+
 /* Odometer wheels for the big figure: the face holds the width and baseline, the strip of
    0–9 slides under a clip. Only `translate` moves (compositor-only). */
 .wheel {

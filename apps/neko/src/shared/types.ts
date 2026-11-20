@@ -14,6 +14,7 @@ import type {
   Subscription,
   SubscriptionNews,
   TransferDue,
+  WatchNews,
   WeekSpend,
 } from "@neko/engine";
 import { z } from "zod";
@@ -61,6 +62,29 @@ export interface ProjectionResponse {
   readonly previsto?: PrevistoView;
   /** Cards and Pix of the last whole week and the one before, for Sunday's summary; absent without a bank. */
   readonly week?: WeekSpend | null;
+  /**
+   * Mia's line at the top of Hoje (specs/004-mia, "A linha da Mia em Hoje"). Attached fresh by
+   * GET /api/projection and /api/today, never cached; absent from every other read.
+   */
+  readonly nota?: MiaNote | null;
+}
+
+/**
+ * One line at the top of Hoje: what the daily watch found, or Mia's routine. One at a time, the
+ * most urgent first; dismissed or tapped, it does not come back, on any device.
+ */
+export interface MiaNote {
+  /** `vigia:<key>` or `rotina:<id>`: what POST /api/mia/nota marks as seen. */
+  readonly id: string;
+  readonly tipo: "vigia" | "rotina";
+  /** The small line over the sentence: "Cobrança repetida", "Semana de 8 a 14 nov". */
+  readonly titulo: string;
+  /** One plain sentence, numbers as the bank and the sheet have them. */
+  readonly texto: string;
+  /** What a tap asks Mia; null when the tap only opens her screen (her routine waits there). */
+  readonly pergunta: string | null;
+  /** Where a tap goes: her screen, or Faturas while Mia is off. */
+  readonly abre: "mia" | "faturas";
 }
 
 /** The Diário previsto: on or off, its value, and what the bank says a day costs. */
@@ -118,6 +142,8 @@ export interface BankView {
   readonly phone?: readonly PhoneTrust[];
   /** Banks Meu Pluggy has not read for two days or more; absent from a Worker that predates it. */
   readonly stalled?: readonly StalledBank[];
+  /** The daily watch: a charge that came twice, a refund, this week; absent from an older Worker. */
+  readonly watch?: readonly WatchNews[];
 }
 
 export interface SubscriptionsView {

@@ -578,6 +578,8 @@ fun Mia2Screen(
     onScreen: (String) -> Unit,
     onMonth: (String?) -> Unit = { onScreen("mes") },
     topic: String = "hoje",
+    /** The question Mia's line on Hoje left, taken once (MiaEntry.takeQueued). */
+    queued: () -> String? = { null },
 ) {
     val l = LocalLedger.current
     val focus = LocalFocusManager.current
@@ -621,6 +623,19 @@ fun Mia2Screen(
             runCatching { input.requestFocus() }
             keyboard?.show()
         }
+    }
+    // The question Mia's line on Hoje left starts a new conversation (one open goes to Desfazer);
+    // while she rests it waits in the field. Before her routine, which then waits for next time.
+    LaunchedEffect(Unit) {
+        val q = queued() ?: return@LaunchedEffect
+        if (chat.pending != null) return@LaunchedEffect
+        if (!on || resting) {
+            chat.typed = q
+            field = TextFieldValue(q, TextRange(q.length))
+            return@LaunchedEffect
+        }
+        chat.clear()
+        chat.ask(q, scope, talk)
     }
     // Her routine, the first time her screen opens after it came.
     LaunchedEffect(Unit) {

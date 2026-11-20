@@ -16,6 +16,7 @@ export const USAGE_TAPS = {
   simular: "Simular",
   calculo: "Como calculei",
   ler: "Ler a planilha de novo",
+  nota: "Linha da Mia",
 } as const;
 
 /** Taps on each kind of notification (worker/push.ts tags), to see which ones earn their place. */

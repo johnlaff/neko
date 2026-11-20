@@ -61,6 +61,7 @@ import androidx.core.net.toUri
 import dev.johnlaff.neko.data.CanSpend
 import dev.johnlaff.neko.data.HealthIssue
 import dev.johnlaff.neko.data.Insight
+import dev.johnlaff.neko.data.MiaNote
 import dev.johnlaff.neko.data.Saving
 import dev.johnlaff.neko.data.SavingStep
 import dev.johnlaff.neko.data.TodayView
@@ -93,6 +94,10 @@ fun HojeScreen(
     onUse: (String) -> Unit = {},
     /** Para lançar says "Tudo lançado" and today does not count yet: count it (AppModel.checkDay). */
     onDayChecked: () -> Unit = {},
+    /** Mia's line tapped: asks her about it, or opens Faturas without her (MainActivity). */
+    onNote: (MiaNote) -> Unit = {},
+    /** Mia's line set aside with its cross: its id, kept seen on every device (AppModel.seeNote). */
+    onNoteGone: (String) -> Unit = {},
 ) {
     var launching by rememberSaveable { mutableStateOf(launchOpen) }
     // What Conferência's last tap hid: kept here, so the panel stays to bring them back.
@@ -109,6 +114,8 @@ fun HojeScreen(
     val dayDue = view != null && view.allLaunched && view.habit?.let { it.editedToday || it.checkedToday } != true
     LaunchedEffect(dayDue, view?.readAt) { if (dayDue) onDayChecked() }
     ScreenFrame("Hoje", state, { it.readAt }, onRefresh, miaTopic = "hoje") { v ->
+        // What the daily watch found, or Mia's routine: one line, above the figure (as on the site).
+        v.nota?.let { n -> item { MiaLine(n, { onNote(n) }, { onNoteGone(n.id) }) } }
         item { Hero(v, onUse) }
         // Writing on, Lançar opens the form here; off, it opens today's row in the sheet.
         val writes = v.writing && launcher != null
@@ -374,6 +381,54 @@ internal fun Alert(
         }
         if (onClick != null)
             Icon(painterResource(R.drawable.ic_chevron_right), null, tint = l.faint, modifier = Modifier.size(16.dp))
+    }
+}
+
+/**
+ * Mia's line on top of Hoje (the site's MiaLine): her mark, a small title in her amber and one
+ * sentence. The row asks her (or opens Faturas without her); the cross beside it sets the line aside.
+ * A row like the Avisos, never a second hero.
+ */
+@Composable
+internal fun MiaLine(nota: MiaNote, onOpen: () -> Unit, onGone: () -> Unit) {
+    val l = LocalLedger.current
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier.fillMaxWidth()
+            .appear()
+            .background(l.surface, shape)
+            .border(1.dp, l.border, shape)
+            .clip(shape),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Row(
+            Modifier.weight(1f)
+                .heightIn(min = 48.dp)
+                .clickable(
+                    onClickLabel = if (nota.abre == "faturas") "abrir Faturas" else "perguntar à Mia",
+                    role = Role.Button,
+                    onClick = onOpen,
+                )
+                .semantics(mergeDescendants = true) {}
+                .padding(start = 14.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            MiaMark(28.dp, Modifier.padding(top = 3.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(nota.titulo, color = l.mia, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(nota.texto, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        Box(
+            Modifier.padding(top = 4.dp, end = 4.dp)
+                .size(48.dp)
+                .clip(CircleShape)
+                .clickable(onClickLabel = "dispensar", role = Role.Button, onClick = onGone),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(painterResource(R.drawable.ic_close), "Dispensar", tint = l.faint, modifier = Modifier.size(18.dp))
+        }
     }
 }
 

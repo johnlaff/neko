@@ -40,6 +40,7 @@ import {
 } from "../icons.tsx";
 import { LaunchToast, ManualLaunch, ParaLancar } from "../Launch.tsx";
 import { CARDS_COME_FROM, dailySourceText, HINTS, saveStepText } from "../learn.ts";
+import { MiaLine } from "../MiaLine.tsx";
 import { PrevistoReview } from "../Previsto.tsx";
 import { Streak } from "../Streak.tsx";
 import { WithProjection } from "../useProjection.tsx";
@@ -287,14 +288,17 @@ const splitDays = (days: readonly UpcomingDay[]) => {
 const showsStreak = (h: Habit | null | undefined): h is Habit =>
   h != null && (h.milestone != null || h.record != null || h.atRisk === true || h.mended === true);
 
+/** Where the keyboard goes when Mia's line is set aside: the figure under it. */
+const toDial = () => document.getElementById("h-dial")?.focus({ preventScroll: true });
+
 /**
  * Hoje answers the daily check-in with three fixed panels: what still fits, Para lançar and the
- * next 7 days. Anything else shows only on the day it matters: a Conferência point, a mark of the
- * run, the review of the Diário previsto, a warning, the payday saving.
+ * next 7 days. Anything else shows only on the day it matters: Mia's line, a Conferência point, a
+ * mark of the run, the review of the Diário previsto, a warning, the payday saving.
  */
 export const Hoje = () => (
   <WithProjection>
-    {({ projection: p, sheet, daily, habit, bank, writing, cardsKnown, previsto }) => {
+    {({ projection: p, sheet, daily, habit, bank, writing, cardsKnown, previsto, nota }) => {
       const cs = p.canSpend;
       const todayUrl = p.todayRef
         ? sheetCellUrl(sheet.id, sheet.tabs[p.todayRef.tab], p.todayRef.a1)
@@ -318,10 +322,12 @@ export const Hoje = () => (
         <>
           <Board
             panels={{
+              // What the daily watch found, or Mia's routine: one line, above the figure.
+              nota: nota && <MiaLine nota={nota} onGone={toDial} />,
               dial: cs ? (
                 <section className="panel hero today">
                   <div className="panel-head">
-                    <h2>
+                    <h2 id="h-dial" tabIndex={-1}>
                       {month
                         ? `Diário de ${monthTitle}`
                         : cards
@@ -557,11 +563,11 @@ export const Hoje = () => (
             // the keyboard go down one column and then the next. Today's number and what to do now,
             // then what to know.
             two={[
-              ["dial", "quick", "conference", "queue", "save"],
+              ["nota", "dial", "quick", "conference", "queue", "save"],
               ["streak", "previsto", "insights", "next"],
             ]}
             three={[
-              ["dial", "quick"],
+              ["nota", "dial", "quick"],
               ["conference", "queue", "save", "streak"],
               ["previsto", "insights", "next"],
             ]}

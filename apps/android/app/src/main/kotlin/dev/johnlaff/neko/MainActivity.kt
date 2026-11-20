@@ -235,6 +235,7 @@ class MainActivity : ComponentActivity() {
                                     onScreen = { tela -> leaveMia { toScreen(tela) } },
                                     onMonth = { key -> leaveMia { toMonth(key) } },
                                     topic = miaTopic,
+                                    queued = miaEntry::takeQueued,
                                 )
                             } else if (place == "mia") {
                                 MiaScreen(
@@ -262,6 +263,14 @@ class MainActivity : ComponentActivity() {
                                             onMonth = toMonth,
                                             onUse = model::used,
                                             onDayChecked = model::checkDay,
+                                            // A tap asks Mia (her routine opens as it is); without her, Faturas.
+                                            onNote = { n ->
+                                                model.used("nota")
+                                                model.seeNote(n.id)
+                                                val entry = miaEntry.takeIf { mia?.ligada == true && mia?.versao == 2 }
+                                                if (n.abre == "mia" && entry != null) entry.ask(n.pergunta) else go(Tab.Faturas)
+                                            },
+                                            onNoteGone = model::seeNote,
                                         )
                                     }
                                     Tab.Faturas -> {

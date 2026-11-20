@@ -46,6 +46,26 @@ data class TodayView(
     val entryCards: List<String> = emptyList(),
     /** The Diário previsto, for its review every 3 months; null from an older Worker. */
     val previsto: PrevistoView? = null,
+    /** Mia's line at the top: what the daily watch found, or her routine; null when none. */
+    val nota: MiaNote? = null,
+)
+
+/**
+ * Mia's line on top of Hoje (shared/types.ts MiaNote; specs/004-mia, "A linha da Mia em Hoje"):
+ * one sentence written from the rules' own numbers. A tap asks her `pergunta` (her routine opens as it is) or, without
+ * her, opens Faturas; tapped or set aside, it does not come back on any device.
+ */
+@Serializable
+data class MiaNote(
+    /** "vigia:<key>" or "rotina:<id>": what POST /api/mia/nota marks as seen. */
+    val id: String,
+    /** "vigia" or "rotina". */
+    val tipo: String,
+    val titulo: String,
+    val texto: String,
+    val pergunta: String? = null,
+    /** "mia" or "faturas". */
+    val abre: String = "faturas",
 )
 
 /** The Diário previsto (specs/005-lancamentos, Fase 3): on or off, its value, the bank's suggestion. */

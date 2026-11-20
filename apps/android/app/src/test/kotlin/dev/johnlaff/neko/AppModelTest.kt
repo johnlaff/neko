@@ -178,6 +178,21 @@ class AppModelTest {
         assertEquals(Session.SignedIn, m.session.value)
     }
 
+    @Test fun miasLineSetAsideGoesAtOnceAndTheWorkerKeepsItSeen() {
+        answers["/mia/nota"] = MockResponse(code = 204)
+        val m = model()
+        until("Hoje read") { m.today.value.view != null }
+        val id = m.today.value.view?.nota?.id
+        assertNotNull(id)
+        m.seeNote(id!!)
+        // Gone from Hoje before the Worker answers, and the Worker told which one.
+        assertNull(m.today.value.view?.nota)
+        until("seen sent") { reads("/mia/nota") == 1 }
+        // Another id (an older line) leaves today's as it is.
+        m.seeNote("vigia:outra")
+        until("second sent") { reads("/mia/nota") == 2 }
+    }
+
     @Test fun noAccountMeansTheLoginScreen() {
         answers["/me"] = json(200, "{}")
         val m = model()

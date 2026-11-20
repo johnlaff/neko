@@ -8,10 +8,12 @@ import {
   type SubscriptionNews,
   sub,
   type UpcomingItem,
+  type WatchNews,
   weekday,
   ZERO,
 } from "@neko/engine";
 import { SheetStructureError } from "@neko/sheet-reader";
+import { watchText } from "../shared/note.ts";
 import { sheetCellUrl } from "../shared/sheet.ts";
 import { bankText } from "../shared/text.ts";
 import type { ProjectionResponse } from "../shared/types.ts";
@@ -246,6 +248,29 @@ export const subscriptionReminder = (news: readonly SubscriptionNews[]): Reminde
     body: [lead, ...more].join(" "),
     url: "/faturas",
     tag: "subscription",
+  };
+};
+
+/**
+ * The daily watch's urgent news (engine `watchNews`): a charge that came twice, said the morning
+ * after the bank brings it, while there is still time to dispute it. Opens Hoje, where Mia's line
+ * has it. A refund is good news and waits on that line, without a notification.
+ */
+export const watchReminder = (news: readonly WatchNews[]): Reminder | null => {
+  const repeats = news.filter((n) => n.kind === "repetida");
+  const [first, ...rest] = repeats;
+  if (!first) return null;
+  const more =
+    rest.length === 0
+      ? ""
+      : rest.length === 1
+        ? " E mais uma cobrança repetida."
+        : ` E mais ${rest.length} cobranças repetidas.`;
+  return {
+    title: `Cobrança repetida: ${money(first.amount)} no ${first.card}`,
+    body: `${watchText(first).texto}${more}`,
+    url: "/",
+    tag: "alert",
   };
 };
 

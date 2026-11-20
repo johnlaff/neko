@@ -50,6 +50,11 @@
       "event": "ler",
       "label": "Ler a planilha de novo",
       "count": 0
+    },
+    {
+      "event": "nota",
+      "label": "Linha da Mia",
+      "count": 0
     }
   ],
   "notices": [

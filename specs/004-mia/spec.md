@@ -69,6 +69,7 @@ O endpoint `/api/mcp` (`mcp.ts`) serve as ferramentas pelo Model Context Protoco
 | `simular` | Simular (007) sob um ritmo e com "e se", sem salvar nada |
 | `posso_comprar` | O veredito de uma compra (abaixo) |
 | `para_lancar` | O que espera em Para lançar |
+| `vigia` | O que a vigia diária achou (abaixo) e as assinaturas novas ou mais caras |
 | `propor_lancamento` | A única que não só lê: deixa um lançamento em Para lançar |
 
 Além delas, duas ferramentas da tela: `mostrar_numeros` (um quadro de 2 a 4 números) e
@@ -115,8 +116,40 @@ dono toca em Lançar. Lançar ou Ignorar fica em `queue_decision`.
 Depois da leitura dos bancos das 06:00, aos domingos ela resume a semana e no dia 1º fecha o mês que
 acabou (o dia 1º toma o lugar do domingo). A resposta fica 7 dias (`setting` `mia_rotina`) e abre
 como o começo de uma conversa na tela da Mia, com sugestões de continuação; a conversa anterior
-pode voltar com Desfazer. O celular recebe um aviso (canal "Resumos da Mia"). O pedido não tem
+pode voltar com Desfazer. A primeira frase dela aparece na linha da Mia em Hoje (abaixo). O celular
+recebe um aviso (canal "Resumos da Mia"). O pedido não tem
 algarismos, porque os números da pergunta contam como conferidos. A rotina nunca propõe lançamento.
+
+### A vigia diária (`packages/engine/src/watch.ts`)
+
+Depois da leitura dos bancos das 06:00, regras simples olham os cartões do dono (nunca os de outra
+pessoa) nos últimos 7 dias. Sem custo de IA: a frase sai dos números das regras.
+
+- **Cobrança repetida:** a mesma loja, o mesmo valor (R$ 20 ou mais), no mesmo cartão, em dias
+  seguidos ou no mesmo dia, sem ser parcela. Sai uma notificação no canal Avisos, uma vez por
+  cobrança (`setting` `watch_said`, tipo `vigia` em `notice`), sugerindo contestar se foi uma compra
+  só.
+- **Estorno e contestação:** dinheiro que um cartão devolveu (crédito que não é pagamento de
+  fatura nem de tarifa) e o crédito de uma contestação. Só aparece na linha de Hoje, sem notificação.
+
+Ficam de fora, por darem alarme falso demais nos dados reais: loja nunca vista, cartão parado,
+compra negada e reembolso que não veio. Assinatura nova ou mais cara continua em
+`subscriptions.ts`, com a notificação dela.
+
+### A linha da Mia em Hoje (`shared/note.ts`, `worker/note.ts`)
+
+No topo de Hoje, uma linha com a marca da Mia, um título curto e uma frase: a cobrança repetida
+mais nova primeiro, depois a assinatura fora do padrão, o estorno e, por fim, a rotina dela enquanto
+é novidade. Uma linha por vez. A frase é montada dos números das regras (`miaNote`), então não
+custa nada e nunca erra um valor.
+
+- **Tocar** pergunta à Mia sobre o achado numa conversa nova (a aberta vai para Desfazer); a rotina
+  abre como ela deixou. Com a Mia 2 desligada, o toque abre Faturas.
+- **O ×** dispensa. Tocada ou dispensada, a linha não volta em nenhum aparelho:
+  `POST /api/mia/nota` guarda o id (`vigia:<chave>` ou `rotina:<id>`) em `setting` `mia_note_seen`.
+  A rotina lida na tela da Mia também sai da linha.
+- Vai pronta em `GET /api/projection` e `GET /api/today` (campo `nota`). Um erro ao montá-la só
+  esconde a linha; Hoje nunca falha por ela.
 
 ### Memória
 

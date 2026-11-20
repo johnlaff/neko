@@ -42,6 +42,8 @@ const GAP_MIN = 26;
 const GAP_MAX = 35;
 /** Tax and late fees come back each month too, but there is nothing to cancel. */
 const FEE = /\biof\b|\bmulta\b|\bjuros\b|\bencargo/i;
+/** Tax, late fees and their refunds: the bank's own charges, never a store's. */
+export const isFee = (description: string): boolean => FEE.test(description);
 type Charge = BankCardLine & { readonly date: LocalDate };
 
 /**
@@ -57,7 +59,7 @@ const seriesByStore = (
   const others = new Set(othersCards.map(normalizeName));
   const byStore = new Map<string, Charge[]>();
   for (const l of lines) {
-    if (!l.date || l.amount <= 0 || (l.installments ?? 1) > 1 || FEE.test(l.description)) continue;
+    if (!l.date || l.amount <= 0 || (l.installments ?? 1) > 1 || isFee(l.description)) continue;
     const age = diffDays(l.date, today);
     if (age < 0 || age > WINDOW_DAYS || others.has(normalizeName(l.card))) continue;
     const s = storeOf(l.description);

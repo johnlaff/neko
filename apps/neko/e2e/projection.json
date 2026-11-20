@@ -11930,7 +11930,27 @@
         "key": "cartao azul|foneparc|12990|3x",
         "person": "Bia"
       }
+    ],
+    "watch": [
+      {
+        "kind": "repetida",
+        "key": "repetida|cinemaestrela|6400|cartao azul|2026-10-03",
+        "description": "CINEMA ESTRELA",
+        "card": "Cartão Azul",
+        "amount": 6400,
+        "dates": ["2026-10-03", "2026-10-04"],
+        "date": "2026-10-04",
+        "dispute": false
+      }
     ]
+  },
+  "nota": {
+    "id": "vigia:repetida|cinemaestrela|6400|cartao azul|2026-10-03",
+    "tipo": "vigia",
+    "titulo": "Cobrança repetida",
+    "texto": "Cinema Estrela cobrou R$ 64,00 duas vezes no Cartão Azul, em 3 e 4 out. Se foi uma compra só, conteste no banco.",
+    "pergunta": "O que eu faço com a cobrança repetida de Cinema Estrela?",
+    "abre": "mia"
   },
   "previsto": {
     "on": true,
