@@ -174,9 +174,8 @@ internal fun PersonLines(o: Owed, actions: FaturasActions, onPick: (OwedItem) ->
                         name = bankLineName(itemLine(i)),
                         value = money(i.part),
                         modifier = Modifier.clickable(onClickLabel = "de quem é") { onPick(i) },
-                        avatar = "",
+                        avatar = initialOf(bankLineName(itemLine(i))),
                         avatarVector = categoryIcon(i.description),
-                        avatarIcon = R.drawable.ic_receipt,
                         meta = listOfNotNull(i.card, itemWhen(i), if (i.part < i.amount) shareOf(i) else null).joinToString(" · "),
                         next = true,
                     )

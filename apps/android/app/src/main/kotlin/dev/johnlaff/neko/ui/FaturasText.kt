@@ -23,6 +23,9 @@ internal fun monthYear(key: String) = "${monthWord(key).take(3)}/${key.substring
 /** `12/12`, the way a message writes a day. */
 internal fun slashDate(iso: String) = "${iso.substring(8, 10)}/${iso.substring(5, 7)}"
 
+/** A purchase's first letter, for its avatar when no category fits: the way banks show a store. */
+internal fun initialOf(name: String) = name.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: ""
+
 internal fun countOf(n: Int, one: String, many: String) = "$n ${if (n == 1) one else many}"
 
 /** `vence hoje`, `vence amanhã`, `vence 12 nov`. */

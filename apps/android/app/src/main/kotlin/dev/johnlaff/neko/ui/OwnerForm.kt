@@ -49,7 +49,7 @@ private const val NEW = "\u0000nova"
 
 /**
  * Whose a purchase is (the site's OwnerForm, web/faturas/Owner.tsx): the owner's, someone named
- * before, or a new name; and, for someone else, all of it or a part ("Dividir o valor": half to
+ * before, or a new name; and, for someone else, all of it or a part ("Você paga uma parte": half to
  * start, a third, or another value). A parcel takes its whole plan along and a subscription every
  * month of the same value. Only the owner's part counts in the ceiling; the other part waits in
  * Para lançar as an Entrada.
@@ -148,10 +148,8 @@ internal fun OwnerForm(
                 Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(split, role = Role.Switch) { split = it },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Dividir o valor")
-                    Text("Uma parte fica com você", color = l.faint, style = MaterialTheme.typography.labelMedium)
-                }
+                // Off, the person pays it all; on, the owner keeps a part.
+                Text("Você paga uma parte", modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(12.dp))
                 Switch(checked = split, onCheckedChange = null, colors = switchColors())
             }

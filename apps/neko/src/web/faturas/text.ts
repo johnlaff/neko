@@ -63,6 +63,9 @@ export const parcelText = (
   return l.endsIn ? `${of} · acaba em ${monthYear(l.endsIn)}` : of;
 };
 
+/** A purchase's first letter, for its avatar when no category fits: the way banks show a store. */
+export const initialOf = (name: string) => name.match(/[\p{L}\p{N}]/u)?.[0]?.toUpperCase() ?? "";
+
 export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** `junho`, or `junho de 2027` outside today's year. */

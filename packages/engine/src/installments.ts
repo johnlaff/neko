@@ -259,3 +259,25 @@ export const installmentPlans = (
     (a, b) => a.last.localeCompare(b.last) || a.description.localeCompare(b.description),
   );
 };
+
+/**
+ * One person's part of the parcels on the bills after `month`, and the last bill with one: every
+ * plan of theirs already bought, a plan whose first parcel is still to come too. Not a forecast.
+ */
+export const theirsAfter = (
+  plans: readonly InstallmentPlan[],
+  person: string,
+  month: string,
+): { readonly amount: Cents; readonly until: string | null } => {
+  const bills = plans
+    .filter((p) => p.person === person)
+    .flatMap((p) => p.bills.filter((b) => b.month > month && b.theirs > 0));
+  return {
+    amount: add(ZERO, ...bills.map((b) => b.theirs)),
+    until:
+      bills
+        .map((b) => b.month)
+        .sort()
+        .at(-1) ?? null,
+  };
+};

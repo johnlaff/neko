@@ -46,6 +46,7 @@ import {
   sub,
   type ThermoDay,
   type TrendPoint,
+  theirsAfter,
   type Win,
   type YearTotals,
   ymd,
@@ -362,6 +363,19 @@ const percent = (value: number, base: number | null) =>
  * the ceiling; for each, the months ahead with what was already bought, when each plan ends and
  * what that frees. Null when the bank shows no parcels.
  */
+/** Every plan on the bills the bank listed, from `from` on; a card someone else pays is all theirs. */
+const plansOf = (r: ProjectionResponse, people: readonly string[], from: string) =>
+  installmentPlans(
+    (r.bank?.checks ?? []).flatMap((c) => c.lines),
+    from,
+    r.bank?.owners ?? [],
+    new Map(
+      r.projection.cards
+        .filter((c) => c.others)
+        .map((c) => [normalizeName(c.card.name), cardOwner(c.card.name, people) ?? c.card.name]),
+    ),
+  );
+
 const parcelsView = (
   r: ProjectionResponse,
   people: readonly string[],
@@ -371,18 +385,7 @@ const parcelsView = (
   const checks = r.bank?.checks ?? [];
   const month = p.invoiceMonth ?? p.today.slice(0, 7);
   const prev = monthPlus(month, -1);
-  // A card someone else pays: its plans are all theirs.
-  const cardOwners = new Map(
-    p.cards
-      .filter((c) => c.others)
-      .map((c) => [normalizeName(c.card.name), cardOwner(c.card.name, people) ?? c.card.name]),
-  );
-  const plans = installmentPlans(
-    checks.flatMap((c) => c.lines),
-    prev,
-    r.bank?.owners ?? [],
-    cardOwners,
-  );
+  const plans = plansOf(r, people, prev);
   const income = (m: string) => {
     const [y, mo] = m.split("-").map(Number);
     const own = p.months.find((x) => x.year === y && x.month === mo)?.ownIncome ?? 0;
@@ -570,6 +573,8 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
   });
   const people = [...new Set(owners.map((o) => o.person).reverse())];
   const waits = new Set((r.bank?.onArrival ?? []).map(normalizeName));
+  // Each person's parcels still to come, the same as Parcelas counts them (spec 008).
+  const plans = plansOf(r, people, months[0]?.month ?? nowKey);
   // Each person's part of a month's bills: their own card's bill, and their purchases on the
   // owner's cards with the bill each is on. Biggest first.
   const owedView = (
@@ -597,19 +602,15 @@ export const invoicesView = (r: ProjectionResponse): InvoicesView => {
             "",
           due: checks.find((c) => normalizeName(c.card) === normalizeName(i.card))?.due ?? null,
         }));
-        const ends = items
-          .filter((i) => i.later > 0)
-          .map((i) => lastBill(i, month))
-          .filter((x): x is string => x !== null)
-          .sort();
+        const after = theirsAfter(plans, person, month);
         return {
           person,
           card: card ? { card: card.card, amount: card.amount, due: card.due } : null,
           total: cents((o?.total ?? 0) + (card?.amount ?? 0)),
-          later: o?.later ?? ZERO,
+          later: after.amount,
           lines: o?.lines ?? 0,
           items,
-          until: ends.at(-1) ?? null,
+          until: after.until,
           onArrival: waits.has(normalizeName(person)),
         };
       })

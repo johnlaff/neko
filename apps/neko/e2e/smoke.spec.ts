@@ -413,7 +413,7 @@ test("Faturas shows the subscriptions in half a screen and decides one in its sh
   // Splitting it every month is the same "De quem é?", on the monthly mark.
   await sheet.getByRole("button", { name: /^Dividir com alguém/ }).click();
   await sheet.getByRole("radio", { name: "Bia" }).check();
-  await expect(sheet.getByRole("switch", { name: /Dividir o valor/ })).toBeChecked();
+  await expect(sheet.getByRole("switch", { name: "Você paga uma parte" })).toBeChecked();
   const split = sentTo(page, "/api/banks/owner");
   await sheet.getByRole("button", { name: "Salvar" }).click();
   expect((await split).postDataJSON()).toEqual({

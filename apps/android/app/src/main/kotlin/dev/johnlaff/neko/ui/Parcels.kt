@@ -286,9 +286,8 @@ internal fun ParcelsList(side: ParcelSide, onPick: (ParcelPlan) -> Unit) {
                                 name = planName(p.description),
                                 value = money(p.part),
                                 modifier = Modifier.clickable(onClickLabel = "abrir") { onPick(p) },
-                                avatar = "",
+                                avatar = initialOf(planName(p.description)),
                                 avatarVector = categoryIcon(p.description),
-                                avatarIcon = R.drawable.ic_receipt,
                                 meta = listOfNotNull(
                                     p.card.takeUnless { oneCard },
                                     "falta ${money(p.left)}".takeIf { p.installment < p.installments },

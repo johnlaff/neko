@@ -6,10 +6,19 @@ import { CardAvatar } from "../CardAvatar.tsx";
 import { CategoryIcon } from "../CategoryIcon.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { bankLineName, capitalize, money, shortDate } from "../format.ts";
-import { IconChevron, IconReceipt } from "../icons.tsx";
+import { IconChevron } from "../icons.tsx";
 import { Sheet } from "../Sheet.tsx";
 import { OwnerForm } from "./Owner.tsx";
-import { buyDay, isParcel, monthOf, monthYear, parcelText, shortMonth, stateLine } from "./text.ts";
+import {
+  buyDay,
+  initialOf,
+  isParcel,
+  monthOf,
+  monthYear,
+  parcelText,
+  shortMonth,
+  stateLine,
+} from "./text.ts";
 
 type Filter = "all" | "buys" | "parcels" | `p:${string}`;
 
@@ -30,7 +39,7 @@ const LineRow = ({ l, onPick }: { l: BankLineView; onPick: (() => void) | null }
   const body = (
     <>
       <span className="avatar" aria-hidden="true">
-        <CategoryIcon text={l.description} fallback={<IconReceipt />} />
+        <CategoryIcon text={l.description} fallback={initialOf(bankLineName(l))} />
       </span>
       <span className="name">{bankLineName(l)}</span>
       <span className={`value${l.person ? " theirs" : ""}`}>
@@ -279,7 +288,10 @@ export const CardBill = ({
           <>
             <div className="sheet-item">
               <span className="avatar" aria-hidden="true">
-                <CategoryIcon text={picked.description} fallback={<IconReceipt />} />
+                <CategoryIcon
+                  text={picked.description}
+                  fallback={initialOf(bankLineName(picked))}
+                />
               </span>
               <span className="name">{bankLineName(picked)}</span>
               <span className="value">{money(picked.amount)}</span>

@@ -180,6 +180,22 @@ describe("parcels view", () => {
     };
   };
 
+  it("tells what a person still owes in parcels as Parcelas does, a plan on a later bill too", () => {
+    const fone = parcel("FONE 01/03", 129_90, "2026-11", 1, 3);
+    const p = withBills([...bills(), check("Cartão Azul", "2026-11-12", [fone])]);
+    if (!p.bank) throw new Error("withBills has a bank");
+    const later = { key: ownerKey(fone as never) ?? "", person: "Lia" };
+    const v = invoicesView({ ...p, bank: { ...p.bank, owners: [lia, later] } });
+    const side = v.parcels?.sides.find((s) => s.person === "Lia");
+    const owed = v.months
+      .find((m) => m.key === v.parcels?.month)
+      ?.owed.find((o) => o.person === "Lia");
+    // Her half of the sofa, the parcels on her own card and the earphones bought for November.
+    expect(owed?.later).toBe(6 * 150_00 + 4 * 150_00 + 3 * 129_90);
+    expect(owed?.later).toBe((side?.left ?? 0) - (side?.now ?? 0));
+    expect(owed?.until).toBe(side?.last);
+  });
+
   it("adds up the owner's parcels on the month's bills, with their weight and what changed", () => {
     const v = invoicesView(withBills(bills()));
     expect(v.parcels?.month).toBe(fixture.projection.invoiceMonth);
