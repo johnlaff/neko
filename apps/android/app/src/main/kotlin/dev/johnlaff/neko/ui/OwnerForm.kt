@@ -191,21 +191,33 @@ internal fun OwnerForm(
                 }
             }
         }
+        // One line of what the choice does; when the other part enters the sheet, one tap away.
         Text(
             if (who == null) "Conta inteira no seu teto."
-            else listOfNotNull(
-                if (plan && part != null && person != null) "Vale para as $installments parcelas, ${money(part)} de $person em cada." else null,
-                if (monthly && person != null) "Vale para todo mês em que cobrar ${money(amount)}." else null,
-                if (split) "Só a sua parte conta no teto." else "Fica fora do seu teto.",
-                person?.let { p ->
-                    if (later) "A parte de $p entra na planilha quando o Pix cair."
-                    else "A parte de $p aparece em Para lançar como Entrada " +
-                        if (due != null && !monthly && !plan) "em ${shortDate(due)}, quando a fatura vence." else "em cada fatura que ainda vai vencer."
-                },
-            ).joinToString(" "),
+            else Format.capitalize(
+                listOfNotNull(
+                    if (plan) "vale para as $installments parcelas" else null,
+                    if (monthly) "vale para todo mês em que cobrar ${money(amount)}" else null,
+                    if (split) "só a sua parte conta no teto" else "fica fora do seu teto",
+                ).joinToString(" · "),
+            ) + ".",
             color = l.muted,
             style = MaterialTheme.typography.bodySmall,
         )
+        person?.let { p ->
+            var how by rememberSaveable { mutableStateOf(false) }
+            TextAction("Como funciona", { how = !how }, open = how)
+            Reveal(how) {
+                Text(
+                    if (later) "A parte de $p entra na planilha quando o Pix cair, em Para lançar."
+                    else "A parte de $p aparece em Para lançar como Entrada " +
+                        (if (due != null && !monthly && !plan) "em ${shortDate(due)}, quando a fatura vence" else "em cada fatura que ainda vai vencer") +
+                        ", e só vai para a planilha quando você tocar em Lançar.",
+                    color = l.muted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
         Small(if (saving) "Salvando…" else "Salvar", filled = true, enabled = valid && !saving, modifier = Modifier.fillMaxWidth(), spinning = saving, onClick = submit)
         if (failed) Failed("Não salvou. Toque em Salvar de novo.")
     }

@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { api } from "../api.ts";
-import { money, shortDate, toCents } from "../format.ts";
+import { capitalize, money, shortDate, toCents } from "../format.ts";
+import { IconChevron } from "../icons.tsx";
 
 /** How someone's part is picked: half, a third, or a value typed in. */
 type Mode = "half" | "third" | "other";
@@ -206,24 +207,33 @@ export const OwnerForm = ({
           )}
         </div>
       )}
+      {/* One line of what the choice does; when the other part enters the sheet, one tap away. */}
       <p className="hint owner-note">
         {who === null
           ? "Conta inteira no seu teto."
-          : [
-              plan && part !== null && person
-                ? `Vale para as ${installments} parcelas, ${money(part)} de ${person} em cada.`
-                : null,
-              monthly && person ? `Vale para todo mês em que cobrar ${money(amount)}.` : null,
-              split ? "Só a sua parte conta no teto." : "Fica fora do seu teto.",
-              person
-                ? later
-                  ? `A parte de ${person} entra na planilha quando o Pix cair.`
-                  : `A parte de ${person} aparece em Para lançar como Entrada ${due && !monthly && !plan ? `em ${shortDate(due)}, quando a fatura vence` : "em cada fatura que ainda vai vencer"}.`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" ")}
+          : capitalize(
+              [
+                plan ? `vale para as ${installments} parcelas` : null,
+                monthly ? `vale para todo mês em que cobrar ${money(amount)}` : null,
+                split ? "só a sua parte conta no teto" : "fica fora do seu teto",
+              ]
+                .filter(Boolean)
+                .join(" · "),
+            ) + "."}
       </p>
+      {person && (
+        <details className="formula owner-how">
+          <summary>
+            Como funciona
+            <IconChevron />
+          </summary>
+          <p>
+            {later
+              ? `A parte de ${person} entra na planilha quando o Pix cair, em Para lançar.`
+              : `A parte de ${person} aparece em Para lançar como Entrada ${due && !monthly && !plan ? `em ${shortDate(due)}, quando a fatura vence` : "em cada fatura que ainda vai vencer"}, e só vai para a planilha quando você tocar em Lançar.`}
+          </p>
+        </details>
+      )}
       <button type="submit" disabled={!valid || save.isPending}>
         {save.isPending ? "Salvando…" : "Salvar"}
       </button>

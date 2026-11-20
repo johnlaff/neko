@@ -148,8 +148,8 @@ export const Person = ({
           <IconChevron />
         </summary>
         <pre className="message">{messageOf(o, month, money)}</pre>
+        <p>O Neko não manda nada sozinho: você escolhe para onde a mensagem vai.</p>
       </details>
-      <p className="hint">O Neko não manda nada sozinho: você escolhe para onde a mensagem vai.</p>
     </section>
   );
   const lines = (
@@ -225,8 +225,8 @@ export const Person = ({
       </fieldset>
       <p className="hint">
         {onArrival
-          ? `Nada fica planejado: quando o Pix de ${o.person} cair, ele aparece em Para lançar como Entrada.`
-          : `Cada parte aparece em Para lançar como Entrada no dia em que a fatura vence. Um Pix adiantado de ${o.person} diminui essa Entrada.`}
+          ? `Entra em Para lançar como Entrada quando o Pix de ${o.person} cair.`
+          : "Entra em Para lançar como Entrada no vencimento de cada fatura."}
       </p>
       {when.isError && (
         <p className="warn" role="alert">

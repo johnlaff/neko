@@ -465,7 +465,7 @@ test("a card's page shows whose each purchase is, and splits one with another va
   await sheet.getByRole("radio", { name: "Outro valor" }).check();
   await sheet.getByRole("textbox", { name: /Bia paga/ }).fill("150");
   await expect(
-    sheet.getByText("Vale para as 6 parcelas, R$ 150,00 de Bia em cada.", { exact: false }),
+    sheet.getByText("Vale para as 6 parcelas · só a sua parte conta no teto."),
   ).toBeVisible();
   const sent = sentTo(page, "/api/banks/owner");
   await sheet.getByRole("button", { name: "Salvar" }).click();

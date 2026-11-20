@@ -129,13 +129,15 @@ internal fun PersonHead(o: Owed, month: String) {
         var preview by rememberSaveable { mutableStateOf(false) }
         TextAction("Ver a mensagem", { preview = !preview }, open = preview)
         Reveal(preview) {
-            Text(
-                messageOf(o, month),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().background(l.surface2, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 12.dp),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    messageOf(o, month),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth().background(l.surface2, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 12.dp),
+                )
+                Text("O Neko não manda nada sozinho: você escolhe para onde a mensagem vai.", color = l.muted, style = MaterialTheme.typography.bodySmall)
+            }
         }
-        Text("O Neko não manda nada sozinho: você escolhe para onde a mensagem vai.", color = l.muted, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -209,8 +211,8 @@ internal fun PersonLines(o: Owed, actions: FaturasActions, onPick: (OwedItem) ->
             }
         }
         Text(
-            if (onArrival) "Nada fica planejado: quando o Pix de ${o.person} cair, ele aparece em Para lançar como Entrada."
-            else "Cada parte aparece em Para lançar como Entrada no dia em que a fatura vence. Um Pix adiantado de ${o.person} diminui essa Entrada.",
+            if (onArrival) "Entra em Para lançar como Entrada quando o Pix de ${o.person} cair."
+            else "Entra em Para lançar como Entrada no vencimento de cada fatura.",
             color = l.muted,
             style = MaterialTheme.typography.bodySmall,
         )
