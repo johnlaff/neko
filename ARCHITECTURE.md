@@ -38,7 +38,8 @@ Every finance rule, as pure functions over integer cents (`Cents`, `money.ts`) a
 or the database. The entry point is `project` (`projection.ts`), which turns a ledger plus settings
 into the `Projection` every screen reads. Around it:
 
-- Method rules: `balance.ts` (saldo chain), `cards.ts` (card cycles), `installments.ts`,
+- Method rules: `balance.ts` (saldo chain), `cards.ts` (card cycles), `installments.ts` (a
+  purchase in parcels and every plan on the bills, `installmentPlans`),
   `savings.ts` (how much can be kept on payday), `reserve.ts` (the reserve in steps),
   `thermometer.ts`, `habit.ts` (the streak), `recap.ts`, `breakdown.ts` and `trend.ts`
   (where the money went), `health.ts` and `insights.ts` (what needs a look).
@@ -83,8 +84,9 @@ returns the new formula and note exactly as the owner would type them.
 - `src/web/`: React 19 SPA with TanStack Router and Query. Screens in `web/screens/` (Hoje,
   Faturas, Mês, Simular, Ajustes) plus the Mia screen (`Mia.tsx`, `Mia2.tsx`). Faturas' pages
   live in `web/faturas/` (a card's bill, a person's month, the subscriptions and their review,
-  the "De quem é?" form), opened through the URL's search (`?cartao=`, `?pessoa=`,
-  `?revisar=true`); what a tap opens over a page is a `Sheet.tsx` (a native `<dialog>`).
+  every parcel, the "De quem é?" form), opened through the URL's search (`?cartao=`, `?pessoa=`,
+  `?revisar=true`, `?parcelas=true`); what a tap opens over a page is a `Sheet.tsx` (a native
+  `<dialog>`).
 - `migrations/`: D1 schema, one numbered file per change.
 - `test/` (Vitest, with an in-memory D1 in `test/d1.ts`) and `e2e/` (Playwright on a projection
   built from invented data by `e2e/make-projection.ts`).
@@ -93,7 +95,7 @@ returns the new formula and note exactly as the owner would type them.
 
 Kotlin, Jetpack Compose and Glance, package `dev.johnlaff.neko`. `data/` talks to the API and
 keeps an encrypted cache, `ui/` has one file per screen (Faturas' pages in `CardBill.kt`,
-`PersonPage.kt`, `Subscriptions.kt` and `OwnerForm.kt`), and `widget/`, `tile/`, `shortcuts/`,
+`PersonPage.kt`, `Subscriptions.kt`, `Parcels.kt` and `OwnerForm.kt`), and `widget/`, `tile/`, `shortcuts/`,
 `reminders/`, `purchases/` (purchase notices), `security/` (app lock) and `share/` hold the
 Android-only parts. The app formats and draws; any figure it shows comes ready from the API.
 
@@ -125,7 +127,9 @@ them.
 owner's card is, all of it or a share of each charge; a parcel's mark holds its whole plan and a
 subscription's every month. Only the owner's part counts in the ceiling. `buildQueue` plans the
 other part as an Entrada on each due day (a `parte` draft in Para lançar, written only on the
-owner's tap), or nothing for a person whose part goes in when their Pix lands.
+owner's tap), or nothing for a person whose part goes in when their Pix lands. Parcelas
+(specs/008-parcelas) reads the same marks: each plan's part goes to the owner's side or the
+person's, and a plan on someone else's own card is all theirs.
 
 **E-mail.** Cloudflare Email Routing delivers `fatura@` on the Neko domain to the Worker. It keeps
 only mail from the owner's own forwarding and from known senders: the bank's PDF bill (read by

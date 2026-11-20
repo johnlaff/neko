@@ -684,6 +684,7 @@
             "closed": false,
             "disagrees": false,
             "onlyParcels": false,
+            "parcelsUntil": "2027-02",
             "lines": [
               {
                 "description": "Compras do ciclo",
@@ -885,6 +886,7 @@
             "closed": false,
             "disagrees": false,
             "onlyParcels": true,
+            "parcelsUntil": "2027-02",
             "lines": [
               {
                 "description": "LOJA DE MÓVEIS PARC 03/06",
@@ -1282,5 +1284,198 @@
   "people": [
     "Bia"
   ],
-  "onArrival": []
+  "onArrival": [],
+  "parcels": {
+    "month": "2026-10",
+    "sides": [
+      {
+        "person": null,
+        "count": 1,
+        "now": 22500,
+        "ofIncome": 3,
+        "ofCeiling": null,
+        "previous": null,
+        "left": 112500,
+        "last": "2027-02",
+        "months": [
+          {
+            "key": "2026-10",
+            "amount": 22500,
+            "ofIncome": 3,
+            "ofCeiling": null,
+            "plans": 1,
+            "ending": []
+          },
+          {
+            "key": "2026-11",
+            "amount": 22500,
+            "ofIncome": 3,
+            "ofCeiling": null,
+            "plans": 1,
+            "ending": []
+          },
+          {
+            "key": "2026-12",
+            "amount": 22500,
+            "ofIncome": 3,
+            "ofCeiling": null,
+            "plans": 1,
+            "ending": []
+          },
+          {
+            "key": "2027-01",
+            "amount": 22500,
+            "ofIncome": null,
+            "ofCeiling": null,
+            "plans": 1,
+            "ending": []
+          },
+          {
+            "key": "2027-02",
+            "amount": 22500,
+            "ofIncome": null,
+            "ofCeiling": null,
+            "plans": 1,
+            "ending": [
+              "LOJA DE MÓVEIS PARC 03/06"
+            ]
+          }
+        ],
+        "groups": [
+          {
+            "last": "2027-02",
+            "frees": 22500,
+            "plans": [
+              {
+                "key": "cartao azul|lojademoveisparc|45000|6x",
+                "card": "Cartão Azul",
+                "description": "LOJA DE MÓVEIS PARC 03/06",
+                "date": "2026-10-02",
+                "installments": 6,
+                "installment": 2,
+                "first": "2026-09",
+                "last": "2027-02",
+                "amount": 45000,
+                "part": 22500,
+                "paid": 22500,
+                "left": 112500,
+                "person": "Bia",
+                "share": 22500,
+                "theirCard": false
+              }
+            ]
+          }
+        ],
+        "ended": null
+      },
+      {
+        "person": "Bia",
+        "count": 2,
+        "now": 22500,
+        "ofIncome": null,
+        "ofCeiling": null,
+        "previous": null,
+        "left": 151470,
+        "last": "2027-02",
+        "months": [
+          {
+            "key": "2026-10",
+            "amount": 22500,
+            "ofIncome": null,
+            "ofCeiling": null,
+            "plans": 1,
+            "ending": []
+          },
+          {
+            "key": "2026-11",
+            "amount": 35490,
+            "ofIncome": null,
+            "ofCeiling": null,
+            "plans": 2,
+            "ending": []
+          },
+          {
+            "key": "2026-12",
+            "amount": 35490,
+            "ofIncome": null,
+            "ofCeiling": null,
+            "plans": 2,
+            "ending": []
+          },
+          {
+            "key": "2027-01",
+            "amount": 35490,
+            "ofIncome": null,
+            "ofCeiling": null,
+            "plans": 2,
+            "ending": [
+              "FONE PARC 01/03"
+            ]
+          },
+          {
+            "key": "2027-02",
+            "amount": 22500,
+            "ofIncome": null,
+            "ofCeiling": null,
+            "plans": 1,
+            "ending": [
+              "LOJA DE MÓVEIS PARC 03/06"
+            ]
+          }
+        ],
+        "groups": [
+          {
+            "last": "2027-01",
+            "frees": 12990,
+            "plans": [
+              {
+                "key": "cartao azul|foneparc|12990|3x",
+                "card": "Cartão Azul",
+                "description": "FONE PARC 01/03",
+                "date": "2026-10-02",
+                "installments": 3,
+                "installment": 0,
+                "first": "2026-11",
+                "last": "2027-01",
+                "amount": 12990,
+                "part": 12990,
+                "paid": 0,
+                "left": 38970,
+                "person": "Bia",
+                "share": null,
+                "theirCard": false
+              }
+            ]
+          },
+          {
+            "last": "2027-02",
+            "frees": 22500,
+            "plans": [
+              {
+                "key": "cartao azul|lojademoveisparc|45000|6x",
+                "card": "Cartão Azul",
+                "description": "LOJA DE MÓVEIS PARC 03/06",
+                "date": "2026-10-02",
+                "installments": 6,
+                "installment": 2,
+                "first": "2026-09",
+                "last": "2027-02",
+                "amount": 45000,
+                "part": 22500,
+                "paid": 22500,
+                "left": 112500,
+                "person": "Bia",
+                "share": 22500,
+                "theirCard": false
+              }
+            ]
+          }
+        ],
+        "ended": null
+      }
+    ],
+    "short": [],
+    "shortBy": 0,
+    "leftOut": []
+  }
 }

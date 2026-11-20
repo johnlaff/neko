@@ -20,6 +20,7 @@ import { BrandMark } from "../BrandMark.tsx";
 import { CardAvatar } from "../CardAvatar.tsx";
 import { BigMoney, Columns } from "../Figures.tsx";
 import { CardBill } from "../faturas/CardBill.tsx";
+import { Parcels, ParcelsPanel } from "../faturas/Parcels.tsx";
 import { Person } from "../faturas/Person.tsx";
 import { Review, Subscriptions } from "../faturas/Subscriptions.tsx";
 import type { FaturasSearch } from "../faturas/search.ts";
@@ -241,8 +242,8 @@ const StatementUpload = ({ month, onPick }: { month: string; onPick: (month: str
   );
 };
 
-/** Back to the month's bills: a step back when Faturas was the step before, else there. */
-const Back = ({ label, month }: { label: string; month: string }) => {
+/** Back to the month's bills (or a card's): a step back when it was the step before, else there. */
+const Back = ({ label, month, card }: { label: string; month: string; card?: string }) => {
   const router = useRouter();
   const canGoBack = useCanGoBack();
   const navigate = useNavigate({ from: "/faturas" });
@@ -253,7 +254,9 @@ const Back = ({ label, month }: { label: string; month: string }) => {
       aria-keyshortcuts="Escape"
       title={`${label} (Esc)`}
       onClick={() =>
-        canGoBack ? router.history.back() : navigate({ search: { m: month }, replace: true })
+        canGoBack
+          ? router.history.back()
+          : navigate({ search: card ? { m: month, cartao: card } : { m: month }, replace: true })
       }
     >
       <IconChevronLeft />
@@ -294,6 +297,28 @@ export const Faturas = () => {
           v.months.find((x) => x.key === (search.m ?? v.current)) ?? (v.months.at(-1) as never);
         const waits = v.onArrival;
         const back = <Back label={`Faturas de ${monthOf(m.key)}`} month={m.key} />;
+        if (search.parcelas) {
+          if (!v.parcels) return <Gone text="Nenhuma parcela nas faturas." month={m.key} />;
+          return (
+            <>
+              {search.cartao ? (
+                <Back label={search.cartao} month={m.key} card={search.cartao} />
+              ) : (
+                back
+              )}
+              <Parcels
+                view={v.parcels}
+                month={m.key}
+                today={v.today}
+                people={v.people}
+                waits={waits}
+                owedPeople={(v.months.find((x) => x.key === v.parcels?.month)?.owed ?? []).map(
+                  (o) => o.person,
+                )}
+              />
+            </>
+          );
+        }
         if (search.cartao) {
           const c = m.cards.find(
             (x) => normalizeName(x.card) === normalizeName(search.cartao ?? ""),
@@ -350,6 +375,8 @@ export const Faturas = () => {
         }
         const [best, ...rest] = v.buyToday;
         const ahead = v.months.some((x) => x.future);
+        // The owner's parcels, from the month on: the months before have only what was paid.
+        const parcels = v.parcels?.sides.find((s) => s.person === null);
         return (
           <Board
             panels={{
@@ -443,6 +470,9 @@ export const Faturas = () => {
                 </section>
               ),
               owed: m.owed.length > 0 && <Owed m={m} />,
+              parcels: parcels?.months.some((x) => x.key === m.key) && (
+                <ParcelsPanel side={parcels} month={m.key} />
+              ),
               buy: best && (
                 <section className="panel">
                   <div className="panel-head">
@@ -482,8 +512,8 @@ export const Faturas = () => {
               ),
             }}
             // Wide screens: the months beside the month's cards, then where to buy.
-            two={[["months"], ["cards", "owed", "buy", "subs"]]}
-            three={[["months"], ["cards", "owed"], ["buy", "subs"]]}
+            two={[["months"], ["cards", "owed", "parcels", "buy", "subs"]]}
+            three={[["months"], ["cards", "owed"], ["parcels", "buy", "subs"]]}
           />
         );
       }}

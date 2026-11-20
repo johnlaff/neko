@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useId, useRef, useState } from "react";
 import type { BankLineView, InvoiceRow } from "../../shared/screens.ts";
 import { Board } from "../Board.tsx";
@@ -8,7 +9,7 @@ import { bankLineName, capitalize, money, shortDate } from "../format.ts";
 import { IconChevron, IconReceipt } from "../icons.tsx";
 import { Sheet } from "../Sheet.tsx";
 import { OwnerForm } from "./Owner.tsx";
-import { buyDay, isParcel, monthOf, parcelText, shortMonth, stateLine } from "./text.ts";
+import { buyDay, isParcel, monthOf, monthYear, parcelText, shortMonth, stateLine } from "./text.ts";
 
 type Filter = "all" | "buys" | "parcels" | `p:${string}`;
 
@@ -228,10 +229,30 @@ export const CardBill = ({
                 </label>
               ))}
           </fieldset>
+          {filter === "parcels" && c.bank && c.bank.parcels > 0 && (
+            <div className="parcel-sum">
+              <div className="parcel-pick-top">
+                <span className="muted">Parcelas nesta fatura</span>
+                <b>{money(c.bank.parcels)}</b>
+              </div>
+              {c.bank.parcelsUntil && (
+                <span className="hint">A última acaba em {monthYear(c.bank.parcelsUntil)}</span>
+              )}
+              <Link
+                className="text-link"
+                to="/faturas"
+                search={{ m: month, cartao: c.card, parcelas: true }}
+              >
+                Ver todas as parcelas{"\u00a0"}
+                <span aria-hidden="true">›</span>
+              </Link>
+            </div>
+          )}
           <p className="hint">Toque numa compra para dizer de quem é, ou para dividir.</p>
           {groups.map((g) => (
             <div key={g.key} className="day-group">
-              <h3>{g.key}</h3>
+              {/* Under the Parcelas filter, its chip and total already name the group. */}
+              {filter !== "parcels" && <h3>{g.key}</h3>}
               <ul className="rows lead">
                 {g.items.map((l, i) => (
                   <LineRow

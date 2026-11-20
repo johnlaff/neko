@@ -96,7 +96,7 @@ const purchaseText = (l: BankCardLine): string =>
  * (the bank puts the rounding on the first one: 25,13 then 25,11), and one text starting the other
  * (it lists future parcels with a shorter text, "MERCADOLIVRE*MERC" for "MERCADOLIVRE*MERCADOLI").
  */
-const samePurchase = (a: BankCardLine, b: BankCardLine): boolean => {
+export const samePurchase = (a: BankCardLine, b: BankCardLine): boolean => {
   if (normalizeName(a.card) !== normalizeName(b.card)) return false;
   if (a.installments !== b.installments || a.installment !== b.installment) return false;
   if (Math.abs(a.amount - b.amount) > Math.max(1, a.installments ?? 1)) return false;

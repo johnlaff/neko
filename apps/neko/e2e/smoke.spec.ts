@@ -479,6 +479,50 @@ test("a card's page shows whose each purchase is, and splits one with another va
   expect(errors).toEqual([]);
 });
 
+test("Parcelas sums the owner's parcels apart from Bia's and opens a plan's whole timeline", async ({
+  page,
+}) => {
+  const errors = await open(page, "/faturas");
+  const panel = page.locator("section", { has: page.getByRole("heading", { name: "Parcelas" }) });
+  await expect(panel.getByText("Nas faturas de outubro")).toBeVisible();
+  await expect(panel.getByText("Última em fev/27")).toBeVisible();
+  await panel.getByRole("link", { name: /^Ver todas/ }).click();
+  await expect(page).toHaveURL(/parcelas=true/);
+  await expect(page.getByRole("heading", { name: "Parcelas", exact: true })).toBeFocused();
+  // One plan alone: every month is the same, so no columns repeat the figure on top.
+  await expect(page.getByText("Só o que já foi comprado")).toHaveCount(0);
+  // Half of the furniture is Bia's: the owner sees their half, and the mark holds the whole plan.
+  await page.getByRole("button", { name: /^Loja de Móveis, R\$ 225,00 por mês/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Loja de Móveis" });
+  await expect(sheet.getByRole("radio", { name: "Bia" })).toBeChecked();
+  await expect(
+    sheet.getByText("Vale para as 6 parcelas · só a sua parte conta no teto."),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("radio", { name: /^Bia/ }).check();
+  await expect(page.getByText("Fora da sua renda e do teto")).toBeVisible();
+  await expect(page.getByText("1ª em nov/26")).toBeVisible();
+  // A month's column tells what ends on it; before a tap, nothing repeats the figure on top.
+  await expect(page.getByText("Só o que já foi comprado")).toBeVisible();
+  await expect(page.getByText(/^Última parcela neste mês/)).toHaveCount(0);
+  await page.getByRole("button", { name: /^Fevereiro de 2027/ }).click();
+  await expect(page.getByText("Última parcela neste mês: Loja de Móveis.")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("a card's Parcelas filter adds them up and opens every parcel", async ({ page }) => {
+  const errors = await open(page, "/faturas?m=2026-11");
+  await page.getByRole("link", { name: /^Cartão Azul, R\$ 2\.838,07/ }).click();
+  await page.getByRole("radio", { name: /^Parcelas/ }).check();
+  await expect(page.getByText("Parcelas nesta fatura")).toBeVisible();
+  await expect(page.getByText("A última acaba em fev/27")).toBeVisible();
+  await page.getByRole("link", { name: /^Ver todas as parcelas/ }).click();
+  await expect(page.getByRole("heading", { name: "Parcelas", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "Cartão Azul" }).click();
+  await expect(page.getByRole("heading", { name: "Cartão Azul", exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test("a person's page sums their month and hands the message to the phone", async ({ page }) => {
   const errors = await open(page, "/faturas?m=2026-11");
   const owed = page.locator("section", { has: page.getByRole("heading", { name: "A receber" }) });

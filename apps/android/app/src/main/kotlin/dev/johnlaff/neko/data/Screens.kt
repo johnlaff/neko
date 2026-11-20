@@ -26,10 +26,91 @@ data class InvoicesView(
     val people: List<String> = emptyList(),
     /** People whose part goes into the sheet when their Pix lands, not on the due day. */
     val onArrival: List<String> = emptyList(),
+    /** Every purchase in parcels (specs/008-parcelas); null with none. */
+    val parcels: Parcels? = null,
 )
 
 @Serializable
 data class BankRead(val syncedAt: String? = null)
+
+/** Faturas › Parcelas (shared/screens.ts ParcelsView): the next bills to pay and every plan. */
+@Serializable
+data class Parcels(
+    /** The bills it is about, `yyyy-MM`. */
+    val month: String,
+    /** The owner's first, when there are any; then each person's. */
+    val sides: List<ParcelSide> = emptyList(),
+    /** Bills still to pay whose sheet amount is short of the parcels the bank has on them. */
+    val short: List<ShortBill> = emptyList(),
+    /** What the sheet lacks on all of those bills together. */
+    val shortBy: Long = 0,
+    /** The owner's cards with a bill in the month and nothing from the bank to read parcels from. */
+    val leftOut: List<String> = emptyList(),
+)
+
+@Serializable
+data class ShortBill(val card: String, val due: String, val missing: Long = 0)
+
+/** The owner's parcels (`person` null), or one person's. */
+@Serializable
+data class ParcelSide(
+    val person: String? = null,
+    val count: Int = 0,
+    val now: Long = 0,
+    val ofIncome: Int? = null,
+    val ofCeiling: Int? = null,
+    val previous: ParcelPrevious? = null,
+    val left: Long = 0,
+    val last: String,
+    val months: List<ParcelMonth> = emptyList(),
+    val groups: List<ParcelGroup> = emptyList(),
+    val ended: ParcelEnded? = null,
+)
+
+@Serializable
+data class ParcelPrevious(val month: String, val amount: Long, val started: Int, val ended: Int)
+
+/** One month ahead: only what was already bought. */
+@Serializable
+data class ParcelMonth(
+    val key: String,
+    val amount: Long,
+    val ofIncome: Int? = null,
+    val ofCeiling: Int? = null,
+    val plans: Int = 0,
+    val ending: List<String> = emptyList(),
+)
+
+/** Plans whose last parcel is on one month's bills, and what leaves the bills after it. */
+@Serializable
+data class ParcelGroup(val last: String, val frees: Long, val plans: List<ParcelPlan> = emptyList())
+
+@Serializable
+data class ParcelEnded(val month: String, val amount: Long, val plans: List<ParcelPlan> = emptyList())
+
+/** One purchase in parcels, as one side sees it. */
+@Serializable
+data class ParcelPlan(
+    /** What a mark of it holds on to; null on someone else's card or with no store. */
+    val key: String? = null,
+    val card: String,
+    val description: String,
+    val date: String? = null,
+    val installments: Int,
+    /** The parcel on the month's bills; 0 when its first one comes on a later bill. */
+    val installment: Int,
+    val first: String,
+    val last: String,
+    val amount: Long,
+    /** This side's part of one parcel. */
+    val part: Long,
+    val paid: Long = 0,
+    val left: Long = 0,
+    val person: String? = null,
+    /** Their part of each parcel, when split. */
+    val share: Long? = null,
+    val theirCard: Boolean = false,
+)
 
 /**
  * Charges of the same value back each month on the owner's cards, with his marks (engine
@@ -176,6 +257,8 @@ data class RowBank(
     val closed: Boolean = false,
     val disagrees: Boolean = false,
     val onlyParcels: Boolean = false,
+    /** The last bill of the parcels on this one, `yyyy-MM`; null without parcels. */
+    val parcelsUntil: String? = null,
     val lines: List<BankLine> = emptyList(),
 )
 

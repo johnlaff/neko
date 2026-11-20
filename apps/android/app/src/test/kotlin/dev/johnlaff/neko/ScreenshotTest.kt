@@ -9,6 +9,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.click
@@ -585,6 +587,31 @@ class ScreenshotTest {
         FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "pessoa:Bia")
     }
 
+    /** Faturas' Parcelas panel, after the cards and A receber. */
+    @Test fun parcelasPainelDark() = shot("parcelas-painel-dark", night = true, scrollTo = "Ver todas") {
+        FaturasScreen(ScreenState(invoices), {}, {})
+    }
+
+    /** Parcelas: the month's weight, month by month, and when each plan ends. */
+    @Test fun parcelasDark() = shot("parcelas-dark", night = true) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startPage = "parcelas")
+    }
+
+    /** Bia's side: out of the income and the ceiling, her plans month by month. */
+    @Test fun parcelasBiaLight() = shot("parcelas-bia-light", night = false, tap = "Bia  2") {
+        FaturasScreen(ScreenState(invoices), {}, {}, startPage = "parcelas")
+    }
+
+    /** A plan's sheet: its timeline, what was paid and what is left, and whose it is. */
+    @Test fun parcelaDark() = shot("parcela-dark", night = true, scrollTo = "Quando acabam", tap = "Loja de Móveis", screen = true) {
+        FaturasScreen(ScreenState(invoices), {}, {}, startPage = "parcelas")
+    }
+
+    /** A card's Parcelas filter: their total on the bill and the way to all of them. */
+    @Test fun cartaoParcelasLight() = shot("cartao-parcelas-light", night = false, scrollTo = "Compras no banco", tap = "Parcelas  2") {
+        FaturasScreen(ScreenState(invoices), {}, {}, startMonth = "2026-11", startPage = "cartao:Cartão Azul")
+    }
+
     @Test fun bancoAjustesLight() = shot("banco-ajustes-light", night = false, scrollTo = "Bancos") {
         AjustesScreen(
             ScreenState(ajustes), SaveState.Saved, {}, {}, {}, RemindersSwitch(on = true), Fakes.devices,
@@ -625,7 +652,8 @@ class ScreenshotTest {
         }
         // The screen's list, not a row that slides sideways inside it (Mia's suggestions).
         scrollTo?.let { compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(it)) }
-        tap?.let { compose.onNodeWithText(it).performClick() }
+        // The first one on screen, when a name shows twice (a list and the sheet it opens).
+        tap?.let { compose.onAllNodesWithText(it).onFirst().performClick() }
         if (screen) {
             compose.waitForIdle()
             captureScreenRoboImage("screenshots/$name.png")
