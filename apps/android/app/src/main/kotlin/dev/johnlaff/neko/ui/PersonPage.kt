@@ -58,12 +58,12 @@ internal fun shareOf(i: OwedItem): String {
     return "$word de ${money(i.amount)}"
 }
 
-/** `parcela 3 de 6 · faltam R$ 675,00`, or the day of the purchase. */
+/** `parcela 3 de 6 · mais R$ 675,00 depois` (as A receber says it), or the day of the purchase. */
 internal fun itemWhen(i: OwedItem): String? {
     val n = i.installment
     val total = i.installments
     if (n != null && total != null && total > 1) {
-        return "parcela $n de $total" + if (i.later > 0) " · faltam ${money(i.later)}" else " · última"
+        return "parcela $n de $total" + if (i.later > 0) " · mais ${money(i.later)} depois" else " · última"
     }
     return i.date?.let(::shortDate)
 }
@@ -176,6 +176,7 @@ internal fun PersonLines(o: Owed, actions: FaturasActions, onPick: (OwedItem) ->
                         modifier = Modifier.clickable(onClickLabel = "de quem é") { onPick(i) },
                         avatar = initialOf(bankLineName(itemLine(i))),
                         avatarVector = categoryIcon(i.description),
+                        purchase = true,
                         meta = listOfNotNull(i.card, itemWhen(i), if (i.part < i.amount) shareOf(i) else null).joinToString(" · "),
                         next = true,
                     )

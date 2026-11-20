@@ -533,7 +533,7 @@ test("a person's page sums their month and hands the message to the phone", asyn
     page.getByText("Depois de novembro ainda vêm R$ 934,80 em parcelas, até fev/27."),
   ).toBeVisible();
   await expect(
-    page.getByText("Cartão Azul · parcela 3 de 6 · faltam R$ 675,00 · metade de R$ 450,00"),
+    page.getByText("Cartão Azul · parcela 3 de 6 · mais R$ 675,00 depois · metade de R$ 450,00"),
   ).toBeVisible();
   // Neko sends nothing: the phone's share sheet gets the text.
   await page.evaluate(() => {

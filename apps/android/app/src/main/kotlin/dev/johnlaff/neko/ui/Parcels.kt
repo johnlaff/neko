@@ -288,6 +288,7 @@ internal fun ParcelsList(side: ParcelSide, onPick: (ParcelPlan) -> Unit) {
                                 modifier = Modifier.clickable(onClickLabel = "abrir") { onPick(p) },
                                 avatar = initialOf(planName(p.description)),
                                 avatarVector = categoryIcon(p.description),
+                                purchase = true,
                                 meta = listOfNotNull(
                                     p.card.takeUnless { oneCard },
                                     "falta ${money(p.left)}".takeIf { p.installment < p.installments },

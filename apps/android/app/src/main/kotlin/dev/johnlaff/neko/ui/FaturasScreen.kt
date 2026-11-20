@@ -240,6 +240,7 @@ fun FaturasScreen(
                 value = money(t.amount),
                 avatar = initialOf(t.name),
                 avatarVector = categoryIcon(t.description),
+                purchase = true,
                 meta = t.meta,
             )
             OwnerForm(

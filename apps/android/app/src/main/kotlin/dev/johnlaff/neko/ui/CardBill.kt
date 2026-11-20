@@ -205,8 +205,10 @@ internal fun CardLines(
                                 modifier = if (x.key != null) Modifier.clickable(onClickLabel = "de quem é") { onPick(x) } else Modifier,
                                 avatar = initialOf(bankLineName(x)),
                                 avatarVector = categoryIcon(x.description),
+                                purchase = true,
                                 valueColor = if (theirs) l.muted else l.text,
-                                accent = theirs,
+                                // Someone else's purchase: its category icon in green; a store's letter stays grey.
+                                accent = theirs && categoryIcon(x.description) != null,
                                 meta = lineMeta(x),
                                 next = x.key != null,
                             )

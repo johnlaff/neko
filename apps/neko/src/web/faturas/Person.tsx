@@ -37,7 +37,7 @@ const shareOf = (i: Item) =>
 
 const itemWhen = (i: Item) =>
   i.installment !== null && i.installments !== null && i.installments > 1
-    ? `parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · faltam ${money(i.later)}` : " · última"}`
+    ? `parcela ${i.installment} de ${i.installments}${i.later > 0 ? ` · mais ${money(i.later)} depois` : " · última"}`
     : i.date
       ? shortDate(i.date)
       : null;
