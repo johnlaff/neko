@@ -219,6 +219,9 @@ export const api = {
       for (const l of lines) if (l.trim()) line(JSON.parse(l) as Mia2Line);
     }
   },
+  /** Mia's line on Hoje tapped or set aside: it does not come back, on any device. */
+  seeNote: (id: string) =>
+    request<unknown>("/mia/nota", { method: "POST", body: JSON.stringify({ id }) }),
   /** Her latest routine (Sunday's week, the month closed), while it is news. */
   mia2Rotina: () => request<{ rotina: Mia2Rotina | null }>("/mia2/rotina"),
   stopMia2: (sessao: string) =>

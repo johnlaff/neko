@@ -168,6 +168,16 @@ class AppModel(
      */
     fun checkDay() = side { if (neko.api.checkHabit()) readToday(shown = false, after = true) }
 
+    /**
+     * Mia's line on Hoje tapped or set aside: it goes at once, and the Worker keeps it seen so it
+     * leaves the other devices too. One that fails to say so only comes back on the next reading.
+     */
+    fun seeNote(id: String) {
+        val v = _today.value.view
+        if (v?.nota?.id == id) _today.value = _today.value.copy(view = v.copy(nota = null))
+        side { neko.api.seeNote(id) }
+    }
+
     /** The evening message's hour, for the account (Ajustes › Neste celular). */
     fun saveEveningHour(hour: Int) = side { neko.api.saveEveningHour(hour) }
 
@@ -380,9 +390,13 @@ class AppModel(
     val mia2Talk = object : Mia2Talk {
         override fun ask(ask: dev.johnlaff.neko.data.Mia2Ask) = neko.api.askMia2(ask)
         override suspend fun stop(sessao: String) = neko.api.stopMia2(sessao)
-        override suspend fun routine() = neko.api.mia2Rotina()?.takeIf { it.id != routineSeen.last }
+        override suspend fun routine() = neko.api.mia2Rotina()?.also { r ->
+            // Read on her screen, her routine leaves the line on Hoje too, here and elsewhere.
+            if (_today.value.view?.nota?.id == "rotina:${r.id}") seeNote("rotina:${r.id}")
+        }?.takeIf { it.id != routineSeen.last }
         override fun routineShown(id: String) {
             routineSeen.last = id
+            seeNote("rotina:$id")
         }
     }
 

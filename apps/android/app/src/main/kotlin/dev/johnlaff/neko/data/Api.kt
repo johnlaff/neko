@@ -241,6 +241,11 @@ class Api(
 
     suspend fun mia(): MiaStatus = json.decodeFromString(call("/mia"))
 
+    /** Mia's line on Hoje tapped or set aside: it does not come back, on any device. */
+    suspend fun seeNote(id: String) {
+        call("/mia/nota", buildJsonObject { put("id", id) }.asBody())
+    }
+
     /** Lançar com a Mia: a sentence becomes the fields of Lançar; nothing is written. */
     suspend fun miaEntry(frase: String, cards: List<String>): MiaEntry? {
         val body = buildJsonObject {

@@ -1,4 +1,5 @@
 import { addDays, type LocalDate, weekday } from "@neko/engine";
+import { clip, firstLine } from "../shared/note.ts";
 import type { Mia2Line, Mia2Rotina } from "../shared/types.ts";
 import { type Mia2Setup, runTurn, type TurnDeps } from "./mia2.ts";
 import type { Reminder } from "./push.ts";
@@ -96,28 +97,13 @@ export const keeper = () => {
 };
 
 /** The notification: who did what, and her first sentence, plain. */
-export const routineReminder = (r: Mia2Rotina): Reminder => {
-  const first = r.partes.find((p) => p.t === "mensagem");
-  const line =
-    first?.t === "mensagem"
-      ? (first.texto
-          .split("\n")
-          .map((s) =>
-            s
-              .replace(/\*\*/g, "")
-              .replace(/^\s*(?:[-*•]|\d+\.)\s+/, "")
-              .trim(),
-          )
-          .find(Boolean) ?? "")
-      : "";
-  return {
-    title:
-      r.tipo === "semana" ? "A Mia fez o resumo da semana" : `A Mia fechou ${closedMonth(r.dia)}`,
-    body: line.length > 160 ? `${line.slice(0, 159).trimEnd()}…` : line,
-    url: MIA,
-    tag: "mia",
-  };
-};
+export const routineReminder = (r: Mia2Rotina): Reminder => ({
+  title:
+    r.tipo === "semana" ? "A Mia fez o resumo da semana" : `A Mia fechou ${closedMonth(r.dia)}`,
+  body: clip(firstLine(r)),
+  url: MIA,
+  tag: "mia",
+});
 
 /** The Mia screen: the web's route, and the Android app's own action. */
 export const MIA = "/mia";

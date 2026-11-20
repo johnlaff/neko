@@ -43,8 +43,8 @@ into the `Projection` every screen reads. Around it:
   `thermometer.ts`, `habit.ts` (the streak), `recap.ts`, `breakdown.ts` and `trend.ts`
   (where the money went), `health.ts` and `insights.ts` (what needs a look).
 - Bank side: `bank.ts` (bank vs sheet), `statement.ts` (the bank's PDF bill), `transfers.ts`,
-  `subscriptions.ts`, `owners.ts` (purchases that are someone else's), `phone.ts` (purchase
-  notices read by the phone).
+  `subscriptions.ts`, `watch.ts` (the daily watch: a charge that came twice, a refund),
+  `owners.ts` (purchases that are someone else's), `phone.ts` (purchase notices read by the phone).
 - Entries: `entries.ts` (`EntryInput`, `placeEntry`), `queue.ts` ("Para lançar"),
   `forecast.ts` (Diário previsto), `mia-entry.ts`.
 - What-ifs: `scenario.ts` (Simular), `purchase.ts` ("Posso comprar?").
@@ -75,9 +75,11 @@ returns the new formula and note exactly as the owner would type them.
 - Messages: `push.ts` (what to say), `notices.ts` (getting it to the browser and the phone).
 - Mia: `mia.ts` (Mia 1, Messages API), `mia2.ts` (Mia 2, managed agent), `mcp.ts` (her tools),
   `grounding.ts` (her number check), `routines.ts` (Sunday and month-end summaries),
-  `proposals.ts` (entries she leaves in Para lançar).
+  `proposals.ts` (entries she leaves in Para lançar), `note.ts` (Mia's line on Hoje: what was
+  tapped or set aside).
 - `src/shared/`: the API contract. `screens.ts`, `today.ts` and `queue.ts` build the views both
-  clients draw; `types.ts` holds the response types.
+  clients draw; `note.ts` writes Mia's line from the watch's and her routine's own numbers;
+  `types.ts` holds the response types.
 - `src/web/`: React 19 SPA with TanStack Router and Query. Screens in `web/screens/` (Hoje,
   Faturas, Mês, Simular, Ajustes) plus the Mia screen (`Mia.tsx`, `Mia2.tsx`).
 - `migrations/`: D1 schema, one numbered file per change.

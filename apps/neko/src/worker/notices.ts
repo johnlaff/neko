@@ -9,6 +9,7 @@ import {
   type Reminder,
   sendReminder,
   subscriptionReminder,
+  watchReminder,
 } from "./push.ts";
 
 /**
@@ -20,9 +21,16 @@ import {
 /**
  * Messages born on the server, one of each kind per day (migrations/0015_notice.sql): the alerts,
  * the ceiling crossing a mark when the bank brings the purchase, a subscription out of its pattern,
- * and Mia's routines (routines.ts).
+ * a charge that came twice (the daily watch) and Mia's routines (routines.ts).
  */
-export type NoticeKind = "meu-pluggy" | "planilha" | "teto-75" | "teto-100" | "mia" | "assinatura";
+export type NoticeKind =
+  | "meu-pluggy"
+  | "planilha"
+  | "teto-75"
+  | "teto-100"
+  | "mia"
+  | "assinatura"
+  | "vigia";
 
 export interface Notice extends Reminder {
   /** The kind and the day ("planilha:2026-11-11"): the app shows each id once. */
@@ -167,6 +175,23 @@ export const checkSubscriptions = async (env: Env, data: ProjectionResponse): Pr
   if (!reminder) return;
   await raiseNotice(env, "assinatura", data.projection.today as LocalDate, reminder);
   await put(env.DB, SUBSCRIPTIONS_KEY, [...said, ...fresh.map((n) => n.key)].slice(-SAID_KEEP));
+};
+
+const WATCH_KEY = "watch_said";
+
+/**
+ * After the 06:00 read of the banks, the daily watch (engine `watchNews`): a charge that came
+ * twice goes out once, with the alerts on the phone (Avisos). Refunds only wait on Hoje.
+ */
+export const checkWatch = async (env: Env, data: ProjectionResponse): Promise<void> => {
+  const news = (data.bank?.watch ?? []).filter((n) => n.kind === "repetida");
+  if (news.length === 0) return;
+  const said = (await get<string[]>(env.DB, WATCH_KEY)) ?? [];
+  const fresh = news.filter((n) => !said.includes(n.key));
+  const reminder = watchReminder(fresh);
+  if (!reminder) return;
+  await raiseNotice(env, "vigia", data.projection.today as LocalDate, reminder);
+  await put(env.DB, WATCH_KEY, [...said, ...fresh.map((n) => n.key)].slice(-SAID_KEEP));
 };
 
 /** The hours the evening message can come at: after work, before the late-night launches. */

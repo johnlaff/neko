@@ -24,7 +24,9 @@ import {
   subscriptions,
   unmatchedMovements,
   variableSpend,
+  type WatchNews,
 } from "../../../packages/engine/src/index.ts";
+import { miaNote } from "../src/shared/note.ts";
 import { queueView } from "../src/shared/queue.ts";
 import type { ProjectionResponse } from "../src/shared/types.ts";
 
@@ -242,6 +244,20 @@ const bank = {
   owners: [{ key: ownerKey(lines[2] as (typeof lines)[number]) ?? "", person: "Bia" }],
 };
 
+/** An invented cinema charged twice on the usual card: the daily watch's news, on Mia's line. */
+const watch: WatchNews[] = [
+  {
+    kind: "repetida",
+    key: "repetida|cinemaestrela|6400|cartao azul|2026-10-03",
+    description: "CINEMA ESTRELA",
+    card: "Cartão Azul",
+    amount: cents(64_00),
+    dates: [localDate("2026-10-03"), localDate("2026-10-04")],
+    date: localDate("2026-10-04"),
+    dispute: false,
+  },
+];
+
 const response: ProjectionResponse = {
   projection,
   daily: { value: dailyForecast, source: "inferred", sheetNote: null, inferred: dailyForecast },
@@ -259,7 +275,8 @@ const response: ProjectionResponse = {
     TODAY,
   ),
   writing: true,
-  bank,
+  bank: { ...bank, watch },
+  nota: miaNote({ watch, subscriptions: [], rotina: null, seen: [], mia: true }),
   previsto: {
     on: true,
     value: dailyForecast,

@@ -30,6 +30,10 @@ class TodayViewTest {
         assertEquals(294_500L - 73_220L, view.canSpend?.left)
         assertEquals(4, view.canSpend?.daysBehind)
         assertEquals(10_000L, view.previsto?.review?.real)
+        // Mia's line: a charge that came twice, a tap asks her.
+        assertEquals("Cobrança repetida", view.nota?.titulo)
+        assertEquals("mia", view.nota?.abre)
+        assertTrue(view.nota?.id?.startsWith("vigia:") == true)
         assertEquals(2, view.upcoming.size)
         assertEquals(view.upcomingCount, view.upcoming.sumOf { it.items.size })
     }

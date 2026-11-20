@@ -27,3 +27,4 @@ export * from "./subscriptions.ts";
 export * from "./thermometer.ts";
 export * from "./transfers.ts";
 export * from "./trend.ts";
+export * from "./watch.ts";

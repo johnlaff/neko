@@ -66,6 +66,15 @@ class ScreenshotTest {
 
     @Test fun hojeLight() = shot("hoje-light", night = false) { HojeScreen(TodayState(view), {}, {}) }
 
+    /** Mia's line with her routine instead: Sunday's week, a tap opens it as it is. */
+    @Test fun hojeRotinaLight() = shot("hoje-rotina-light", night = false) {
+        val rotina = dev.johnlaff.neko.data.MiaNote(
+            id = "rotina:semana:2026-10-05", tipo = "rotina", titulo = "Semana de 28 set a 4 out",
+            texto = "Cartões e Pix levaram R$ 812,40 na semana, R$ 96,10 a menos que na anterior.", abre = "mia",
+        )
+        HojeScreen(TodayState(view.copy(nota = rotina)), {}, {})
+    }
+
     /** Payday: what saving it all does to the reserve's steps. */
     @Test fun hojeGuardar() = shot("hoje-guardar-dark", night = true, scrollTo = "Dia de guardar") {
         HojeScreen(TodayState(view), {}, {})

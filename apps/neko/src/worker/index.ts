@@ -27,7 +27,7 @@ import {
   simulateView,
 } from "../shared/screens.ts";
 import { todayView } from "../shared/today.ts";
-import type { BanksResponse, Mia2Line, MiaStatus } from "../shared/types.ts";
+import type { BanksResponse, Mia2Line, MiaStatus, ProjectionResponse } from "../shared/types.ts";
 import { assetLinks } from "./android.ts";
 import {
   endSession,
@@ -51,9 +51,11 @@ import {
   recordUsage,
   spentThisMonth,
 } from "./mia.ts";
+import { markSeen, NoteSeenBody, noteFor } from "./note.ts";
 import {
   checkCeiling,
   checkSubscriptions,
+  checkWatch,
   clearNotices,
   EVENING_HOURS,
   eveningJob,
@@ -740,15 +742,43 @@ app.post("/mia/lancamento", async (c) => {
   }
 });
 
-app.get("/projection", async (c) => c.json(await getProjection(c.env, todayIn(new Date()))));
+/**
+ * Mia's line for Hoje (note.ts): the watch's news and her routine while it is news. A failure
+ * here only hides the line; Hoje never fails for it.
+ */
+const withNote = async (env: Env, data: ProjectionResponse): Promise<ProjectionResponse> => {
+  try {
+    const on = mia2On(env);
+    const rotina = on
+      ? await import("./routines.ts").then((r) => r.loadRoutine(env.DB, todayIn(new Date())))
+      : null;
+    return { ...data, nota: await noteFor(env.DB, data, { on, rotina }) };
+  } catch (error) {
+    console.error("mia note failed", error);
+    Sentry.captureException(error);
+    return { ...data, nota: null };
+  }
+};
+
+app.get("/projection", async (c) =>
+  c.json(await withNote(c.env, await getProjection(c.env, todayIn(new Date())))),
+);
 
 /** Hoje already grouped and filtered, for the Android app and its widget. */
 app.get("/today", async (c) => {
   const [data, settings] = await Promise.all([
-    getProjection(c.env, todayIn(new Date())),
+    getProjection(c.env, todayIn(new Date())).then((d) => withNote(c.env, d)),
     loadSettings(c.env.DB),
   ]);
   return c.json(todayView(data, settings.reviewed));
+});
+
+/** Mia's line tapped or dismissed (note.ts): it does not come back, on any device. */
+app.post("/mia/nota", async (c) => {
+  const parsed = NoteSeenBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw new HTTPException(400);
+  await markSeen(c.env.DB, parsed.data.id);
+  return c.body(null, 204);
 });
 
 /**
@@ -974,14 +1004,18 @@ export default Sentry.withSentry(sentry, {
    */
   async scheduled(event, env, ctx) {
     if (event.cron === BANKS) {
-      // Fresh banks for the morning, and a safety net for webhooks Pluggy gave up on. Then a
-      // subscription out of its pattern is said, and, on Sunday and on the 1st, Mia's routine
-      // reads them.
+      // Fresh banks for the morning, and a safety net for webhooks Pluggy gave up on. Then the
+      // daily watch says a subscription out of its pattern and a charge that came twice, and, on
+      // Sunday and on the 1st, Mia's routine reads them.
       const report = (error: unknown) => Sentry.captureException(error);
       ctx.waitUntil(
         bankSync(env)
           .catch(report)
-          .then(async () => checkSubscriptions(env, await getProjection(env, todayIn(new Date()))))
+          .then(async () => {
+            const data = await getProjection(env, todayIn(new Date()));
+            await checkSubscriptions(env, data);
+            await checkWatch(env, data);
+          })
           .catch(report)
           .then(() => miaRoutine(env))
           .catch(report),

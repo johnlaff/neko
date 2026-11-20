@@ -128,6 +128,9 @@ ação clara, só com números da planilha e do banco (nada de previsão, nada d
   com os nomes dos itens, e o toque abre direto em Para lançar (`/#para-lancar` no site, a ação
   `PARA_LANCAR` no app). Fila vazia: "Lançou o dia?" até a planilha mudar no dia. Os bancos são
   lidos meia hora antes, para a fila estar fresca.
+- **Cobrança repetida** (a vigia diária, `specs/004-mia`): depois da leitura das 06:00, a mesma
+  loja e o mesmo valor duas vezes seguidas num cartão do dono saem uma vez, no canal Avisos
+  (tabela `notice`, tipo `vigia`; já ditas em `setting.watch_said`). Estornos só aparecem em Hoje.
 - **Avisos do servidor** (Meu Pluggy vencido, planilha ilegível): tabela `notice`, um por tipo por
   dia. O navegador recebe por push; o app, que não usa FCM, busca em `GET /api/reminders` (08:00 e
   noite) e `GET /api/notices` (a cada 3 horas, junto do widget). Resolvido o problema, o aviso sai

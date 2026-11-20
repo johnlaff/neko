@@ -9,6 +9,7 @@ import {
   ceilingStep,
   checkCeiling,
   checkSubscriptions,
+  checkWatch,
   clearNotices,
   DEFAULT_EVENING,
   eveningJob,
@@ -183,6 +184,53 @@ describe("a subscription out of its pattern", () => {
         tag: "subscription",
       },
     ]);
+  });
+});
+
+describe("the daily watch", () => {
+  const repeat = (date: string) => ({
+    kind: "repetida",
+    key: `repetida|petzloja|8990|cartao azul|${date}`,
+    description: "PETZ LOJA 12",
+    card: "Cartão Azul",
+    amount: 89_90,
+    dates: [date, "2026-11-19"],
+    date: "2026-11-19",
+    dispute: false,
+  });
+  const refund = {
+    kind: "estorno",
+    key: "estorno|petzdigital|7566|cartao azul|2026-11-18",
+    description: "PETZ DIGITAL",
+    card: "Cartão Azul",
+    amount: 75_66,
+    dates: ["2026-11-18"],
+    date: "2026-11-18",
+    dispute: false,
+  };
+  const data = (today: string, watch: unknown[]) =>
+    ({ projection: { today }, bank: { watch } }) as unknown as ProjectionResponse;
+
+  it("says a charge that came twice once, with the alerts, and keeps a refund for Hoje", async () => {
+    const d = db();
+    const env = envWith(d);
+    await checkWatch(env, data("2026-11-20", [repeat("2026-11-18"), refund]));
+    await checkWatch(env, data("2026-11-21", [repeat("2026-11-18"), refund]));
+    expect(await recentNotices(d, new Date("2026-11-21T12:00:00Z"))).toEqual([
+      {
+        id: "vigia:2026-11-20",
+        title: "Cobrança repetida: R$ 89,90 no Cartão Azul",
+        body: "Petz Loja 12 cobrou R$ 89,90 duas vezes no Cartão Azul, em 18 e 19 nov. Se foi uma compra só, conteste no banco.",
+        url: "/",
+        tag: "alert",
+      },
+    ]);
+  });
+
+  it("says nothing for a refund alone", async () => {
+    const d = db();
+    await checkWatch(envWith(d), data("2026-11-20", [refund]));
+    expect(await recentNotices(d, new Date("2026-11-20T12:00:00Z"))).toEqual([]);
   });
 });
 

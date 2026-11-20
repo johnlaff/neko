@@ -319,10 +319,22 @@ class MiaEntry(private val onOpen: (topic: String, by: String) -> Unit, val talk
     /** "head" right after she closes, until that way in has the focus again. */
     var returning by mutableStateOf<String?>(null)
 
+    /** The question Mia's line on Hoje hands her screen, asked once as it opens. */
+    private var queued: String? = null
+
     fun open(topic: String, by: String) {
         returning = null
         onOpen(topic, by)
     }
+
+    /** Opens her on Hoje with a question to ask at once; null opens her as she is (her routine). */
+    fun ask(pergunta: String?) {
+        queued = pergunta
+        open("hoje", "head")
+    }
+
+    /** Her screen takes the question, once. */
+    fun takeQueued(): String? = queued.also { queued = null }
 }
 
 val LocalMia = staticCompositionLocalOf<MiaEntry?> { null }

@@ -26,6 +26,7 @@ import {
   todayIn,
   transfersDue,
   unmatchedMovements,
+  watchNews,
   withStatements,
 } from "@neko/engine";
 import { queueView } from "../shared/queue.ts";
@@ -456,6 +457,7 @@ export const bankView = (
       }),
       today,
     ),
+    watch: watchNews(lines, today, settings.othersCards),
   };
 };
 
