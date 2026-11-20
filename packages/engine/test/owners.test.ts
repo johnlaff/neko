@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   type BankCardLine,
+  cardOwner,
   cardsBillSpend,
   cents,
   localDate,
   markOf,
+  monthlyKey,
   owedOnBills,
   ownerKey,
   ownerOf,
+  partOf,
+  paybackPerson,
 } from "../src/index.ts";
 
 const line = (
@@ -80,6 +84,7 @@ describe("owedOnBills", () => {
         date: "2026-09-24",
         installment: 2,
         installments: 12,
+        part: 150_00,
         later: 1500_00,
       },
     ]);
@@ -132,5 +137,69 @@ describe("markOf", () => {
     const marks = [{ key: ownerKey(coffee) ?? "", person: "Lia" }];
     expect(markOf(line("2026-10-02", "PADARIA", 30_01), marks)).toBeNull();
     expect(markOf(coffee, marks)).toEqual(marks[0]);
+  });
+});
+
+describe("a split purchase (Dividir)", () => {
+  const pizza = line("2026-10-14", "PIZZARIA FORNO", 98_00);
+  const half = [{ key: ownerKey(pizza) ?? "", person: "Bia", share: cents(49_00) }];
+
+  it("leaves the owner's part in the ceiling and owes only the other person's", () => {
+    expect(cardsBillSpend([pizza], "2026-11", [], half)).toBe(49_00);
+    const [bia] = owedOnBills([pizza], "2026-11", half);
+    expect(bia).toMatchObject({ person: "Bia", total: 49_00, lines: 1 });
+    expect(bia?.items[0]).toMatchObject({ amount: 98_00, part: 49_00 });
+  });
+
+  it("carries a parcel's share to every parcel still to come", () => {
+    const share = [{ key: ownerKey(plan(2, "2026-11")) ?? "", person: "Bia", share: cents(50_00) }];
+    const [bia] = owedOnBills([plan(2, "2026-11")], "2026-11", share);
+    expect(bia).toMatchObject({ total: 50_00, later: 500_00 });
+  });
+
+  it("never takes more than the charge itself", () => {
+    expect(partOf(pizza, { key: "", person: "Bia", share: cents(120_00) })).toBe(98_00);
+    expect(partOf(pizza, { key: "", person: "Bia" })).toBe(98_00);
+  });
+});
+
+describe("a subscription split every month", () => {
+  const spotify = (date: string) =>
+    line(date, "EBN*SPOTIFY", 34_90, { billMonth: date.slice(0, 7) });
+  const marks = [
+    { key: monthlyKey(spotify("2026-10-06")) ?? "", person: "Bia", share: cents(17_45) },
+  ];
+
+  it("follows each month's charge of that store, card and value, whatever the day", () => {
+    expect(monthlyKey(spotify("2026-10-06"))).toBe("cartao azul|spotify|3490|mensal");
+    expect(markOf(spotify("2026-11-06"), marks)?.person).toBe("Bia");
+    expect(cardsBillSpend([spotify("2026-11-06")], "2026-11", [], marks)).toBe(17_45);
+  });
+
+  it("leaves a purchase of another value at the same store the owner's", () => {
+    expect(markOf(line("2026-11-08", "EBN*SPOTIFY", 9_90), marks)).toBeNull();
+  });
+
+  it("gives way to a mark of that day's charge", () => {
+    const day = spotify("2026-11-06");
+    const both = [...marks, { key: ownerKey(day) ?? "", person: "Rafa" }];
+    expect(markOf(day, both)?.person).toBe("Rafa");
+  });
+});
+
+describe("cardOwner", () => {
+  it("finds whose card it is by a named person's name in it", () => {
+    expect(cardOwner("Banco Lia", ["Lia", "Rafa"])).toBe("Lia");
+    expect(cardOwner("Banco Liana", ["Lia"])).toBeNull();
+    expect(cardOwner("Cartão Azul", ["Lia"])).toBeNull();
+  });
+});
+
+describe("paybackPerson", () => {
+  it("reads a line named after the store and the person, or the person alone, as theirs", () => {
+    expect(paybackPerson("Estudio Lia", ["Lia", "Rafa"])).toBe("Lia");
+    expect(paybackPerson("Lia", ["Lia"])).toBe("Lia");
+    expect(paybackPerson("Salário", ["Lia"])).toBeNull();
+    expect(paybackPerson("Liana", ["Lia"])).toBeNull();
   });
 });

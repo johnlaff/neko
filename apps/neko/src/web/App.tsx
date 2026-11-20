@@ -12,6 +12,7 @@ import {
 import { Fragment, lazy, Suspense, useEffect, useState } from "react";
 import type { UsageEvent } from "../shared/usage.ts";
 import { api, used } from "./api.ts";
+import { faturasSearch } from "./faturas/search.ts";
 import { readAtLabel } from "./format.ts";
 import {
   IconCard,
@@ -251,6 +252,8 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/faturas",
+    // ?m=2026-12 opens that month; ?cartao=, ?pessoa= or ?revisar=true open a page over it.
+    validateSearch: faturasSearch,
     component: lazyRouteComponent(screens.faturas, "Faturas"),
   }),
   createRoute({

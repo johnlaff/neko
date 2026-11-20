@@ -99,6 +99,7 @@
     "streak": 12,
     "best": 12,
     "editedToday": false,
+    "checkedToday": false,
     "atRisk": false,
     "mended": false,
     "week": [
@@ -270,7 +271,7 @@
       "purchases": []
     },
     {
-      "key": "card:cartao azul:2026-11-12=292270",
+      "key": "card:cartao azul:2026-11-12=283807>292270",
       "kind": "cartao",
       "date": "2026-11-12",
       "title": "Fatura Cartão Azul",
@@ -347,7 +348,7 @@
       ]
     },
     {
-      "key": "card:cartao verde:2026-11-12=200000",
+      "key": "card:cartao verde:2026-11-12=36219>200000",
       "kind": "cartao",
       "date": "2026-11-12",
       "title": "Fatura Cartão Verde",

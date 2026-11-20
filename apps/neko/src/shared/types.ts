@@ -11,7 +11,7 @@ import type {
   RefValue,
   SaldoCheck,
   StalledBank,
-  Subscription,
+  SubscriptionList,
   SubscriptionNews,
   TransferDue,
   WatchNews,
@@ -136,6 +136,8 @@ export interface BankView {
   readonly subscriptions?: SubscriptionsView;
   /** Purchases on your cards marked as someone else's; absent from a Worker that predates it. */
   readonly owners?: readonly OwnerMark[];
+  /** People whose part goes in when their Pix lands (set on their page in Faturas); absent before. */
+  readonly onArrival?: readonly string[];
   /** Money to move into an account before the bank debits a bill from it; absent before. */
   readonly transfers?: readonly TransferDue[];
   /** Avisos de compra: how each bank app's reads fared against the bank; absent before. */
@@ -146,14 +148,12 @@ export interface BankView {
   readonly watch?: readonly WatchNews[];
 }
 
-export interface SubscriptionsView {
-  /** Biggest first; `cancel` when marked to cancel. */
-  readonly items: readonly (Subscription & { readonly cancel: boolean })[];
-  /** One month of all of them. */
-  readonly total: Cents;
-  /** One month of the ones marked to cancel. */
-  readonly toCancel: Cents;
-  /** A new one, or one that went up, this week (the 06:00 read says each once); absent before. */
+/** Engine `subscriptionList`: each subscription with the owner's marks, and the ones he cut. */
+export interface SubscriptionsView extends SubscriptionList {
+  /**
+   * A new one, one that went up, or one marked to cancel that charged again, this week (the 06:00
+   * read says each once); absent before.
+   */
   readonly news?: readonly SubscriptionNews[];
 }
 
@@ -209,9 +209,28 @@ export const UserSettings = z.object({
   accountUse: z.record(z.string().min(1).max(64), z.enum(["guardado", "corrente"])).default({}),
   /** Subscriptions (see engine `subscriptions`, by key) the owner marked to cancel. */
   cancel: z.array(z.string().min(1).max(120)).max(100).default([]),
-  /** Purchases on your cards that are someone else's (see engine `ownerKey`), to be paid back. */
+  /** The day each subscription was marked to cancel: a charge after it is news. */
+  cancelOn: z
+    .record(z.string().min(1).max(120), z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .default({}),
+  /** Subscriptions kept on purpose (Revisar uma a uma › Manter). */
+  kept: z.array(z.string().min(1).max(120)).max(100).default([]),
+  /** What the owner said is not a subscription: out of the list. */
+  notSubs: z.array(z.string().min(1).max(120)).max(100).default([]),
+  /** People with no certain day to pay back: their part goes in when their Pix lands, not planned. */
+  onArrival: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
+  /**
+   * Purchases on your cards that are someone else's (see engine `ownerKey`, `monthlyKey`), to be
+   * paid back: all of each, or their `share` of each charge when the owner split it.
+   */
   owners: z
-    .array(z.object({ key: z.string().min(1).max(160), person: z.string().trim().min(1).max(40) }))
+    .array(
+      z.object({
+        key: z.string().min(1).max(160),
+        person: z.string().trim().min(1).max(40),
+        share: CentsSchema.optional(),
+      }),
+    )
     .max(200)
     .default([]),
   /** Origins (bank text, see `originKey`) the owner launched as savings: proposed so next time. */

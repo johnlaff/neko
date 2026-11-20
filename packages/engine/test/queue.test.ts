@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  type BankCardLine,
   type BankMovement,
   buildQueue,
   type CardConfig,
@@ -9,11 +10,12 @@ import {
   type LocalDate,
   localDate,
   originKey,
+  ownerKey,
   placeDraft,
   type QueueInput,
   saldoCheck,
 } from "../src/index.ts";
-import { cell, item, ledger } from "./builders.ts";
+import { cell, type DaySpec, item, ledger } from "./builders.ts";
 
 const d = localDate;
 const visa: CardConfig = { name: "Visa", closingDay: 3, dueDay: 10, closingEstimated: false };
@@ -1310,5 +1312,175 @@ describe("Para lançar: what Mia proposed", () => {
     expect(queue({ proposals: [{ id: "p1", entry: entry({ date: d("2031-01-05") }) }] })).toEqual(
       [],
     );
+  });
+});
+
+describe("Para lançar: someone else's part of a purchase", () => {
+  const card = (description: string, amount: number, extra: Partial<BankCardLine> = {}) =>
+    ({
+      card: "Visa",
+      amount: cents(amount),
+      billMonth: "2026-11",
+      description,
+      installment: null,
+      installments: null,
+      date: d("2026-10-14"),
+      ...extra,
+    }) satisfies BankCardLine;
+  const pizza = card("PIZZARIA FORNO", 9800);
+  const desk = card("ESTUDIO SOFT 02/03", 30000, { installment: 2, installments: 3 });
+  const marks = [
+    { key: ownerKey(pizza) ?? "", person: "Rafa", share: cents(4900) },
+    { key: ownerKey(desk) ?? "", person: "Rafa" },
+  ];
+  // The bills themselves move too (the sheet lacks December's): only the parts matter here.
+  const parts = (over: Partial<QueueInput>) =>
+    queue(over).filter((i) => i.options[0]?.draft?.type === "parte");
+  const withBill = (over: Record<string, DaySpec> = {}) =>
+    ledger("2026-10-01", 92, 0, {
+      "2026-11-10": { saida: cell(39800, [item(39800, "Visa")]) },
+      ...over,
+    });
+
+  it("plans their part as an Entrada on each due day, one per store, parcels to the last", () => {
+    const items = parts({ ledger: withBill(), lines: [pizza, desk], owners: marks });
+    expect(items.map((i) => [i.kind, i.date, i.options[0]?.draft])).toEqual([
+      [
+        "entrada",
+        "2026-11-10",
+        {
+          type: "parte",
+          person: "Rafa",
+          description: "Estudio Soft Rafa",
+          days: [
+            { date: "2026-11-10", amount: 30000 },
+            { date: "2026-12-10", amount: 30000 },
+          ],
+        },
+      ],
+      [
+        "entrada",
+        "2026-11-10",
+        {
+          type: "parte",
+          person: "Rafa",
+          description: "Pizzaria Forno Rafa",
+          days: [{ date: "2026-11-10", amount: 4900 }],
+        },
+      ],
+    ]);
+    const [first] = items;
+    expect(first?.options[0]?.draft && placeDraft(first.options[0].draft as never, [visa])).toEqual(
+      [
+        expect.objectContaining({
+          date: "2026-11-10",
+          column: "entrada",
+          description: "Estudio Soft Rafa",
+          amount: 30000,
+          target: "line",
+        }),
+        expect.objectContaining({ date: "2026-12-10", column: "entrada", amount: 30000 }),
+      ],
+    );
+  });
+
+  it("leaves a part already planned alone, and corrects one planned with another value", () => {
+    const planned = withBill({
+      "2026-11-10": {
+        saida: cell(39800, [item(39800, "Visa")]),
+        entrada: cell(34900, [
+          item(30000, "Estudio Rafa", null),
+          item(4900, "Pizzaria Rafa", null),
+        ]),
+      },
+      "2026-12-10": { entrada: cell(25000, [item(25000, "Estudio Rafa", null)]) },
+    });
+    const items = parts({ ledger: planned, lines: [pizza, desk], owners: marks });
+    expect(items.map((i) => i.options[0]?.draft)).toEqual([
+      {
+        type: "parte",
+        person: "Rafa",
+        description: "Estudio Soft Rafa",
+        days: [
+          {
+            date: "2026-12-10",
+            amount: 30000,
+            line: {
+              date: "2026-12-10",
+              column: "entrada",
+              section: null,
+              description: "Estudio Rafa",
+              amount: 25000,
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("takes away a planned part once the purchase is the owner's again", () => {
+    const planned = withBill({
+      "2026-11-10": {
+        saida: cell(39800, [item(39800, "Visa")]),
+        entrada: cell(4900, [item(4900, "Pizzaria Rafa", null)]),
+      },
+    });
+    const items = queue({ ledger: planned, lines: [pizza, desk], owners: [marks[1] as never] });
+    const gone = items.find(
+      (i) =>
+        i.options[0]?.draft?.type === "parte" &&
+        i.date === "2026-11-10" &&
+        (i.options[0].draft as { description: string }).description === "Pizzaria Rafa",
+    );
+    expect(gone?.options[0]?.draft).toMatchObject({
+      days: [
+        { date: "2026-11-10", amount: 0, line: { description: "Pizzaria Rafa", amount: 4900 } },
+      ],
+    });
+  });
+
+  it("plans nothing for someone whose part goes in only when their Pix lands", () => {
+    expect(
+      parts({ ledger: withBill(), lines: [pizza, desk], owners: marks, onArrival: ["rafa"] }),
+    ).toEqual([]);
+    // What the owner typed for them is theirs to keep: no fix, no removal.
+    const planned = withBill({
+      "2026-11-10": {
+        saida: cell(39800, [item(39800, "Visa")]),
+        entrada: cell(4900, [item(4900, "Pizzaria Rafa", null)]),
+      },
+    });
+    expect(
+      parts({
+        ledger: planned,
+        lines: [pizza, desk],
+        owners: [marks[1] as never],
+        onArrival: ["Rafa"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("plans nothing for a bill already due, nor without marks", () => {
+    const old = card("PIZZARIA FORNO", 9800, { billMonth: "2026-10", date: d("2026-09-14") });
+    expect(parts({ lines: [old], owners: [{ key: ownerKey(old) ?? "", person: "Rafa" }] })).toEqual(
+      [],
+    );
+    expect(parts({ ledger: withBill(), lines: [pizza, desk] })).toEqual([]);
+  });
+
+  it("offers an early Pix to her card's payback or to her purchase, when both are on the next day", () => {
+    const days = ledger("2026-10-01", 92, 0, {
+      "2026-11-12": {
+        saida: cell(200000, [item(200000, "Banco Lia")]),
+        entrada: cell(230000, [item(200000, "Banco Lia", null), item(30000, "Estudio Lia", null)]),
+      },
+    });
+    const pix = mov("2026-10-18", 20000, "PIX RECEBIDO - REM: Lia Exemplo Souza 18/10 - DOCTO: 1");
+    const [i] = queue({ ledger: days, movements: [pix], owners: [{ key: "x", person: "Lia" }] });
+    expect(i?.options.map((o) => [o.label, o.draft?.type])).toEqual([
+      ["Banco Lia", "advance"],
+      ["Estudio Lia", "advance"],
+      ["Entrada nova", "new"],
+    ]);
   });
 });

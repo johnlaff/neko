@@ -98,6 +98,15 @@ export const DraftSchema = z.discriminatedUnion("type", [
     description: Text,
     payback: Line,
   }),
+  z.object({
+    type: z.literal("parte"),
+    person: z.string().trim().min(1).max(40),
+    description: Text,
+    days: z
+      .array(z.object({ date: Day, amount: Money, line: Line.optional() }))
+      .min(1)
+      .max(40),
+  }),
 ]);
 
 const Preview = z.object({ draft: DraftSchema });

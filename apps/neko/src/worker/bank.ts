@@ -8,6 +8,7 @@ import {
   type CardConfig,
   type ClosedBill,
   cents,
+  chargedAgainNews,
   cycleContaining,
   ignoredGaps,
   type Ledger,
@@ -21,8 +22,8 @@ import {
   type Statement,
   saldoCheck,
   stalledBanks,
+  subscriptionList,
   subscriptionNews,
-  subscriptions,
   todayIn,
   transfersDue,
   unmatchedMovements,
@@ -33,6 +34,7 @@ import { queueView } from "../shared/queue.ts";
 import type { BankView, UserSettings } from "../shared/types.ts";
 import { loadPhonePurchases, PHONE_RELEASED, type PhonePurchase } from "./phone.ts";
 import { loadProposals, type ProposalRow, proposalsOf } from "./proposals.ts";
+import { ownerMarks } from "./settings.ts";
 
 /**
  * What was read from the banks, as the engine takes it (specs/003-open-finance). Only the mapping
@@ -371,6 +373,8 @@ export const bankView = (
       arrived: todayIn(new Date(r.read_at)),
     })),
     proposals: proposalsOf(rows.proposals ?? []),
+    owners: ownerMarks(settings),
+    onArrival: settings.onArrival,
   });
   const queue = built.filter((i) => !ignored.has(i.key));
   const synced = (a: BankAccountRow) => labels.get(a.item_id ?? "")?.synced_at ?? null;
@@ -427,7 +431,8 @@ export const bankView = (
       .filter((m) => m.date >= addDays(today, -MISSING_DAYS))
       .map(({ account: _, ...m }) => m),
     subscriptions: subscriptionsView(lines, today, settings),
-    owners: settings.owners,
+    owners: ownerMarks(settings),
+    onArrival: settings.onArrival,
     transfers: transfersDue(
       ledger,
       billPayers(
@@ -461,20 +466,31 @@ export const bankView = (
   };
 };
 
-/** Subscriptions with the owner's marks to cancel; a mark on one that stopped coming just drops. */
+/**
+ * Subscriptions with the owner's marks (cancel, keep, not a subscription, split every month), the
+ * ones he cut, and the news: a new one, one that went up, one marked to cancel that charged again.
+ */
 const subscriptionsView = (
   lines: readonly BankCardLine[],
   today: LocalDate,
   settings: UserSettings,
 ): NonNullable<BankView["subscriptions"]> => {
-  const { items, total } = subscriptions(lines, today, settings.othersCards);
-  const marked = new Set(settings.cancel);
-  const view = items.map((i) => ({ ...i, cancel: marked.has(i.key) }));
+  const cancelOn = Object.fromEntries(
+    Object.entries(settings.cancelOn).map(([key, day]) => [key, localDate(day)]),
+  );
+  const list = subscriptionList(lines, today, settings.othersCards, {
+    cancel: settings.cancel,
+    cancelOn,
+    kept: settings.kept,
+    hidden: settings.notSubs,
+    owners: ownerMarks(settings),
+  });
   return {
-    items: view,
-    total,
-    toCancel: cents(view.filter((i) => i.cancel).reduce((s, i) => s + i.amount, 0)),
-    news: subscriptionNews(lines, today, settings.othersCards),
+    ...list,
+    news: [
+      ...subscriptionNews(lines, today, settings.othersCards),
+      ...chargedAgainNews(list, today, cancelOn),
+    ],
   };
 };
 

@@ -101,7 +101,13 @@ import {
 } from "./pluggy.ts";
 import { eveningMessage, morningMessage, readFailedMessage, sendReminder } from "./push.ts";
 import { ScenarioBody } from "./scenario.ts";
-import { keepBankCards, loadSettings, saveSettings, UserSettings } from "./settings.ts";
+import {
+  keepBankCards,
+  loadSettings,
+  saveSettings,
+  subscriptionMarked,
+  UserSettings,
+} from "./settings.ts";
 import { takeStatement } from "./statement.ts";
 import { recordUse, UsagePost, usageSummary } from "./usage.ts";
 
@@ -393,23 +399,67 @@ app.put("/banks/cards", async (c) => {
   return c.json({ ok: true });
 });
 
-/** Marks a subscription to cancel, or takes the mark off: the method's tag to cancel them all at once. */
+/**
+ * What the owner says about a subscription: to cancel (the method's tag to cancel them all at
+ * once), to keep, or neither (`mark`), and whether it is a subscription at all (`hidden`). Each
+ * field sent changes only itself, so "Desfazer" on one keeps the other.
+ */
+app.put("/banks/subscription", async (c) => {
+  const { key, mark, hidden } = z
+    .object({
+      key: z.string().min(1).max(120),
+      mark: z.enum(["cancel", "keep"]).nullable().optional(),
+      hidden: z.boolean().optional(),
+    })
+    .parse(await c.req.json());
+  const settings = await loadSettings(c.env.DB);
+  await saveSettings(
+    c.env.DB,
+    subscriptionMarked(settings, key, mark, hidden, todayIn(new Date())),
+  );
+  return c.json({ ok: true });
+});
+
+/** Marks a subscription to cancel, or takes the mark off (apps from before /banks/subscription). */
 app.put("/banks/cancel", async (c) => {
   const { key, on } = z
     .object({ key: z.string().min(1).max(120), on: z.boolean() })
     .parse(await c.req.json());
   const settings = await loadSettings(c.env.DB);
-  const rest = settings.cancel.filter((k) => k !== key);
-  await saveSettings(c.env.DB, { ...settings, cancel: on ? [...rest, key].slice(-100) : rest });
+  await saveSettings(
+    c.env.DB,
+    subscriptionMarked(settings, key, on ? "cancel" : null, undefined, todayIn(new Date())),
+  );
   return c.json({ ok: true });
 });
 
-/** Marks a purchase on your card as someone else's, or as yours again (person null). */
+/**
+ * When a person's part goes into the sheet: planned on each bill's due day (the default), or only
+ * as the Entrada their Pix becomes when it lands (`onArrival`), for someone with no certain day.
+ */
+app.put("/banks/person", async (c) => {
+  const { person, onArrival } = z
+    .object({ person: z.string().trim().min(1).max(40), onArrival: z.boolean() })
+    .parse(await c.req.json());
+  const settings = await loadSettings(c.env.DB);
+  const rest = settings.onArrival.filter((p) => normalizeName(p) !== normalizeName(person));
+  await saveSettings(c.env.DB, {
+    ...settings,
+    onArrival: onArrival ? [...rest, person].slice(-20) : rest,
+  });
+  return c.json({ ok: true });
+});
+
+/**
+ * Marks a purchase on your card as someone else's, or as yours again (person null): all of it, or
+ * their `share` of each charge (Dividir). A subscription's monthly key splits every charge.
+ */
 app.put("/banks/owner", async (c) => {
-  const { key, person } = z
+  const { key, person, share } = z
     .object({
       key: z.string().min(1).max(160),
       person: z.string().trim().min(1).max(40).nullable(),
+      share: z.number().int().positive().nullable().optional(),
     })
     .parse(await c.req.json());
   const settings = await loadSettings(c.env.DB);
@@ -420,7 +470,9 @@ app.put("/banks/owner", async (c) => {
   const who = known ? known.person : person;
   await saveSettings(c.env.DB, {
     ...settings,
-    owners: who ? [...rest, { key, person: who }].slice(-200) : rest,
+    owners: who
+      ? [...rest, { key, person: who, ...(share ? { share: cents(share) } : {}) }].slice(-200)
+      : rest,
   });
   return c.json({ ok: true });
 });

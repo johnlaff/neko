@@ -719,7 +719,11 @@ const Row = ({
         </fieldset>
       )}
       {lines.length > 0 && <Impact lines={lines} />}
-      {adjusting && draft && draft.type !== "card" && draft.type !== "forecast" ? (
+      {adjusting &&
+      draft &&
+      draft.type !== "card" &&
+      draft.type !== "forecast" &&
+      draft.type !== "parte" ? (
         <EntryForm
           draft={draft}
           today={today}
