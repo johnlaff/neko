@@ -57,6 +57,7 @@ import {
   checkSubscriptions,
   checkWatch,
   clearNotices,
+  DEFAULT_EVENING,
   EVENING_HOURS,
   eveningJob,
   loadEveningHour,
@@ -1075,7 +1076,12 @@ export default Sentry.withSentry(sentry, {
       return;
     }
     if (event.cron === EVENING_BANKS || event.cron === EVENING) {
-      const job = eveningJob(clockIn(new Date(event.scheduledTime)), await loadEveningHour(env.DB));
+      // D1 still failing after its retries: the usual hour, rather than a run that stops here.
+      const hour = await loadEveningHour(env.DB).catch((error) => {
+        console.error("evening hour unread, using the default", error);
+        return DEFAULT_EVENING;
+      });
+      const job = eveningJob(clockIn(new Date(event.scheduledTime)), hour);
       // Half an hour before the message: Para lançar then shows the day's purchases.
       if (job === "banks")
         ctx.waitUntil(bankSync(env).catch((error) => Sentry.captureException(error)));

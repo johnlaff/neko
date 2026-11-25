@@ -1,5 +1,6 @@
 import { localDate } from "@neko/engine";
 import { describe, expect, it, vi } from "vitest";
+import { retryD1 } from "../src/worker/d1.ts";
 import type { Env } from "../src/worker/env.ts";
 import worker from "../src/worker/index.ts";
 import {
@@ -7,7 +8,6 @@ import {
   ensureWebhook,
   hookSync,
   pluggy,
-  retryD1,
   sameSecret,
   syncAll,
   syncItem,
