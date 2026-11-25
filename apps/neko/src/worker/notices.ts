@@ -1,5 +1,6 @@
 import type { LocalDate } from "@neko/engine";
 import type { ProjectionResponse } from "../shared/types.ts";
+import { retryD1 } from "./d1.ts";
 import type { Env } from "./env.ts";
 import {
   type CeilingNews,
@@ -97,11 +98,11 @@ const put = (db: D1Database, key: string, value: unknown) =>
     .bind(key, JSON.stringify(value))
     .run();
 
+/** Read by the crons too, where a D1 hiccup would stop the run: tried again (d1.ts). */
 const get = async <T>(db: D1Database, key: string): Promise<T | null> => {
-  const row = await db
-    .prepare("SELECT value FROM setting WHERE key = ?")
-    .bind(key)
-    .first<{ value: string }>();
+  const row = await retryD1(() =>
+    db.prepare("SELECT value FROM setting WHERE key = ?").bind(key).first<{ value: string }>(),
+  );
   return row ? (JSON.parse(row.value) as T) : null;
 };
 

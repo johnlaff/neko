@@ -67,6 +67,8 @@ returns the new formula and note exactly as the owner would type them.
   inbox endpoints.
 - `src/worker/pipeline.ts`: sheet → projection, cached in D1 (see "Reading the sheet" below).
   `PIPELINE_VERSION` lives here.
+- `src/worker/d1.ts`: `retryD1`, which tries a query again when D1 fails for a moment; used by the
+  bank sync and the Pluggy webhook, and by the settings the crons read (`notices.ts`).
 - Sign-in: `auth.ts` (sessions), `passkey.ts` (WebAuthn), `android.ts` (`assetlinks.json`).
 - Banks: `pluggy.ts` (API client, webhook, sync), `meupluggy.ts` (refresh through the owner's
   Meu Pluggy session), `bank.ts` (rows to engine types).

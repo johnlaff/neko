@@ -1,9 +1,10 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { LocalDate } from "@neko/engine";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ProjectionResponse } from "../src/shared/types.ts";
 import type { Env } from "../src/worker/env.ts";
+import worker from "../src/worker/index.ts";
 import {
   ceilingNews,
   ceilingStep,
@@ -242,6 +243,52 @@ describe("the evening hour", () => {
     expect(await loadEveningHour(d)).toBe(22);
     await d.prepare("UPDATE setting SET value = ? WHERE key = 'evening_hour'").bind("3").run();
     expect(await loadEveningHour(d)).toBe(21);
+  });
+
+  it("is read again when D1 fails for a moment", async () => {
+    const d = db();
+    await saveEveningHour(d, 22);
+    let failures = 1;
+    const prepare = d.prepare.bind(d);
+    const flaky = {
+      ...d,
+      prepare: (sql: string) => {
+        if (sql.startsWith("SELECT value FROM setting") && failures-- > 0)
+          throw new Error("D1_ERROR: internal error; reference = abc");
+        return prepare(sql);
+      },
+    } as unknown as D1Database;
+    expect(await loadEveningHour(flaky)).toBe(22);
+    expect(failures).toBeLessThan(0);
+  });
+
+  it("falls back to 21:00 in the evening cron when D1 keeps failing, instead of stopping", async () => {
+    // The 19:30 run of 20/11 (NEKO-4): with the usual hour it has nothing to do.
+    const down = {
+      prepare: () => ({
+        bind: () => ({
+          first: () => Promise.reject(new Error("D1_ERROR: internal error; reference = abc")),
+        }),
+      }),
+    } as unknown as D1Database;
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers();
+    try {
+      const run = worker.scheduled?.(
+        { cron: "30 21-23,0-1 * * *", scheduledTime: Date.parse("2026-11-20T22:30:00Z") } as never,
+        envWith(down),
+        { waitUntil: () => {} } as unknown as ExecutionContext,
+      );
+      await vi.runAllTimersAsync();
+      await expect(run).resolves.toBeUndefined();
+      expect(logged).toHaveBeenCalledWith(
+        "evening hour unread, using the default",
+        expect.any(Error),
+      );
+    } finally {
+      vi.useRealTimers();
+      logged.mockRestore();
+    }
   });
 
   it("reads the banks half an hour before the message, and does nothing at other runs", () => {
