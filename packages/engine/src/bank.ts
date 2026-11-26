@@ -434,7 +434,7 @@ export interface Matching {
  */
 export const party = (description: string): string | null => {
   const m = normalizeName(description).match(
-    /^(?:pix|ted|transferencia)\s+(?:enviad[oa]|recebid[oa])\s+(?:-\s*(?:des|rem):?\s+)?([a-z ]+)/,
+    /^(?:pix|ted|transferencia)\s+(?:enviad[oa]|recebid[oa])\s+(?:-\s*(?:(?:des|rem):?\s+)?)?([a-z ]+)/,
   );
   const words = m?.[1]?.trim().split(/\s+/) ?? [];
   return words.length >= 2 ? words.join(" ") : null;
@@ -447,6 +447,11 @@ export const party = (description: string): string | null => {
 const self = (description: string): string | null => {
   const [first, second, third] = party(description)?.split(" ") ?? [];
   return third ? `${first} ${second} ${third[0]}` : null;
+};
+
+const differentPeople = (a: string, b: string): boolean => {
+  const [x, y] = [self(a), self(b)];
+  return x !== null && y !== null && x !== y;
 };
 
 /** Who a movement is with: the person of a Pix however each bank writes it, else its text. */
@@ -487,7 +492,9 @@ export const matchMovements = (
         o.amount === -m.amount &&
         Math.abs(diffDays(o.date, m.date)) <= TRANSFER_DAYS &&
         // Within one account only when both sides say the same: a bank shows an inner move twice.
-        (o.account !== m.account || o.description === m.description),
+        (o.account !== m.account || o.description === m.description) &&
+        // Not a Pix to someone else: both sides of a move name the same person, when they name one.
+        !differentPeople(o.description, m.description),
     );
     if (!other) continue;
     moved.add(m);

@@ -397,6 +397,25 @@ describe("account movements the sheet does not have", () => {
     expect(missing.map((m) => m.description)).toEqual(["PIX ENVIADO", "DEVOLUÇÃO"]);
   });
 
+  it("does not take a Pix to someone else as the other half of a move to oneself", () => {
+    const missing = unmatchedMovements(
+      days,
+      [
+        mov("2026-10-10", -7000, "Pix enviado Bia Exemplo Souza", "carteira"),
+        mov("2026-10-10", 7000, "Pix recebido - Ana Teste Lima", "banco"),
+        mov("2026-10-10", -7000, "Pix enviado - Ana Teste Lima", "banco"),
+        mov("2026-10-10", 7000, "Pix recebido ANA TESTE LIMA", "carteira"),
+        mov("2026-10-10", -7000, "Pix enviado Ana Teste Lima", "carteira"),
+        mov("2026-10-10", -7000, "Pix enviado Bia Exemplo Souza", "carteira"),
+      ],
+      today,
+    );
+    expect(missing.map((m) => m.description)).toEqual([
+      "Pix enviado Bia Exemplo Souza",
+      "Pix enviado Bia Exemplo Souza",
+    ]);
+  });
+
   it("leaves out the payment of a card bill, which the bills already check", () => {
     const missing = unmatchedMovements(
       days,
