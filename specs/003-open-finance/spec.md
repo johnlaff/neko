@@ -65,7 +65,9 @@ de saldo, fatura e projeção continuam vindo só da planilha.
   planilha quando o valor e a direção são iguais e a data fica a até 7 dias, como no Actual Budget.
   Cada linha da planilha responde por um movimento só, o mais próximo primeiro. O que sobra vira
   "não está na planilha" (`unmatchedMovements`). Antes disso saem as transferências entre contas
-  do próprio dono (mesmo valor saindo de uma e entrando noutra em até 2 dias) e os pagamentos de
+  do próprio dono (mesmo valor saindo de uma e entrando noutra em até 2 dias; quando os dois lados
+  dizem o nome da pessoa do Pix, tem de ser o mesmo nome, então um Pix para outra pessoa no mesmo
+  valor e dia não vira a outra metade da transferência) e os pagamentos de
   fatura de cartão, que as faturas já conferem. Um Pix pode pagar duas linhas do mesmo dia da
   planilha somadas. A tela mostra só os últimos 40 dias.
 - **Faturas (engine, `billChecks`):** para cada fatura futura de um cartão que a planilha conhece,
