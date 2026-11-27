@@ -166,7 +166,8 @@ export const draftLines = (
     const whole =
       cell && !shown.has(key) && (cell.before !== own || cell.before + cell.delta !== p.amount)
         ? {
-            label: `${COLUMN[p.column]} do dia`,
+            // The day's cell is named by its date: two placements on two days read apart.
+            label: `Total ${p.column === "diario" ? "do" : "da"} ${COLUMN[p.column]} em ${dayMonth(p.date)}`,
             before: cell.before,
             after: cents(cell.before + cell.delta),
           }
