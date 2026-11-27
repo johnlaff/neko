@@ -178,7 +178,7 @@
               "after": 4250,
               "diff": null,
               "cell": {
-                "label": "Diário do dia",
+                "label": "Total do Diário em 03/10",
                 "before": 5638,
                 "after": 9888
               }
@@ -297,7 +297,7 @@
               "after": 292270,
               "diff": 8463,
               "cell": {
-                "label": "Saída do dia",
+                "label": "Total da Saída em 12/11",
                 "before": 320026,
                 "after": 328489
               }
@@ -386,7 +386,7 @@
               "after": 200000,
               "diff": 163781,
               "cell": {
-                "label": "Saída do dia",
+                "label": "Total da Saída em 12/11",
                 "before": 320026,
                 "after": 483807
               }
@@ -422,7 +422,7 @@
               "after": 200000,
               "diff": 163781,
               "cell": {
-                "label": "Saída do dia",
+                "label": "Total da Saída em 12/11",
                 "before": 320026,
                 "after": 483807
               }

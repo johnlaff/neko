@@ -68,7 +68,7 @@ describe("queue lines", () => {
         before: 31941,
         after: 40255,
         diff: 8314,
-        cell: { label: "Saída do dia", before: 41941, after: 50255 },
+        cell: { label: "Total da Saída em 12/11", before: 41941, after: 50255 },
       },
     ]);
   });
