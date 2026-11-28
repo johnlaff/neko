@@ -127,8 +127,9 @@ com valores diferentes, valor negativo.
      Um Pix lançado como guardado faz a próxima vez da mesma origem vir como guardado.
    - Só o confirmado (pendente espera), só os últimos 40 dias. Ignorado e lançado não voltam
      (`queue_decision`, migração 0009); desfazer traz o item de volta.
-   - "Saldo bate": o Saldo de ontem contra a soma das contas correntes (sem as de guardar), com o
-     banco que não atualizou hoje nomeado. A diferença pode ser lançada como Entrada ou Saída.
+   - "Saldo bate": o Saldo de ontem contra a soma das contas correntes (sem as de guardar, com as
+     Reservas e Cofrinhos de dentro delas), com o banco que não atualizou hoje nomeado. A diferença
+     pode ser lançada como Entrada ou Saída.
    - Banco parado: um banco que o Meu Pluggy não lê há 2 dias ou mais aparece embaixo de Para
      lançar ("Sem atualizar: Inter desde 12 nov"), porque a fila calma pode estar só sem notícia
      dele (`stalledBanks`). Sem aviso no celular: quando ele volta, o que chegar entra na fila e o

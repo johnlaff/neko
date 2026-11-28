@@ -52,7 +52,11 @@ const txn = (id: string, over: Record<string, unknown> = {}) => ({
 });
 
 /** A fake Pluggy API: routes by path, records calls, pages transactions two at a time. */
-const fakeApi = (state: { txns: unknown[]; hooks?: { id: string; url: string }[] }) => {
+const fakeApi = (state: {
+  txns: unknown[];
+  hooks?: { id: string; url: string }[];
+  accounts?: unknown[];
+}) => {
   const calls: string[] = [];
   const f = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(input));
@@ -63,7 +67,8 @@ const fakeApi = (state: { txns: unknown[]; hooks?: { id: string; url: string }[]
         headers: { "content-type": "application/json" },
       });
     if (url.pathname === "/auth") return json({ apiKey: "key" });
-    if (url.pathname === "/accounts") return json({ results: [card], next: null });
+    if (url.pathname === "/accounts")
+      return json({ results: state.accounts ?? [card], next: null });
     if (url.pathname === "/bills")
       return json({
         results: [{ id: "bill-1", dueDate: "2026-10-12T00:00:00.000Z", totalAmount: 1500.99 }],
@@ -219,6 +224,42 @@ describe("bank sync", () => {
     expect(rows).toEqual([
       { id: "brl", amount: 10010 },
       { id: "usd", amount: 5490 },
+    ]);
+  });
+
+  it("counts the money put in Reservas inside the account, which the balance leaves out", async () => {
+    const db = await withItem();
+    const checking = {
+      id: "acc-checking",
+      type: "BANK",
+      subtype: "CHECKING_ACCOUNT",
+      name: "Conta Teste",
+      balance: 12.3,
+      bankData: {
+        closingBalance: 12.3,
+        hasReservedBalance: true,
+        reservedBalances: [
+          { name: "Viagem", availableAmounts: [{ amount: 1500.55, currencyCode: "BRL" }] },
+          { name: "Cofrinho", availableAmounts: [{ amount: 300, currencyCode: "BRL" }] },
+          { name: "Dólar", availableAmounts: [{ amount: 50, currencyCode: "USD" }] },
+        ],
+      },
+    };
+    const plain = {
+      ...checking,
+      id: "acc-plain",
+      balance: 40,
+      bankData: { reservedBalances: null },
+    };
+    await syncItem(
+      db as never,
+      fakeApi({ txns: [], accounts: [checking, plain] }).api,
+      ITEM,
+      TODAY,
+    );
+    expect(db.sqlite.prepare("SELECT id, balance FROM bank_account ORDER BY id").all()).toEqual([
+      { id: "acc-checking", balance: 181285 },
+      { id: "acc-plain", balance: 4000 },
     ]);
   });
 
