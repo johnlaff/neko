@@ -54,6 +54,9 @@ de saldo, fatura e projeção continuam vindo só da planilha.
 - **Armazenamento (D1, migração nova):**
   - `bank_item`: item, banco e último sync.
   - `bank_account`: conta ou cartão, tipo, últimos dígitos e o cartão adicional pelo próprio número.
+    O saldo da conta soma o dinheiro posto numa Reserva ou num Cofrinho dela (Mercado Pago), que a
+    Pluggy manda à parte (`reservedBalances`): continua sendo dinheiro do dono naquela conta, e
+    sem ele o Saldo bate pareceria faltar tudo o que foi reservado (`accountCents`).
   - `bank_txn`: id do provedor, conta, data da compra, valor em centavos, descrição, parcela n de N,
     fatura e data prevista da fatura, e situação pendente ou lançada.
   - `bank_bill`: faturas fechadas.

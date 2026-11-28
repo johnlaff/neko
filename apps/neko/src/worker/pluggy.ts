@@ -27,6 +27,21 @@ const CreditData = z
   })
   .nullish();
 
+/** Money set apart inside the account, as Mercado Pago's Reservas and Cofrinhos. */
+const BankData = z
+  .object({
+    reservedBalances: z
+      .array(
+        z.object({
+          availableAmounts: z
+            .array(z.object({ amount: z.number(), currencyCode: z.string().nullish() }))
+            .nullish(),
+        }),
+      )
+      .nullish(),
+  })
+  .nullish();
+
 const Account = z.object({
   id: z.string().min(1),
   type: z.string(),
@@ -35,7 +50,19 @@ const Account = z.object({
   number: z.string().nullish(),
   balance: z.number(),
   creditData: CreditData,
+  bankData: BankData,
 });
+
+/**
+ * What the account holds, in cents. Money put in a Reserva or a Cofrinho comes apart from the
+ * balance (`reservedBalances`), and moving it there is no movement at the bank, but it is still
+ * the owner's money in that account: left out, the Saldo would look short by all of it.
+ */
+export const accountCents = (a: z.infer<typeof Account>): number =>
+  (a.bankData?.reservedBalances ?? [])
+    .flatMap((r) => r.availableAmounts ?? [])
+    .filter((x) => (x.currencyCode ?? "BRL") === "BRL")
+    .reduce((sum, x) => sum + toCents(x.amount), toCents(a.balance));
 
 const Transaction = z.object({
   id: z.string().min(1),
@@ -212,7 +239,7 @@ export const syncItem = async (
             a.subtype ?? null,
             a.name,
             a.number ?? null,
-            toCents(a.balance),
+            accountCents(a),
             credit?.creditLimit == null ? null : toCents(credit.creditLimit),
             credit?.availableCreditLimit == null ? null : toCents(credit.availableCreditLimit),
             credit?.balanceCloseDate ? civilDate(credit.balanceCloseDate) : null,
