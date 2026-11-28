@@ -454,6 +454,12 @@ const differentPeople = (a: string, b: string): boolean => {
   return x !== null && y !== null && x !== y;
 };
 
+/** Two texts of one inner move: the same, or one is the other plus a name ("... Reserva"). */
+const sameMove = (a: string, b: string): boolean => {
+  const [x, y] = [normalizeName(a), normalizeName(b)];
+  return x === y || x.startsWith(`${y} `) || y.startsWith(`${x} `);
+};
+
 /** Who a movement is with: the person of a Pix however each bank writes it, else its text. */
 export const originOf = (description: string): string =>
   self(description) ?? originKey(description);
@@ -491,8 +497,10 @@ export const matchMovements = (
         o.account !== undefined &&
         o.amount === -m.amount &&
         Math.abs(diffDays(o.date, m.date)) <= TRANSFER_DAYS &&
-        // Within one account only when both sides say the same: a bank shows an inner move twice.
-        (o.account !== m.account || o.description === m.description) &&
+        // Within one account only when both sides say the same: a bank shows an inner move twice,
+        // and money put in a Reserva of the account comes as "Dinheiro reservado" plus the same
+        // text with the Reserva's name (its money already counts in the account's balance).
+        (o.account !== m.account || sameMove(o.description, m.description)) &&
         // Not a Pix to someone else: both sides of a move name the same person, when they name one.
         !differentPeople(o.description, m.description),
     );
