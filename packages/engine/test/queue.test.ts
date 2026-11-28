@@ -618,6 +618,23 @@ describe("Para lançar: the owner's own accounts", () => {
     expect(items).toEqual([]);
   });
 
+  it("money put in a Reserva inside the account is a move, not an Entrada and a Diário", () => {
+    // The bank lists each move into a Reserva twice in the same account: "Dinheiro reservado" in,
+    // and the same text with the Reserva's name out. A Pix to someone else that day still counts.
+    const items = queue({
+      movements: [
+        mov("2026-10-05", 150000, "Dinheiro reservado", { id: "a" }),
+        mov("2026-10-05", -150000, "Dinheiro reservado Viagem", { id: "b" }),
+        mov("2026-10-05", 30000, "Dinheiro reservado", { id: "c" }),
+        mov("2026-10-05", -30000, "Dinheiro reservado Cofrinho Teste", { id: "d" }),
+        mov("2026-10-05", -2500, "Pix enviado Joana Outra Pessoa", { id: "e" }),
+      ],
+    });
+    expect(items.map((i) => [i.kind, i.bank.map((b) => b.description)])).toEqual([
+      ["diario", ["Pix enviado Joana Outra Pessoa"]],
+    ]);
+  });
+
   it("a Pix from oneself whose other side the bank has not shown yet is a move, not an Entrada", () => {
     // Earlier moves show the owner's own name on both sides; today one account shows the money
     // coming in, while the account it left is a few days behind at the bank.
